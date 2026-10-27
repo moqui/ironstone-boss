@@ -535,6 +535,14 @@ People).
 | Commons | the tray panel's Approvals group and the center's `Approvals` list | the topics with approve and refuse services that are addressed to me | approve, refuse, bulk approve, open | everything waiting on me |
 | People, Projects, Purchasing, Sales, Accounting | their own approval lists over their records (design-<app>); whether they include the `Approvals` form filtered to their topics is decided in design-crosscut §3.15 | the app's topics | as the app's list | the app's policy |
 
+**Oct 27 core-design extension (proposed).**
+[design-crosscut §3.15](design-crosscut.md#315-approvals-waiting) decides that Purchasing and
+Accounting include this same approval-provider/form contract with their topic filters, alongside
+their domain worklists. Customer Service exception approvals use it where policy requires one.
+Both the tray and app surface call the same revision-bound source action; a notification is not
+another document state machine. The six core designs reuse the existing shell, context, Chatter,
+files, record links and calendar services instead of reopening their implementation.
+
 ### LiveCall
 
 - **Layout:** panel as `.qvue` in the framework's `q-page-sticky` slot, 320 × 180, draggable;

@@ -1282,8 +1282,21 @@ chooses the tabs and actions.
 | Projects | Overview, Conversation, Work, Items, Files | requests of the projects the user sees, and the unassigned project-type requests | triage (accept, assign, set project, priority, due), make or link work items, convert to project, complete with a resolution, cancel | turning requests into planned work |
 | Projects, client users | Overview (read-only after submit), Conversation as messages, Work as the status of shared items | their organization's requests in their projects, and the ones they filed | raise, comment, add files, cancel their own | where their request stands |
 | Commons | Overview, Conversation, Tasks, Files | requests I raised, am assigned to or watch | comment, submit a draft, cancel my own, reassign when I am the assignee, attach (design-drawers-commons §8) | status and the conversation |
-| Customer Service | Overview with the customer card and SLA, Conversation email-first with saved replies, Work, Files (design-customer-service) | cases | the case actions; Escalate to development sets a project or links a work item | the customer and the clock |
-| Purchasing, Maintenance, Sales, Warehouse | Overview, Items, Conversation (their design files) | `RqtPurchase`, maintenance, `RqtQuote`, `RqtInventory` | their flows | their records |
+| Customer Service | Overview with customer/SLA, Conversation email-first, Work, linked order/return, Files; [case design](design-customer-service.md) | support cases and server-derived customer/queue scope | triage, reply, pause/reopen, explicit resolution; escalate by linking work | the customer and the clock |
+| Purchasing | Overview, Items, source demand/PO progress, Conversation; [purchasing design](design-purchasing.md) | `RqtPurchase`; proposed purchase-RFQ type only in its sourcing context | revision-bound request approval and source conversion, subject to procurement policy | requirements and committed supply |
+| Warehouse | Overview, Items, source movement/transfer progress, Conversation; [warehouse design](design-warehouse.md) | `RqtInventory` and authorized facilities | internal-stock request approval and fulfillment through stock workflows | requested and physically fulfilled quantities |
+| Maintenance, Sales | Overview, Items, Conversation (their design files) | maintenance and customer `RqtQuote` | their flows | their records |
+
+**Oct 27 core-design extension (proposed, not an implementation claim).**
+[design-crosscut §3.11](design-crosscut.md#311-requestdetail) preserves this base definition and
+registers the new app contexts. Linked-work completion becomes request-type-aware: Projects
+keeps its existing rule, Customer Service requires an agent's resolution, and procurement/stock
+requests follow their actual source documents. A linked development task finishing cannot
+silently resolve a support case or mark materials supplied. The shared service extension must
+cover automatic hooks as well as screen actions; generic request links/intake/visibility already
+exist and are reused. The proposed service-only CaseServiceFacts, CaseSlaAction,
+CaseReplyAction and CaseServiceLinks panels are specified once in that crosscut extension;
+they do not change Projects' default tabs or grant service/financial authority.
 
 ### RequestIntake
 
@@ -1896,6 +1909,11 @@ organization without client sign-in.
 
 ### InvoiceDetail (Context passed)
 
+The core-app definition is now [design-crosscut §3.16](design-crosscut.md#316-invoicedetail).
+Its Accounting/source/period guards extend the common screen while retaining the Projects
+time/milestone forms and client restrictions described below. The following built behavior is
+the compatibility baseline; proposed extensions do not imply it has already changed.
+
 The Invoice detail, a research-crosscut §3 reused screen added at this file's review (Accounting, Projects, Sales,
 Purchasing, Customer Service), designed in design-crosscut with Accounting's version first; Projects mounts it at
 `Projects/Billing/InvoiceDetail` with this row:
@@ -1924,6 +1942,10 @@ time of a line is shown only for a project that shares its hours, as day, work i
 and hours: never who, a rate, an amount or a comment, though the invoice's own line amounts are the client's.
 
 ### OrderDetail (Context passed)
+
+The common definition and app action sets are now
+[design-crosscut §3.6](design-crosscut.md#36-orderdetail); the Projects estimate and source-link
+behavior below remains its existing context.
 
 The Order detail (research-crosscut §3.6), designed in design-crosscut; Projects mounts it at
 `Projects/Billing/OrderDetail` for the sales order a project fulfils:

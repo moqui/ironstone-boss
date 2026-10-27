@@ -11,24 +11,25 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 - **Implemented in** of the design gaps closed on Oct 19, 2026 (Chatter edit and delete, the contact info card, EventDetail's linked records, the Account photo, Duplicate page): `update#RequestComment` and `delete#RequestComment` are reached from Chatter through Mantle's `update#RecordNote` and `delete#RecordNote` for a note on a request, and are filled with `Shared/Chatter`, which edits and deletes notes on every record (the Commons hosts, RequestDetail among them). Their **Designed in** is blank until design-drawers-commons, which names most of them in its form summaries and §19, is reviewed again.
 - **Designed in** for [design-projects.md](design-projects.md) was filled on Oct 21, 2026 from the Mantle services its screen sections name (the form summaries, the actions and the Context passed blocks), each screen by the path the design gives it, after what an earlier design wrote; the `Projects` root calls `setup#UserOrganizationInfo` as the Commons and Comms roots do. Services the design names as new are not rows until Mantle has them. The 17 services of `work/GitServices.xml`, added to Mantle on Oct 20, joined the Work table (no BOSS screen calls them yet), and `link#RequestRecord` and `unlink#RequestRecord`, added after the drawers-commons save point, joined Request's Added table with the Commons screens that call them.
 - **Implemented in** for [design-projects.md](design-projects.md) was filled on Oct 22, 2026 at the end of the Projects build (impl-projects.md P11), as the drawers-commons pass was: each Projects screen whose transitions, actions or forms call the service, directly or through the `ironstone.*` services (followed from one to the next, not into Mantle's own calls), after what Commons wrote. A `.qvue` screen and its terminal twin go by the `.xml` path (`Projects/Time/MyTime` for MyTimeTui too); the shared screens by their Projects mount (`Projects/WorkItems/WorkItemDetail`, `Projects/Requests/RequestDetail`, `Projects/Billing/InvoiceDetail`, `Projects/Billing/OrderDetail`); Commons' Knowledge and KnowledgeTui by the Docs tab (`Projects/Projects/ProjectDetail/Docs`); the root's always-actions as `Projects`; the public request form as `RequestIntake`. A service reached from more than twelve Projects screens (the visibility and settings reads behind the access and find services) is written as a count. 68 rows filled; the **Added in the Projects build** tables at the end of Account, Party, Request and Work hold the 112 services Mantle gained in P1–P10 that a built screen calls (their **Designed in** is blank: the design names them as new, §15).
+- **Designed in** for the six core app drafts and [design-crosscut.md](design-crosscut.md) was extended on Oct 27, 2026 from their form/service coverage review. New mappings are additive to Commons and Projects; **Implemented in** is unchanged. Proposed services and definitions inside XML comments are not counted as active existing services.
 
 ## Account (162 services)
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| BaiServices | upload#BaiVersion2 |  |  |
+| BaiServices | upload#BaiVersion2 | Accounting/Banking/StatementImport |  |
 | BaiServices | consume#Bai2SystemMessage |  |  |
 | BaiServices | import#BaiVersion2 |  |  |
-| FinancialAccountServices | get#StatementPrintInfo |  |  |
-| FinancialAccountServices | create#FinancialAccount |  |  |
-| FinancialAccountServices | update#FinancialAccount |  |  |
+| FinancialAccountServices | get#StatementPrintInfo | Accounting/Banking/FinancialAccountDetail |  |
+| FinancialAccountServices | create#FinancialAccount | Accounting/Banking/FinancialAccounts |  |
+| FinancialAccountServices | update#FinancialAccount | Accounting/Banking/FinancialAccountDetail |  |
 | FinancialAccountServices | getOrCreate#FinancialAccount |  |  |
 | FinancialAccountServices | calculate#FinancialAccountTotals |  |  |
-| FinancialAccountServices | adjust#FinancialAccount |  |  |
-| FinancialAccountServices | deposit#FinancialAccount |  |  |
-| FinancialAccountServices | withdraw#FinancialAccount |  |  |
-| FinancialAccountServices | transfer#FinancialAccount |  |  |
-| FinancialAccountServices | reverse#FinancialAccountTrans |  |  |
+| FinancialAccountServices | adjust#FinancialAccount | Accounting/Banking/FinancialAccountDetail |  |
+| FinancialAccountServices | deposit#FinancialAccount | Accounting/Banking/FinancialAccountDetail |  |
+| FinancialAccountServices | withdraw#FinancialAccount | Accounting/Banking/FinancialAccountDetail |  |
+| FinancialAccountServices | transfer#FinancialAccount | Accounting/Banking/FinancialAccountDetail |  |
+| FinancialAccountServices | reverse#FinancialAccountTrans | Accounting/Banking/FinancialAccountDetail |  |
 | FinancialAccountServices | authorize#FinancialAccount |  |  |
 | FinancialAccountServices | expire#FinancialAccountAuth |  |  |
 | FinancialAccountServices | disburse#FinancialAccount |  |  |
@@ -43,110 +44,110 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | FinancialAccountServices | release#FinancialAccountPayment |  |  |
 | FinancialAccountServices | refund#FinancialAccountPayment |  |  |
 | InvoiceServices | get#InvoiceBasicInfo |  |  |
-| InvoiceServices | get#InvoiceDisplayInfo |  |  |
+| InvoiceServices | get#InvoiceDisplayInfo | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Shared/Customer360; Shared/Supplier360; Shared/InvoiceDetail |  |
 | InvoiceServices | get#InvoiceTotal |  |  |
 | InvoiceServices | update#InvoiceTotals |  |  |
 | InvoiceServices | calculate#MissingInvoiceTotals |  |  |
 | InvoiceServices | get#InvoicePrintInfo |  |  |
-| InvoiceServices | get#ReceivableStatementInfo |  |  |
-| InvoiceServices | create#Invoice |  |  |
-| InvoiceServices | update#Invoice |  | Projects/Billing/InvoiceDetail |
+| InvoiceServices | get#ReceivableStatementInfo | Accounting/Receivables/Statements |  |
+| InvoiceServices | create#Invoice | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
+| InvoiceServices | update#Invoice | Shared/InvoiceDetail | Projects/Billing/InvoiceDetail |
 | InvoiceServices | update#InvoiceClosed |  |  |
 | InvoiceServices | checkSet#InvoiceDueDate |  | Projects/Billing/InvoiceDetail |
-| InvoiceServices | create#InvoiceItem |  |  |
-| InvoiceServices | update#InvoiceItem |  |  |
+| InvoiceServices | create#InvoiceItem | Shared/InvoiceDetail |  |
+| InvoiceServices | update#InvoiceItem | Shared/InvoiceDetail |  |
 | InvoiceServices | update#InvoiceItemClosed |  |  |
-| InvoiceServices | update#InvoiceItemAdjustment |  |  |
-| InvoiceServices | delete#InvoiceItem |  | Projects/Billing/InvoiceDetail |
-| InvoiceServices | adjust#Invoice |  |  |
-| InvoiceServices | create#EntireOrderPartInvoice |  |  |
-| InvoiceServices | create#SalesShipmentInvoices |  |  |
+| InvoiceServices | update#InvoiceItemAdjustment | Shared/InvoiceDetail |  |
+| InvoiceServices | delete#InvoiceItem | Shared/InvoiceDetail | Projects/Billing/InvoiceDetail |
+| InvoiceServices | adjust#Invoice | Shared/InvoiceDetail |  |
+| InvoiceServices | create#EntireOrderPartInvoice | Accounting/Records/OrderDetail |  |
+| InvoiceServices | create#SalesShipmentInvoices | Accounting/Records/ShipmentDetail |  |
 | InvoiceServices | create#PurchaseShipmentInvoices |  |  |
-| InvoiceServices | create#ProjectExpenseInvoice |  |  |
-| InvoiceServices | create#ProjectInvoiceItems | Projects/Time/MyTime; Projects/Billing/Unbilled | Projects/Billing/Unbilled/CreateInvoice |
-| InvoiceServices | create#WorkerInvoiceItems | Projects/Billing/Unbilled |  |
-| InvoiceServices | create#TimeEntryInvoiceItems |  |  |
+| InvoiceServices | create#ProjectExpenseInvoice | Accounting/Receivables/BillingQueue |  |
+| InvoiceServices | create#ProjectInvoiceItems | Projects/Time/MyTime; Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Projects/Billing/Unbilled/CreateInvoice |
+| InvoiceServices | create#WorkerInvoiceItems | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue |  |
+| InvoiceServices | create#TimeEntryInvoiceItems | Accounting/Receivables/BillingQueue |  |
 | InvoiceServices | create#InvoiceBillThroughItems |  |  |
-| InvoiceServices | create#InvoiceCreditMemo |  |  |
-| InvoiceServices | reverse#Invoice |  |  |
-| InvoiceServices | cancel#Invoice | Projects/Billing/InvoiceDetail |  |
+| InvoiceServices | create#InvoiceCreditMemo | Shared/InvoiceDetail; Shared/ReturnDetail |  |
+| InvoiceServices | reverse#Invoice | Shared/InvoiceDetail |  |
+| InvoiceServices | cancel#Invoice | Projects/Billing/InvoiceDetail; Shared/InvoiceDetail |  |
 | InvoiceServices | cancel#InvoiceAndPayments |  |  |
 | InvoiceServices | unpay#Invoice |  |  |
-| InvoiceServices | autoApplyTo#Invoice |  |  |
-| InvoiceServices | create#InvoiceItemDetail |  |  |
-| InvoiceServices | distribute#InvoiceItemDetail |  |  |
-| InvoiceServices | apply#InvoiceToOrder |  |  |
-| InvoiceServices | apply#InvoiceItemToOrder |  |  |
-| InvoiceServices | unapply#InvoiceItemFromOrder |  |  |
-| InvoiceServices | apply#InvoiceToShipment |  |  |
-| InvoiceServices | apply#InvoiceItemToShipment |  |  |
-| InvoiceServices | unapply#InvoiceItemFromShipment |  |  |
+| InvoiceServices | autoApplyTo#Invoice | Shared/InvoiceDetail |  |
+| InvoiceServices | create#InvoiceItemDetail | Shared/InvoiceDetail |  |
+| InvoiceServices | distribute#InvoiceItemDetail | Shared/InvoiceDetail |  |
+| InvoiceServices | apply#InvoiceToOrder | Purchasing/Bills/InvoiceDetail; Shared/InvoiceDetail |  |
+| InvoiceServices | apply#InvoiceItemToOrder | Purchasing/Bills/InvoiceDetail; Shared/InvoiceDetail |  |
+| InvoiceServices | unapply#InvoiceItemFromOrder | Shared/InvoiceDetail |  |
+| InvoiceServices | apply#InvoiceToShipment | Purchasing/Bills/InvoiceDetail; Shared/InvoiceDetail |  |
+| InvoiceServices | apply#InvoiceItemToShipment | Shared/InvoiceDetail |  |
+| InvoiceServices | unapply#InvoiceItemFromShipment | Shared/InvoiceDetail |  |
 | InvoiceServices | check#InvoicesPaid |  |  |
 | InvoiceServices | find#InvoiceProductStores |  |  |
-| InvoiceServices | send#InvoiceStoreEmail |  |  |
-| InvoiceServices | send#SalesInvoicePastDueEmails |  |  |
-| InvoiceServices | send#CustomerPastDueEmail |  |  |
+| InvoiceServices | send#InvoiceStoreEmail | Shared/InvoiceDetail |  |
+| InvoiceServices | send#SalesInvoicePastDueEmails | Shared/InvoiceDetail |  |
+| InvoiceServices | send#CustomerPastDueEmail | Accounting/Receivables/Dunning |  |
 | InvoiceServices | get#InvoiceContentLocation |  |  |
-| InvoiceServices | create#InvoiceContent | Shared/RecordFiles | Shared/RecordFiles |
-| InvoiceServices | update#InvoiceContent |  |  |
+| InvoiceServices | create#InvoiceContent | Shared/RecordFiles; Shared/InvoiceDetail | Shared/RecordFiles |
+| InvoiceServices | update#InvoiceContent | Shared/InvoiceDetail |  |
 | InvoiceServices | save#InvoiceContentFile | Shared/RecordFiles |  |
-| NachaServices | generate#NachaFile |  |  |
+| NachaServices | generate#NachaFile | Accounting/Payables/PaymentRunDetail |  |
 | NachaServices | consume#NachaReturnSystemMessage |  |  |
-| NachaServices | import#NachaReturn |  |  |
-| OfxServices | upload#OfxVersion1 |  |  |
+| NachaServices | import#NachaReturn | Accounting/Payables/PaymentRunDetail |  |
+| OfxServices | upload#OfxVersion1 | Accounting/Banking/StatementImport |  |
 | OfxServices | consume#OfxV1SystemMessage |  |  |
 | OfxServices | import#OfxVersion1 |  |  |
-| PaymentMethodServices | get#PartyPaymentMethodInfo |  |  |
-| PaymentMethodServices | get#PartyPaymentMethodInfoList |  |  |
-| PaymentMethodServices | store#PaymentMethodInfo |  |  |
-| PaymentMethodServices | update#PaymentMethodMutable |  |  |
+| PaymentMethodServices | get#PartyPaymentMethodInfo | Accounting/Banking/BankAccounts; Accounting/Banking/BankAccountDetail; Accounting/Settings/PaymentMethods |  |
+| PaymentMethodServices | get#PartyPaymentMethodInfoList | Accounting/Banking/BankAccounts; Accounting/Settings/PaymentMethods |  |
+| PaymentMethodServices | store#PaymentMethodInfo | Accounting/Settings/PaymentMethods |  |
+| PaymentMethodServices | update#PaymentMethodMutable | Accounting/Settings/PaymentMethods |  |
 | PaymentMethodServices | delete#PaymentMethod |  |  |
 | PaymentMethodServices | checkDelete#PaymentPaymentMethods |  |  |
 | PaymentMethodServices | expunge#PaymentMethod |  |  |
 | PaymentMethodServices | create#CreditCard |  |  |
 | PaymentMethodServices | update#CreditCard |  |  |
-| PaymentMethodServices | create#BankAccount |  |  |
-| PaymentMethodServices | update#BankAccount |  |  |
-| PaymentMethodServices | update#BankAccountMutable |  |  |
+| PaymentMethodServices | create#BankAccount | Accounting/Banking/BankAccounts |  |
+| PaymentMethodServices | update#BankAccount | Accounting/Banking/BankAccountDetail |  |
+| PaymentMethodServices | update#BankAccountMutable | Accounting/Banking/BankAccountDetail |  |
 | PaymentMethodServices | get#PaymentMethodContentLocation |  |  |
 | PaymentMethodServices | create#PaymentMethodContent | Shared/RecordFiles | Shared/RecordFiles |
 | PaymentMethodServices | update#PaymentMethodContent |  |  |
 | PaymentMethodServices | save#PaymentMethodContentFile | Shared/RecordFiles |  |
-| PaymentMethodServices | update#PaymentMethodFileComplete |  |  |
-| PaymentMethodServices | cancel#PaymentMethodFile |  |  |
-| PaymentMethodServices | produce#PaymentMethodFileSystemMessage |  |  |
-| PaymentServices | get#PaymentDisplayInfo |  |  |
+| PaymentMethodServices | update#PaymentMethodFileComplete | Accounting/Banking/BankAccountDetail |  |
+| PaymentMethodServices | cancel#PaymentMethodFile | Accounting/Banking/BankAccountDetail |  |
+| PaymentMethodServices | produce#PaymentMethodFileSystemMessage | Accounting/Banking/BankAccountDetail |  |
+| PaymentServices | get#PaymentDisplayInfo | Accounting/Payments/PaymentDetail; Shared/Customer360; Shared/Supplier360 |  |
 | PaymentServices | get#PaymentDescription |  |  |
 | PaymentServices | get#PaymentTotals |  |  |
 | PaymentServices | update#PaymentTotals |  |  |
 | PaymentServices | calculate#MissingPaymentTotals |  |  |
-| PaymentServices | assign#BankAccountCheckNumber |  |  |
-| PaymentServices | set#PaymentDate |  |  |
+| PaymentServices | assign#BankAccountCheckNumber | Accounting/Payables/PaymentRunDetail |  |
+| PaymentServices | set#PaymentDate | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | get#PaymentCheckInfo |  |  |
-| PaymentServices | create#Payment |  |  |
+| PaymentServices | create#Payment | Accounting/Payments/Payments; Accounting/Payments/PaymentDetail |  |
 | PaymentServices | set#PaymentAutoInfo |  |  |
-| PaymentServices | create#InvoicePayment |  |  |
-| PaymentServices | create#RefundPayment |  |  |
-| PaymentServices | set#PaymentRefundFor |  |  |
+| PaymentServices | create#InvoicePayment | Shared/InvoiceDetail |  |
+| PaymentServices | create#RefundPayment | Accounting/Payments/PaymentDetail; Shared/ReturnDetail |  |
+| PaymentServices | set#PaymentRefundFor | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | send#PromisedPayment |  |  |
 | PaymentServices | check#InvoiceStatusForPayment |  |  |
-| PaymentServices | update#Payment |  |  |
-| PaymentServices | apply#InvoicePayment |  |  |
+| PaymentServices | update#Payment | Accounting/Payments/PaymentDetail; Shared/OrderDetail |  |
+| PaymentServices | apply#InvoicePayment | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
 | PaymentServices | apply#PaymentForInvoice |  |  |
 | PaymentServices | apply#InvoiceForPayments |  |  |
 | PaymentServices | apply#OrderPaymentsToInvoice |  |  |
-| PaymentServices | apply#PaymentToPayment |  |  |
-| PaymentServices | apply#InvoiceToInvoice |  |  |
+| PaymentServices | apply#PaymentToPayment | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payments/PaymentDetail |  |
+| PaymentServices | apply#InvoiceToInvoice | Accounting/Receivables/InvoiceDetail; Accounting/Receivables/ReceivablesWorkbench; Accounting/Payables/PayablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
 | PaymentServices | cancel#PaymentAndInvoices |  |  |
-| PaymentServices | void#Payment |  |  |
-| PaymentServices | unapply#PaymentApplication |  |  |
-| PaymentServices | autoApply#Payment |  |  |
-| PaymentServices | authorize#Payment |  |  |
-| PaymentServices | capture#Payment |  |  |
-| PaymentServices | release#Payment |  |  |
-| PaymentServices | refund#Payment |  |  |
-| PaymentServices | get#PaymentGatewayDetails |  |  |
-| PaymentServices | authorize#OrderPayments |  |  |
+| PaymentServices | void#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | unapply#PaymentApplication | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payables/PayablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
+| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | authorize#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | capture#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | release#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | refund#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | get#PaymentGatewayDetails | Accounting/Payments/PaymentDetail; Accounting/Payments/GatewayTransactions |  |
+| PaymentServices | authorize#OrderPayments | Shared/OrderDetail |  |
 | PaymentServices | authorize#StorePayment |  |  |
 | PaymentServices | authorize#SinglePayment |  |  |
 | PaymentServices | get#AuthorizePaymentGatewayResponse |  |  |
@@ -156,12 +157,12 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | PaymentServices | release#SinglePayment |  |  |
 | PaymentServices | refund#SinglePayment |  |  |
 | PaymentServices | get#SinglePaymentGatewayDetails |  |  |
-| PaymentServices | poll#PaymentGatewayDetails |  |  |
+| PaymentServices | poll#PaymentGatewayDetails | Accounting/Payments/GatewayTransactions |  |
 | PaymentServices | get#PaymentContentLocation |  |  |
-| PaymentServices | create#PaymentContent | Shared/RecordFiles | Shared/RecordFiles |
-| PaymentServices | update#PaymentContent |  |  |
+| PaymentServices | create#PaymentContent | Shared/RecordFiles; Accounting/Payments/PaymentDetail | Shared/RecordFiles |
+| PaymentServices | update#PaymentContent | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | save#PaymentContentFile | Shared/RecordFiles |  |
-| PositivePayServices | generate#PositivePayFile |  |  |
+| PositivePayServices | generate#PositivePayFile | Accounting/Payables/PaymentRunDetail |  |
 | PositivePayServices | send#PositivePayJob |  |  |
 | PositivePayServices | generate#PositivePayInterface |  |  |
 | PositivePayServices | generate#PmftBankOfAmericaAr |  |  |
@@ -170,21 +171,21 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | PositivePayServices | generate#PmftWachoviaAr |  |  |
 | PositivePayServices | generate#PmftWellsFargoArp |  |  |
 | PositivePayServices | generate#PmftZionsBankCsv |  |  |
-| ReconciliationServices | match#PaymentMethodTransUnmatched |  |  |
-| ReconciliationServices | create#PaymentMethodTrans |  |  |
-| ReconciliationServices | update#PaymentMethodTrans |  |  |
-| ReconciliationServices | noReconcile#PaymentMethodTrans |  |  |
-| ReconciliationServices | create#TransPayment |  |  |
-| ReconciliationServices | reconcile#PaymentMethodTrans |  |  |
-| ReconciliationServices | unreconcile#PaymentMethodTrans |  |  |
-| ReconciliationServices | clear#PaymentTrans |  |  |
+| ReconciliationServices | match#PaymentMethodTransUnmatched | Accounting/Banking/ReconciliationDetail; Accounting/Banking/UnmatchedTransactions |  |
+| ReconciliationServices | create#PaymentMethodTrans | Accounting/Banking/BankAccountDetail |  |
+| ReconciliationServices | update#PaymentMethodTrans | Accounting/Banking/BankAccountDetail |  |
+| ReconciliationServices | noReconcile#PaymentMethodTrans | Accounting/Banking/ReconciliationDetail |  |
+| ReconciliationServices | create#TransPayment | Accounting/Banking/ReconciliationDetail |  |
+| ReconciliationServices | reconcile#PaymentMethodTrans | Accounting/Banking/ReconciliationDetail |  |
+| ReconciliationServices | unreconcile#PaymentMethodTrans | Accounting/Banking/ReconciliationDetail |  |
+| ReconciliationServices | clear#PaymentTrans | Accounting/Banking/ReconciliationDetail |  |
 
 Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | InvoiceServices | create#MilestoneInvoiceItems |  | Projects/Billing/Unbilled; Projects/Billing/Unbilled/CreateInvoice; Projects/Projects/MilestoneDetail |
-| InvoiceServices | get#InvoiceTimeDetail |  | Projects/Billing/InvoiceDetail; Projects/Billing/InvoicePrint |
+| InvoiceServices | get#InvoiceTimeDetail | Shared/InvoiceDetail | Projects/Billing/InvoiceDetail; Projects/Billing/InvoicePrint |
 
 ## Facility (15 services)
 
@@ -197,14 +198,14 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ContactServices | update#FacilityTelecomNumber |  |  |
 | ContactServices | update#FacilityContactOther |  |  |
 | ContactServices | delete#FacilityContactMech |  |  |
-| FacilityServices | get#Facility |  |  |
-| FacilityServices | get#FacilitiesByOwner |  |  |
-| FacilityServices | create#Facility |  |  |
-| FacilityServices | update#Facility |  |  |
+| FacilityServices | get#Facility | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
+| FacilityServices | get#FacilitiesByOwner | Warehouse/Handheld/Home; Warehouse/Locations/Facilities |  |
+| FacilityServices | create#Facility | Warehouse/Locations/Facilities; Shared/FacilityDetail |  |
+| FacilityServices | update#Facility | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | FacilityServices | update#FacilityCertification |  |  |
-| FacilityServices | create#FacilityLocation |  |  |
-| FacilityServices | create#FacilityNote |  |  |
-| FacilityServices | get#ScannedIdGeneral |  |  |
+| FacilityServices | create#FacilityLocation | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
+| FacilityServices | create#FacilityNote | Warehouse/Locations/FacilityDetail |  |
+| FacilityServices | get#ScannedIdGeneral | Warehouse/Counts/CountEntry; Warehouse/Handheld/Count; Warehouse/Handheld/Home; Warehouse/Handheld/Move; Warehouse/Home; Warehouse/Transfers/Move |  |
 
 ## HumanRes (38 services)
 
@@ -258,75 +259,75 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | AssetAutoPostServices | post#AssetIssuance |  |  |
 | AssetAutoPostServices | revert#AssetIssuanceOnCancel |  |  |
 | AssetAutoPostServices | repost#AssetIssuance |  |  |
-| AssetAutoPostServices | calculate#FixedAssetDepreciation |  |  |
-| AssetAutoPostServices | post#FixedAssetDepreciation |  |  |
+| AssetAutoPostServices | calculate#FixedAssetDepreciation | Accounting/FixedAssets/DepreciationRunDetail |  |
+| AssetAutoPostServices | post#FixedAssetDepreciation | Accounting/FixedAssets/DepreciationRunDetail |  |
 | AssetAutoPostServices | calculateAndPost#FixedAssetDepreciation |  |  |
 | AssetAutoPostServices | calculateAndPost#AllFixedAssetDepreciations |  |  |
 | AssetAutoPostServices | post#PhysicalInventoryVariance |  |  |
 | AssetAutoPostServices | repost#PhysicalInventoryVariance |  |  |
 | AssetAutoPostServices | get#AssetTypeGlAccount |  |  |
 | AssetAutoPostServices | repost#Asset |  |  |
-| InvoiceAutoPostServices | post#Invoice |  |  |
+| InvoiceAutoPostServices | post#Invoice | Shared/InvoiceDetail |  |
 | InvoiceAutoPostServices | post#InvoiceAdjustment |  |  |
 | InvoiceAutoPostServices | get#InvoicePartyAcctgPreferences |  |  |
 | InvoiceAutoPostServices | get#InvoiceTypeTransType |  |  |
 | InvoiceAutoPostServices | get#InvoiceItemGlAccount |  |  |
-| InvoiceAutoPostServices | repost#Invoice |  |  |
+| InvoiceAutoPostServices | repost#Invoice | Shared/InvoiceDetail |  |
 | InvoiceAutoPostServices | repost#InvoiceAdjustment |  |  |
 | InvoiceAutoPostServices | repost#AllInvoices |  |  |
 | InvoiceAutoPostServices | revert#InvoicePost |  |  |
-| LedgerReportServices | get#ReportBasicInfo |  |  |
-| LedgerReportServices | run#IncomeStatement |  |  |
-| LedgerReportServices | run#BalanceSheet |  |  |
-| LedgerReportServices | run#CashFlowStatement |  |  |
-| LedgerReportServices | run#RetainedEarningsStatement |  |  |
-| LedgerReportServices | run#FinancialRatios |  |  |
+| LedgerReportServices | get#ReportBasicInfo | Accounting/Reports/Reports |  |
+| LedgerReportServices | run#IncomeStatement | Accounting/Reports/IncomeStatement |  |
+| LedgerReportServices | run#BalanceSheet | Accounting/Reports/BalanceSheet |  |
+| LedgerReportServices | run#CashFlowStatement | Accounting/Reports/CashFlow |  |
+| LedgerReportServices | run#RetainedEarningsStatement | Accounting/Reports/RetainedEarnings |  |
+| LedgerReportServices | run#FinancialRatios | Accounting/Reports/FinancialRatios |  |
 | LedgerReportServices | get#GlAccountClassInfoSums |  |  |
 | LedgerReportServices | get#GlAccountClassReportInfo |  |  |
-| LedgerReportServices | run#PostedAmountSummary |  |  |
+| LedgerReportServices | run#PostedAmountSummary | Accounting/Reports/PostedSummary |  |
 | LedgerReportServices | get#PostedAmountSummarySide |  |  |
-| LedgerReportServices | get#AccountLedgerInfo |  |  |
-| LedgerReportServices | get#PeriodSeriesSummary |  |  |
+| LedgerReportServices | get#AccountLedgerInfo | Accounting/Reports/GeneralLedger |  |
+| LedgerReportServices | get#PeriodSeriesSummary | Accounting/Reports/AccountBalance |  |
 | LedgerReportServices | get#PeriodSeriesSummaryRows |  |  |
-| LedgerServices | create#GlAccount |  |  |
-| LedgerServices | init#PartyAccountingConfiguration |  |  |
-| LedgerServices | find#PartyAcctgPreference |  |  |
+| LedgerServices | create#GlAccount | Accounting/GeneralLedger/ChartOfAccounts |  |
+| LedgerServices | init#PartyAccountingConfiguration | Accounting/Settings/Setup |  |
+| LedgerServices | find#PartyAcctgPreference | Accounting/Settings/Settings |  |
 | LedgerServices | find#RootGlAccountClassEnum |  |  |
-| LedgerServices | set#GlAccountFlags |  |  |
+| LedgerServices | set#GlAccountFlags | Accounting/GeneralLedger/GlAccountDetail |  |
 | LedgerServices | set#MissingGlAccountFlags |  |  |
 | LedgerServices | expand#ParentOrganizationList |  |  |
 | LedgerServices | expand#ChildOrganizationList |  |  |
-| LedgerServices | get#DefaultGlAccountByType |  |  |
-| LedgerServices | create#AcctgTrans |  |  |
-| LedgerServices | update#AcctgTrans |  |  |
+| LedgerServices | get#DefaultGlAccountByType | Accounting/Settings/PostingDefaults |  |
+| LedgerServices | create#AcctgTrans | Accounting/GeneralLedger/JournalEntries; Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | update#AcctgTrans | Accounting/GeneralLedger/JournalEntryDetail |  |
 | LedgerServices | update#AcctgTransPosted |  |  |
-| LedgerServices | delete#AcctgTrans |  |  |
-| LedgerServices | create#AcctgTransEntry |  |  |
-| LedgerServices | update#AcctgTransEntry |  |  |
-| LedgerServices | delete#AcctgTransEntry |  |  |
-| LedgerServices | calculate#AcctgTransTrialBalance |  |  |
-| LedgerServices | post#AcctgTrans |  |  |
+| LedgerServices | delete#AcctgTrans | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | create#AcctgTransEntry | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | update#AcctgTransEntry | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | delete#AcctgTransEntry | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | calculate#AcctgTransTrialBalance | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | post#AcctgTrans | Accounting/GeneralLedger/JournalEntryDetail |  |
 | LedgerServices | unpost#AcctgTrans |  |  |
 | LedgerServices | update#GlAccountOrgSummariesForTx |  |  |
-| LedgerServices | post#ReverseAcctgTrans |  |  |
-| LedgerServices | move#AcctgTransEntry |  |  |
-| LedgerServices | get#OrganizationFiscalTimePeriods |  |  |
-| LedgerServices | check#NextFiscalTimePeriods |  |  |
-| LedgerServices | close#FinancialTimePeriod |  |  |
-| LedgerServices | recalculate#GlAccountOrgTimePeriodAmounts |  |  |
-| LedgerServices | reopen#FinancialTimePeriod |  |  |
-| LedgerServices | create#PeriodCloseAcctgTrans |  |  |
+| LedgerServices | post#ReverseAcctgTrans | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | move#AcctgTransEntry | Accounting/GeneralLedger/JournalEntryDetail |  |
+| LedgerServices | get#OrganizationFiscalTimePeriods | Accounting/PeriodClose/Periods; Accounting/Reports/TrialBalance |  |
+| LedgerServices | check#NextFiscalTimePeriods | Accounting/PeriodClose/Periods |  |
+| LedgerServices | close#FinancialTimePeriod | Accounting/PeriodClose/PeriodCloseDetail |  |
+| LedgerServices | recalculate#GlAccountOrgTimePeriodAmounts | Accounting/PeriodClose/PeriodCloseDetail |  |
+| LedgerServices | reopen#FinancialTimePeriod | Accounting/PeriodClose/PeriodCloseDetail |  |
+| LedgerServices | create#PeriodCloseAcctgTrans | Accounting/PeriodClose/PeriodCloseDetail |  |
 | LedgerServices | recalculate#GlAccountOrgSummaries |  |  |
-| LedgerServices | create#GlJournal |  |  |
-| LedgerServices | update#GlJournal |  |  |
+| LedgerServices | create#GlJournal | Accounting/GeneralLedger/JournalBatches |  |
+| LedgerServices | update#GlJournal | Accounting/GeneralLedger/JournalBatches |  |
 | LedgerServices | calculate#GlJournalTrialBalance |  |  |
 | LedgerServices | post#GlJournal |  |  |
 | OtherAutoPostServices | post#WorkEffortCost |  |  |
 | OtherAutoPostServices | post#FinancialAccountTrans |  |  |
 | OtherAutoPostServices | get#FinancialAccountGlAccount |  |  |
 | OtherAutoPostServices | get#FinancialAccountTransGlAccount |  |  |
-| PaymentAutoPostServices | post#Payment |  |  |
-| PaymentAutoPostServices | revert#PaymentPost |  |  |
+| PaymentAutoPostServices | post#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentAutoPostServices | revert#PaymentPost | Accounting/Payments/PaymentDetail |  |
 | PaymentAutoPostServices | get#PaymentPartyAcctgPreferences |  |  |
 | PaymentAutoPostServices | create#PaymentTypeEntry |  |  |
 | PaymentAutoPostServices | get#PaymentTypeGlAccount |  |  |
@@ -359,37 +360,37 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | --- | --- | --- | --- |
 | OrderBulkServices | store#Order |  |  |
 | OrderBulkServices | change#OrderPartsStatus |  |  |
-| OrderInfoServices | get#OrderDisplayInfo |  |  |
+| OrderInfoServices | get#OrderDisplayInfo | Purchasing/Orders/OrderDetail; Shared/Customer360; Shared/Supplier360 |  |
 | OrderInfoServices | get#OrderItemsTotalCount |  |  |
 | OrderInfoServices | get#OrderItemDisplayInfo |  |  |
 | OrderInfoServices | get#OrderPartBillingAddress |  |  |
 | OrderInfoServices | validate#Order |  |  |
 | OrderInfoServices | validate#OrderRequireManual |  |  |
 | OrderInfoServices | check#OrderPreApprove |  |  |
-| OrderInfoServices | send#OrderStoreEmail |  |  |
+| OrderInfoServices | send#OrderStoreEmail | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderInfoServices | notify#OrderHighPriority |  |  |
-| OrderServices | create#Order |  |  |
-| OrderServices | update#OrderHeader |  |  |
-| OrderServices | create#OrderPart |  |  |
-| OrderServices | update#OrderPart |  |  |
+| OrderServices | create#Order | Purchasing/Orders/PurchaseOrders |  |
+| OrderServices | update#OrderHeader | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
+| OrderServices | create#OrderPart | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
+| OrderServices | update#OrderPart | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderServices | get#OrderItemTotal |  |  |
-| OrderServices | create#OrderItem |  |  |
-| OrderServices | update#OrderItem |  |  |
-| OrderServices | delete#OrderItem |  |  |
+| OrderServices | create#OrderItem | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
+| OrderServices | update#OrderItem | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
+| OrderServices | delete#OrderItem | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderServices | recalc#OrderItemAmount |  |  |
 | OrderServices | recalc#OrderPartItemAmounts |  |  |
 | OrderServices | check#AvailableInventory |  |  |
-| OrderServices | add#OrderProductQuantity |  |  |
+| OrderServices | add#OrderProductQuantity | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderServices | update#OrderProductQuantity |  |  |
 | OrderServices | merge#OrderItems |  |  |
-| OrderServices | set#OrderBillingShippingInfo |  |  |
-| OrderServices | add#OrderPartPayment |  |  |
+| OrderServices | set#OrderBillingShippingInfo | Shared/OrderDetail |  |
+| OrderServices | add#OrderPartPayment | Shared/OrderDetail |  |
 | OrderServices | create#OrderPayments50Split |  |  |
 | OrderServices | change#OrderStatusInterface |  |  |
-| OrderServices | update#OrderStatus |  |  |
+| OrderServices | update#OrderStatus | Purchasing/Orders/OrderDetail |  |
 | OrderServices | propose#Order |  |  |
-| OrderServices | place#Order |  |  |
-| OrderServices | approve#Order |  |  |
+| OrderServices | place#Order | Purchasing/Orders/OrderDetail |  |
+| OrderServices | approve#Order | Purchasing/Orders/OrderDetail; Purchasing/Orders/PurchaseOrders |  |
 | OrderServices | autoApprove#OrdersDelayed |  |  |
 | OrderServices | autoApprove#Order |  |  |
 | OrderServices | isFulfilled#OrderPart |  |  |
@@ -398,16 +399,16 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | OrderServices | checkStillComplete#Order |  |  |
 | OrderServices | checkCancelComplete#Order |  |  |
 | OrderServices | checkRejectedComplete#Order |  |  |
-| OrderServices | complete#OrderPart |  |  |
-| OrderServices | complete#Order |  |  |
-| OrderServices | cancel#Order |  |  |
-| OrderServices | cancel#OrderPart |  |  |
-| OrderServices | cancel#OrderItem |  |  |
+| OrderServices | complete#OrderPart | Purchasing/Orders/OrderDetail |  |
+| OrderServices | complete#Order | Purchasing/Orders/PurchaseOrders |  |
+| OrderServices | cancel#Order | Purchasing/Orders/OrderDetail |  |
+| OrderServices | cancel#OrderPart | Purchasing/Orders/OrderDetail |  |
+| OrderServices | cancel#OrderItem | Purchasing/Orders/OrderDetail |  |
 | OrderServices | reject#Order |  |  |
 | OrderServices | reject#OrderPart |  |  |
 | OrderServices | reject#OrderItem |  |  |
-| OrderServices | clone#Order |  |  |
-| OrderServices | update#OrderRecur |  |  |
+| OrderServices | clone#Order | Purchasing/Orders/OrderDetail |  |
+| OrderServices | update#OrderRecur | Shared/OrderDetail |  |
 | OrderServices | create#RecurringOrders |  |  |
 | OrderServices | create#RecurringOrder |  |  |
 | OrderServices | handle#OrderItemChange |  |  |
@@ -415,34 +416,34 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | OrderServices | handle#OrderMajorChange |  |  |
 | OrderServices | update#OrderHeaderTotal |  |  |
 | OrderServices | update#OrderPartTotal |  |  |
-| OrderServices | increment#OrderRevision |  |  |
-| OrderServices | create#OrderContent | Shared/RecordFiles | Shared/RecordFiles |
-| OrderServices | update#OrderContent |  |  |
+| OrderServices | increment#OrderRevision | Purchasing/Orders/OrderChanges |  |
+| OrderServices | create#OrderContent | Shared/RecordFiles; Shared/OrderDetail | Shared/RecordFiles |
+| OrderServices | update#OrderContent | Shared/OrderDetail |  |
 | OrderServices | save#OrderContentFile | Shared/RecordFiles |  |
-| OrderServices | create#PurchaseRequestOrder | Projects/Requests/RequestDetail |  |
-| ReturnServices | get#ReturnDisplayInfo |  |  |
-| ReturnServices | create#Return |  |  |
-| ReturnServices | create#ReturnFromOrder |  |  |
-| ReturnServices | find#OrderOpenReturns |  |  |
-| ReturnServices | find#ReturnableOrderItems |  |  |
-| ReturnServices | calculate#OrderItemReturnable |  |  |
-| ReturnServices | add#OrderItemToReturn |  |  |
+| OrderServices | create#PurchaseRequestOrder | Projects/Requests/RequestDetail; Purchasing/Requests/RequestSourcing |  |
+| ReturnServices | get#ReturnDisplayInfo | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; CustomerService/Returns; Shared/Customer360; Shared/ReturnDetail |  |
+| ReturnServices | create#Return | Warehouse/Returns/Returns; Purchasing/Returns/ReturnDetail |  |
+| ReturnServices | create#ReturnFromOrder | Warehouse/Returns/Returns; Purchasing/Returns; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
+| ReturnServices | find#OrderOpenReturns | CustomerService/Returns/NewReturn; ServicePortal/RequestReturn |  |
+| ReturnServices | find#ReturnableOrderItems | Warehouse/Returns/ReturnDetail; Purchasing/Returns; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
+| ReturnServices | calculate#OrderItemReturnable | Warehouse/Returns/ReturnDetail; Purchasing/Returns; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
+| ReturnServices | add#OrderItemToReturn | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
 | ReturnServices | change#ReturnStatusInterface |  |  |
 | ReturnServices | update#ReturnStatus |  |  |
 | ReturnServices | checkUpdate#ReturnHeaderStatus |  |  |
-| ReturnServices | request#Return |  |  |
-| ReturnServices | approve#Return |  |  |
-| ReturnServices | receive#ReturnShipmentItems |  |  |
-| ReturnServices | receive#ReturnWithoutShipment |  |  |
-| ReturnServices | receive#ReturnItem |  |  |
-| ReturnServices | complete#ReturnItem |  |  |
-| ReturnServices | process#ReturnItemResponses |  |  |
-| ReturnServices | cancel#Return |  |  |
-| ReturnServices | cancel#ReturnItem |  |  |
-| ReturnServices | update#ReturnItem |  |  |
-| ReturnServices | delete#ReturnItem |  |  |
-| ReturnServices | create#ReturnShipment |  |  |
-| ReturnServices | add#ReturnToShipment |  |  |
+| ReturnServices | request#Return | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn |  |
+| ReturnServices | approve#Return | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail |  |
+| ReturnServices | receive#ReturnShipmentItems | Warehouse/Returns/ReturnDetail; Warehouse/Returns/ReturnReceipt; Shared/ReturnDetail |  |
+| ReturnServices | receive#ReturnWithoutShipment | Warehouse/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; Shared/ReturnDetail |  |
+| ReturnServices | receive#ReturnItem | Warehouse/Returns/ReturnDetail; Warehouse/Returns/ReturnReceipt |  |
+| ReturnServices | complete#ReturnItem | CustomerService/Returns/ReturnDetail; Shared/ReturnDetail |  |
+| ReturnServices | process#ReturnItemResponses | CustomerService/Returns/ReturnDetail; Accounting/Records/ReturnDetail; Shared/ReturnDetail |  |
+| ReturnServices | cancel#Return | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail |  |
+| ReturnServices | cancel#ReturnItem | Warehouse/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail |  |
+| ReturnServices | update#ReturnItem | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
+| ReturnServices | delete#ReturnItem | Warehouse/Returns/ReturnDetail; Shared/ReturnDetail |  |
+| ReturnServices | create#ReturnShipment | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; Shared/ReturnDetail |  |
+| ReturnServices | add#ReturnToShipment | Warehouse/Returns/ReturnDetail; Shared/ReturnDetail |  |
 | ReturnServices | returnAndResell#Shipment |  |  |
 | ReturnServices | return#Shipment |  |  |
 | ReturnServices | resell#Shipment |  |  |
@@ -451,26 +452,26 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| BudgetReportServices | run#BudgetExpenseReport |  |  |
-| BudgetReportServices | run#BudgetExpenseDetailReport |  |  |
+| BudgetReportServices | run#BudgetExpenseReport | Accounting/Reports/BudgetVariance |  |
+| BudgetReportServices | run#BudgetExpenseDetailReport | Accounting/Reports/BudgetVariance |  |
 | BudgetServices | get#GlAccountAppls |  |  |
 | BudgetServices | get#AssetGlAppls |  |  |
 | BudgetServices | get#FacilityGlAppls |  |  |
-| BudgetServices | create#Budget |  |  |
-| BudgetServices | store#BudgetItem |  |  |
-| BudgetServices | get#BudgetItemsAccountsSubPeriods |  |  |
-| BudgetServices | store#BudgetItemsSubPeriods |  |  |
-| BudgetServices | store#BudgetItemDetail |  |  |
-| BudgetServices | store#BudgetItemDetailsSubPeriods |  |  |
-| TaxServices | calculate#SalesTax |  |  |
+| BudgetServices | create#Budget | Accounting/Budgets/Budgets |  |
+| BudgetServices | store#BudgetItem | Accounting/Budgets/BudgetDetail |  |
+| BudgetServices | get#BudgetItemsAccountsSubPeriods | Accounting/Budgets/BudgetDetail |  |
+| BudgetServices | store#BudgetItemsSubPeriods | Accounting/Budgets/BudgetDetail |  |
+| BudgetServices | store#BudgetItemDetail | Accounting/Budgets/BudgetDetail |  |
+| BudgetServices | store#BudgetItemDetailsSubPeriods | Accounting/Budgets/BudgetDetail |  |
+| TaxServices | calculate#SalesTax | Accounting/Tax/TaxRates |  |
 | TaxServices | calculate#OrderSalesTax |  |  |
-| TaxServices | calculate#InvoiceSalesTax |  |  |
-| TaxServices | calculate#SalesTaxLocal |  |  |
-| TaxServices | create#TaxStatement |  |  |
-| TaxServices | delete#TaxStatement |  |  |
-| TaxServices | create#AllVendor1099MiscStatements |  |  |
-| TaxServices | create#Vendor1099MiscStatement |  |  |
-| TaxServices | get#UsaIrs1099MiscFormData |  |  |
+| TaxServices | calculate#InvoiceSalesTax | Shared/InvoiceDetail |  |
+| TaxServices | calculate#SalesTaxLocal | Accounting/Tax/TaxRates |  |
+| TaxServices | create#TaxStatement | Accounting/Tax/TaxStatements |  |
+| TaxServices | delete#TaxStatement | Accounting/Tax/TaxStatementDetail |  |
+| TaxServices | create#AllVendor1099MiscStatements | Accounting/Tax/TaxStatements |  |
+| TaxServices | create#Vendor1099MiscStatement | Accounting/Tax/TaxStatements |  |
+| TaxServices | get#UsaIrs1099MiscFormData | Accounting/Tax/TaxStatementDetail |  |
 | TaxServices | get#RecipientTaxInfo |  |  |
 | TaxServices | get#PayerTaxInfo |  |  |
 
@@ -478,11 +479,11 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| AgreementServices | create#AgreementContent | Shared/RecordFiles | Shared/RecordFiles |
-| AgreementServices | update#AgreementContent |  |  |
+| AgreementServices | create#AgreementContent | Shared/RecordFiles; Purchasing/Agreements/AgreementDetail | Shared/RecordFiles |
+| AgreementServices | update#AgreementContent | Purchasing/Agreements/AgreementDetail |  |
 | AgreementServices | save#AgreementContentFile | Shared/RecordFiles |  |
-| CommunicationServices | find#PartyCommunicationEvents | Shared/Chatter |  |
-| CommunicationServices | create#Message | Commons/QuickCreate; Commons/Files; Comms/Inbox/Compose; Projects/Requests/RequestDetail; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter | Comms/Inbox/Compose; Shared/Chatter |
+| CommunicationServices | find#PartyCommunicationEvents | Shared/Chatter; CustomerService/Cases/ChannelSessions |  |
+| CommunicationServices | create#Message | Commons/QuickCreate; Commons/Files; Comms/Inbox/Compose; Projects/Requests/RequestDetail; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Comms/Inbox/Compose; Shared/Chatter |
 | CommunicationServices | reply#CommunicationEvent | Comms/Inbox/Compose; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter | Comms/Inbox/Compose; Shared/Chatter |
 | CommunicationServices | add#WikiPageComment | Commons/Knowledge; Commons/Knowledge/Review |  |
 | CommunicationServices | get#CommunicationEventContentLocation |  |  |
@@ -521,27 +522,27 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | GooglePartyServices | get#MapsGeoCodeResults |  |  |
 | GooglePartyServices | get#MapsPlaceSearchText |  |  |
 | GooglePartyServices | get#MapsPlaceDetails |  |  |
-| PartyServices | find#Party | Commons/Contacts | Commons; Commons/Contacts/ContactDetail; Commons/Contacts/List; Comms/Consent/List |
+| PartyServices | find#Party | Commons/Contacts; Purchasing/Suppliers | Commons; Commons/Contacts/ContactDetail; Commons/Contacts/List; Comms/Consent/List |
 | PartyServices | search#Party | Commons/Contacts; Comms/Panel/Chat; Comms/Inbox |  |
 | PartyServices | search#Person |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/QuickCreate; Projects/Projects/ProjectDetail/Plan/Calendar |
 | PartyServices | get#UserNoticeCounts |  |  |
-| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects | Commons; Comms; Projects |
+| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects; Products; Warehouse; Purchasing; CustomerService; Accounting | Commons; Comms; Projects |
 | PartyServices | get#PartyOrganizationInfo |  |  |
 | PartyServices | create#Account |  |  |
 | PartyServices | update#Account |  | Commons/Settings/Account |
 | PartyServices | create#UserAccountPerson |  |  |
 | PartyServices | create#PartyUserAccount |  |  |
 | PartyServices | update#PartyUserAccount |  |  |
-| PartyServices | create#Person | Commons/QuickCreate |  |
+| PartyServices | create#Person | Commons/QuickCreate; Purchasing/Suppliers |  |
 | PartyServices | create#PersonCustomer |  |  |
 | PartyServices | create#PersonEmployee |  |  |
-| PartyServices | create#Organization | Commons/QuickCreate |  |
-| PartyServices | update#PartyDetail | Commons/Contacts/ContactDetail | Commons/Contacts/Compare; Commons/Contacts/ContactDetail; Commons/Contacts/List |
+| PartyServices | create#Organization | Commons/QuickCreate; Purchasing/Suppliers |  |
+| PartyServices | update#PartyDetail | Commons/Contacts/ContactDetail; Shared/Customer360; Shared/Supplier360 | Commons/Contacts/Compare; Commons/Contacts/ContactDetail; Commons/Contacts/List |
 | PartyServices | convert#PartyToOrganization |  |  |
 | PartyServices | convert#PartyToPerson |  |  |
-| PartyServices | ensure#PartyRole |  |  |
-| PartyServices | set#PartyClassification |  |  |
-| PartyServices | remove#PartyClassification |  |  |
+| PartyServices | ensure#PartyRole | Purchasing/Suppliers |  |
+| PartyServices | set#PartyClassification | Purchasing/Suppliers/Supplier360; Shared/Customer360 |  |
+| PartyServices | remove#PartyClassification | Purchasing/Suppliers/Supplier360; Shared/Customer360 |  |
 | PartyServices | get#PartyBadgeInfo |  |  |
 | PartyServices | lookup#PartyBadge |  |  |
 | PartyServices | scan#PartyBadge |  |  |
@@ -578,7 +579,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | CommunicationServices | findOrCreate#EmailCommunicationEvent |  | Comms/Inbox/Mail |
 | CommunicationServices | link#CommunicationEventRecord |  | Comms/Chat; Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter |
 | CommunicationServices | unlink#CommunicationEventRecord |  | Comms/Inbox/Mail; Shared/Chatter |
-| CommunicationServices | send#EmailDraft | Projects/Requests/RequestDetail | Comms/Inbox/Compose |
+| CommunicationServices | send#EmailDraft | Projects/Requests/RequestDetail; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Comms/Inbox/Compose |
 | CommunicationServices | get#RecordTimeline |  | Shared/Chatter |
 | CommunicationServices | log#RecordNote |  | Commons/QuickCreate; Shared/Chatter |
 | CommunicationServices | update#RecordNote |  | Shared/Chatter |
@@ -639,91 +640,91 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| AssetServices | get#AssetDisplayInfo |  |  |
-| AssetServices | get#AvailableInventory |  |  |
-| AssetServices | get#AvailableForOrder |  |  |
-| AssetServices | get#AvailableInventoryMulti |  |  |
-| AssetServices | update#Asset |  |  |
-| AssetServices | update#AssetAcquireCost |  |  |
+| AssetServices | get#AssetDisplayInfo | Warehouse/Inventory/Adjustments; Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
+| AssetServices | get#AvailableInventory | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/InventoryAvailability; CustomerService/InventoryAvailability; Shared/Product360; Shared/InventoryAvailability |  |
+| AssetServices | get#AvailableForOrder | Warehouse/Inventory/Availability; Shared/InventoryAvailability |  |
+| AssetServices | get#AvailableInventoryMulti | Warehouse/Inventory/Availability; Warehouse/Picking/PickLocationMoves; Purchasing/Replenishment/InventoryAvailability; CustomerService/InventoryAvailability; Shared/InventoryAvailability |  |
+| AssetServices | update#Asset | Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
+| AssetServices | update#AssetAcquireCost | Shared/EquipmentDetail |  |
 | AssetServices | update#ProductAcquireCost |  |  |
 | AssetServices | update#AssetFromDetail |  |  |
 | AssetServices | recalculate#AllAssetTotals |  |  |
-| AssetServices | get#AssetPools |  |  |
-| AssetServices | reserve#AssetsForOrder |  |  |
+| AssetServices | get#AssetPools | Warehouse/Settings/AssetPools |  |
+| AssetServices | reserve#AssetsForOrder | Warehouse/Orders/OrderDetail; Warehouse/Shipping/ShipmentDetail; Shared/ShipmentDetail |  |
 | AssetServices | checkReserve#AssetForOrderItem |  |  |
-| AssetServices | reserve#AssetForOrderItem |  |  |
-| AssetServices | remove#OrderItemReservations |  |  |
+| AssetServices | reserve#AssetForOrderItem | Warehouse/Orders/OrderDetail; Warehouse/Shipping/ShipmentDetail; Shared/OrderDetail; Shared/ShipmentDetail |  |
+| AssetServices | remove#OrderItemReservations | Shared/OrderDetail |  |
 | AssetServices | remove#OrderReservations |  |  |
-| AssetServices | reduce#AssetReservation |  |  |
+| AssetServices | reduce#AssetReservation | Warehouse/Orders/OrderDetail; Warehouse/Shipping/ShipmentDetail; Shared/ShipmentDetail |  |
 | AssetServices | reReserve#Assets |  |  |
 | AssetServices | reserve#IncreasedAsset |  |  |
 | AssetServices | move#AssetReservation |  |  |
-| AssetServices | move#ReservationsFromNonPickLocations |  |  |
+| AssetServices | move#ReservationsFromNonPickLocations | Warehouse/Picking/PickLocationMoves |  |
 | AssetServices | check#AssetReservations |  |  |
 | AssetServices | check#AssetReservationValid |  |  |
-| AssetServices | check#FacilityReservations |  |  |
+| AssetServices | check#FacilityReservations | Warehouse/Settings/ReservationPolicies |  |
 | AssetServices | displace#AssetReservations |  |  |
 | AssetServices | change#AssetQuantity |  |  |
 | AssetServices | checkReserve#ProductAssets |  |  |
 | AssetServices | issue#AssetReservation |  |  |
 | AssetServices | issue#Asset |  |  |
-| AssetServices | issue#AssetToWorkEffort |  |  |
-| AssetServices | issue#AnyAssetToWorkEffort |  |  |
+| AssetServices | issue#AssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
+| AssetServices | issue#AnyAssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
 | AssetServices | issue#AnyAssetForShipmentItemSource |  |  |
 | AssetServices | move#IssuancesToNewShipment |  |  |
-| AssetServices | cancel#AssetIssuance |  |  |
+| AssetServices | cancel#AssetIssuance | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
 | AssetServices | update#AssetIssuedDate |  |  |
-| AssetServices | receive#Asset |  |  |
+| AssetServices | receive#Asset | Warehouse/Handheld/Receive; Warehouse/Inventory/MaterialIssueReceipt; Warehouse/Receiving/Receive; Shared/MaterialIssueReceipt |  |
 | AssetServices | update#AssetAndReceipt |  |  |
 | AssetServices | replace#AssetPartyAssignment |  |  |
-| AssetServices | move#Product |  |  |
+| AssetServices | move#Product | Warehouse/Handheld/Move; Warehouse/Transfers/Move |  |
 | AssetServices | moveVerify#Product |  |  |
-| AssetServices | check#ScanLocation |  |  |
-| AssetServices | move#Asset |  |  |
-| AssetServices | record#PhysicalInventoryQuantity |  |  |
-| AssetServices | record#PhysicalInventoryChange |  |  |
+| AssetServices | check#ScanLocation | Warehouse/Handheld/Move; Warehouse/Handheld/Putaway; Warehouse/Picking/PickLocationMoves; Warehouse/Receiving/Putaway; Warehouse/Transfers/Move |  |
+| AssetServices | move#Asset | Warehouse/Handheld/Move; Warehouse/Handheld/Putaway; Warehouse/Inventory/ContainerDetail; Warehouse/Receiving/Putaway; Warehouse/Transfers/Move |  |
+| AssetServices | record#PhysicalInventoryQuantity | Warehouse/Inventory/Adjustments |  |
+| AssetServices | record#PhysicalInventoryChange | Warehouse/Inventory/Adjustments |  |
 | AssetServices | create#ProductAssetAdHoc |  |  |
-| AssetServices | update#PhysicalInventoryDate |  |  |
+| AssetServices | update#PhysicalInventoryDate | Warehouse/Counts/CountDetail |  |
 | EquipmentServices | create#Equipment |  |  |
 | EquipmentServices | get#AssetMaintenanceNeeded |  |  |
 | EquipmentServices | create#AssetMaintenance |  |  |
 | EquipmentServices | create#AssetMaintenanceContent | Shared/RecordFiles | Shared/RecordFiles |
 | EquipmentServices | update#AssetMaintenanceContent |  |  |
 | EquipmentServices | save#AssetMaintenanceContentFile | Shared/RecordFiles |  |
-| InventoryReportServices | get#InventoryProjectedInfo |  |  |
-| InventoryReportServices | get#PriceHistoryInfo |  |  |
-| PriceServices | modify#ProductPrice |  |  |
+| InventoryReportServices | get#InventoryProjectedInfo | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/SupplyPlanning; CustomerService/InventoryAvailability; Shared/InventoryAvailability; Shared/SupplyPlanning |  |
+| InventoryReportServices | get#PriceHistoryInfo | Products/Pricing/PriceHistory |  |
+| PriceServices | modify#ProductPrice | Purchasing/Suppliers/SupplierPrices |  |
 | PriceServices | get#ProductPriceByType |  |  |
-| PriceServices | get#ProductPrice |  |  |
+| PriceServices | get#ProductPrice | Products/Pricing/PriceLists/PriceListDetail; Products/Pricing/PriceExplain; Purchasing/Suppliers/PriceExplain; Purchasing/Suppliers/SupplierPrices |  |
 | PriceServices | get#OrderProductPrice |  |  |
-| ProductServices | find#ProductByIdValue |  |  |
-| ProductServices | clone#Product |  |  |
-| ProductServices | create#ProductFeature |  |  |
-| ProductServices | apply#ProductFeatures |  |  |
+| ProductServices | find#ProductByIdValue | Products; Products/Products; Products/Units/Packaging; Products/Settings/IdentificationTypes |  |
+| ProductServices | clone#Product | Products/Products/Product360; Shared/Product360 |  |
+| ProductServices | create#ProductFeature | Products/Features; Products/Products/Product360; Shared/Product360 |  |
+| ProductServices | apply#ProductFeatures | Products/Features/FeatureDetail; Products/Products/Product360; Shared/Product360 |  |
 | ProductServices | find#ProductFeatures |  |  |
-| ProductServices | find#ProductFeatureGroups |  |  |
+| ProductServices | find#ProductFeatureGroups | Products/Products/VariantBuilder |  |
 | ProductServices | find#ProductCategoryFeatures |  |  |
 | ProductServices | get#ProductCategoryFeatureList |  |  |
 | ProductServices | get#FeatureByIactnOrAll |  |  |
 | ProductServices | find#VariantProduct |  |  |
-| ProductServices | get#VariantProductsInfo |  |  |
-| ProductServices | create#VariantProducts |  |  |
+| ProductServices | get#VariantProductsInfo | Products/Products/VariantBuilder |  |
+| ProductServices | create#VariantProducts | Products/Products/VariantBuilder; Shared/Product360 |  |
 | ProductServices | create#VariantProduct |  |  |
 | ProductServices | delete#VariantProducts |  |  |
-| ProductServices | delete#Product |  |  |
-| ProductServices | add#ProductsToCategory |  |  |
-| ProductServices | remove#ProductsFromCategory |  |  |
-| ProductServices | add#FeatureToProducts |  |  |
-| ProductServices | remove#FeatureFromProducts |  |  |
-| ProductServices | create#ProductContent | Shared/RecordFiles | Shared/RecordFiles |
-| ProductServices | update#ProductContent |  |  |
+| ProductServices | delete#Product | Products/Products |  |
+| ProductServices | add#ProductsToCategory | Products/Products |  |
+| ProductServices | remove#ProductsFromCategory | Products/Products |  |
+| ProductServices | add#FeatureToProducts | Products/Products |  |
+| ProductServices | remove#FeatureFromProducts | Products/Products |  |
+| ProductServices | create#ProductContent | Shared/RecordFiles; Products/Products/Product360; Products/Documents; Products/Documents/Translations; Shared/Product360 | Shared/RecordFiles |
+| ProductServices | update#ProductContent | Products/Products/Product360; Products/Documents/DocumentDetail; Products/Documents/Translations; Shared/Product360 |  |
 | ProductServices | save#ProductContentFile | Shared/RecordFiles |  |
-| ProductServices | create#ProductCategoryContent | Shared/RecordFiles | Shared/RecordFiles |
-| ProductServices | update#ProductCategoryContent |  |  |
+| ProductServices | create#ProductCategoryContent | Shared/RecordFiles; Products/Categories/CategoryDetail/Content; Products/Documents/Translations | Shared/RecordFiles |
+| ProductServices | update#ProductCategoryContent | Products/Categories/CategoryDetail/Content; Products/Documents/Translations |  |
 | ProductServices | save#ProductCategoryContentFile | Shared/RecordFiles |  |
-| ProductServices | get#ProductManualDocumentData |  |  |
+| ProductServices | get#ProductManualDocumentData | Products/Products/Product360; Products/Documents |  |
 | PromotionServices | apply#Promotion |  |  |
-| PromotionServices | apply#OrderPromotions |  |  |
+| PromotionServices | apply#OrderPromotions | Shared/OrderDetail |  |
 | PromotionServices | add#OrderPromoCode |  |  |
 | PromotionServices | remove#OrderPromoCode |  |  |
 | PromotionServices | apply#NewCustomerDiscount |  |  |
@@ -733,8 +734,8 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | StoreServices | get#StoreShippingOptions |  |  |
 | StoreServices | clone#ProductStore |  |  |
 | StoreServices | format#UrlSlug |  |  |
-| StoreServices | generate#UrlSlugFromProductName |  |  |
-| StoreServices | generate#UrlSlugFromCategoryName |  |  |
+| StoreServices | generate#UrlSlugFromProductName | Products/Products/Product360; Shared/Product360 |  |
+| StoreServices | generate#UrlSlugFromCategoryName | Products/Categories/CategoryDetail |  |
 | SubscriptionServices | init#SubscriptionResource |  |  |
 | SubscriptionServices | renew#SubscriptionResourceAccess |  |  |
 | SubscriptionServices | revoke#SubscriptionResourceAccess |  |  |
@@ -752,17 +753,17 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| RequestServices | create#Request | Commons/QuickCreate; Commons/Requests; Comms/Inbox; Comms/Chat; Projects/Requests | Commons/QuickCreate; Commons/Requests/List; Commons/Tasks/TaskDetail; Projects/Requests/List; Projects/WorkItems/WorkItemDetail |
-| RequestServices | update#Request | Commons/Requests/RequestDetail; Projects/Requests; Projects/Requests/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
+| RequestServices | create#Request | Commons/QuickCreate; Commons/Requests; Comms/Inbox; Comms/Chat; Projects/Requests; Warehouse/Transfers/StockRequests; Purchasing/Requests; Purchasing/Requests/RequestDetail; CustomerService/Cases/NewCase | Commons/QuickCreate; Commons/Requests/List; Commons/Tasks/TaskDetail; Projects/Requests/List; Projects/WorkItems/WorkItemDetail |
+| RequestServices | update#Request | Commons/Requests/RequestDetail; Projects/Requests; Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
 | RequestServices | create#ContactRequest | Projects/Requests/Intake |  |
 | RequestServices | create#ContactRequestReCaptcha | Projects/Requests/Intake |  |
-| RequestServices | replace#RequestParty | Commons/Requests/RequestDetail; Projects/Requests; Projects/Requests/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
-| RequestServices | add#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
-| RequestServices | update#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail | Shared/Chatter |
-| RequestServices | delete#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail | Shared/Chatter |
+| RequestServices | replace#RequestParty | Commons/Requests/RequestDetail; Projects/Requests; Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Cases/NewCase; Shared/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
+| RequestServices | add#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail; CustomerService/Cases/CaseDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
+| RequestServices | update#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail; CustomerService/Cases/CaseDetail | Shared/Chatter |
+| RequestServices | delete#RequestComment | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail; CustomerService/Cases/CaseDetail | Shared/Chatter |
 | RequestServices | get#RequestContentLocation |  |  |
-| RequestServices | create#RequestContent | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail; Shared/RecordFiles | Shared/RecordFiles |
-| RequestServices | update#RequestContent | Projects/Requests/RequestDetail |  |
+| RequestServices | create#RequestContent | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail; Shared/RecordFiles; CustomerService/Cases/CaseDetail | Shared/RecordFiles |
+| RequestServices | update#RequestContent | Projects/Requests/RequestDetail; CustomerService/Cases/CaseDetail |  |
 | RequestServices | save#RequestContentFile | Commons/Requests/RequestDetail; Shared/RecordFiles |  |
 
 Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
@@ -770,19 +771,19 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | RequestServices | get#UserTodayRequests |  | Commons |
-| RequestServices | link#RequestRecord | Projects/Requests/RequestDetail | Commons/QuickCreate; Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
-| RequestServices | unlink#RequestRecord | Projects/Requests/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
+| RequestServices | link#RequestRecord | Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Cases/NewCase; CustomerService/Returns/WarrantyAssessment; Shared/RequestDetail | Commons/QuickCreate; Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
+| RequestServices | unlink#RequestRecord | Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
 
 Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | RequestServices | convert#RequestToProject |  | Projects/Requests/RequestDetail |
-| RequestServices | create#IntakeRequest |  | RequestIntake |
-| RequestServices | create#IntakeToken |  | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List |
-| RequestServices | get#IntakeSettings |  | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List; Projects/Settings/Intake |
+| RequestServices | create#IntakeRequest | ServicePortal/NewCustomerCase | RequestIntake |
+| RequestServices | create#IntakeToken | CustomerService/Settings/ChannelRouting | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List |
+| RequestServices | get#IntakeSettings | CustomerService/Settings/ChannelRouting | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List; Projects/Settings/Intake |
 | RequestServices | make#RequestWorkItem |  | Projects/Requests/List; Projects/Requests/RequestDetail |
-| RequestServices | remove#IntakeToken |  | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List |
+| RequestServices | remove#IntakeToken | CustomerService/Settings/ChannelRouting | Projects/Projects/ProjectDetail/Settings; Projects/Requests/List |
 
 ## Sales (8 services)
 
@@ -810,70 +811,70 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | CarrierServices | get#OrderShippingRate |  |  |
 | CarrierServices | get#ShippingRatesBulk |  |  |
 | CarrierServices | get#AutoPackageInfo |  |  |
-| CarrierServices | get#ShippingRate |  |  |
+| CarrierServices | get#ShippingRate | Warehouse/Shipping/Ship |  |
 | CarrierServices | request#ShippingLabels |  |  |
 | CarrierServices | refund#ShippingLabels |  |  |
 | CarrierServices | track#ShippingLabels |  |  |
 | CarrierServices | validate#ShippingPostalAddress |  |  |
-| CarrierServices | validate#PostalAddress |  |  |
+| CarrierServices | validate#PostalAddress | Warehouse/Locations/Carriers; Warehouse/Shipping/Ship |  |
 | CarrierServices | validate#PostalAddressBulk |  |  |
 | CarrierServices | calculate#OrderShipping |  |  |
 | CarrierServices | calculate#OrderPartShipping |  |  |
 | CarrierServices | get#OrderShippingRatesBulk |  |  |
 | CarrierServices | get#ShipmentRates |  |  |
-| CarrierServices | request#ShipmentLabels |  |  |
+| CarrierServices | request#ShipmentLabels | Warehouse/Shipping/Ship |  |
 | CarrierServices | get#ShipLabelMarkup |  |  |
-| CarrierServices | refund#ShipmentLabels |  |  |
-| CarrierServices | track#ShipmentLabels |  |  |
+| CarrierServices | refund#ShipmentLabels | Warehouse/Shipping/Ship |  |
+| CarrierServices | track#ShipmentLabels | Warehouse/Shipping/PackageTracking; Warehouse/Shipping/Ship |  |
 | CarrierServices | get#ShipmentGatewayDetails |  |  |
 | CarrierServices | remove#ShipmentLabelInfo |  |  |
 | CarrierServices | remove#ShipmentReturnLabelInfo |  |  |
 | CarrierServices | get#ShipmentPackageRequiresInsurance |  |  |
 | CarrierServices | get#GeneralPackageRequiresInsurance |  |  |
 | CarrierServices | get#OrderShippingRateLocal |  |  |
-| ShipmentInfoServices | get#ShipmentDisplayInfo |  |  |
-| ShipmentInfoServices | get#ShipmentContactInfo |  |  |
-| ShipmentInfoServices | get#ShipmentShippingOptions |  |  |
-| ShipmentInfoServices | get#ShipmentLoadPickInfo |  |  |
+| ShipmentInfoServices | get#ShipmentDisplayInfo | Warehouse/Handheld/Receive; Warehouse/Receiving/ReceiptDetail; Warehouse/Receiving/Receive; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentInfoServices | get#ShipmentContactInfo | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/Ship; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentInfoServices | get#ShipmentShippingOptions | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail |  |
+| ShipmentInfoServices | get#ShipmentLoadPickInfo | Warehouse/Handheld/Pick; Warehouse/Picking/Pick |  |
 | ShipmentInfoServices | get#ShipmentPickPackInfo |  |  |
-| ShipmentServices | create#Shipment |  |  |
-| ShipmentServices | update#ShipmentAndRouteSegment |  |  |
-| ShipmentServices | create#ShipmentItem |  |  |
-| ShipmentServices | update#ShipmentItem |  |  |
-| ShipmentServices | ensure#ShipmentItemQuantityRemaining |  |  |
-| ShipmentServices | create#ShipmentPackage |  |  |
-| ShipmentServices | update#ShipmentPackageAndRouteSeg |  |  |
-| ShipmentServices | delete#ShipmentPackage |  |  |
-| ShipmentServices | add#ItemToPackage |  |  |
-| ShipmentServices | update#ShipmentPackageContent |  |  |
-| ShipmentServices | reset#ShipmentPackage |  |  |
+| ShipmentServices | create#Shipment | Warehouse/Receiving/Receipts; Warehouse/Shipping/Shipments; Warehouse/Transfers/Transfers |  |
+| ShipmentServices | update#ShipmentAndRouteSegment | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentServices | create#ShipmentItem | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentServices | update#ShipmentItem | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentServices | ensure#ShipmentItemQuantityRemaining | Shared/ShipmentDetail |  |
+| ShipmentServices | create#ShipmentPackage | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | update#ShipmentPackageAndRouteSeg | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | delete#ShipmentPackage | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | add#ItemToPackage | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | update#ShipmentPackageContent | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | reset#ShipmentPackage | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack |  |
 | ShipmentServices | ship#OrderPart |  |  |
-| ShipmentServices | create#OrderPartShipment |  |  |
-| ShipmentServices | add#OrderPartToShipment |  |  |
-| ShipmentServices | pickMove#ProductToContainer |  |  |
-| ShipmentServices | pickMove#ShipmentProduct |  |  |
-| ShipmentServices | get#ShipmentProductByScan |  |  |
-| ShipmentServices | pack#ShipmentProductScan |  |  |
-| ShipmentServices | pack#ShipmentProduct |  |  |
-| ShipmentServices | pack#ShipmentItemSource |  |  |
-| ShipmentServices | pack#ShipmentAssemblyComponent |  |  |
-| ShipmentServices | unpack#ShipmentItemIssuance |  |  |
-| ShipmentServices | create#ShipmentAutoPackages |  |  |
-| ShipmentServices | receive#EntireShipment |  |  |
-| ShipmentServices | receive#ShipmentProduct |  |  |
+| ShipmentServices | create#OrderPartShipment | Warehouse/Orders/OrderDetail; Warehouse/Receiving/Receipts; Warehouse/Shipping/Shipments; Purchasing/Receiving/Receipts; Shared/OrderDetail |  |
+| ShipmentServices | add#OrderPartToShipment | Warehouse/Orders/OrderDetail; Shared/OrderDetail |  |
+| ShipmentServices | pickMove#ProductToContainer | Warehouse/Inventory/ContainerDetail |  |
+| ShipmentServices | pickMove#ShipmentProduct | Warehouse/Handheld/Pick; Warehouse/Picking/Pick; Shared/ShipmentDetail |  |
+| ShipmentServices | get#ShipmentProductByScan | Warehouse/Handheld/Pick; Warehouse/Picking/Pick; Shared/ShipmentDetail |  |
+| ShipmentServices | pack#ShipmentProductScan | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | pack#ShipmentProduct | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack |  |
+| ShipmentServices | pack#ShipmentItemSource | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | pack#ShipmentAssemblyComponent | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail; Shared/MaterialIssueReceipt |  |
+| ShipmentServices | unpack#ShipmentItemIssuance | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/ShipmentDetail |  |
+| ShipmentServices | create#ShipmentAutoPackages | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack |  |
+| ShipmentServices | receive#EntireShipment | Warehouse/Handheld/Receive; Warehouse/Receiving/ReceiptDetail; Warehouse/Receiving/Receive; Warehouse/Returns/ReturnReceipt; Warehouse/Transfers/TransferShipmentDetail; Purchasing/Receiving/ShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentServices | receive#ShipmentProduct | Warehouse/Handheld/Receive; Warehouse/Receiving/ReceiptDetail; Warehouse/Receiving/Receive; Warehouse/Returns/ReturnReceipt; Warehouse/Transfers/TransferShipmentDetail; Purchasing/Receiving/ShipmentDetail; Shared/ShipmentDetail |  |
 | ShipmentServices | convert#ProductBoxQuantity |  |  |
-| ShipmentServices | get#ShipmentPackageWeight |  |  |
-| ShipmentServices | print#ShipmentLabels |  |  |
-| ShipmentServices | complete#ShipmentPack |  |  |
+| ShipmentServices | get#ShipmentPackageWeight | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack |  |
+| ShipmentServices | print#ShipmentLabels | Warehouse/Locations/Printers; Warehouse/Shipping/Ship; Shared/ShipmentDetail |  |
+| ShipmentServices | complete#ShipmentPack | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack |  |
 | ShipmentServices | pack#Shipment |  |  |
-| ShipmentServices | ship#Shipment |  |  |
-| ShipmentServices | deliver#Shipment |  |  |
+| ShipmentServices | ship#Shipment | Warehouse/Shipping/Ship |  |
+| ShipmentServices | deliver#Shipment | Warehouse/Shipping/PackageTracking |  |
 | ShipmentServices | checkSet#ShipmentDeliveredByPackages |  |  |
-| ShipmentServices | cancel#Shipment |  |  |
+| ShipmentServices | cancel#Shipment | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail |  |
 | ShipmentServices | reduce#QuantitiesToHandled |  |  |
-| ShipmentServices | send#ShipmentStoreEmail |  |  |
-| ShipmentServices | create#ShipmentContent | Shared/RecordFiles | Shared/RecordFiles |
-| ShipmentServices | update#ShipmentContent |  |  |
+| ShipmentServices | send#ShipmentStoreEmail | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
+| ShipmentServices | create#ShipmentContent | Shared/RecordFiles; Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail | Shared/RecordFiles |
+| ShipmentServices | update#ShipmentContent | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
 | ShipmentServices | save#ShipmentContentFile | Shared/RecordFiles |  |
 
 ## Work (104 services, 31 added)
@@ -901,21 +902,21 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | GitServices | apply#CommitKeywords |  |  |
 | GitServices | complete#TaskFromCommit |  |  |
 | GitServices | check#GitRepositoryAuthz |  |  |
-| ManufacturingServices | get#ProductionRunDisplayInfo |  |  |
+| ManufacturingServices | get#ProductionRunDisplayInfo | Manufacturing/WorkOrders/WorkOrderDetail; Shared/MaterialIssueReceipt |  |
 | ManufacturingServices | create#ProductionRun |  |  |
 | ManufacturingServices | create#ShipmentAssemblyWorkEffort |  |  |
 | ManufacturingServices | set#ProducedProductQuantity |  |  |
 | ManufacturingServices | recreate#ConsumeProductsFromProduce |  |  |
-| ManufacturingServices | produce#AvailableAssemblies |  |  |
+| ManufacturingServices | produce#AvailableAssemblies | Warehouse/Handheld/Pack; Warehouse/Shipping/Pack; Shared/MaterialIssueReceipt |  |
 | ManufacturingServices | breakDown#Assembly |  |  |
 | ManufacturingServices | unissue#AssemblyComponents |  |  |
 | ManufacturingServices | unissue#Component |  |  |
 | ManufacturingServices | cancel#AssemblyWorkEffort |  |  |
-| ManufacturingServices | get#ConsumedAssetRemaining |  |  |
-| ManufacturingServices | get#ProducedProductComplete |  |  |
-| ManufacturingServices | get#ProductionRunProduceConsumeDetail |  |  |
-| ManufacturingServices | get#ProductBomDetail |  |  |
-| ManufacturingServices | get#ProductionRunPickInfo |  |  |
+| ManufacturingServices | get#ConsumedAssetRemaining | Manufacturing/WorkOrders/Disassembly |  |
+| ManufacturingServices | get#ProducedProductComplete | Manufacturing/WorkOrders/WorkOrderDetail/Quantities; Manufacturing/WorkOrders/Disassembly |  |
+| ManufacturingServices | get#ProductionRunProduceConsumeDetail | Manufacturing/WorkOrders/WorkOrderDetail/Components; Manufacturing/WorkOrders/WorkOrderDetail/Quantities; Shared/MaterialIssueReceipt |  |
+| ManufacturingServices | get#ProductBomDetail | Manufacturing/Boms/BomDetail/BomExplosion |  |
+| ManufacturingServices | get#ProductionRunPickInfo | Manufacturing/WorkOrders/WorkOrderDetail |  |
 | MeasurementServices | get#MeasurementUomsByMeasurementType |  |  |
 | ProjectServices | clone#Project | Projects/QuickCreate; Projects/Projects/NewProject; Projects/Projects/ProjectDetail; Projects/Projects/ProjectDetail/Settings; Projects/Settings/Templates | Projects/Projects/NewProject/Start; Projects/Projects/ProjectDetail; Projects/QuickProject; Projects/Requests/RequestDetail |
 | ProjectServices | create#Project | Projects/QuickCreate; Projects/Projects/NewProject; Projects/Settings/Templates | Projects/Projects/NewProject/Start; Projects/Projects/ProjectDetail; Projects/QuickProject; Projects/Requests/RequestDetail |
@@ -929,17 +930,17 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ProjectServices | get#ProjectMilestones | Projects/WorkItems/WorkItemDetail |  |
 | ProjectServices | create#Milestone | Projects/Projects/Roadmap | Projects/Projects/MilestoneDetail; Projects/Projects/ReleaseDetail; Projects/Projects/Roadmap |
 | ProjectServices | update#Milestone | Projects/Projects/Roadmap; Projects/Projects/MilestoneDetail; Projects/Projects/ReleaseDetail; Projects/WorkItems/Backlog; Projects/WorkItems/SprintDetail | Projects/Projects/MilestoneDetail; Projects/Projects/ReleaseDetail; Projects/Projects/Roadmap |
-| ShipmentWorkServices | create#ShipmentLoadShip |  |  |
-| ShipmentWorkServices | add#ShipmentToShipmentLoad |  |  |
-| ShipmentWorkServices | add#OrderPartToShipmentLoad |  |  |
-| ShipmentWorkServices | make#ShipmentLoadOrderConditions |  |  |
-| ShipmentWorkServices | create#ShipmentLoadsForOrders |  |  |
+| ShipmentWorkServices | create#ShipmentLoadShip | Warehouse/Picking/Picklists |  |
+| ShipmentWorkServices | add#ShipmentToShipmentLoad | Warehouse/Picking/PicklistDetail |  |
+| ShipmentWorkServices | add#OrderPartToShipmentLoad | Warehouse/Picking/PicklistDetail |  |
+| ShipmentWorkServices | make#ShipmentLoadOrderConditions | Warehouse/Picking/CreatePicklists |  |
+| ShipmentWorkServices | create#ShipmentLoadsForOrders | Warehouse/Picking/CreatePicklists |  |
 | ShipmentWorkServices | check#ShipmentLoadStatusChange |  |  |
 | ShipmentWorkServices | set#ShipmentLoadStatusOnShipmentStatus |  |  |
 | ShipmentWorkServices | setAll#ShipmentLoadStatusFromShipments |  |  |
-| ShipmentWorkServices | set#ShipmentLoadStatusFromShipments |  |  |
-| ShipmentWorkServices | complete#ShipmentLoadShip |  |  |
-| ShipmentWorkServices | close#ShipmentLoadShip |  |  |
+| ShipmentWorkServices | set#ShipmentLoadStatusFromShipments | Warehouse/Picking/PicklistDetail |  |
+| ShipmentWorkServices | complete#ShipmentLoadShip | Warehouse/Picking/PicklistDetail |  |
+| ShipmentWorkServices | close#ShipmentLoadShip | Warehouse/Picking/PicklistDetail |  |
 | TaskServices | get#FullCalendarData | Commons/Calendar; Projects/Projects/ProjectDetail/Plan/Calendar | Commons/Calendar |
 | TaskServices | create#Task | Projects/QuickCreate; Projects/WorkItems; Projects/WorkItems/WorkItemDetail; Projects/WorkItems/Backlog; Projects/Requests; Projects/Requests/RequestDetail | Projects/QuickCreate; Projects/WorkItems/Backlog; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
 | TaskServices | create#SimpleTask | Commons/Panel/Today; Commons/QuickCreate; Commons/Tasks; Comms/Inbox; Comms/Chat; Shared/Chatter | Commons/Panel/Today; Commons/QuickCreate; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Shared/Chatter; Projects/Requests/RequestDetail; Projects/WorkItems/WorkItemDetail |
@@ -975,8 +976,8 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | TimeServices | import#TimeDetailRecord |  |  |
 | WorkEffortServices | clone#WorkEffort | Commons/Calendar/EventDetail; Commons/Tasks/TaskDetail; Projects/WorkItems/WorkItemDetail | Commons/Calendar/EventDetail; Commons/Tasks/TaskDetail; Projects/WorkItems/WorkItemDetail |
 | WorkEffortServices | delete#WorkEffort | Projects/Projects/ProjectDetail/Settings; Projects/WorkItems; Projects/WorkItems/WorkItemDetail | Commons/Tasks/TaskDetail; Projects/Projects/ProjectDetail/Settings; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
-| WorkEffortServices | add#WorkEffortParty | Commons/QuickCreate; Commons/Calendar; Commons/Calendar/EventDetail; Projects/Projects/NewProject; Projects/Projects/ProjectDetail/Team; Projects/WorkItems; Projects/WorkItems/WorkItemDetail | Commons/Calendar; Commons/Calendar/EventDetail; Commons/QuickCreate; Commons/Tasks/TaskDetail; Projects/Projects/NewProject/Start; Projects/Projects/NewProject/Team; Projects/Projects/ProjectDetail; Projects/Projects/ProjectDetail/Plan/Calendar; Projects/Projects/ProjectDetail/Team; Projects/QuickCreate; Projects/QuickProject; Projects/Requests/RequestDetail; Projects/WorkItems/Backlog; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
-| WorkEffortServices | remove#WorkEffortParty | Commons/Calendar/EventDetail; Projects/Projects/ProjectDetail/Team; Projects/WorkItems | Projects/Projects/NewProject/Team; Projects/Projects/ProjectDetail/Team; Projects/WorkItems/List; Projects/WorkItems/SprintDetail; Projects/WorkItems/WorkItemDetail |
+| WorkEffortServices | add#WorkEffortParty | Commons/QuickCreate; Commons/Calendar; Commons/Calendar/EventDetail; Projects/Projects/NewProject; Projects/Projects/ProjectDetail/Team; Projects/WorkItems; Projects/WorkItems/WorkItemDetail; Manufacturing/WorkOrders/WorkOrderDetail/Overview | Commons/Calendar; Commons/Calendar/EventDetail; Commons/QuickCreate; Commons/Tasks/TaskDetail; Projects/Projects/NewProject/Start; Projects/Projects/NewProject/Team; Projects/Projects/ProjectDetail; Projects/Projects/ProjectDetail/Plan/Calendar; Projects/Projects/ProjectDetail/Team; Projects/QuickCreate; Projects/QuickProject; Projects/Requests/RequestDetail; Projects/WorkItems/Backlog; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
+| WorkEffortServices | remove#WorkEffortParty | Commons/Calendar/EventDetail; Projects/Projects/ProjectDetail/Team; Projects/WorkItems; Manufacturing/WorkOrders/WorkOrderDetail/Overview | Projects/Projects/NewProject/Team; Projects/Projects/ProjectDetail/Team; Projects/WorkItems/List; Projects/WorkItems/SprintDetail; Projects/WorkItems/WorkItemDetail |
 | WorkEffortServices | replace#WorkEffortParty | Commons/Calendar/EventDetail; Commons/Tasks; Projects/WorkItems/WorkItemDetail | Commons/Tasks/List; Commons/Tasks/TaskDetail; Shared/Chatter; Projects/Projects/List; Projects/WorkItems/List; Projects/WorkItems/SprintDetail; Projects/WorkItems/WorkItemDetail |
 | WorkEffortServices | add#WorkEffortProduct | Projects/Projects/ProjectDetail/Money |  |
 | WorkEffortServices | get#WorkEffortStartEnd |  | Commons/Calendar; Commons/Calendar/EventDetail; Projects/Projects/ProjectDetail/Plan/Calendar |
@@ -1016,7 +1017,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | EventServices | book#Resource |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Calendar/Schedules; Commons/Calendar/Schedules/ResourceDetail; Projects/Projects/ProjectDetail/Plan/Calendar |
 | EventServices | cancel#ResourceBooking |  | Commons/Calendar/EventDetail; Commons/Calendar/Schedules; Commons/Calendar/Schedules/ResourceDetail |
 | EventServices | store#WorkEffortReminders |  | Commons/Calendar; Commons/Calendar/EventDetail; Projects/Projects/ProjectDetail/Plan/Calendar |
-| WorkEffortServices | link#WorkEffortRecord | Projects/QuickCreate; Projects/WorkItems/WorkItemDetail | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Panel/Today; Commons/QuickCreate; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Shared/Chatter; Projects/Projects/ProjectDetail/Plan/Calendar; Projects/QuickCreate; Projects/Requests/RequestDetail; Projects/WorkItems/Backlog; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
+| WorkEffortServices | link#WorkEffortRecord | Projects/QuickCreate; Projects/WorkItems/WorkItemDetail; CustomerService/Returns/WarrantyAssessment | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Panel/Today; Commons/QuickCreate; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Shared/Chatter; Projects/Projects/ProjectDetail/Plan/Calendar; Projects/QuickCreate; Projects/Requests/RequestDetail; Projects/WorkItems/Backlog; Projects/WorkItems/List; Projects/WorkItems/WorkItemDetail |
 | WorkEffortServices | unlink#WorkEffortRecord | Projects/WorkItems/WorkItemDetail | Commons/Calendar/EventDetail |
 | WorkEffortServices | get#UserTodayItems |  | Commons/Home; Commons/Panel/Today |
 | WorkEffortServices | snooze#UserTodayItem |  | Commons/Panel/Today; Commons/Tasks/List; Commons/Tasks/TaskDetail; Projects/WorkItems/WorkItemDetail |
@@ -1110,7 +1111,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | TimesheetServices | get#PartyTimesheet |  | Projects/QuickCreate; Projects/Time/MyTime; Projects/Time/TimeEntries/EditEntry |
 | TimesheetServices | get#PartyWeek |  | Projects/Time/MyTime |
 | TimesheetServices | get#TimeKeepers |  | Projects/Billing/Rates; Projects/Projects/ProjectDetail/Team; Projects/Resources/Allocations/EditAllocation; Projects/Resources/TeamPlanner; Projects/Time/Import/Source; Projects/Time/MyTime; Projects/Time/TimeEntries; Projects/Time/TimeEntries/EditEntry |
-| TimesheetServices | get#Timer |  | Projects/Home; Projects/Time/MyTime |
+| TimesheetServices | get#Timer | Manufacturing/ShopFloor; Manufacturing/ShopFloor/OperationExecution; Manufacturing/WorkOrders/WorkOrderDetail/Time | Projects/Home; Projects/Time/MyTime |
 | TimesheetServices | get#TimesheetAccess |  | Projects/QuickCreate; Projects/Resources/PersonDetail/Time; Projects/Time/MyTime; Projects/Time/TeamTimesheet; Projects/Time/TimeEntries; Projects/Time/TimeEntries/EditEntry |
 | TimesheetServices | get#TimesheetPolicy |  | Projects/Resources/PersonDetail/Time; Projects/Settings/Time; Projects/Time/MyTime; Projects/Time/TeamTimesheet; Projects/Time/TimeEntries; Projects/Time/TimeEntries/EditEntry |
 | TimesheetServices | get#TimesheetSummary |  | Projects/Time/TimesheetDetail; Projects/Time/TimesheetPrint |
@@ -1119,12 +1120,12 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | TimesheetServices | reopen#Timesheet |  | Projects/Time/MyTime; Projects/Time/TimesheetDetail |
 | TimesheetServices | return#Timesheet |  | Projects/Time/MyTime; Projects/Time/TimesheetDetail |
 | TimesheetServices | send#MissingTimeReminders |  | Projects/Time/Timesheets |
-| TimesheetServices | start#Timer |  | Projects/Home; Projects/Time/MyTime; Projects/WorkItems/WorkItemDetail |
-| TimesheetServices | stop#Timer |  | Projects/Home; Projects/Time/MyTime; Projects/WorkItems/WorkItemDetail |
+| TimesheetServices | start#Timer | Manufacturing/ShopFloor/OperationExecution; Manufacturing/WorkOrders/WorkOrderDetail/Time | Projects/Home; Projects/Time/MyTime; Projects/WorkItems/WorkItemDetail |
+| TimesheetServices | stop#Timer | Manufacturing/ShopFloor/OperationExecution; Manufacturing/WorkOrders/WorkOrderDetail/Time | Projects/Home; Projects/Time/MyTime; Projects/WorkItems/WorkItemDetail |
 | TimesheetServices | store#TimesheetPolicy |  | Projects/Settings/Time |
 | TimesheetServices | store#WorkTypes |  | Projects/Settings/Time |
 | TimesheetServices | submit#Timesheet |  | Projects/Time/MyTime; Projects/Time/TimesheetDetail |
-| TimesheetServices | update#Timer |  | Projects/Time/MyTime |
+| TimesheetServices | update#Timer | Manufacturing/ShopFloor/OperationExecution | Projects/Time/MyTime |
 | WorkItemImportServices | import#WorkItems |  | Projects/WorkItems/Import/Result |
 | WorkItemImportServices | parse#WorkItemFile |  | Projects/WorkItems/Import/Mapping; Projects/WorkItems/Import/Source |
 | WorkItemImportServices | preview#WorkItems |  | Projects/WorkItems/Import/Preview |

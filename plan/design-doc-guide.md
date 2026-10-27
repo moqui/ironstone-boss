@@ -39,6 +39,14 @@ something from the shell (a quick-create item, a Today source, a palette provide
 notification topic, a key-map scope) lists it in its screen table and its framework needs, and
 the crosscut file collects them.
 
+The Oct 27 core-app pass also registers domain-owned reusable screens in `design-crosscut.md`:
+Products §§7–8 own the full PriceLists, PriceListDetail, PriceExplain and SupplierPrices definitions;
+Manufacturing owns the BOM/routing editors mounted in Product360, and Accounting owns the
+ProductionCostClose task mounted in Manufacturing and InventoryValuation report mounted in
+Warehouse. Crosscut defines their common
+contracts and links to those definitions; consuming apps provide context instead of duplicating
+forms. This follows the same single-definition rule as the existing Projects and Commons owners.
+
 ## 2. Level of detail
 
 - **Screens and forms are the unit.** Every screen of every app is in its file's screen table.
@@ -128,8 +136,8 @@ One table per screen, one row per form:
 
 ## 7. Reused screens
 
-A reused screen is designed once, in `design-crosscut.md` or, for the screens Commons and Comms
-lend (§1), in `design-drawers-commons.md`, with a full screen section (§5), followed by a
+A reused screen is designed once, in `design-crosscut.md`, the domain-owner file registered
+there (§1), or, for the screens Commons and Comms lend, `design-drawers-commons.md`, with a full screen section (§5), followed by a
 **Per-app context** table:
 
 | App | Tabs or panes shown | Filters fixed | Action set | Emphasis |

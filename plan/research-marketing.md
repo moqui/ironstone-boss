@@ -4,6 +4,15 @@ Oct 18, 2026
 
 Reviewed against sources Oct 18, 2026; follows [research-crosscut.md](research-crosscut.md).
 
+**Design follow-up (Oct 27, 2026).** Future **IronStoa PASS Blog/Publishing** (`mr-pass`) owns
+standalone public and editorial publishing screens; Marketing retains campaign/content contexts
+and Commons general wiki authoring. All use the same WikiBlog metadata, WikiPage revisions,
+review and publication services. [Forum §13.3](../../mr-pass/plan/design-forum.md#133-future-blogpublishing) defines
+publication grouping, approved-version scheduling, preview isolation, forum-backed discussion,
+product links and subscription boundaries. It supersedes any exclusive Marketing ownership
+implied below; the complete Publishing screen/form design remains future. Odoo `website_blog`,
+`website_forum` and `website_sale` are shared-site integration references.
+
 Deeper research pass on the **IronStone Marketing** app (campaigns; segments and lists;
 email and newsletters; promotions and coupons; content — blogs and landing pages;
 surveys; campaign analytics), cataloguing every relevant screen/page found in the
@@ -72,7 +81,7 @@ Sections: [1 home & calendar](#1-marketing-home-campaign-calendar--overview) ·
 [9 analytics & attribution](#9-campaign-analytics-utm--attribution) ·
 [10 configuration](#10-configuration--admin) ·
 [11 cross-app surfaces](#11-cross-app-surfaces) ·
-[12 Moqui baseline](#12-current-moqui-baseline-mrsimplescreens--marbleerp--mantle) ·
+[12 Moqui baseline](#12-current-moqui-baseline-mr-marble--marbleerp--mantle) ·
 [13 gaps & BOSS implications](#13-gaps--boss-implications)
 
 ---

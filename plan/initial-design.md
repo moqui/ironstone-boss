@@ -10,6 +10,13 @@ IronStone BOSS (Business OS Suite) is a new application suite for the Rust-based
 - **Self-hosting first.** Many target businesses, especially open-source ERP users, distrust external hosting. Running mail, files, calendar and office on their own hardware is an enabling feature, not an afterthought.
 - **Framework does protocols, BOSS does UI and data mapping.** mr-moqui is becoming a web-standards processing suite (client and server for mail, file transfer, sync protocols, plus an embedded browser), so BOSS consumes those capabilities rather than implementing them.
 
+**Public companion suite (Oct 27, 2026).** **IronStoa PASS — Public Application Software Suite**
+lives in the separate `mr-pass` repository/component: Forum first, with Commerce and
+Blog/Publishing as future apps. PASS supports multiple sites and local or remote Mantle access,
+without a dependency on BOSS. BOSS Commerce remains the staff store/channel surface; Marketing
+and Commons share publishing content and authoring services with PASS. The full Forum and shared
+foundation design is [design-forum.md](../../mr-pass/plan/design-forum.md) in the `mr-pass` component.
+
 ## App map
 
 ```mermaid

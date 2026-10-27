@@ -1349,9 +1349,20 @@ Reply goes to the mailbox; Reply to sender answers the sender only, as an intern
 the mailbox; an `@` mention adds the person as cc; a
 moderator closes a thread by setting its first post to `CeResolved`. Mailbox posts stay off
 party timelines and reach a record's Chatter only when linked to it. An email address for a
-mailbox, so that external members post and receive by email, is `later`; it reuses Marketing's
-per-address delivery (`ContactListCommStatus`, whose `messageId` matches the replies) and the
-unsubscribe of §16.
+mailbox was left `later` by this design. It is now fully designed in
+[IronStoa PASS Forum §12](../../mr-pass/plan/design-forum.md#12-read-state-notifications-and-email), using existing
+mail ingestion and ContactListCommStatus plus separate delivery preferences, reply tokens and
+outbox/receipt records. Forum email opt-out changes delivery, not membership or paid access.
+
+**PASS extension (Oct 27, 2026).** [Forum §13.4](../../mr-pass/plan/design-forum.md#134-comms-and-customer-service)
+defines the Comms additions: shared moderation queue/actions, forum metadata, independent
+accepted-answer/closed state and the same posting gate in Comms, web, API and inbound email.
+[Forum §12.1](../../mr-pass/plan/design-forum.md#121-tracking-and-participant-scale) keeps per-message state for
+internal recipients and introduces per-thread markers for public users, including conversions;
+public recipients no longer receive a row for every message, in any MAILBOX list, including
+unbound internal/private lists. Existing unbound mailboxes retain their access semantics. Internet publication requires an explicit site/category binding and
+policy; `isPublic` alone does not publish a mailbox. These are designed extensions, not claims
+that today's Mailbox implementation already performs them.
 
 ### Home
 
@@ -1729,7 +1740,9 @@ grant and withdrawal with its purpose (marketing email, SMS, phone, data process
 needs to show. Marketing's audience screens include the same screen; Customer 360 shows the
 contact's state read-only. Consent shows the list types that send outside the organization;
 a mailbox (`ContactList` type `MAILBOX`, §12) is membership, not consent, and appears here only
-once it has external members by email (`later`).
+once it has external members by email. [Forum §12.4](../../mr-pass/plan/design-forum.md#124-consent-and-opt-out)
+now designs this extension: forum delivery opt-out is independent of mailbox membership and
+does not use the membership-changing unsubscribe action unchanged.
 
 ### Consent
 
@@ -2008,7 +2021,7 @@ bare `entity-find`.
 | Calendars are a new `Calendar` collection over `WorkEffort` events, with `CalendarShare` and `CalendarSubscription`; recurrence is an RRULE on `WorkEffortRecurrence` with instance overrides by `WorkEffortAssoc` `WeatRecurrenceInstance`; reminders are `WorkEffortReminder`; working hours are `WetAvailable` work efforts; the grid shows the toggled calendars plus every event where the user is a `WorkEffortParty` | Answers the research question; nothing is added to `WorkEffort` itself except through the new child entities; an event another app schedules with a user shows without a `CalendarWorkEffort` row |
 | RSVP uses `WorkEffortParty` statuses (`WeptOffered`, `WeptAssigned`, `WeptDeclined`, new `WeptTentative`); meeting-room booking uses `WorkEffortFacility` with a new status; equipment uses `WorkEffortAssetAssign` statuses; policies and approval live in Maintenance | initial-design's split; without a policy a booking is assigned at once; Maintenance's policies are opt-in per resource |
 | Files run on drives (`ResourceDrive`): My files and folder drives on the database tree (`DbResource`, per-file versions in `DbResourceFileHistory`), version-controlled drives on a git repository in the database or on disk, and read-only mirrors of a git URL that only admins add; shares, favorites, tags and trash are keyed by drive and path for every storage; record attachments stay where the Mantle `save#*ContentFile` services put them (`dbresource://mantle/content/<type>/<id>/…`) with their `*Content` rows, and that tree is the Records drive; WebDAV, SFTP, CalDAV and CardDAV are framework servers over the same data | Answers the research question; everything but a disk drive in Postgres under one backup, the database being the default for version control and a disk drive the choice for a team that wants to clone it with git; a git file has no row, so the metadata cannot hang off `DbResource`; a mirror fetches from outside on a schedule, so it is an admin's to add; a file-system root is configuration |
-| Personal notes are the pages of a private `WikiSpace` per user, on database files; knowledge base, team wiki and help center are spaces; review is `WikiPageReview` over the existing published version; co-editing is Tiptap over Yjs with `yrs`, with a markdown text area until it lands | initial-design "Notes and knowledge live in Commons"; blogs (`WikiBlog`) go to Marketing's content screens; Tiptap rather than BlockNote because the same core serves the composer and chat as `m-rich-text`, and Nextcloud Text and Frappe Wiki are Tiptap references |
+| Personal notes are the pages of a private `WikiSpace` per user, on database files; knowledge base, team wiki and help center are spaces; review is `WikiPageReview` over the existing published version; co-editing is Tiptap over Yjs with `yrs`, with a markdown text area until it lands | initial-design "Notes and knowledge live in Commons"; future PASS Blog/Publishing owns public/editorial publication screens, with Marketing and Commons authoring contexts over the same WikiBlog/WikiPage services ([Forum §13.3](../../mr-pass/plan/design-forum.md#133-future-blogpublishing)); Tiptap rather than BlockNote because the same core serves the composer and chat as `m-rich-text`, and Nextcloud Text and Frappe Wiki are Tiptap references |
 | A Knowledge space chooses its storage when created, as a drive does: database files by default, or a git repository in the database or on disk; a notes space is always on database files | The wiki services use only the version API, so the screens do not change with the storage; notes are personal and edited often, where the database tree's deltas are cheapest |
 | Compare is the server's line diff everywhere (`getVersionDiff` and its `moqui-diff` table, for wiki pages, review and text files); no diff library in the browser | One diff for both storages, escaped and styled in light and dark; SimpleScreens' `WikiCompare` and `Gallery/Editor.xml` already use it, where the Java screens ran jsdiff from a CDN |
 | Chat messages are a separate Matrix-style store (`ChatRoom`, `ChatRoomMember`, `ChatEvent`); a message becomes a `CommunicationEvent` only when linked to a record or turned into one; a record-bound room shows in Chatter | Answers the research question; search indexes chat events directly |

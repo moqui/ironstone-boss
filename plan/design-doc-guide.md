@@ -47,6 +47,16 @@ Warehouse. Crosscut defines their common
 contracts and links to those definitions; consuming apps provide context instead of duplicating
 forms. This follows the same single-definition rule as the existing Projects and Commons owners.
 
+### Public companion designs
+
+[IronStoa PASS — Forum design](../../mr-pass/plan/design-forum.md) follows the screen/form, verified-source and
+needs conventions in this guide, with a public-site shell and site/list roles instead of a BOSS
+launcher group. It lives in the `mr-pass/plan/` directory, alongside the public suite's future app designs.
+Its shared foundation supports future PASS Commerce and Blog/Publishing designs; it does not
+replace the staff-facing BOSS Commerce or Marketing designs. PASS screen paths in the inventories
+are prefixed `PASS:` to distinguish the component. Proposed services stay in the design until
+they exist; future publishing baselines are not marked implemented or fully designed in advance.
+
 ## 2. Level of detail
 
 - **Screens and forms are the unit.** Every screen of every app is in its file's screen table.

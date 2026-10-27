@@ -1059,6 +1059,22 @@ store bindings. A settings mount must work without another app's launcher grant.
 remain Admin-restricted. Facility defaults support stock-only businesses without a ProductStore;
 an explicit store policy overrides a facility default for store orders and is shown as the source.
 
+### 5.1 IronStoa PASS public application boundary
+
+[IronStoa PASS — Forum design](../../mr-pass/plan/design-forum.md) owns the public suite foundation: `mr-pass`,
+multiple sites, local/remote Mantle authority, public accounts, explicit publication, and scoped
+site/category roles. It has no dependency on BOSS. Existing public mailboxes do not become
+internet-visible merely by installing PASS. Forum and Comms share CommunicationEvent threads,
+access/moderation rules and internal per-message versus public per-thread tracking.
+
+Future PASS Commerce owns the storefront/account flows; BOSS Commerce owns staff store/channel
+management. Future PASS Blog/Publishing uses WikiBlog over versioned WikiPage with shared
+Commons/Marketing authoring and review. Article discussions use Forum with the source article's
+access gate; paid forum/publication access uses Mantle subscription resource handlers. Case
+escalation and deliberate public replies preserve private case notes. Full contracts are in
+[Forum §13](../../mr-pass/plan/design-forum.md#13-pass-applications-and-boss-integration); the needs index is §7.4.
+This addition does not expand the six-core-app historical coverage counts in §6.3.
+
 ## 6. End-to-end acceptance
 
 These are design walkthroughs now and acceptance scenarios for implementation. At each arrow
@@ -1404,6 +1420,33 @@ claim or backlog reclassification is made by copying an older proposed name here
 | Intake settings | seed data | the organization's intake PartySettings and the request types Projects triages | Requests, IntakeSettings | Source: [design-projects §15](design-projects.md#15-framework-and-data-needs). Full contract: [design-projects §15](design-projects.md#15-framework-and-data-needs). |
 | Request visibility | Mantle service | As built (P5): get#RecordLinkInfo sees a request of a project the user sees (get#VisibleProjectInfo), and one with no project of a type the user's organization triages (its ProjIntake), … | Requests, RequestDetail | Source: [design-projects §15](design-projects.md#15-framework-and-data-needs). Full contract: [design-projects §15](design-projects.md#15-framework-and-data-needs). |
 
+### 7.4 IronStoa PASS needs
+
+The public suite is a separate design/workstream. These are proposed extensions to shared
+framework/Mantle capabilities, not a claim that existing facilities are unimplemented. The
+canonical specifications, consumers and acceptance scenarios remain in
+[Forum §§16–19](../../mr-pass/plan/design-forum.md#16-framework-and-data-needs); do not duplicate their definitions
+in BOSS. The prior six-core-app roll-up counts remain historical to that review.
+
+| Need | Shared owner and purpose |
+| --- | --- |
+| PASS-SITE | Mantle site/host/mount/role/profile data; PASS public shell and explicit publication |
+| PASS-AUTH | Framework verified registration and revocable delegated public sessions |
+| PASS-API | Framework authenticated transport and Mantle restricted site-scoped API |
+| PASS-ACCESS | Mantle category/topic/participant/source-content authorization shared with Comms |
+| PASS-TOPIC | Mantle forum metadata, drafts, revisions, taxonomy, reactions, polls and bookmarks |
+| PASS-READ | Mantle public markers, internal CEP allocation and safe mode conversion |
+| PASS-PRIVATE | Mantle explicit conversation participants and audited report access |
+| PASS-MOD | Mantle review/audit/sanction/trust/rule/timer services and Comms integration |
+| PASS-MEDIA | Framework media primitives plus Mantle post-scoped staging/download authority |
+| PASS-DELIVERY | Framework mail plus Mantle preferences/outbox/routes/delivery/reply handling |
+| PASS-RENDER | Framework/PASS public host routing, HTML/qvue projections and cache boundaries |
+| PASS-SEARCH | Framework search and Mantle site/app projections with current-access filtering |
+| PASS-PUBLISH | Framework wiki release/version primitives; Mantle public-site/publication binding |
+| PASS-INTEGRATE | Mantle product/case/article discussion links and subscription access handlers |
+| PASS-OPS | Framework jobs plus Mantle checkpointed export/retention/repair/health operations |
+| PASS-IMPORT | Mantle staged Discourse migration, identity/privacy mapping and reconciliation |
+
 ## 8. Decided
 
 | Decision | Notes |
@@ -1426,7 +1469,7 @@ claim or backlog reclassification is made by copying an older proposed name here
 | Downtime | Manufacturing records both equipment and non-equipment reasons (material, staffing, QC); only an equipment fault needs a linked Maintenance request. |
 | Time, rate cards and calendars | Share Projects weekly time/locking and RateAmount conventions; retain Commons working hours and resource availability. Personal Me/HR/payroll design remains in People/Commons. |
 | External fulfillment | Warehouse handles operator review of stock-sync batches; Admin handles credentials, trust and transport. No second external-stock ledger. |
-| Content outside this phase | Blogs, careers, storefront, campaign promotion and general Insights dashboard authoring remain with their later app designs. Existing Commons knowledge/file ownership is unchanged. |
+| Content outside this phase | PASS Blog/Publishing and Commerce own future public publication/storefront designs under [Forum §13](../../mr-pass/plan/design-forum.md#13-pass-applications-and-boss-integration); BOSS Marketing/Commerce retain staff contexts over shared services. Careers, campaign promotion and general Insights authoring remain later. Existing Commons knowledge/file ownership is unchanged. |
 
 ## 9. Open
 

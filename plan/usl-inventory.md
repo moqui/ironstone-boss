@@ -13,6 +13,8 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 - **Implemented in** for [design-projects.md](design-projects.md) was filled on Oct 22, 2026 at the end of the Projects build (impl-projects.md P11), as the drawers-commons pass was: each Projects screen whose transitions, actions or forms call the service, directly or through the `ironstone.*` services (followed from one to the next, not into Mantle's own calls), after what Commons wrote. A `.qvue` screen and its terminal twin go by the `.xml` path (`Projects/Time/MyTime` for MyTimeTui too); the shared screens by their Projects mount (`Projects/WorkItems/WorkItemDetail`, `Projects/Requests/RequestDetail`, `Projects/Billing/InvoiceDetail`, `Projects/Billing/OrderDetail`); Commons' Knowledge and KnowledgeTui by the Docs tab (`Projects/Projects/ProjectDetail/Docs`); the root's always-actions as `Projects`; the public request form as `RequestIntake`. A service reached from more than twelve Projects screens (the visibility and settings reads behind the access and find services) is written as a count. 68 rows filled; the **Added in the Projects build** tables at the end of Account, Party, Request and Work hold the 112 services Mantle gained in P1–P10 that a built screen calls (their **Designed in** is blank: the design names them as new, §15).
 - **Designed in** for the six core app drafts and [design-crosscut.md](design-crosscut.md) was extended on Oct 27, 2026 from their form/service coverage review. New mappings are additive to Commons and Projects; **Implemented in** is unchanged. Proposed services and definitions inside XML comments are not counted as active existing services.
 
+- **PASS design follow-up (Oct 27, 2026):** [design-forum.md](../../mr-pass/plan/design-forum.md) adds `PASS:`-prefixed contexts for existing Mailbox/Communication services used through the proposed public facade and shared-policy extensions. Implemented in is unchanged. Proposed PASS services and future Commerce/Publishing screens are not inventory claims.
+
 ## Account (162 services)
 
 | Service XML | Service | Designed in | Implemented in |
@@ -342,17 +344,17 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| ContactListServices | get#ContactListAccess |  | Comms/Inbox/Compose; Comms/Inbox/Mail |
-| ContactListServices | create#ContactList |  | Comms/Inbox/Mail |
-| ContactListServices | update#ContactList |  | Comms/Inbox/Mail |
+| ContactListServices | get#ContactListAccess | PASS: Forum/Categories/CategoryDetail; PASS: Forum/Topics/TopicDetail | Comms/Inbox/Compose; Comms/Inbox/Mail |
+| ContactListServices | create#ContactList | PASS: Forum/Settings/Categories | Comms/Inbox/Mail |
+| ContactListServices | update#ContactList | PASS: Forum/Settings/Categories | Comms/Inbox/Mail |
 | ContactListServices | find#ContactLists |  | Comms; Comms/Inbox/Compose; Comms/Inbox/Mail |
 | ContactListServices | find#ContactListParties |  | Comms/Inbox/Mail |
-| ContactListServices | join#ContactList |  | Comms/Inbox/Mail |
-| ContactListServices | leave#ContactList |  | Comms/Inbox/Mail |
-| ContactListServices | add#ContactListParty |  | Comms/Inbox/Mail |
-| ContactListServices | remove#ContactListParty |  | Comms/Inbox/Mail |
-| ContactListServices | decline#ContactListParty |  | Comms/Inbox/Mail |
-| ContactListServices | set#ContactListPartyDelivery |  | Comms/Inbox/Mail |
+| ContactListServices | join#ContactList | PASS: Forum/Categories/CategoryDetail | Comms/Inbox/Mail |
+| ContactListServices | leave#ContactList | PASS: Forum/Categories/CategoryDetail | Comms/Inbox/Mail |
+| ContactListServices | add#ContactListParty | PASS: Forum/Settings/Members | Comms/Inbox/Mail |
+| ContactListServices | remove#ContactListParty | PASS: Forum/Settings/Members | Comms/Inbox/Mail |
+| ContactListServices | decline#ContactListParty | PASS: Forum/Settings/Members | Comms/Inbox/Mail |
+| ContactListServices | set#ContactListPartyDelivery | PASS: Forum/Categories/CategoryDetail | Comms/Inbox/Mail |
 
 ## Order (89 services)
 
@@ -483,7 +485,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | AgreementServices | update#AgreementContent | Purchasing/Agreements/AgreementDetail |  |
 | AgreementServices | save#AgreementContentFile | Shared/RecordFiles |  |
 | CommunicationServices | find#PartyCommunicationEvents | Shared/Chatter; CustomerService/Cases/ChannelSessions |  |
-| CommunicationServices | create#Message | Commons/QuickCreate; Commons/Files; Comms/Inbox/Compose; Projects/Requests/RequestDetail; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Comms/Inbox/Compose; Shared/Chatter |
+| CommunicationServices | create#Message | Commons/QuickCreate; Commons/Files; Comms/Inbox/Compose; Projects/Requests/RequestDetail; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter; CustomerService/Cases/CaseDetail; Shared/RequestDetail; PASS: Forum/Compose | Comms/Inbox/Compose; Shared/Chatter |
 | CommunicationServices | reply#CommunicationEvent | Comms/Inbox/Compose; Projects/Code/MergeRequestDetail/Changes; Shared/Chatter | Comms/Inbox/Compose; Shared/Chatter |
 | CommunicationServices | add#WikiPageComment | Commons/Knowledge; Commons/Knowledge/Review |  |
 | CommunicationServices | get#CommunicationEventContentLocation |  |  |
@@ -570,9 +572,9 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| CommunicationServices | get#InternalThread |  | Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail |
-| CommunicationServices | set#InternalMessageState |  | Comms/Inbox/Compose; Comms/Inbox/Mail |
-| CommunicationServices | close#ListThread |  | Comms/Inbox/Compose; Comms/Inbox/Mail |
+| CommunicationServices | get#InternalThread | PASS: Forum/Topics/TopicDetail | Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail |
+| CommunicationServices | set#InternalMessageState | PASS: Forum/Topics/TopicDetail | Comms/Inbox/Compose; Comms/Inbox/Mail |
+| CommunicationServices | close#ListThread | PASS: Forum/Topics/TopicDetail | Comms/Inbox/Compose; Comms/Inbox/Mail |
 | CommunicationServices | find#InboxThreads |  | Comms; Comms/Home; Comms/Inbox/Mail |
 | CommunicationServices | get#InboxUnreadCounts |  | Comms/Home; Comms/Inbox/Mail |
 | CommunicationServices | get#RecordLinkInfo |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Files; Commons/Knowledge; Commons/Notes; Commons/QuickCreate; Commons/Requests/List; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Comms/Chat; Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter; Shared/RecordFiles; Projects: 19 screens (through the ironstone.* access and find services) |

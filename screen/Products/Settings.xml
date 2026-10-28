@@ -14,7 +14,7 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <!-- Placeholder for the IronStone Products settings (initial-design.md); design-products.md decides them. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Settings" default-menu-index="8" menu-image="sym_o_settings" menu-image-type="icon">
+        default-menu-title="Settings" default-menu-index="9" menu-image="sym_o_settings" menu-image-type="icon">
     <widgets>
         <label text="Placeholder: Products settings." type="p"/>
     </widgets>

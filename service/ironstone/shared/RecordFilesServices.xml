@@ -57,7 +57,15 @@ along with this software (see the LICENSE.md file). If not, see
             const found = services[info.recordEntityName] || [null, null, null]
             const pkFields = Object.keys(ec.entity.makeValue(content.entityName).getPrimaryKeys())
             contentType = {entityName: content.entityName, keyField: content.keyField, typeField: content.typeField, dateField: content.dateField,
-                pkFields: pkFields, createService: found[0], idField: found[1], enumTypeId: found[2]}
+                pkFields: pkFields, createService: found[0], idField: found[1], enumTypeId: found[2], catalogCanChange: true}
+            // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
+            // inherited entity permission or having uploaded the file earlier never substitutes for it.
+            if (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(info.recordEntityName)) {
+                const access = info.recordId ? ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord')
+                    .parameters({recordEntityName: info.recordEntityName, recordId: info.recordId, need: 'catalogEdit', checkOnly: true})
+                    .disableAuthz().call() : null
+                contentType.catalogCanChange = !!access?.record
+            }
         ]]></script></actions>
     </service>
 
@@ -102,10 +110,10 @@ along with this software (see the LICENSE.md file). If not, see
                 defaultTypeId = null
                 const content = typeOut.contentType
                 hasContent = !!content
-                canUpload = hasContent && ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')
+                canUpload = hasContent && content.catalogCanChange !== false && ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')
                 if (!content) return
                 const entityName = recordOut.info.recordEntityName
-                const mayUpdate = ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update')
+                const mayUpdate = content.catalogCanChange !== false && ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update')
                 const L = (text) => ec.l10n.localize(text)
                 const toMillis = (value) => {
                     if (value == null || value === '') return null
@@ -204,7 +212,7 @@ along with this software (see the LICENSE.md file). If not, see
                         dateFull: dateMillis == null ? '' : fmt(dateMillis, 'yyyy-MM-dd HH:mm'), size: size, sizeText: sizeText(size), mimeType: mimeType,
                         isImage: isImage, isPdf: isPdf, icon: isImage ? 'sym_o_image' : isPdf ? 'sym_o_picture_as_pdf'
                             : /\.(txt|md|csv|html?|xml|json)$/.test(lower) ? 'sym_o_description' : 'sym_o_draft',
-                        canRemove: (!!row.userId && row.userId === ec.user.userId) || mayUpdate, location: location || null})
+                        canRemove: content.catalogCanChange !== false && ((!!row.userId && row.userId === ec.user.userId) || mayUpdate), location: location || null})
                 }
 
                 // the record's folder in the records drive (Files, M8): each file's path there for its versions, and the folder's
@@ -321,7 +329,7 @@ along with this software (see the LICENSE.md file). If not, see
                             {typeName: recordOut.typeLabel || recordOut.info.recordTypeName}))
                     return
                 }
-                if (!ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')) {
+                if (content.catalogCanChange === false || !ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')) {
                     ec.message.addError(ec.resource.expand('You may not add files to ${recordName}', '', {recordName: recordName})); return }
                 if (contentTypeEnumId && content.enumTypeId) {
                     const known = ec.entity.find('moqui.basic.Enumeration').condition('enumId', contentTypeEnumId).useCache(true).one()
@@ -397,7 +405,7 @@ along with this software (see the LICENSE.md file). If not, see
                 fileName = fileOut.fileName || ec.l10n.localize('the file')
                 const entityName = ec.entity.makeValue(recordEntityName).getEntityName()
                 const mine = !!row.userId && row.userId === ec.user.userId
-                if (!mine && !ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update')) {
+                if (content.catalogCanChange === false || (!mine && !ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update'))) {
                     ec.message.addError(ec.resource.expand('You may not remove ${fileName}', '', {fileName: fileName})); return }
                 const keys = {}
                 for (const field of content.pkFields) keys[field] = row[field]
@@ -462,7 +470,7 @@ along with this software (see the LICENSE.md file). If not, see
                 folderPath = folder.folderPath
                 const row = rows.find((item) => String(item.contentLocation || '') === `${folder.rootLocation}/${path}`)
                 contentRow = row ? row.getMap() : null
-                canChange = (!!contentRow && !!contentRow.userId && contentRow.userId === ec.user.userId) || ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update')
+                canChange = content?.catalogCanChange !== false && ((!!contentRow && !!contentRow.userId && contentRow.userId === ec.user.userId) || ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update'))
                 if (requireChange && !canChange) ec.message.addError(ec.resource.expand('You may not change the files of ${recordName}', '', {recordName: recordName}))
             ]]></script>
         </actions>
@@ -625,7 +633,7 @@ along with this software (see the LICENSE.md file). If not, see
                 const entityName = recordOut.info.recordEntityName
                 const recordName = `${recordOut.typeLabel || recordOut.info.recordTypeName} ${recordOut.title || recordId}`
                 if (!content || !content.idField) { ec.message.addError(ec.resource.expand('${recordName} takes no files from Files', '', {recordName: recordName})); return }
-                if (!ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')) {
+                if (content.catalogCanChange === false || !ec.artifactExecution.isPermitted(content.entityName, 'AT_ENTITY', 'create')) {
                     ec.message.addError(ec.resource.expand('You may not add files to ${recordName}', '', {recordName: recordName})); return }
                 const rows = Array.from(ec.entity.find(content.entityName).condition(content.keyField, recordId).list())
                 const folder = ec.service.sync().name('ironstone.commons.DriveServices.get#RecordFolder').parameters({recordEntityName: entityName, recordId: recordId,

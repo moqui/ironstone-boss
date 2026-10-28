@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Product" default-menu-include="false">
+    <parameter name="productId" required="true"/>
+    <actions><service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId}" out-map="catalog"/></actions>
+    <widgets>
+        <section name="ProductAvailable" condition="!!catalog.record"><widgets>
+            <context record-entity="mantle.product.Product" record-id="${productId}" title="${catalog.record.productName}"/>
+            <container-box><box-header title="${catalog.record.productName}"/><box-body>
+                <label text="${productId}" type="p"/><label text="${catalog.record.description || ''}" type="p"/>
+                <section name="SharedProduct" condition="catalog.record.ownerPartyId === '_NA_'"><widgets><label text="Shared catalog record" type="p"/></widgets></section>
+            </box-body></container-box>
+        </widgets></section>
+    </widgets>
+</screen>

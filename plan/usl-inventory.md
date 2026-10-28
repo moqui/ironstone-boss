@@ -529,7 +529,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | PartyServices | search#Party | Commons/Contacts; Comms/Panel/Chat; Comms/Inbox |  |
 | PartyServices | search#Person |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/QuickCreate; Projects/Projects/ProjectDetail/Plan/Calendar |
 | PartyServices | get#UserNoticeCounts |  |  |
-| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects; Products; Warehouse; Purchasing; CustomerService; Accounting; Manufacturing | Commons; Comms; Projects |
+| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects; Products; Warehouse; Purchasing; CustomerService; Accounting; Manufacturing | Commons; Comms; Projects; Products |
 | PartyServices | get#PartyOrganizationInfo |  |  |
 | PartyServices | create#Account |  |  |
 | PartyServices | update#Account |  | Commons/Settings/Account |
@@ -639,7 +639,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | --- | --- | --- | --- |
 | CommunicationServices | get#ClientRecordVisibility |  | Projects/Home; Projects/Projects/MilestoneDetail; Projects/Requests/RequestDetail |
 
-## Product (108 services)
+## Product (108 services, 1 added)
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
@@ -700,7 +700,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | PriceServices | get#ProductPriceByType |  |  |
 | PriceServices | get#ProductPrice | Products/Pricing/PriceLists/PriceListDetail; Products/Pricing/PriceExplain; Purchasing/Suppliers/PriceExplain; Purchasing/Suppliers/SupplierPrices |  |
 | PriceServices | get#OrderProductPrice |  |  |
-| ProductServices | find#ProductByIdValue | Products; Products/Products; Products/Units/Packaging; Products/Settings/IdentificationTypes |  |
+| ProductServices | find#ProductByIdValue | Products; Products/Products; Products/Units/Packaging; Products/Settings/IdentificationTypes | Products (guarded exact-ID palette) |
 | ProductServices | clone#Product | Products/Products/Product360; Shared/Product360 |  |
 | ProductServices | create#ProductFeature | Products/Features; Products/Products/Product360; Shared/Product360 |  |
 | ProductServices | apply#ProductFeatures | Products/Features/FeatureDetail; Products/Products/Product360; Shared/Product360 |  |
@@ -751,6 +751,12 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | TenantSubscriptionServices | revoke#TenantAccess |  |  |
 | TenantSubscriptionServices | restore#TenantAccess |  |  |
 | TenantSubscriptionServices | destroy#Tenant |  |  |
+
+### Added in the Products build
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| ProductServices | get#CatalogOwnerScope | PRD-ACCESS | Products; Products/Products/List; Products/Products/Product360; Products/Categories/CategoryDetail; shared catalog record visibility |
 
 ## Request (12 services, 3 added)
 

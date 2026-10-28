@@ -13,6 +13,10 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 
 - **PASS design follow-up (Oct 27, 2026):** [design-forum.md](../../mr-pass/plan/design-forum.md) designs new public Forum screens over existing Mailbox services; there are no SimpleScreens Forum forms to map. WikiBlogs/EditWikiBlog remain future Blog/Publishing baselines, with full screen design deferred. Their Designed in and Implemented in cells remain unchanged; shared content ownership is described in Forum §13.3.
 
+Products P1 (Oct 28): the shell, guarded read list and minimal product/category record routes are built. Catalog
+form-parity cells remain blank until their full P2/P3 editors are implemented; these foundation screens do not claim
+that parity.
+
 ## MyAccount (49 forms)
 
 | Screen XML | Form | Designed in | Implemented in |

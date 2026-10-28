@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Products owner/capability boundary. Check the real user's groups and organizations even when a caller has disabled
+     artifact authorization. Never trust a capability or organization list supplied by a screen, import or client. -->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="CatalogAccess" allow-remote="false">
+        <out-parameters>
+            <parameter name="capabilities" type="Map"/>
+            <parameter name="ownerPartyIds" type="List"/>
+            <parameter name="organizationPartyIds" type="List"/>
+            <parameter name="activeOrganizationPartyId"/>
+        </out-parameters>
+        <actions><script><![CDATA[
+            const admin = !!ec.user.userId && ec.user.isInGroup('ADMIN')
+            const has = (group) => !!ec.user.userId && (admin || ec.user.isInGroup(group))
+            const grants = {
+                read: 'BOSS_PRODUCTS', catalogEdit: 'BOSS_PRODUCTS_CATALOG_EDIT',
+                priceRead: 'BOSS_PRODUCTS_PRICE_READ', priceEdit: 'BOSS_PRODUCTS_PRICE_EDIT',
+                supplierPriceRead: 'BOSS_PRODUCTS_SUPPLIER_PRICE_READ', supplierPriceEdit: 'BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT',
+                costRead: 'BOSS_PRODUCTS_COST_READ', costEstimate: 'BOSS_PRODUCTS_COST_ESTIMATE',
+                costApprove: 'BOSS_PRODUCTS_COST_APPROVE', catalogAdmin: 'BOSS_PRODUCTS_ADMIN',
+                stockPlan: 'BOSS_WAREHOUSE_STOCK_PLANNER', stockManage: 'BOSS_WAREHOUSE_MANAGER',
+                methodRead: 'BOSS_MANUFACTURING_READ', methodEdit: 'BOSS_MANUFACTURING_METHOD',
+                methodApprove: 'BOSS_MANUFACTURING_METHOD_APPROVE', methodAdmin: 'BOSS_MANUFACTURING_ADMIN',
+                glPost: 'BOSS_ACCOUNTING_GL'
+            }
+            capabilities = {systemAdmin: admin}
+            for (const [key, group] of Object.entries(grants)) capabilities[key] = has(group)
+            capabilities.priceRead = capabilities.priceRead || capabilities.priceEdit
+            capabilities.supplierPriceRead = capabilities.supplierPriceRead || capabilities.supplierPriceEdit
+            capabilities.costRead = capabilities.costRead || capabilities.costEstimate || capabilities.costApprove
+            capabilities.marginRead = capabilities.priceRead && capabilities.costRead
+            const scope = ec.service.sync().name('mantle.product.ProductServices.get#CatalogOwnerScope').disableAuthz().call() || {}
+            organizationPartyIds = scope.organizationPartyIds || []
+            activeOrganizationPartyId = scope.activeOrganizationPartyId || null
+            ownerPartyIds = scope.ownerPartyIds || ['_NA_']
+        ]]></script></actions>
+    </service>
+
+    <service verb="get" noun="CatalogRecord" allow-remote="false">
+        <in-parameters>
+            <parameter name="recordEntityName" default-value="mantle.product.Product"/>
+            <parameter name="recordId" required="true"/>
+            <parameter name="need" default-value="read"/>
+            <parameter name="checkOnly" type="Boolean" default="false"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="record" type="Map"/>
+            <parameter name="canRead" type="Boolean"/>
+            <parameter name="canWrite" type="Boolean"/>
+            <parameter name="capabilities" type="Map"/>
+        </out-parameters>
+        <actions><script><![CDATA[
+            record = null; canRead = false; canWrite = false
+            const access = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogAccess').call() || {}
+            capabilities = access.capabilities || {}
+            const keys = {'mantle.product.Product': 'productId', 'mantle.product.category.ProductCategory': 'productCategoryId',
+                'mantle.product.feature.ProductFeature': 'productFeatureId'}
+            const key = keys[recordEntityName]
+            // The entity allowlist is security-critical: this is never a general-purpose entity reader.
+            const validNeed = ['read', 'catalogEdit', 'catalogAdmin', 'priceRead', 'priceEdit', 'supplierPriceRead',
+                'supplierPriceEdit', 'costRead', 'costEstimate', 'costApprove', 'stockPlan', 'stockManage',
+                'methodRead', 'methodEdit', 'methodApprove', 'methodAdmin', 'glPost'].includes(need)
+            if (key && validNeed && capabilities.read) {
+                const row = ec.entity.find(recordEntityName).condition(key, recordId).disableAuthz().one()
+                if (row && (capabilities.systemAdmin || Array.from(access.ownerPartyIds || []).includes(row.ownerPartyId))) {
+                    canRead = true
+                    canWrite = !!capabilities[need === 'read' ? 'catalogEdit' : need] && !String(need).endsWith('Read')
+                        && (row.ownerPartyId !== '_NA_' || capabilities.systemAdmin)
+                    const allowed = need === 'read' || String(need).endsWith('Read') ? !!capabilities[need] : canWrite
+                    if (allowed) record = row.getMap()
+                }
+            }
+            if (!checkOnly && !record) ec.message.addError('Catalog record is not available for this action')
+        ]]></script></actions>
+    </service>
+
+    <service verb="find" noun="Products">
+        <in-parameters>
+            <parameter name="text"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="pageIndex" type="Integer" default="0"/>
+            <parameter name="pageSize" type="Integer" default="25"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productList" type="List"/>
+            <parameter name="productListCount" type="Long"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </out-parameters>
+        <actions><script><![CDATA[
+            productList = []; productListCount = 0
+            const access = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogAccess').call() || {}
+            if (!access.capabilities?.read) { ec.message.addError('Catalog read access is required'); return }
+            pageIndex = Math.max(0, Number(pageIndex || 0)); pageSize = Math.max(1, Math.min(200, Number(pageSize || 25)))
+            const cf = ec.entity.conditionFactory
+            const conditions = [cf.makeCondition('productId', 'is-not-null', null)]
+            if (!access.capabilities.systemAdmin) conditions.push(cf.makeCondition('ownerPartyId', 'in', access.ownerPartyIds))
+            if (ownerPartyId) conditions.push(cf.makeCondition('ownerPartyId', 'equals', ownerPartyId))
+            if (text) conditions.push(cf.makeCondition([
+                cf.makeCondition('productId', 'like', '%' + text + '%').ignoreCase(),
+                cf.makeCondition('pseudoId', 'like', '%' + text + '%').ignoreCase(),
+                cf.makeCondition('productName', 'like', '%' + text + '%').ignoreCase()
+            ], 'or'))
+            const makeFind = () => ec.entity.find('mantle.product.Product').disableAuthz().condition(cf.makeCondition(conditions, 'and'))
+            productListCount = makeFind().count()
+            productList = Array.from(makeFind().orderBy('productName,productId').offset(pageIndex * pageSize).limit(pageSize).list())
+                .map((row) => ({productId: row.productId, pseudoId: row.pseudoId, productName: row.productName,
+                    productTypeEnumId: row.productTypeEnumId, ownerPartyId: row.ownerPartyId, statusId: row.statusId,
+                    shared: row.ownerPartyId === '_NA_'}))
+        ]]></script></actions>
+    </service>
+
+    <service verb="search" noun="ProductIds">
+        <in-parameters>
+            <parameter name="text" required="true"/>
+            <parameter name="limit" type="Integer" default="5"/>
+            <parameter name="docTypes" type="List"/>
+            <parameter name="idMatch" type="Boolean"/>
+        </in-parameters>
+        <out-parameters><parameter name="rows" type="List"/></out-parameters>
+        <actions><script><![CDATA[
+            rows = []
+            const access = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogAccess').call() || {}
+            if (!access.capabilities?.read) return
+            // Resolve separately in authorized owner scopes: ambiguous/hidden identifiers must never name another owner's products.
+            const found = new Set()
+            const owners = access.capabilities.systemAdmin ? [null] : Array.from(access.ownerPartyIds || [])
+            for (const owner of owners) {
+                ec.message.pushErrors()
+                try {
+                    const result = ec.service.sync().name('mantle.product.ProductServices.find#ProductByIdValue')
+                        .parameters({idValue: text, ownerPartyId: owner}).disableAuthz().requireNewTransaction(true).call() || {}
+                    if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
+                    if (result.productId) found.add(result.productId)
+                } catch (err) {
+                    ec.logger.error(`Product identifier lookup for owner ${owner || 'system'} failed: ${err}`)
+                } finally { ec.message.clearErrors(); ec.message.popErrors() }
+            }
+            for (const productId of found) {
+                const result = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord')
+                    .parameters({recordId: productId, checkOnly: true}).call() || {}
+                if (result.record && rows.length < Math.max(1, Math.min(20, Number(limit || 5)))) rows.push({
+                    title: result.record.productName || productId, subtitle: productId + (result.record.ownerPartyId === '_NA_' ? ' · Shared' : ''),
+                    icon: 'sym_o_inventory_2', url: '/qapps/Products/Products/Product360?productId=' + encodeURIComponent(productId)})
+            }
+        ]]></script></actions>
+    </service>
+</services>

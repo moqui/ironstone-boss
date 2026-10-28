@@ -84,6 +84,7 @@ along with this software (see the LICENSE.md file). If not, see
                 return
             }
             info = out
+            info.recordId = recordId
             visible = true
             const entityName = info.recordEntityName
             const value = ec.entity.find(entityName).condition(info.recordKeyField, recordId).one()

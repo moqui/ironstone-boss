@@ -46,6 +46,12 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Insights/Dashboard": {parameters: {definitionId: "mantle-sales", from: "now-1y", thru: "now"}},
+    "Products/Home": {text: "Your catalog"},
+    "Products/Products": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
+    "Products/Products/List": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
+    "Products/Categories/CategoryDetail": {parameters: {productCategoryId: "BOSS_PRD_CAT"}, text: "Services catalog"},
+    "Shared/Product360/": {parameters: {productId: "BOSS_PRD_OWN"}, text: "Services catalog sample"},
     // M2: Today, notifications, quick create, Home and the settings (the demo of service/ironstone/commons/DemoServices.xml), on text
     // that does not depend on the time of day the data was loaded
     "Commons/Home": { text: "Get started" },
@@ -286,7 +292,7 @@ spec({
     setupSpec() {
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
-        screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects"], (location) => !isPlaceholder(location))
+        screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products"], (location) => !isPlaceholder(location))
         // the code screens show the demo's repositories with git hosting in the build, else that it is not
         const wasDisabled = ec.artifactExecution.disableAuthz()
         let codeHosting
@@ -347,7 +353,7 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
         // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports)
-        placeholders.length >= 97
+        placeholders.length >= 95
         failures.join("\n") == ""
     },
 })

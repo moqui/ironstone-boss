@@ -12,9 +12,7 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- IronStone Products: root of the app for product and catalog managers (initial-design.md app table); its sections
-    follow design-products.md when that file is written. Not yet implemented: its BOSS_PRODUCTS
-    grant in data/BossSetupData.xml is commented out, so no one may open it and it is in no menu. -->
+<!-- Products catalog workspace; services enforce owner and action capabilities (impl-products P1). -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
         default-menu-title="Products" menu-image="sym_o_inventory_2" menu-image-type="icon">
 
@@ -31,5 +29,15 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="RecordFiles" location="component://mr-boss/screen/Shared/RecordFiles.xml" menu-include="false"/>
     </subscreens>
 
+    <shell-providers>
+        <palette-type doc-type="MantleProduct"/>
+        <palette-source group="Products" label="Product identifiers" icon="sym_o_inventory_2" prefix="#"
+                service="ironstone.products.CatalogServices.search#ProductIds" sequence="45"/>
+        <keymap scope="products">
+            <key keys="g p" label="Products" screen="Products/Products"/>
+            <key keys="g c" label="Categories" screen="Products/Categories"/>
+            <key keys="g f" label="Features" screen="Products/Features"/>
+        </keymap>
+    </shell-providers>
     <widgets><subscreens-panel id="products-panel" type="popup"/></widgets>
 </screen>

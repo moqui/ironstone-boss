@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — implementation in progress; P0 checked, P1 next
+Oct 28, 2026 — implementation in progress; P0 and P1 built; P2 next
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -8,8 +8,8 @@ names its scope by the design's sections and §14 needs rather than restating th
 screen and record detail. During the build this file is the log: phase status and what each built, the decisions made,
 open questions, findings against the code, and what is deferred.
 
-Today `screen/Products/` holds placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
-Settings), and the `BOSS_PRODUCTS` authz is commented out. None of the design's proposed services, entities, fields or
+At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
+Settings), and the `BOSS_PRODUCTS` authz was commented out. None of the design's proposed services, entities, fields or
 status items exist yet in Mantle or BOSS. Products is the first core ERP app built, so Warehouse, Manufacturing,
 Accounting and Purchasing are placeholders too.
 
@@ -121,8 +121,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
-| P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge 9de723 |
-| P1 Foundation | Mantle, BOSS | the Products root and menu | — |
+| P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
+| P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui 6ebf53c3, Mantle 6d548a3e; BOSS commit recorded below |
 | P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | — |
 | P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
 | P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
@@ -140,8 +140,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 ### P0 — Checks
 
 Checked Oct 28 against the current framework, Mantle and read-only Marble source. F1–F25 remain the baseline;
-F26–F33 below close the remaining checks. The documentation-only review branch was integrated as `9de723` after
-checking its diff contained only the ten review documents. No executable changes in this phase. Validation: source
+F26–F33 below close the remaining checks. The documentation-only review branch was integrated as `b00c2c7` after
+checking its diff contained only the ten review documents; P0 findings/defaults committed in `6387ea2`. No executable changes in this phase. Validation: source
 cross-checks, review-document presence and `git diff --check`.
 
 ### P1 — Foundation
@@ -171,6 +171,37 @@ cross-checks, review-document presence and `git diff --check`.
   - `ProductsAccess`: started, covering owner scope and grants through the services.
 - **Usable when:** the Products menu renders for each grant. A catalog reader sees the shared products and their own
   organization's products, but not another organization's, in lists, the palette and record links.
+
+**Built Oct 28 (P1).** Framework `6ebf53c3`, Mantle `6d548a3e`; BOSS commit recorded below. Composable Products grants plus the owner apps' grants; active-org root filters; trusted Mantle
+`get#CatalogOwnerScope` and BOSS capability/record/find guards; a guarded read list and minimal product/category record
+routes (P2/P3 expand them); exact-ID palette, catalog links and key scope; ten independent demo accounts; shared and
+owned isolation fixtures. Catalog record-file/room callbacks enforce owner scope even with authorization disabled.
+Catalog files also require catalog-editor authority for uploads, removal, new versions, restore and copies from Files,
+regardless of which shared mount calls them. Legacy Mantle flow fixtures keep their owners and prices. The BOSS client write deny includes Products and the existing
+Moderation `claim` verb; AppStructure/TuiRender include Products and the new Shared screen is classified in ClientIsolation.
+
+P1 validation evidence:
+- ProductsAccess and ProductsShell: all ten capability menus, real membership checks despite forged
+  user context, shared writes refused, and hidden-owner identifiers/links refused. The final focused guard run also covers
+  shared-file uploads through both Products and Commons: 68/68 features across ProductsAccess, ProductsShell, RecordFiles,
+  ClientChatDrive and Chatter.
+- Browser: 66/66 ProductsShots cases passed (all menu sections plus both record routes), light/dark at 390, 1280 and 1440;
+  screenshots inspected, including the
+  section/list/detail route and correct pagination. Artifacts `/tmp/products-p1-menu-browser`.
+- BOSS full run before the heap prerequisite: 646/648 passed; ServerStatic and TuiRender hit the 64 MiB script heap.
+  Both passed in a fresh process (3/3 features). The final full run, including the additional file-write regression,
+  passes **649/649** (74 specs); artifacts `/tmp/products-p1-final` and `/tmp/products-p1-final.log`. Clean baseline BOSS also exhausts the heap, alongside pre-existing
+  AppStructure/Moderation-deny failures; the two fixture gaps are corrected here.
+- Mantle full run and a clean exported baseline each give exactly 690 passed, 2 failed, 9 skipped (701 features):
+  InboxThreads expects an IBX team post absent from its account view; MantleSearch's full-suite facet total is zero
+  against 83 results. The isolated baseline InboxThreads failure also reproduces. No existing Mantle specs changed.
+- XML checks for new paths and service lint pass; BOSS screen lint is clean. Existing component-wide schema warnings
+  are outside the Products paths. A pre-existing unused-parentheses Rust warning remains in archive_host.rs.
+- Core Rust: 2,104 passed, 3 ignored; two unrelated locale-catalog tests fail because this checkout has no
+  `runtime/component/mr-l10n/data/es`/`zh`. All 30 runtime tests, including real-allocation cache pressure and OOM recovery, pass.
+- The framework prerequisite reclaims compiled caches at heap pressure before entering a script, keeps the existing
+  hard limit, preserves live values, and does not replay scripts. Heap accounting is checked periodically to avoid walking
+  the heap for every field expression.
 
 ### P2 — Products and Product360
 
@@ -502,7 +533,7 @@ is written there too.
 | F22 | P0: crosscut §1.4 names `BOSS_PRODUCTS` as the root user group, but BossSetupData already uses it as an artifact group (with `BOSS_PRODUCTS_ADMIN` as an artifact authz id) | A §5 question |
 | F23 | P0: `example/test/gallery-shots.mjs` was removed (67df2c1e, Oct 26) for `moqui test-client example --serve --spec GalleryShots`, which shoots 1280 in light and some screens at 390 and in dark | A BOSS client spec on that pattern (§2) |
 | F24 | P0: `OrderItem.standardCost` exists and is audit-logged; its description is purchase accounting cost | P0 checks it before P9 sets it on sales lines |
-| F25 | P0: the review the design cites (`review-core-apps.md`, with its R- IDs and §4.1 steps) is only on branch `review-core-apps` (0e53a04) | A §5 question |
+| F25 | P0: the review the design cites (`review-core-apps.md`, with its R- IDs and §4.1 steps) is only on branch `review-core-apps` (0e53a04) | Integrated in b00c2c7 |
 | F26 | P0: `get#OrderProductPrice` derives parties from OrderPart/store; `check#OrderPreApprove` calls the type resolver for sales min/max; Marble QuickItems omits vendor; procure-to-pay directly passes external vendor/internal buyer and expects 9.00/8.00 | P5b infers legacy direction from party roles and preserves default public sales lookup; regression specs unchanged |
 | F27 | P0: REST has raw price GET/POST/PATCH/DELETE, and Marble Catalog uses entity-auto writes; clone also copies raw prices | REST uses guarded services in P5; Products clone goes through the domain writers; Marble source stays read only |
 | F28 | P0: PartySetting.settingValue is text-medium (255); structured defaults also need versions | Add Mantle catalog settings records in P2; no field widening |
@@ -511,6 +542,7 @@ is written there too.
 | F31 | P0: OrderItem.standardCost is consumed by AssetServices receipt acquisition and CarrierServices; no sales-cost meaning exists | Preserve purchase semantics; approved estimates populate sales snapshots only (P9) |
 | F32 | P0: ProductFacility/Location already own reorder/location fields, with no tracking fields; proposed BOM versions, WorkCenter/Rate and AssetBookEvent do not exist. LedgerServices.post#AcctgTrans checks fiscal periods | P7 uses WarehousePolicy tracking records; P8 uses new immutable versions beside legacy templates; P9 requires configured accounts/open periods and value-only events, never receipt rewrites |
 | F33 | P0: Commons tasks already support assigned WetTask rows and generic WorkEffortRecord links | Catalog-review activities are assigned tasks linked to catalog records; no parallel activity model |
+| F34 | P1: the full BOSS run (also on clean baseline sources) exhausts the 64 MiB script heap; a render catches allocation errors before the existing outer recovery clears compiled caches | Reclaim compiled caches under heap pressure before script entry, keep the hard limit and live values, and never retry side-effectful scripts. Add a real-allocation regression and rerun core/BOSS suites |
 
 ## 7. Later
 

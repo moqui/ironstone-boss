@@ -1,0 +1,130 @@
+// The catalog owner/capability boundary, exercised with authorization both on and disabled (internal callbacks).
+const CATALOG = 'ironstone.products.CatalogServices.'
+function asCatalog(user, run, enabled = true) {
+    login(user)
+    const disabled = ec.artifactExecution.authzDisabled()
+    if (enabled && disabled) ec.artifactExecution.enableAuthz()
+    try { return run() } finally {
+        ec.message.clearErrors()
+        if (disabled) ec.artifactExecution.disableAuthz()
+        login('john.doe')
+    }
+}
+function access(id, need = 'read', extra = {}) {
+    return call(CATALOG + 'get#CatalogRecord', Object.assign({recordId: id, need, checkOnly: true}, extra))
+}
+feature('a reader sees shared and own products, with no writes or other-organization records', {
+    when() {
+        return asCatalog('catalog.reader', () => ({own: access('BOSS_PRD_OWN'), other: access('BOSS_PRD_OTHER'),
+            shared: access('DEMO_SA_1'), edit: access('BOSS_PRD_OWN', 'catalogEdit'),
+            list: call(CATALOG + 'find#Products', {text: 'catalog sample'}),
+            price: call(CATALOG + 'get#CatalogAccess').capabilities}))
+    },
+    then({own, other, shared, edit, list, price}) {
+        own.record.productId == 'BOSS_PRD_OWN'
+        own.canWrite == false
+        other.record == null
+        other.canRead == false
+        shared.record.ownerPartyId == '_NA_'
+        edit.record == null
+        list.productList.map(row => row.productId) == ['BOSS_PRD_OWN']
+        price.priceRead == false
+        price.supplierPriceRead == false
+        price.costRead == false
+        price.marginRead == false
+    },
+})
+feature('editor authority composes with ownership and shared writes require system authority', {
+    when() {
+        const editor = asCatalog('catalog.catalog.edit', () => ({own: access('BOSS_PRD_OWN', 'catalogEdit'),
+            other: access('BOSS_PRD_OTHER', 'catalogEdit'), shared: access('DEMO_SA_1', 'catalogEdit'),
+            price: access('BOSS_PRD_OWN', 'priceEdit')}))
+        const admin = access('DEMO_SA_1', 'catalogEdit')
+        return {editor, admin}
+    },
+    then({editor, admin}) {
+        editor.own.canWrite == true
+        editor.own.record.productId == 'BOSS_PRD_OWN'
+        editor.other.record == null
+        editor.shared.record == null
+        editor.price.record == null
+        admin.canWrite == true
+    },
+})
+feature('an internal callback and forged user context cannot widen the actual membership scope', {
+    when() {
+        return asCatalog('catalog.reader', () => {
+            ec.user.context.filterOrgIds = ['ORG_ZIZI_RETAIL']
+            ec.user.context.activeOrgId = 'ORG_ZIZI_RETAIL'
+            ec.artifactExecution.disableAuthz()
+            return {other: access('BOSS_PRD_OTHER'), own: access('BOSS_PRD_OWN'),
+                arbitrary: access('EX_JOHN_DOE', 'read', {recordEntityName: 'moqui.security.UserAccount'}),
+                files: call('mantle.party.CommunicationServices.get#RecordLinkInfo', {
+                    recordEntityName: 'mantle.product.Product', recordId: 'BOSS_PRD_OTHER', checkOnly: true})}
+        })
+    },
+    then({other, own, arbitrary, files}) {
+        other.record == null
+        own.record.productId == 'BOSS_PRD_OWN'
+        arbitrary.record == null
+        files.recordVisible == false
+    },
+})
+feature('exact identifiers and record links reveal only authorized catalog records', {
+    when() {
+        return asCatalog('catalog.reader', () => ({
+            own: call(CATALOG + 'search#ProductIds', {text: 'BOSS-OWN-CODE'}).rows,
+            other: call(CATALOG + 'search#ProductIds', {text: 'BOSS-OTHER-CODE'}).rows,
+            link: call('ironstone.commons.PaletteServices.get#RecordLink', {docType: 'MantleProduct', id: 'BOSS_PRD_OWN'}),
+            hidden: call('ironstone.commons.PaletteServices.get#RecordLink', {docType: 'MantleProduct', id: 'BOSS_PRD_OTHER'}),
+            category: call('ironstone.commons.PaletteServices.get#RecordLink', {recordEntityName: 'mantle.product.category.ProductCategory', id: 'BOSS_PRD_CAT'})
+        }))
+    },
+    then({own, other, link, hidden, category}) {
+        own.length == 1
+        own[0].url == '/qapps/Products/Products/Product360?productId=BOSS_PRD_OWN'
+        other == []
+        link.url == own[0].url
+        hidden.url == null
+        category.url == '/qapps/Products/Categories/CategoryDetail?productCategoryId=BOSS_PRD_CAT'
+    },
+})
+feature('price grants never imply supplier or cost access', {
+    when() { return asCatalog('catalog.price.edit', () => call(CATALOG + 'get#CatalogAccess').capabilities) },
+    then(capabilities) {
+        capabilities.priceRead == true
+        capabilities.priceEdit == true
+        capabilities.catalogEdit == false
+        capabilities.supplierPriceRead == false
+        capabilities.costRead == false
+        capabilities.marginRead == false
+    },
+})
+
+feature('catalog file writes require the editor grant through Products and Commons shared mounts', {
+    when() {
+        const mount = (app, transition, parameters, method) => {
+            const result = ec.screen.makeTest().rootScreen('component://mr-boss/screen/' + app + '.xml')
+                .render('RecordFiles/' + transition, Object.assign({recordEntity: 'mantle.product.Product', recordId: 'BOSS_PRD_OWN'}, parameters), method)
+            let data = null
+            try { data = JSON.parse(result.output) } catch (err) {}
+            const out = {data, errors: result.errorMessages.join(' | '), text: String(result.output)}
+            ec.message.clearErrors()
+            return out
+        }
+        const reader = asCatalog('catalog.reader', () => ({
+            files: mount('Products', 'filesData', {}, 'get'),
+            upload: mount('Products', 'upload', {contentFile: uploadedFile('reader-refused.txt', 'refused')}, 'post'),
+            commons: mount('Commons', 'upload', {contentFile: uploadedFile('reader-refused.txt', 'refused')}, 'post')
+        }))
+        const editor = asCatalog('catalog.catalog.edit', () => mount('Products', 'filesData', {}, 'get'))
+        return {reader, editor}
+    },
+    then({reader, editor}) {
+        reader.files.data.visible == true
+        reader.files.data.canUpload == false
+        reader.upload.errors != '' || reader.upload.data?.errors != null
+        reader.commons.errors != '' || reader.commons.data?.errors != null
+        editor.data.canUpload == true
+    },
+})

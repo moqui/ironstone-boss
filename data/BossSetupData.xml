@@ -58,12 +58,6 @@ along with this software (see the LICENSE.md file). If not, see
             <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
     </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_PRODUCTS" description="IronStone Products App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Products.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_PRODUCTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PURCHASING" description="IronStone Purchasing App (via root screen)">
         <artifacts artifactName="component://mr-boss/screen/Purchasing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PURCHASING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
@@ -114,6 +108,57 @@ along with this software (see the LICENSE.md file). If not, see
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
     </artifactGroups>
     -->
+    <!-- Products P1: grants compose. Services independently check the action and owner. -->
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS" description="Catalog reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" description="Catalog editor"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_PRICE_READ" description="Price reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_PRICE_EDIT" description="Price editor"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" description="Supplier-price reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" description="Supplier-price editor"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_COST_READ" description="Cost reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" description="Cost estimator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_COST_APPROVE" description="Standard-cost approver"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_ADMIN" description="Catalog administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" description="Stock planner"/>
+    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_MANAGER" description="Warehouse manager"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_READ" description="Method reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_METHOD" description="Method engineer"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" description="Method approver"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_ADMIN" description="Work-center administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_GL" description="General ledger posting"/>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS" description="IronStone Products">
+        <artifacts artifactName="component://mr-boss/screen/Products.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_PRODUCTS_READER" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_SERVICES" description="Guarded catalog services">
+        <artifacts artifactName="ironstone.commons.PaletteServices.get#RecordLink" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
+        <artifacts artifactName="ironstone\.products\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_SYSADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_READ" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_PRICES" description="Products Prices capabilities">
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_PRICE_READ" userGroupId="BOSS_PRODUCTS_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_PRICE_EDIT" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_READ" userGroupId="BOSS_PRODUCTS_COST_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_ESTIMATE" userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_APPROVE" userGroupId="BOSS_PRODUCTS_COST_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_SUPPLIERPRICES" description="Products SupplierPrices capabilities">
+        <artifacts artifactName="component://mr-boss/screen/Products/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERPRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIER_READ" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIER_EDIT" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_SETTINGS" description="Products Settings capabilities">
+        <artifacts artifactName="component://mr-boss/screen/Products/Settings.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SETTINGS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_SETTINGS_ADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
     <!-- The client filter set (design-projects.md §15 Client access; impl-projects.md F2, P10): what a client contact's finds see,
         from the user context mantle.work.ProjectServices.setup#ClientProjectInfo fills in the Projects root's always-actions (each
         list _NA_ when empty, and _NA_ when it was not set: a filter then matches nothing). A view without an alias a filter needs
@@ -249,7 +294,7 @@ along with this software (see the LICENSE.md file). If not, see
             pattern names the app packages and any depth under them. A new app directory is not denied until its name is added here.
             The client's own writes are ironstone.client.ClientServices (impl-projects.md P10b), and client is not in the list, so
             not in this pattern: each checks the client's access itself -->
-        <artifacts artifactName="ironstone\.(commons|comms|projects|shared)(\.[A-Za-z]+)+\.(add|apply|approve|archive|attach|book|bulk|cancel|change|clockIn|clockOut|clone|close|comment|complete|convert|copy|create|decide|delete|discard|drop|duplicate|edit|end|export|fetch|file|finish|follow|generate|import|invoice|join|link|load|log|make|mark|merge|migrate|move|open|place|post|prepare|publish|quickAdd|raise|rank|reassign|record|refuse|release|remove|rename|reopen|reply|request|reschedule|resolve|respond|restore|return|run|save|schedule|send|set|setup|share|staff|start|stop|store|submit|sync|test|toggle|trash|triage|turnOn|unfollow|unlink|unsubscribe|update|upload|use)#.*"
+        <artifacts artifactName="ironstone\.(commons|comms|projects|products|shared)(\.[A-Za-z]+)+\.(add|apply|approve|archive|attach|book|bulk|cancel|change|claim|clockIn|clockOut|clone|close|comment|complete|convert|copy|create|decide|delete|discard|drop|duplicate|edit|end|export|fetch|file|finish|follow|generate|import|invoice|join|link|load|log|make|mark|merge|migrate|move|open|place|post|prepare|publish|quickAdd|raise|rank|reassign|record|refuse|release|remove|rename|reopen|reply|request|reschedule|resolve|respond|restore|return|run|save|schedule|send|set|setup|share|staff|start|stop|store|submit|sync|test|toggle|transition|trash|triage|turnOn|unfollow|unlink|unsubscribe|update|upload|use)#.*"
                 artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
         <!-- and the searches of the edit forms (people, records, work items and plan items to pick), which list beyond the client's part -->
         <artifacts artifactName="ironstone\.(comms\.InboxServices\.search#LinkRecords|shared\.ChatterServices\.search#Users|commons\.TaskServices\.search#Assignees|projects\.ProjectRequestServices\.search#WorkItemOptions|projects\.WorkItemServices\.search#ParentOptions|projects\.PlanningServices\.search#PlanItemCandidates)"

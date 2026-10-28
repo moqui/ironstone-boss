@@ -1,22 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This software is in the public domain under CC0 1.0 Universal plus a
-Grant of Patent License.
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to the
-public domain worldwide. This software is distributed without any
-warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication
-along with this software (see the LICENSE.md file). If not, see
-<http://creativecommons.org/publicdomain/zero/1.0/>.
--->
-<!-- Placeholder for the Products & variants section of IronStone Products (initial-design.md app table);
-    design-products.md decides its screens. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Products &amp; variants" default-menu-index="2" menu-image="sym_o_inventory" menu-image-type="icon">
-    <widgets>
-        <label text="Placeholder: Products and variants." type="p"/>
-    </widgets>
+        default-menu-title="Products" default-menu-index="2" menu-image="sym_o_inventory" menu-image-type="icon">
+    <subscreens default-item="List">
+        <subscreens-item name="Product360" location="component://mr-boss/screen/Shared/Product360.xml" menu-include="false"/>
+    </subscreens>
+    <widgets><subscreens-active/></widgets>
 </screen>

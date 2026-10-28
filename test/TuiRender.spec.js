@@ -22,6 +22,9 @@ function findScreenFiles(appList) {
 
 // the id parameters of the screens that open on one demo record (AppStructure's demoRecords)
 const demoParameters = {
+    "Product360": {productId: "BOSS_PRD_OWN"},
+    "Products/Categories/CategoryDetail": {productCategoryId: "BOSS_PRD_CAT"},
+    "Insights/Dashboard": {definitionId: "mantle-sales", from: "now-1y", thru: "now"},
     "Commons/QuickCreate": { kind: "task" },
     "Commons/Calendar/EventDetail": { workEffortId: "BOSS_DEMO_EVENT" },
     "Commons/Calendar/Schedules/ResourceDetail": { resourceType: "room", resourceId: "BOSS_DEMO_ROOM_MAPLE" },
@@ -75,7 +78,7 @@ function tui(root, path, parameters) {
 spec({
     setupSpec() {
         login("john.doe")
-        screens = findScreenFiles(["Commons", "Comms", "Insights"])
+        screens = findScreenFiles(["Commons", "Comms", "Insights", "Products"])
     },
     setup() { ec.artifactExecution.disableAuthz() },
     cleanup() { ec.artifactExecution.enableAuthz() },

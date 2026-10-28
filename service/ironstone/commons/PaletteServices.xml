@@ -47,6 +47,17 @@ along with this software (see the LICENSE.md file). If not, see
         </in-parameters>
         <out-parameters><parameter name="url"/><parameter name="icon"/></out-parameters>
         <actions><script><![CDATA[
+            const catalogEntity = {'MantleProduct': 'mantle.product.Product', 'MantleProductCategory': 'mantle.product.category.ProductCategory'}[docType]
+                || (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(recordEntityName) ? recordEntityName : null)
+            if (catalogEntity) {
+                const found = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord')
+                    .parameters({recordEntityName: catalogEntity, recordId: id, checkOnly: true}).disableAuthz().call() || {}
+                const category = catalogEntity === 'mantle.product.category.ProductCategory'
+                url = found.record ? '/qapps/Products/' + (category ? 'Categories/CategoryDetail?productCategoryId=' : 'Products/Product360?productId=')
+                        + encodeURIComponent(String(id)) : null
+                icon = category ? 'sym_o_category' : 'sym_o_inventory_2'
+                return
+            }
             const q = encodeURIComponent(String(id))
             let type = docType
             if (!type && recordEntityName) {

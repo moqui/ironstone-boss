@@ -23,4 +23,73 @@ along with this software (see the LICENSE.md file). If not, see
         sign in as client contacts, each to their own organization's project only -->
     <moqui.security.UserGroupMember userGroupId="BOSS_PROJECT_CLIENT" userId="ORG_ACME_SA" fromDate="2026-10-01 00:00:00"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_PROJECT_CLIENT" userId="ORG_BLUTH_GOB" fromDate="2026-10-01 00:00:00"/>
+    <mantle.party.Party partyId="BOSS_PRD_READER" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_READER" firstName="Catalog" lastName="Reader"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_READER_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_READER" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_READER" username="catalog.reader" userFullName="Catalog Reader" partyId="BOSS_PRD_READER"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_READER" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_CATALOG_EDIT" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_CATALOG_EDIT" firstName="Catalog" lastName="Editor"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_CATALOG_EDIT_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_CATALOG_EDIT" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_CATALOG_EDIT" username="catalog.catalog.edit" userFullName="Catalog Editor" partyId="BOSS_PRD_CATALOG_EDIT"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_CATALOG_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" userId="BOSS_PRD_CATALOG_EDIT" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_PRICE_READ" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_PRICE_READ" firstName="Catalog" lastName="Price reader"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_PRICE_READ_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_PRICE_READ" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_PRICE_READ" username="catalog.price.read" userFullName="Catalog Price reader" partyId="BOSS_PRD_PRICE_READ"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_PRICE_READ" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_PRICE_READ" userId="BOSS_PRD_PRICE_READ" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_PRICE_EDIT" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_PRICE_EDIT" firstName="Catalog" lastName="Price editor"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_PRICE_EDIT_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_PRICE_EDIT" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_PRICE_EDIT" username="catalog.price.edit" userFullName="Catalog Price editor" partyId="BOSS_PRD_PRICE_EDIT"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_PRICE_EDIT" userId="BOSS_PRD_PRICE_EDIT" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_SUPPLIER_PRICE_READ" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_SUPPLIER_PRICE_READ" firstName="Catalog" lastName="Supplier reader"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_SUPPLIER_PRICE_READ_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_SUPPLIER_PRICE_READ" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_SUPPLIER_PRICE_READ" username="catalog.supplier.price.read" userFullName="Catalog Supplier reader" partyId="BOSS_PRD_SUPPLIER_PRICE_READ"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_SUPPLIER_PRICE_READ" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" userId="BOSS_PRD_SUPPLIER_PRICE_READ" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_SUPPLIER_PRICE_EDIT" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_SUPPLIER_PRICE_EDIT" firstName="Catalog" lastName="Supplier editor"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_SUPPLIER_PRICE_EDIT_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_SUPPLIER_PRICE_EDIT" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_SUPPLIER_PRICE_EDIT" username="catalog.supplier.price.edit" userFullName="Catalog Supplier editor" partyId="BOSS_PRD_SUPPLIER_PRICE_EDIT"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_SUPPLIER_PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" userId="BOSS_PRD_SUPPLIER_PRICE_EDIT" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_COST_READ" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_COST_READ" firstName="Catalog" lastName="Cost reader"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_COST_READ_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_COST_READ" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_COST_READ" username="catalog.cost.read" userFullName="Catalog Cost reader" partyId="BOSS_PRD_COST_READ"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_COST_READ" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_READ" userId="BOSS_PRD_COST_READ" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_COST_ESTIMATE" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_COST_ESTIMATE" firstName="Catalog" lastName="Estimator"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_COST_ESTIMATE_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_COST_ESTIMATE" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_COST_ESTIMATE" username="catalog.cost.estimate" userFullName="Catalog Estimator" partyId="BOSS_PRD_COST_ESTIMATE"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_COST_ESTIMATE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" userId="BOSS_PRD_COST_ESTIMATE" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_COST_APPROVE" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_COST_APPROVE" firstName="Catalog" lastName="Approver"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_COST_APPROVE_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_COST_APPROVE" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_COST_APPROVE" username="catalog.cost.approve" userFullName="Catalog Approver" partyId="BOSS_PRD_COST_APPROVE"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_COST_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_APPROVE" userId="BOSS_PRD_COST_APPROVE" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_ADMIN" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_ADMIN" firstName="Catalog" lastName="Administrator"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_ADMIN_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_ADMIN" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_ADMIN" username="catalog.admin" userFullName="Catalog Administrator" partyId="BOSS_PRD_ADMIN"
+            currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_ADMIN" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_ADMIN" userId="BOSS_PRD_ADMIN" fromDate="0"/>
 </entity-facade-xml>

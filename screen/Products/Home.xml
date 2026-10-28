@@ -1,21 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This software is in the public domain under CC0 1.0 Universal plus a
-Grant of Patent License.
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to the
-public domain worldwide. This software is distributed without any
-warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication
-along with this software (see the LICENSE.md file). If not, see
-<http://creativecommons.org/publicdomain/zero/1.0/>.
--->
-<!-- Placeholder for the IronStone Products landing page (initial-design.md); design-products.md designs it. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
         default-menu-title="Home" default-menu-index="1" menu-image="sym_o_dashboard" menu-image-type="icon">
-    <widgets>
-        <label text="Placeholder: The Products landing page for product and catalog managers." type="p"/>
-    </widgets>
+    <actions><service-call name="ironstone.products.CatalogServices.find#Products" in-map="{pageSize:5}" out-map="catalog"/></actions>
+    <widgets><container-box><box-header title="Your catalog"/><box-body>
+        <label text="${catalog.productListCount} products available" type="p"/>
+        <link url="../Products" text="Browse products" link-type="anchor-button" icon="sym_o_inventory_2"/>
+    </box-body></container-box></widgets>
 </screen>

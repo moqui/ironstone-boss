@@ -195,7 +195,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
 changes the design, an edit there. F1–F32 were found on Oct 28 while writing this plan. The design edits that F9, F10
-and F13 call for, and those of the Oct 28 decisions in §4, are made when P0 closes. Still to check:
+and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct 28 design sweep. Still to check:
 
 - **An empty organization list.** What the Facility filter answers for a user in no organization whose authz has the
   filter: no facility, or every one (§4).
@@ -764,7 +764,7 @@ design-warehouse.md, or into the owner's design.
 | Oct 28, 2026 | Labels are PDF only in the first release; ZPL, with FacilityPrinter's format field, is §7 | The user's call. The design's §19 recommendation, without its ZPL option |
 | Oct 28, 2026 | Warehouse also builds Manufacturing's production runs and their lines (P16a): `create#ProductionOrder`, `release#ProductionOrder` and the run's lines of M4. The guards key those lines, and output takes the frozen standard cost. Manufacturing's screens, and the rest of M4 and of M2, stay Manufacturing's | The user's call, to the existing design. It removes the stand-in line keys that P16 would otherwise need. The snapshot form became the run's own lines by the shared rule (below) |
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply: parties by role, and changes by effective date and the audit log. Here: WarehousePolicy and CountSchedule are effective-dated rows with audit-logged key fields; inspection templates change by effective-dated items (P8); the Custodian FacilityParty role stays (P15). Mantle's existing audit-logged Asset, Shipment, Lot and ReturnItem fields are kept | The user's call, in the Purchasing plan review (impl-purchasing §4) |
-| Oct 28, 2026 | The root: `BOSS_WAREHOUSE` as root user group and artifact group. Its groups take `MANTLE_USER_ORG`, whose Facility filter is the facility scope above, and `BOSS_WAREHOUSE_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` (impl-drawers-commons §4) | The user's call (§5 review), for every BOSS root |
+| Oct 28, 2026 | The root: `BOSS_WAREHOUSE` as root user group and artifact group. Its groups take `MANTLE_USER_ORG`, whose Facility filter is the facility scope above, and `BOSS_WAREHOUSE_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4) | The user's call (§5 review), for every BOSS root |
 | Oct 28, 2026 | `scan-input` is a new form field element (style-guide §8.1). Its `resolver` names a service: in `scanText`, `allowedTypes`, the screen's context (facility, task) and a client `scanId`; out `matches` (`identityType`, `id`, `label`, `detail`) and `parsed` GS1 fields from Products P11's parser. One match fills the field and submits with the `scanId`, several open the chooser, none names the failure and keeps focus. The transition uses the `scanId` as its operation key on the CX-POSTING record, so a double scan answers the first. html and tui fall back to a text input posting to the same resolver (F24) | The user's call (§5 review). The alternatives were a mode of `text-line`, and a mode of drop-down's server search |
 | Oct 28, 2026 | On a `density="handheld"` screen the attribute wins over the user's comfortable or compact preference; the preference applies everywhere else (F24). Manufacturing's screens follow | The user's call (§5 review). Each task has its own handheld mount, so desk users take the desktop screen. The alternative was handheld density by device width |
 | Oct 28, 2026 | The expiry gate is inside Mantle, behind its WarehousePolicy flag (F12): reservation skips assets whose own or lot expiry has passed and names a shortfall, and issue (sales and production) refuses an expired asset with its date. Quarantine, return, disposal and moves are unchanged | The user's call (§5 review). Mantle's own SECAs reserve on order placement and approval, which BOSS guards never see. The alternative was the guards only |
@@ -839,8 +839,8 @@ Designed, not in this build:
   - ZPL labels, with FacilityPrinter's `labelFormatEnumId` and label-printer capability;
   - facilities owned by a third party that hold the organization's stock;
   - count schedules by accuracy or by movement, and ABC classes computed from value or movement;
-  - the §19 items: a production pick mode with `AssetReservation.workEffortId`, held quantity as supply in planning,
-    and owner-stock portals and storage fees.
+  - the §19 items: a production pick mode with `AssetReservation.workEffortId`, and owner-stock portals and storage
+    fees. Held quantity in planning is decided (impl-manufacturing §4).
 - **Supply planning (CX-PLANNING, with WH-PLAN):**
   - PlanningRun, PlanningSuggestion and RequirementSupply, `run#SupplyPlan` and `store#PlanSchedule`;
   - the SupplyPlanning mount and its transfer conversion;

@@ -253,7 +253,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
 changes the design, an edit there. F1–F22 were found on Oct 28 while writing this plan. The design edits that §4's
 decisions call for (the quote model, the audit-log revisions, the party roles, drop-ship on Moqui Java's model, the
-quote tiers, the buyer's bill upload, the supplier pages in the PASS Supplier app) are made when P0 closes. Still to
+quote tiers, the buyer's bill upload, the supplier pages in the PASS Supplier app) were made in the Oct 28 design sweep. Still to
 check:
 
 - **The other apps' state.** Which of Products P5, P6, P7, P11 and P12, Accounting P6, P7, P10, P13, P15, P17 and P18,
@@ -882,7 +882,7 @@ design-purchasing.md, or into the owner's design.
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4, parties by role and changes by effective date and the audit log, apply to Purchasing and the other core apps; Mantle's existing uses of both are kept | The user's call, the Moqui Java pattern. Applied here in §2, and in the other plans |
 | Oct 28, 2026 | Revisions are audit-logged key fields with `orderRevision` and its time; prints take an effective date and time; key revisions store their PDFs on the record. PurchaseOrderRevision and PurchaseAcknowledgement are dropped (P9), and policies and profiles are effective-dated rows | The user's call (answer 6) |
 | Oct 28, 2026 | A supplier's quote is a purchase OrderHeader in OrderRequested and OrderProposed, and an award places it. PurchaseRfqInvitation, SupplierQuote, SupplierQuoteItem, SupplierQuoteContent and PurchaseAward are dropped (P11, P12) | The user's call (answer 6: the order "should still be an OrderHeader in the early quote statuses"), confirmed as read here. Mantle's quote transitions fit (F19) |
-| Oct 28, 2026 | The root group and filter set as Products: `BOSS_PURCHASING` as root user group and artifact group, with service checks. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_PURCHASING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` (impl-drawers-commons §4) | The user's call (answer 1); the filters revised in the core-app question review, for every BOSS root |
+| Oct 28, 2026 | The root group and filter set as Products: `BOSS_PURCHASING` as root user group and artifact group, with service checks. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_PURCHASING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4) | The user's call (answer 1); the filters revised in the core-app question review, for every BOSS root |
 | Oct 28, 2026 | A buyer may work with any Supplier-role party whose owner passes the active or available organization filter, or shared `_NA_`; no SupplierProfile is required | The user's call (answer 2) |
 | Oct 28, 2026 | Approval thresholds as design §18 recommends: no monetary auto-approval outside configured policy, a buyer and manager split, budget Warn with finance choosing Stop, and P3's no-policy step | The user's call (answer 3) |
 | Oct 28, 2026 | Buyers upload supplier bills as well as AP intake, through Accounting's `import#Bill` | The user's call (answer 4); written into impl-accounting P6 |

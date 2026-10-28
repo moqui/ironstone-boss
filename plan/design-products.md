@@ -1,6 +1,6 @@
 # IronStone BOSS — Products design
 
-Oct 28, 2026 — draft; reviewed against research-products.md, the reference apps and the other core designs ([review-core-apps.md](review-core-apps.md)); kits, the Product360 BOM mounts, the lifecycle check, named price writes, pack-scan resolution and the unit-administrator gate added
+Oct 28, 2026 — draft; reviewed against research-products.md, the reference apps and the other core designs ([review-core-apps.md](review-core-apps.md)); kits, the Product360 BOM mounts, the lifecycle check, named price writes, pack-scan resolution and the unit-administrator gate added; the organization filters, dated catalog settings, effective-dated methods and standard costs of impl-products §4 applied
 
 IronStone Products is the catalog manager's app: product masters and variants, categories,
 features, prices and cost estimates, supplier catalogs, documents, units and barcodes. It gives
@@ -23,7 +23,7 @@ Source checks below use the current `mr-mantle` and `mr-marble` checkout, not th
 [9 documents](#9-documents) · [10 units and barcodes](#10-units-and-barcodes) ·
 [11 settings](#11-settings) · [12 coverage](#12-baseline-coverage-and-validation) ·
 [13 outputs](#13-documents-and-outputs) · [14 needs](#14-framework-and-data-needs) ·
-[15 decided](#15-decided) · [16 open](#16-open)
+[15 decided](#15-decided) · [16 implementation decisions](#16-implementation-decisions-oct-28-2026)
 
 ## 1. Shell
 
@@ -33,6 +33,14 @@ Root `screen/Products.xml`, mounted as `Products`, uses `BOSS_PRODUCTS` and
 `sym_o_inventory_2`. The existing root and section placeholders are the starting point;
 their presence does not mean these designs are implemented. The root calls the existing
 `mantle.party.PartyServices.setup#UserOrganizationInfo` and exposes `appRoot=Products`.
+`BOSS_PRODUCTS` is both the root user group and the artifact group; they are different
+entities. The organization filters are impl-drawers-commons §4's (crosscut §1.4): Products'
+ordinary groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_PRODUCTS_ADMIN`
+(catalog administrator) is the Products admin group, with all authz on the root and
+`MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`: every organization until one is made active.
+`MANTLE_USER_ORG`'s Product, ProductCategory and ProductFeature filters admit `_NA_`, so shared
+masters stay readable. Services still check organization access themselves, whatever the
+filter (impl-products §4).
 
 `app` in the screen table means catalog read access. Proposed action grants separate
 **catalog editor**, **price editor**, **supplier-price editor**, **cost estimator**, and
@@ -59,15 +67,20 @@ the screen and only the named grant may change it.
 | supplier-price editor | `BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT` | Create, schedule, end and import supplier offers |
 | cost reader | `BOSS_PRODUCTS_COST_READ` | Read standard estimates and operational cost history; with price reader, see margin |
 | cost estimator | `BOSS_PRODUCTS_COST_ESTIMATE` | Draft standard estimates and cost roll-ups; request a revaluation |
-| standard-cost approver | `BOSS_PRODUCTS_COST_APPROVE` | Approve a standard-estimate version |
-| catalog administrator | `BOSS_PRODUCTS_ADMIN` | Maintain organization catalog, variant, pricing and identifier settings, taxonomy roots and catalog checks |
+| standard-cost approver | `BOSS_PRODUCTS_COST_APPROVE` | Approve a standard estimate |
+| catalog administrator | `BOSS_PRODUCTS_ADMIN` | Maintain organization catalog, variant, pricing and identifier settings, taxonomy roots and catalog checks; as the Products admin group, all authz on the root (above) |
 | unit administrator | the framework `ADMIN` group (system administrators), not a Products group | Write `moqui.basic.Uom` and `UomConversion` rows other than currencies, because those rows are global |
 
 Product/facility stock policy is not a Products grant. It uses Warehouse's facility-policy
-capability (its group in crosscut §1). Currency units and exchange rates are not editable in
+capability (its group in crosscut §1). The method screens use Manufacturing's groups: method
+readers `BOSS_MANUFACTURING_READ`, editors `BOSS_MANUFACTURING_METHOD` and release approvers
+`BOSS_MANUFACTURING_METHOD_APPROVE`; work centers and their rates use
+`BOSS_MANUFACTURING_RESOURCE_ADMIN`, not Manufacturing's admin group `BOSS_MANUFACTURING_ADMIN`
+(crosscut §1.4, impl-products §4). Currency units and exchange rates are not editable in
 Products at all; Accounting's Currencies screen owns them (D17). The standard-cost approver is
-granted separately from the cost estimator; whether one person may hold both is the open
-question in §16.
+granted separately from the cost estimator; the drafter of an estimate approves it only with
+that grant and the audited self-approval setting of CatalogSettings, off by default (§16,
+impl-products §4).
 
 All screens follow the style guide's density, semantic theme colors and action hierarchy.
 Most are XML. VariantBuilder is the sole custom matrix screen; its terminal twin is specified
@@ -139,11 +152,11 @@ a baseline, `later` remains fully designed. Main records marked *proposed* do no
 | Products | `Products/Products` | list | xml | Find, create and bulk-maintain products | `Product`, `ProductFindView` | own | app; catalog editor writes | parity | `Product` rows and filters |
 | Product360 | `Products/Products/Product360` | 360 | xml | Full catalog context of the product | `Product` | Product360, crosscut §3.5 | app | parity | `Product productId` |
 | InventoryAvailability | `Products/Products/Product360/Stock` | list | xml | Read stock and maintain permitted product/facility policy; `Stock` is the Product360 tab path | `Asset`, `ProductFacility` | InventoryAvailability, crosscut §3.7 | app; facility-policy capability writes policy | parity | product and facility filters |
-| BillOfMaterialsDetail | `Products/Products/Product360/BillOfMaterialsDetail` | detail | xml | Read the product's versioned BOM; edit and publish with method capability | proposed `ProductBomVersion` | BillOfMaterialsDetail, crosscut §3.23 | method readers; edit and publish with method capability | parity | proposed `ProductBomVersion` product, organization and version |
-| BillOfMaterialsExplosion | `Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsExplosion` | report | xml | Explain the selected version's multi-level component requirements | proposed `ProductBomVersion`, `ProductBomItem` | BillOfMaterialsExplosion, crosscut §3.23 | method readers | new | version, quantity/UOM and effective date |
-| BillOfMaterialsCompare | `Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsCompare` | report | xml | Compare two method versions of the product | proposed `ProductBomVersion` | BillOfMaterialsCompare, crosscut §3.23 | method readers | new | old/new version and comparison quantity |
-| WhereUsed | `Products/Products/Product360/WhereUsed` | report | xml | Trace the product as a component through versioned methods | proposed `ProductBomItem` | WhereUsed, crosscut §3.23 | method readers | parity | component, organization and effectivity |
-| RoutingDetail | `Products/Products/Product360/RoutingDetail` | detail | xml | Read the product's versioned routing; edit with routing capability | proposed `RoutingVersion`, `RoutingVersionOperation` | RoutingDetail, crosscut §3.23 | method readers; routing editors write | new | routing version and selected operation |
+| BillOfMaterialsDetail | `Products/Products/Product360/BillOfMaterialsDetail` | detail | xml | Read the product's effective-dated BOM; edit and release with method capability | proposed `ProductBom`, `ProductBomItem` | BillOfMaterialsDetail, crosscut §3.23 | method readers; edit and release with method capability | parity | proposed `ProductBom` product, organization and as-of date |
+| BillOfMaterialsExplosion | `Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsExplosion` | report | xml | Explain the method's multi-level component requirements as of one date | proposed `ProductBom`, `ProductBomItem` | BillOfMaterialsExplosion, crosscut §3.23 | method readers | new | as-of date and quantity/UOM |
+| BillOfMaterialsCompare | `Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsCompare` | report | xml | Compare the product's method at two dates | proposed `ProductBom`, `ProductBomItem` | BillOfMaterialsCompare, crosscut §3.23 | method readers | new | two dates and comparison quantity |
+| WhereUsed | `Products/Products/Product360/WhereUsed` | report | xml | Trace the product as a component through effective-dated methods | proposed `ProductBomItem` | WhereUsed, crosscut §3.23 | method readers | parity | component, organization and effectivity |
+| RoutingDetail | `Products/Products/Product360/RoutingDetail` | detail | xml | Read the product's routing as of a date; edit and release with method capability | `WorkEffort` `WepRouting` and `WepRoutingTask` on dated `WeatRoutingComp` rows | RoutingDetail, crosscut §3.23 | method readers; method editors write | new | routing, as-of date and selected operation |
 | ProductImport | `Products/Products/ProductImport` | wizard | xml | Validate and apply catalog imports with row outcomes | Proposed import run | own | catalog editor | new | run and selected rows |
 | VariantBuilder | `Products/Products/VariantBuilder` | wizard | qvue | Preview and create chosen feature combinations | `Product`, `ProductFeatureAppl` | own | catalog editor | parity | virtual product and selected combinations |
 | Configurations | `Products/Products/Configurations` | list | xml | Find versioned configurable-product definitions | Proposed product configuration | own | catalog editor | later | definitions and filters |
@@ -164,8 +177,8 @@ a baseline, `later` remains fully designed. Main records marked *proposed* do no
 | PriceExplain | `Products/Pricing/PriceExplain` | report | xml | Explain the exact price for a transaction context | `PriceServices.get#ProductPrice` (extended) | own; reused via crosscut §3.21 | price reader | new | product and pricing inputs |
 | PriceHistory | `Products/Pricing/PriceHistory` | report | xml | Inspect recorded price changes and transaction statistics | `EntityAuditLog`, `ProductPrice` | own | price reader | new | product, scope and period |
 | StandardCosts | `Products/Pricing/StandardCosts` | list | xml | Maintain dated estimates independently of inventory valuation | Proposed `ProductStandardCost` | own | cost reader; cost estimator writes; standard-cost approver approves | new | product/organization/facility and estimates |
-| CostRollup | `Products/Pricing/CostRollup` | wizard | xml | Preview and approve a BOM/routing cost estimate | Proposed standard cost/version | own | cost estimator | new | product, BOM/routing version and as-of date |
-| CostHistory | `Products/Pricing/CostHistory` | report | xml | Compare estimates, actual cost and valuation changes | Existing assets/details plus proposed cost versions | own | cost reader | new | product, facility, currency and period |
+| CostRollup | `Products/Pricing/CostRollup` | wizard | xml | Preview and approve a BOM/routing cost estimate | Proposed `ProductStandardCost` | own | cost estimator | new | product, BOM/routing and as-of date |
+| CostHistory | `Products/Pricing/CostHistory` | report | xml | Compare estimates, actual cost and valuation changes | Existing assets/details plus proposed `ProductStandardCost` rows | own | cost reader | new | product, facility, currency and period |
 | SupplierPrices | `Products/Suppliers/SupplierPrices` | list | xml | Maintain the cross-supplier product-price catalog | `ProductPrice` | own; reused via crosscut §3.21 | supplier-price reader; supplier-price editor writes | parity | supplier-price rows and filters |
 | Supplier360 | `Products/Suppliers/Supplier360` | 360 | xml | Supplier contact and catalog context | `Party` | Supplier360, crosscut §3.3 | supplier-price reader | new | supplier party |
 | Documents | `Products/Documents` | list | xml | Find documents across products and variants | `ProductContent` | own | app | new | content rows and filters |
@@ -174,8 +187,8 @@ a baseline, `later` remains fully designed. Main records marked *proposed* do no
 | Units | `Products/Units` | list | xml | Inspect units and maintain authorized non-currency conversions | `moqui.basic.Uom`, `UomConversion` | own | app; `ADMIN` writes | new | units and conversion rows |
 | Packaging | `Products/Units/Packaging` | list | xml | Maintain pack products, quantities and typed codes | `ProductAssoc` (`PatPackagingFor`) | own | catalog editor | new | pack/base products |
 | Labels | `Products/Units/Labels` | wizard | xml | Preview and print product or pack identification labels | `ProductIdentification` | own | app | new | selected products and label options |
-| Settings | `Products/Settings` | settings | xml | Set catalog defaults and required-data policies | Proposed organization catalog settings | own | catalog administrator | new | organization |
-| VariantSettings | `Products/Settings/VariantSettings` | settings | xml | Configure permitted field copying and generation limits | Proposed organization catalog settings | own | catalog administrator | new | organization and copy policy |
+| Settings | `Products/Settings` | settings | xml | Set catalog defaults and required-data policies | Proposed effective-dated `ProductCatalogSetting` rows | own | catalog administrator | new | organization |
+| VariantSettings | `Products/Settings/VariantSettings` | settings | xml | Configure permitted field copying and generation limits | Proposed effective-dated `ProductVariantSetting` rows | own | catalog administrator | new | organization and copy policy |
 | PricingSettings | `Products/Settings/PricingSettings` | settings | xml | Set authorized price purposes, default list and rounding | Proposed organization pricing settings | own | catalog administrator; finance for valuation links | new | organization |
 | IdentificationTypes | `Products/Settings/IdentificationTypes` | settings | xml | Configure allowed identifier types and generation rules | `Enumeration` plus proposed identifier policy | own | catalog administrator | new | identifier policy |
 | CatalogChecks | `Products/Settings/CatalogChecks` | report | xml | Find incomplete or conflicting catalog data before activation | Proposed validation service | own | catalog administrator | new | organization and checks |
@@ -245,7 +258,7 @@ operational links choose an accessible shared context before another app's route
 
 Mount `Shared/Product360` at `Products/Products/Product360`, passing `productId`, Products
 emphasis and server-derived capabilities. Tabs: Summary, Variants & features, Categories,
-Identifiers, Dimensions & units, Documents, Prices, Suppliers, Costs, Associations, Parties,
+Identifiers, Dimensions & units, Packaging, Documents, Prices, Suppliers, Costs, Associations, Parties,
 Connections, History; Kit components for a `PtPickAssembly` product; Stock and BOM/where-used
 are available when their records/services and the user's rights permit them. Equipment
 templates expose product meters and scheduled maintenance. Commerce
@@ -334,38 +347,56 @@ pattern (review-core-apps §4.1 step 12); Products defines none.
 
 Mount Manufacturing's canonical `Shared/BillOfMaterialsDetail.xml` (Manufacturing §5) at
 `Products/Products/Product360/BillOfMaterialsDetail`, the Product360 BOM tab. Fix `productId`
-and the organization; allow authorized version and effective-date selection. This is the
+and the organization; allow authorized as-of date selection. This is the
 Products row of crosscut §3.23. Tabs: the same BOM and routing forms as Manufacturing, with
 cost and rate fields only for a cost reader. Filters fixed: the current product and
-organization. Actions: read, explode and compare for method readers; edit and publish only
+organization. Actions: read, explode and compare for method readers; edit and release only
 with Manufacturing's method capabilities. Emphasis: product structure and standard-estimate
-inputs. A Manufacturing launcher grant is not needed. A released `ProductBomVersion` is the
-only manufacturing method (D15); kit components stay in Product360's Kit components pane and
-are not shown here. The Cost estimate action opens CostRollup with this exact BOM and routing
-version fixed. Source: crosscut §3.23; Manufacturing §5. Needs: CX-METHOD, PRD-COST.
+inputs. A Manufacturing launcher grant is not needed. Products builds the five method screens
+and Manufacturing's method records and services as Manufacturing's contract, with the Products
+context first (impl-products §4, P8).
+
+The methods follow the shared effective-date rule (impl-products §4). A proposed `ProductBom`
+header (product, organization and method; the Chatter and Files host through
+`ProductBomContent`) has audit-logged method fields: base quantity and unit, phantom, routing,
+lead and preparation days. Its `ProductBomItem` lines have a stable `bomItemId`, are
+effective-dated and audit-log their key fields: role, product, quantity and unit, scrap,
+consuming operation and applicability. Routings are Mantle's `WepRouting` templates and
+`WepRoutingTask` operations on dated `WeatRoutingComp` rows, with audit-logged standards. A
+release is an approval decision, a record of its own, that stamps the draft lines' from date and
+the replaced lines' thru date, so a method "version" is the method as of a release date. Writes
+go through proposed `mantle.product.BomServices` (`store#Bom`, `store#BomItem`,
+`validate#BomDraft`, `release#BomDraft`) and `mantle.work.RoutingServices` (`store#Routing`,
+`store#RoutingOperation`, `store#RoutingResource`, `release#RoutingDraft`). A `ProductBom` with
+its released lines is the only manufacturing method; `PatMfgBom` stays for kits only (D15), whose
+components stay in Product360's Kit components pane and are not shown here. The Cost estimate
+action opens CostRollup with this BOM and routing and the selected as-of date fixed. Source:
+crosscut §3.23; Manufacturing §5. Needs: CX-METHOD, PRD-COST.
 
 ### BillOfMaterialsExplosion (Context passed)
 
 Mount `Shared/BillOfMaterialsExplosion.xml` at
-`Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsExplosion`, with product,
-organization and selected version fixed and quantity/UOM and effective date open. It shows the
+`Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsExplosion`, with product
+and organization fixed and the as-of date and quantity/UOM open. It shows the
 quantities, scrap, conversions and operation standards of proposed
-`mantle.product.BomServices.get#BomExplosion`. Its cost columns show the output of CostRollup's
+`mantle.product.BomServices.get#BomExplosion` as of that one date. Its cost columns show the output of CostRollup's
 proposed `mantle.product.CostServices.preview#ProductCostRollup`, only to a cost reader, so
-there is one cost calculator. Roll up estimate opens CostRollup with the version fixed.
+there is one cost calculator. Roll up estimate opens CostRollup with the as-of date fixed.
 Needs: CX-METHOD, PRD-COST.
 
 ### BillOfMaterialsCompare (Context passed)
 
 Mount `Shared/BillOfMaterialsCompare.xml` at
 `Products/Products/Product360/BillOfMaterialsDetail/BillOfMaterialsCompare`, with product and
-organization fixed and the old and new versions chosen from the product's versions. It is read
-only in the Products context. Needs: CX-METHOD.
+organization fixed and two dates chosen, usually release dates, for proposed
+`mantle.product.BomServices.compare#BomDates`. It is read only in the Products context.
+Needs: CX-METHOD.
 
 ### WhereUsed (Context passed)
 
 Mount `Shared/WhereUsed.xml` at `Products/Products/Product360/WhereUsed`, with the component
-fixed to this product and the organization fixed, and effectivity open. Each parent links to
+fixed to this product and the organization fixed, and effectivity open, over proposed
+`mantle.product.BomServices.get#BomWhereUsed`. Each parent links to
 that product's Product360 BOM tab. Kit uses (`PatMfgBom` rows of `PtPickAssembly` products)
 are listed read only and link to the parent's Kit components pane. It is read only in the
 Products context. Needs: CX-METHOD.
@@ -373,8 +404,8 @@ Products context. Needs: CX-METHOD.
 ### RoutingDetail (Context passed)
 
 Mount `Shared/RoutingDetail.xml` at `Products/Products/Product360/RoutingDetail`, with the
-routing version of the product's selected method fixed. Method readers read it; only
-Manufacturing's routing capability edits it. Work-center rates and standard times are shown
+routing of the product's method and the selected as-of date fixed. Method readers read it; only
+Manufacturing's method capabilities edit and release it. Work-center rates and standard times are shown
 only to a cost reader. Needs: CX-METHOD, CX-WORKCENTER.
 
 ### ProductImport
@@ -499,7 +530,7 @@ Carbon `apps/erp/app/modules/items/ui/ChangeNotice/`.
 | ChangeDecision | dialog | Approve, reject or release | notice, expected revision, decision, reason | confirmation on release | proposed `mantle.product.ChangeServices.decide#ProductChange` | Carbon change release; Commons approvals |
 
 **Actions.** Submit for review, approve/reject, then release at the effective time. Release
-does not rewrite released manufacturing BOM/routing snapshots or historic order lines. Its
+does not rewrite released BOM or routing lines or historic order lines. Its
 impact list offers an explicit operational amendment workflow where permitted. A conflict
 keeps the notice pending with the changed record named. **Source.** Research §3, §10;
 Carbon ChangeNotice and `Item/RevisionForm.tsx`. **Needs.** PRD-CHANGE, CX-METHOD.
@@ -744,11 +775,12 @@ The resolver's current anonymous-view use must not expose internal explanation/c
 details: public callers receive the public price only; full trace requires authorized access.
 
 **Actions.** Save draft; preview; publish/retire (confirm scope and effective date). Publishing
-does not reprice existing order lines automatically. Changing a published rule produces a new
-dated version; transaction pricing records keep source row/rule IDs and computation inputs.
-An order line keeps the selected row in the existing `OrderItem.productPriceId` and the list
-and rule in proposed `OrderItem.priceListId`, `priceRuleId` and `priceRuleVersion`. The
-resolver returns all four, and the existing `mantle.order.OrderServices.create#OrderItem` and
+does not reprice existing order lines automatically. Changing a published rule ends its row and
+starts a dated successor, its key fields audit-logged (impl-products §4); transaction pricing
+records keep source row/rule IDs and computation inputs. An order line keeps the selected row in
+the existing `OrderItem.productPriceId` and the list and rule in audit-logged
+`OrderItem.priceListId` and `priceRuleId`, read as of the line's pricing time. The
+resolver returns all three, and the existing `mantle.order.OrderServices.create#OrderItem` and
 `add#OrderProductQuantity` store them. `OrderItem.standardCost` is set from the approved
 standard estimate when one exists.
 **Source.** Research §6; current Mantle `PriceServices.xml`; AureusERP
@@ -765,10 +797,10 @@ step-by-step trace. It makes supplier and customer scope explicit before calcula
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | PriceContext | single | Reproduce transaction pricing | product, organization, parties, quantity/UOM, currency, date, list, agreement/store | server-search lookups | extended `mantle.product.PriceServices.get#ProductPrice` with `explain=true` | Catalog price fields; ERPNext Pricing Rule Detail |
-| PriceResult | display | Show amount and provenance | amount, list amount, currency/UOM, tax inclusion, source row, list and rule version, margin, warning | amount display; margin only with price reader and cost reader | same resolver response | ERPNext applied rule detail; AureusERP ResolvedPrice; Odoo product margin |
+| PriceResult | display | Show amount and provenance | amount, list amount, currency/UOM, tax inclusion, source row, list and rule with their effective dates, margin, warning | amount display; margin only with price reader and cost reader | same resolver response | ERPNext applied rule detail; AureusERP ResolvedPrice; Odoo product margin |
 | PriceTrace | list, read | Explain inclusion and calculation | step, candidate/source, eligible/reason, input amount, change, output amount | expandable authorized details | same response | new |
 
-**New form fields.** PriceTrace: step sequence, step kind, source entity and ID/version,
+**New form fields.** PriceTrace: step sequence, step kind, source entity, ID and effective dates,
 eligibility flag/reason, product/virtual fallback, quantity and UOM used, currency/rate/date,
 before amount, operation, operand, after amount, rounding result and warning. Restricted
 source identity and amounts are omitted server-side; the screen never redacts after fetching.
@@ -811,26 +843,29 @@ Research §6, §10, §13; Dolibarr `htdocs/product/price.php`; Mantle InventoryR
 ### StandardCosts
 
 **Layout.** List with an estimate-detail dialog and component grid in the selected row's
-expansion. Approved estimates are immutable versions; a successor changes a future interval.
-An estimate version is keyed by proposed `productStandardCostId` plus `versionSeqId`.
+expansion. An estimate is a proposed `ProductStandardCost` row keyed by `productStandardCostId`,
+effective-dated by organization and product, with its amounts audit-logged and no version field.
+Approval starts the estimate's row and ends the one before it, and stores the approved estimate's
+PDF with it (impl-products §4, P9).
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | StandardCostFind | find | Find estimates in context | product, organization, facility, date, currency, state | context lookups | none | ERPNext Item Standard Cost |
-| StandardCosts | list | Compare effective estimates | product, version, interval, material/labor/overhead total, currency/UOM, state | expandable components | proposed `mantle.product.CostServices.find#ProductStandardCosts` | ERPNext Item Standard Cost; Carbon costing form |
+| StandardCosts | list | Compare effective estimates | product, from/thru, material/labor/overhead total, currency/UOM, state | expandable components | proposed `mantle.product.CostServices.find#ProductStandardCosts` | ERPNext Item Standard Cost; Carbon costing form |
 | StandardCost | dialog | Maintain a draft estimate | product, organization/facility, effective interval, currency/UOM, reason, source | explicit estimate label | proposed `mantle.product.CostServices.store#ProductStandardCost` | ERPNext Item Standard Cost |
 | StandardCostComponents | list, editable rows | Explain estimated cost | component type, source, quantity/unit, rate, amount | decimal/unit pairs | proposed `mantle.product.CostServices.store#StandardCostComponent` | commented cost-component concepts, refined for estimates |
-| ApproveStandardCost | dialog | Approve a version without posting stock | version, effective date, approval reason | confirmation of non-posting effect | proposed `mantle.product.CostServices.approve#ProductStandardCost` | ERPNext standard-cost submission, separated from revaluation |
+| ApproveStandardCost | dialog | Approve an estimate without posting stock | estimate, effective date, approval reason | confirmation of non-posting effect | proposed `mantle.product.CostServices.approve#ProductStandardCost` | ERPNext standard-cost submission, separated from revaluation |
 
-**Actions.** New draft, clone version, approve; optional Request revaluation opens Accounting's
+**Actions.** New draft, clone estimate, approve; optional Request revaluation opens Accounting's
 authorized workflow with this estimate as source. Products never calls `mantle.product.AssetServices.update#ProductAcquireCost`
-as a side effect of saving an estimate. Approve requires the standard-cost approver grant.
-Request revaluation passes `productStandardCostId` and `versionSeqId` to Accounting's
+as a side effect of saving an estimate. Approve requires the standard-cost approver grant; the
+estimate's drafter approves only when the self-approval setting allows (§1.1, §16).
+Request revaluation passes `productStandardCostId` to Accounting's
 InventoryValuation ValuationAdjustment, which previews and then posts through Accounting's
 proposed `ironstone.accounting.AssetBookServices.post#Revaluation`; the baseline Asset
 FindAsset `UpdateProductCost` correction is handed to that same form (R-PRD-14). Manufacturing's
-run snapshot stores the same two keys at release, and output receipt passes that version's
-standard unit cost as `acquireCost` (R-SA-01). **Source.** Research §6, §14; ERPNext
+run stores the same `productStandardCostId` at release, an audit-logged run field, and output
+receipt passes that estimate's standard unit cost as `acquireCost` (R-SA-01). **Source.** Research §6, §14; ERPNext
 `erpnext/stock/doctype/item_standard_cost/item_standard_cost.py`; Mantle commented cost block
 explicitly says the definitions need refinement. **Needs.** PRD-COST, PRD-ACCESS.
 
@@ -841,8 +876,8 @@ estimate. The result is a standard-cost draft, not a posted valuation.
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| CostRollupInputs | wizard step | Fix the calculation basis | product, BOM/routing version, organization/facility, batch quantity, date, currency, material basis, overhead percentage | version lookups | proposed `mantle.product.CostServices.preview#ProductCostRollup` | Carbon BOM explorer; ERPNext Item Standard Cost |
-| CostRollupLines | list, read | Inspect the exploded estimate | component/path, required quantity, scrap allowance, price/rate source, amount, missing input | tree list with rollups | same proposed preview service; proposed `mantle.product.BomServices.get#BomExplosion` using the selected immutable BOM/routing versions | current BOM detail; Carbon BoMExplorer; [canonical versioned explosion](design-manufacturing.md#billofmaterialsexplosion) |
+| CostRollupInputs | wizard step | Fix the calculation basis | product, BOM/routing, as-of date, organization/facility, batch quantity, currency, material basis, overhead percentage | BOM and routing lookups | proposed `mantle.product.CostServices.preview#ProductCostRollup` | Carbon BOM explorer; ERPNext Item Standard Cost |
+| CostRollupLines | list, read | Inspect the exploded estimate | component/path, required quantity, scrap allowance, price/rate source, amount, missing input | tree list with rollups | same proposed preview service; proposed `mantle.product.BomServices.get#BomExplosion` of the BOM and routing as of the selected date | current BOM detail; Carbon BoMExplorer; [canonical explosion](design-manufacturing.md#billofmaterialsexplosion) |
 | CostRollupSave | wizard step | Save the reviewed estimate | calculation token, expected source revisions, effective date, reason | stale-source check | proposed `mantle.product.CostServices.save#ProductCostRollup` | ERPNext standard-cost record |
 
 **Actions.** Preview; save draft; approve through StandardCosts. The material basis is one of
@@ -863,12 +898,12 @@ silently saving different values. **Source.** Research §6, §10; Carbon
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | CostHistoryFind | find | Select comparable cost facts | product, organization, facility, currency, date range, basis | explicit basis selector | none | Carbon cost history |
-| CostHistory | list, read | Compare distinct cost bases | date, standard version, actual receipt cost, valuation adjustment, quantity, source | chart with separate series and table | proposed `mantle.product.CostServices.get#ProductCostHistory` | Carbon ItemCostHistoryChart; existing `Asset`/`AssetDetail` |
+| CostHistory | list, read | Compare distinct cost bases | date, standard estimate, actual receipt cost, valuation adjustment, quantity, source | chart with separate series and table | proposed `mantle.product.CostServices.get#ProductCostHistory` | Carbon ItemCostHistoryChart; existing `Asset`/`AssetDetail` |
 
 **Actions.** Open source estimate, receipt or authorized accounting transaction. Totals never
 combine currencies or units without a labeled conversion. Valuation adjustments are read from
-Accounting's InventoryValuation postings (proposed `post#Revaluation`), keyed by the estimate
-version. Cost readers see operational facts; GL detail requires finance access. **Source.** Research §6, §10; Carbon
+Accounting's InventoryValuation postings (proposed `post#Revaluation`), keyed by the estimate's
+`productStandardCostId`. Cost readers see operational facts; GL detail requires finance access. **Source.** Research §6, §10; Carbon
 `apps/erp/app/modules/items/ui/Item/ItemCostHistoryChart.tsx`. **Needs.** PRD-COST, PRD-ACCESS.
 
 ## 8. Suppliers
@@ -1069,9 +1104,14 @@ Dolibarr `htdocs/barcode/printsheet.php`. **Needs.** PRD-LABELS, PRD-IDENTIFIERS
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| CatalogSettings | single | Configure an organization's catalog | default owner/type/UOM/currency/category, variants/packaging/price-lists flags, required fields, ID policy | visible impact summary | proposed `ironstone.products.SettingsServices.store#CatalogSettings` | AureusERP ProductSettings; ERPNext Stock Settings |
+| CatalogSettings | single | Configure an organization's catalog from a date | effective date, default owner/type/UOM/currency/category, variants/packaging/price-lists flags, required fields, ID policy, cost-estimate self-approval, change reason | visible impact summary | proposed `ironstone.products.SettingsServices.get#CatalogSettings`, `store#CatalogSettings` | AureusERP ProductSettings; ERPNext Stock Settings |
 
-**Actions.** Save with preview of affected UI and validation rules. Feature flags simplify
+**Actions.** Save with preview of affected UI and validation rules. The settings are
+effective-dated `ProductCatalogSetting` rows by organization with typed, audit-logged fields and
+a change reason, as `ProductVariantSetting`: a save ends the current row and starts the next,
+nothing is overwritten, and a read takes an as-of date, now by default. The optimistic check
+compares the current row's from date. Cost-estimate self-approval (§7), import defaults and
+CatalogChecks' required fields read the row in effect (impl-products §4). Feature flags simplify
 creation and menus but do not hide existing records irretrievably or disable required service
 validation. Existing transactions continue to resolve IDs and prices after a feature is hidden.
 **Source.** Research §11; AureusERP `plugins/webkul/products/src/Settings/ProductSettings.php`;
@@ -1084,7 +1124,8 @@ ERPNext `erpnext/stock/doctype/stock_settings/stock_settings.json`.
 | --- | --- | --- | --- | --- | --- | --- |
 | VariantPolicy | single | Control safe propagation | allowed copy fields, category copy, identifier pattern, batch limit, update existing flag | field allowlist; impact preview | proposed `ironstone.products.SettingsServices.store#VariantSettings` | ERPNext Item Variant Settings |
 
-**Actions.** Save; preview propagation to a selected virtual product. Identity, transactional
+**Actions.** Save, as an effective-dated `ProductVariantSetting` row with a change reason, as
+CatalogSettings saves; preview propagation to a selected virtual product. Identity, transactional
 fields and historical valuation are never copyable. Existing variant overrides remain unless
 an explicit bulk preview selects their replacement. **Source.** Research §4, §11; ERPNext
 `erpnext/stock/doctype/item_variant_settings/item_variant_settings.json`.
@@ -1209,7 +1250,7 @@ Implemented in value.
    base. Explain every step; reject cycles/missing conversions; show that promotions are
    separate and unauthorized readers cannot see supplier costs through the trace.
 5. Change a standard estimate and confirm that asset valuation/GL does not change; request a
-   separate authorized revaluation. Roll up a released BOM version with scrap/routing costs;
+   separate authorized revaluation. Roll up a BOM and routing as of a release date with scrap/routing costs;
    changed inputs invalidate the preview and incomplete estimates cannot be approved.
 6. Upload mixed valid/invalid catalog rows and documents; resume retries without duplicate
    successful writes. Two editors changing the same text receive a conflict with retained
@@ -1237,7 +1278,7 @@ Implemented in value.
 | Product datasheet/manual | `html-print` and PDF through existing print tooling | Product360/Documents | `mantle.product.ProductServices.get#ProductManualDocumentData`; Catalog product manual |
 | Effective price list | `html-print`, PDF, CSV | PriceListDetail | Odoo pricelist report; resolved prices at a stated date/quantity context |
 | Price explanation | `html-print`/authorized export | PriceExplain | New trace (§7), restricted by the same source permissions |
-| Cost estimate and roll-up | `html-print`/CSV | StandardCosts/CostRollup | ERPNext Item Standard Cost; explicit estimate/version label |
+| Cost estimate and roll-up | `html-print`/CSV | StandardCosts/CostRollup | ERPNext Item Standard Cost; explicit estimate label and effective date; the approved estimate's PDF is stored with it (impl-products P9) |
 | Identifier labels | `html-print`, PDF; optional printer payload | Labels | Odoo label wizard and Dolibarr printsheet; PRD-LABELS |
 | Change review packet | `html-print` | ChangeNoticeDetail | Carbon affected-item/diff/impact pattern; later |
 | Completion/failure notices | Notification; optional user-subscribed email | Imports, review/approval actions | Existing Commons/Comms providers; no automatic external catalog publication |
@@ -1251,26 +1292,26 @@ collects these IDs with the other app needs. Source paths in this table are rela
 
 | Need | Kind | Proposed as | Used by | Stub spec |
 | --- | --- | --- | --- | --- |
-| PRD-ACCESS — catalog scope and action grants | service type, seed data | BOSS `ironstone.products.CatalogServices` access/find wrappers and scoped grants; proposed capability groups `BOSS_PRODUCTS_CATALOG_EDIT`, `BOSS_PRODUCTS_PRICE_READ`, `BOSS_PRODUCTS_PRICE_EDIT`, `BOSS_PRODUCTS_SUPPLIER_PRICE_READ`, `BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT`, `BOSS_PRODUCTS_COST_READ`, `BOSS_PRODUCTS_COST_ESTIMATE`, `BOSS_PRODUCTS_COST_APPROVE`, `BOSS_PRODUCTS_ADMIN`; unit writes use the framework `ADMIN` group (§1.1, crosscut §1) | All screens and shared contexts | Resolve owner/internal organization and read/edit/price/supplier-price/cost/approve/admin/unit rights server-side; apply identical filtering to counts, lookup, search, trace, margin, export and import. Purchase-direction price rows need the supplier-price grants; margin needs both price reader and cost reader. Stock policy uses Warehouse's facility-policy capability, not a Products group. |
+| PRD-ACCESS — catalog scope and action grants | service type, seed data | BOSS `ironstone.products.CatalogServices` access/find wrappers and scoped grants; proposed capability groups `BOSS_PRODUCTS_CATALOG_EDIT`, `BOSS_PRODUCTS_PRICE_READ`, `BOSS_PRODUCTS_PRICE_EDIT`, `BOSS_PRODUCTS_SUPPLIER_PRICE_READ`, `BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT`, `BOSS_PRODUCTS_COST_READ`, `BOSS_PRODUCTS_COST_ESTIMATE`, `BOSS_PRODUCTS_COST_APPROVE`, `BOSS_PRODUCTS_ADMIN`; unit writes use the framework `ADMIN` group (§1.1, crosscut §1) | All screens and shared contexts | Resolve owner/internal organization and read/edit/price/supplier-price/cost/approve/admin/unit rights server-side; apply identical filtering to counts, lookup, search, trace, margin, export and import. Purchase-direction price rows need the supplier-price grants; margin needs both price reader and cost reader. Stock policy uses Warehouse's facility-policy capability, not a Products group. Organization filters (impl-products §4): Products' ordinary groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`; `BOSS_PRODUCTS_ADMIN` has all authz on the root with `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`; Mantle's `MANTLE_USER_ORG` Product, ProductCategory and ProductFeature filters admit `_NA_`; services check organization access whatever the filter. |
 | PRD-SHELL — catalog providers | shell item | Products palette/quick-create/Today/notification providers | Home, root, all records | Reuse current shell contracts; exact ID lookup through `find#ProductByIdValue`, authorized text find (including `ProductParty` and supplier `otherPartyItemId` codes) and catalog KPI queries; do not add a new dashboard model. Keyword search reuses the existing `MantleProduct` search document and reports an unavailable or stale index. |
 | PRD-LIFECYCLE — product lifecycle | seed data, service type, data model | Proposed Product status flow Draft → Active → Discontinued → Obsolete on existing `Product.statusId`: proposed `PrdDraft`, `PrdActive`, `PrdDiscontinued`, `PrdObsolete` items of the existing `Product` status type; proposed `ironstone.products.CatalogServices.transition#ProductStatus` and `mantle.product.ProductServices.check#ProductUsable` | Products, Product360, Home; callers of the check in Purchasing, Manufacturing, Warehouse, crosscut SupplyPlanning and Sales (later) | Transitions Draft→Active, Active→Discontinued, Discontinued→Active (reactivate) and Discontinued→Obsolete, each validated and audited. Dates remain sales/support policy; null legacy status derives Active/Discontinued from dates until an explicit migration assigns status. Discontinued can fulfill allowed remaining stock; Obsolete blocks new commercial demand and replenishment. `check#ProductUsable` (productId, usage Sell, Purchase, Replenish, Produce, Receive or Return; returns usable, reason and status) is called by sales and purchase order-item create and by the proposed `run#SupplyPlan`, `convert#PlanningSuggestions`, reorder rules, `create#ProductionOrder` and `release#ProductionOrder`. Existing document fulfillment, returns and corrections remain subject to their domain guards. Activation validates required data; retirement never deletes transactions. Add `enable-audit-log` to `Product` `statusId`, `productName` and `salesDiscontinuationDate`. |
 | PRD-BULK — reviewed catalog changes | service type | Proposed catalog preview/apply services; per-item results on existing bulk services | Products, SupplierPrices, imports | Store/revalidate selected IDs and intended differences, check each authority, apply each independent product atomically and continue on named failure; return counts plus IDs/errors. |
 | PRD-VARIANTS — selected variant generation | service type | `ProductServices.preview#VariantProducts` (new), `create#VariantProducts` extended; guarded feature-interaction mutations | VariantBuilder, feature screens, Product360 | Preview feature combinations, existing IDs, conflicts and copy policy; optional selectedFeatureSets preserves legacy all-combination callers. Unique canonical feature set per virtual product, idempotent retry, per-combination result. Validate `ProductFeatureIactn` rules; never repurpose lot/serial attributes as SKU features. The interaction key is the feature pair; a product-scoped rule for a pair used elsewhere is refused until a proposed key extension adds `productId`. |
 | PRD-VARIANT-UI — variant matrix | Vue component | VariantBuilder qvue plus XML terminal twin | VariantBuilder | Paged two-axis matrix and additional filters; full combination key, keyboard selection and list view; same services for terminal and phone. No new global matrix widget until another screen requires it. |
 | PRD-TAXONOMY — multi-parent category edits | service type, seed data | BOSS guarded category-rollup service; existing XML tree occurrence mapping; proposed `PctTag` category type | Categories, CategoryDetail, Product360 tags, ProductFind | Use rollup occurrence identity for drag/move, preserve other parents, prevent effective-date cycles, deduplicate descendant membership, add tag type without a separate tag entity. |
-| PRD-PRICE — lists, rules, agreement matching and explanation | data model, service type | Proposed `mantle.product.ProductPriceList`, `ProductPriceRule`; proposed `mantle.product.PriceServices.store#ProductPrice`, `replace#ProductPrice`, `expire#ProductPrice`; extend `PriceServices` and modifier interface; proposed `OrderItem` provenance fields | Prices, PriceLists/Detail, PriceExplain, SupplierPrices, Product360, ProductImport, Purchasing quote publication | Header: ID/name, organization, purpose, currency, scope (including optional `geoId` over `moqui.basic.Geo` and its `GeoAssoc` groups), priority, state and dates. Rule: ID/list/version, sequence, product/category/feature selector, optional party classification, quantity/UOM interval, dates, base type/list, operation/operands, rounding and bounds. `store#ProductPrice` validates direction, equal-precedence overlap, a dimensional `quantityUomId` and the direction's grant; `replace#` schedules a successor in the same scope; `expire#` end-dates. Add explicit agreement matching, selected-list resolution, trace, server-computed margin for price-and-cost readers, and provenance: proposed `OrderItem.priceListId`, `priceRuleId` and `priceRuleVersion` beside the existing `productPriceId`, returned by the resolver and stored by `create#OrderItem`/`add#OrderProductQuantity`; `OrderItem.standardCost` set from the approved estimate when one exists. Add `enable-audit-log` to `ProductPrice` `fromDate`, `thruDate` and `minQuantity`. Keep legacy ProductPrice rows and resolver callers compatible; trace is authorized. |
-| PRD-COST — versioned standard estimates and history | data model | Proposed refined `mantle.product.cost.ProductStandardCost`, `ProductStandardCostComponent`; `CostServices` | StandardCosts, CostRollup, CostHistory, Product360, Manufacturing run snapshot, Accounting ValuationAdjustment | Versioned header keyed by proposed `productStandardCostId` plus `versionSeqId`, with product, org, optional facility, quantity/UOM, currency, effective dates, draft/approved state, reason and BOM/routing refs; component rows retain type (material, labor, machine, overhead percentage, outside processing), source, quantity, rate and amount. Material basis is the approved component standard, the `SpoMain` supplier price through the resolver, `PptAverage` or last receipt cost; labor and machine rates come from CX-WORKCENTER. Preview recursive effective BOM/routing costs with input fingerprints; approve estimates separately from Accounting revaluation, by the standard-cost approver. The two keys are frozen in the run snapshot and give the output receipt's `acquireCost`. Actual/average valuation reads existing movement facts; do not enable old commented cost definitions blindly. |
+| PRD-PRICE — lists, rules, agreement matching and explanation | data model, service type | Proposed `mantle.product.ProductPriceList`, `ProductPriceRule`; proposed `mantle.product.PriceServices.store#ProductPrice`, `replace#ProductPrice`, `expire#ProductPrice`; extend `PriceServices` and modifier interface; proposed `OrderItem` provenance fields | Prices, PriceLists/Detail, PriceExplain, SupplierPrices, Product360, ProductImport, Purchasing quote publication | Header: ID/name, organization, purpose, currency, scope (including optional `geoId` over `moqui.basic.Geo` and its `GeoAssoc` groups), priority, state and dates. Rule: ID/list, effective dates, sequence, product/category/feature selector, optional party classification, quantity/UOM interval, dates, base type/list, operation/operands, rounding and bounds. `store#ProductPrice` validates direction, equal-precedence overlap, a dimensional `quantityUomId` and the direction's grant; `replace#` schedules a successor in the same scope; `expire#` end-dates. Add explicit agreement matching, selected-list resolution, trace, server-computed margin for price-and-cost readers, and provenance: audit-logged `OrderItem.priceListId` and `priceRuleId` beside the existing `productPriceId`, returned by the resolver and stored by `create#OrderItem`/`add#OrderProductQuantity`; `OrderItem.standardCost` set from the approved estimate when one exists. Add `enable-audit-log` to `ProductPrice` `fromDate`, `thruDate` and `minQuantity`. Keep legacy ProductPrice rows and resolver callers compatible; trace is authorized. |
+| PRD-COST — effective-dated standard estimates and history | data model | Proposed refined `mantle.product.cost.ProductStandardCost`, `ProductStandardCostComponent`; `CostServices` | StandardCosts, CostRollup, CostHistory, Product360, Manufacturing run, Accounting ValuationAdjustment | Header keyed by proposed `productStandardCostId`, effective-dated by organization and product (`fromDate`, `thruDate`) with its amounts audit-logged and no `versionSeqId`; approval starts the estimate's row and ends the one before it, and stores the approved estimate's PDF (impl-products §4). It has optional facility, quantity/UOM, currency, draft/approved state, reason and BOM/routing refs; component rows retain type (material, labor, machine, overhead percentage, outside processing), source, quantity, rate and amount. Material basis is the approved component standard, the `SpoMain` supplier price through the resolver, `PptAverage` or last receipt cost; labor and machine rates come from CX-WORKCENTER. Preview recursive effective BOM/routing costs with input fingerprints; approve estimates separately from Accounting revaluation, by the standard-cost approver. The run stores the `productStandardCostId` at release as an audit-logged run field, and that estimate's standard unit cost is the output receipt's `acquireCost`. Actual/average valuation reads existing movement facts; do not enable old commented cost definitions blindly. |
 | PRD-IMPORT — durable catalog import | data model | Proposed BOSS catalog import run/row results and `ImportServices` | ProductImport | Staged file/hash, mapping/version, validation result, selected rows, operation keys, target IDs and named errors; per-row atomic writes, resumable retries, permission revalidation and downloadable results. |
 | PRD-CONTENT — catalog content review/version guards | service type | Extend existing product/category content services; proposed translation wrapper | Documents, CategoryContent, Translations, Product360 | Preserve typed locale/feature/store/date scopes; optimistic revision checks and source-version translation review; use existing resource versions/storage and file authorization. |
 | PRD-UOM — validated quantity conversions | service type, data model | Guarded framework UOM maintenance and shared conversion validation; proposed `enteredQuantity`, `enteredQuantityUomId` and `appliedConversionFactor` on `AssetReceipt`, `AssetIssuance` and `ShipmentItemSource` (fields owned by CX-POSTING) | Units, Packaging, prices/imports; Warehouse and Manufacturing posting guards | Existing `moqui.basic.Uom`/`UomConversion`; no parallel unit system. Exclude `UT_CURRENCY_MEASURE` units and their rates on either side; require the framework `ADMIN` group for writes. Validate dimensions/types, intervals, nonzero factor and stock-specific zero offset; the stock unit is `Product.amountUomId`; historical operations retain the entered quantity, its unit and the applied decimal factor. |
-| PRD-PACKAGING — pack identity and contained quantity | data model, service type | Proposed `ProductAssoc.quantityUomId`, `ProductServices.store#ProductPackaging` and `ProductServices.resolve#ScannedProduct` over associations/identifiers | Packaging, Product360, Labels, WH-SCAN, receiving | `ProductAssoc.productId` is the pack product, `toProductId` the contained base product, `quantity` plus `quantityUomId` the contained base quantity; `PatPackagingFor`, dated versions, cycle checks and identifier uniqueness; validate conversion to base stock UOM. `resolve#ScannedProduct` returns productId, packProductId, containedQuantity, quantityUomId, conversion and an ambiguity list. Warehouse alone performs physical unpack/repack (`repack#Asset`). |
+| PRD-PACKAGING — pack identity and contained quantity | data model, service type | Proposed `ProductAssoc.quantityUomId`, `ProductServices.store#ProductPackaging` and `ProductServices.resolve#ScannedProduct` over associations/identifiers | Packaging, Product360, Labels, WH-SCAN, receiving | `ProductAssoc.productId` is the pack product, `toProductId` the contained base product, `quantity` plus `quantityUomId` the contained base quantity; `PatPackagingFor`, effective-dated rows, cycle checks and identifier uniqueness; validate conversion to base stock UOM. `resolve#ScannedProduct` returns productId, packProductId, containedQuantity, quantityUomId, conversion and an ambiguity list. Warehouse alone performs physical unpack/repack (`repack#Asset`). |
 | PRD-KITS — kit components | service type | Proposed `mantle.product.ProductServices.store#KitComponent` over `ProductAssoc` `PatMfgBom` rows on `PtPickAssembly` products | Product360 Kit components; Warehouse Pack; Manufacturing (exclusion) | Create, update and end-date kit components on pick-assembly products only; refuse other product types, cycles and non-positive quantities; never write a manufacturing BOM. Existing `get#AvailableInventory` and `produce#AvailableAssemblies` keep reading these rows. |
 | PRD-IDENTIFIERS — identifier/scanning policy | data model | Proposed organization identifier policy over existing enum types; shared parser/validation service | IdentificationTypes, Labels, Products, Warehouse | Allowed type, format/check digit, generation source and uniqueness scope; GS1 decode is shared framework functionality. One code per type per product (the `ProductIdentification` key); further codes use `PidtOther` or `ProductOtherIdentification`; the store service enforces `idValue` uniqueness. Supplier codes stay party-qualified; no silent renumbering. |
 | PRD-LABELS — label preparation/rendering | tool | Proposed BOSS label services consuming framework barcode and print tooling | Labels | Approved templates, selected existing codes, quantity/UOM and locale, preview of encoded payload, render/print outcomes; identify unsupported printer/symbology explicitly. |
-| PRD-SETTINGS — organization catalog defaults | data model | Proposed Products settings records/services | Settings, VariantSettings, PricingSettings | Versioned defaults and field-copy allowlist; UI feature flags never grant permissions or make used records inaccessible; finance owns valuation/posting defaults. |
+| PRD-SETTINGS — organization catalog defaults | data model | Proposed `mantle.product.ProductCatalogSetting` and `ProductVariantSetting` records; `ironstone.products.SettingsServices` | Settings, VariantSettings, PricingSettings | Effective-dated settings rows by organization with typed, audit-logged fields and a change reason; a change ends the current row and starts the next, a read takes an as-of date, and there are no revisions with a version sequence (impl-products §4). Field-copy allowlist; UI feature flags never grant permissions or make used records inaccessible; finance owns valuation/posting defaults. |
 | PRD-VALIDATION — catalog readiness | service type | Proposed `CatalogServices.validate#Catalog` | CatalogChecks, activation, imports, Home | Return per-record issues and source evidence for selected checks, including legacy pack-content data, kit component cycles and case units in price `quantityUomId`; continue independent checks, enforce strict identity/data guards when writing. |
 | PRD-CONFIGURATION — typed versioned configurations | data model | Refined `mantle.product.config` definition/version/question/option/constraint/saved-answer records and `ConfigurationServices` (later) | Configurations/Detail | Refine commented ProductConfig concepts and reuse active ProductParameter semantics; immutable published versions, typed declarative constraints, canonical answer fingerprint, explicit creation of `PatConfigInstance` product and frozen order linkage. |
-| PRD-CHANGE — catalog engineering changes | data model | Proposed `mantle.product.change` notice/affected-record/review records and `ChangeServices` (later) | ChangeNotices/Detail | Draft → review → approved → released/withdrawn with reason and source versions; impacted BOM/routing/order references, conflict detection; released manufacturing snapshots are never rewritten. |
+| PRD-CHANGE — catalog engineering changes | data model | Proposed `mantle.product.change` notice/affected-record/review records and `ChangeServices` (later) | ChangeNotices/Detail | Draft → review → approved → released/withdrawn with reason and source versions; impacted BOM/routing/order references, conflict detection; released BOM, routing and run lines are never rewritten. |
 
 ### Current-source observations affecting implementation
 
@@ -1290,14 +1331,14 @@ collects these IDs with the other app needs. Source paths in this table are rela
 - `PatPackagingFor` is seeded and read by no Mantle service. `PatMfgBom` rows on `PtPickAssembly`
   products drive kit availability in `get#AvailableInventory` and kit assembly in
   `produce#AvailableAssemblies`; `create#ProductionRun` also reads `PatMfgBom` through
-  `get#ProductBomDetail`, which the versioned BOM design stops using for manufacturing.
+  `get#ProductBomDetail`, which the effective-dated BOM design stops using for manufacturing.
 - The `ProductFeatureIactn` key is the feature pair, and the `ProductIdentification` key is the
   product and identifier type; its `idValue` index is not unique.
 - `Product` audit-logs only `ownerPartyId`, and `ProductPrice` only `price`. The `Product`
   status type is seeded with no status items.
 - `ProductConfig*` and cost-component/average-cost definitions remain in XML comments.
   `Asset.acquireCost`, asset details and `AssetStandardCost` are active but do not by themselves
-  implement the versioned product-estimate workflow specified here.
+  implement the effective-dated product-estimate workflow specified here.
 
 ## 15. Decided
 
@@ -1305,13 +1346,13 @@ collects these IDs with the other app needs. Source paths in this table are rela
 | --- | --- |
 | One Product360, many contexts | Crosscut §3.5 owns its forms; this file passes catalog context and provides the reference coverage. Every authorized standalone app mounts needed shared functionality. |
 | One product list replaces Find and Search | Structured filters, ID/scan lookup, text search and the existing bulk category/feature operations share one selection model. Text search is ProductFind's keyword field over the existing `MantleProduct` search document, with an ID/name fallback when the index is unavailable (R-PRD-23). |
-| Rules are records, not generated price rows | Answers research's price-rules question. Versioned lists/rules feed the existing modifier pipeline; §7 specifies deterministic ordering and cycle handling. |
+| Rules are records, not generated price rows | Answers research's price-rules question. Effective-dated lists and rules (impl-products §4) feed the existing modifier pipeline; §7 specifies deterministic ordering and cycle handling. |
 | Agreement prices and segment rules coexist | Answers customer-specific-list question: a negotiated agreement uses `ProductPrice.agreementId`/item; segment/classification uses rules, all through one resolver. Promotions remain a distinct order step. |
-| Refine commented cost/configuration concepts | Answers enable-versus-new question: active, explicitly versioned models are specified against current needs; stale commented definitions are not enabled wholesale. Product estimates and financial valuation remain distinct. |
+| Refine commented cost/configuration concepts | Answers enable-versus-new question: active models are specified against current needs, standard estimates as effective-dated rows with audit-logged amounts (impl-products §4) and configurations with published versions (later); stale commented definitions are not enabled wholesale. Product estimates and financial valuation remain distinct. |
 | Real variant SKUs first; dynamic configuration later | Answers apparel-scale question: selected matrix generation in the first release, preserving `PtVirtual` + `PatVariant`. Order-time creation is a later configuration capability with uniqueness and frozen answers, not a first-release implicit behavior. |
 | Pack products and dated contained quantity | Answers packaging question: `PatPackagingFor` plus pack identifiers, not another packaging table or a misuse of measurement dimensions. The pack is `ProductAssoc.productId` and the base product `toProductId`. Proposed `resolve#ScannedProduct` resolves a scanned pack to its base product and normalized quantity for WH-SCAN, receiving and Labels (R-PRD-03, D16). |
 | Product lifecycle with compatible dates | Answers lifecycle question: proposed status seeds distinguish incomplete master from sale/support policy; existing sales dates continue to control allowed fulfillment. |
-| Product usability is checked where demand and supply start | D19, R-PRD-04. The proposed statuses are `PrdDraft`, `PrdActive`, `PrdDiscontinued` and `PrdObsolete`, changed only through `transition#ProductStatus`. Products owns proposed `mantle.product.ProductServices.check#ProductUsable`, which sales and purchase order-item create and the proposed `run#SupplyPlan`, `convert#PlanningSuggestions`, reorder rules, `create#ProductionOrder` and `release#ProductionOrder` call. Crosscut §3.20's "inactive product" exception is this check. `Product.statusId` becomes audit-logged. Separate sellable and purchasable flags are open (§16). |
+| Product usability is checked where demand and supply start | D19, R-PRD-04. The proposed statuses are `PrdDraft`, `PrdActive`, `PrdDiscontinued` and `PrdObsolete`, changed only through `transition#ProductStatus`. Products owns proposed `mantle.product.ProductServices.check#ProductUsable`, which sales and purchase order-item create and the proposed `run#SupplyPlan`, `convert#PlanningSuggestions`, reorder rules, `create#ProductionOrder` and `release#ProductionOrder` call. Crosscut §3.20's "inactive product" exception is this check. `Product.statusId` becomes audit-logged. Separate sellable and purchasable flags are proposed nullable `Product.salesAllowed` and `purchaseAllowed`, null meaning allowed, which `check#ProductUsable` enforces for Sell and Purchase (§16, impl-products §4). |
 | Product/facility policy edits are shared | Answers per-facility question: permitted Products/Warehouse/Purchasing contexts edit the same `ProductFacility` rows; authorization, not launcher membership, governs writes. Every write goes through the Warehouse-owned proposed `mantle.facility.FacilityServices.store#ProductFacilityPolicy` (D20, R-XC-09), under Warehouse's facility-policy capability. |
 | Product tracking and shelf life are a Warehouse policy | R-PRD-13; review-core-apps §4.1 step 13. Product360 Stock's Policy pane edits Warehouse's product-scoped TrackingPolicy exception through proposed `WarehousePolicyServices.store#TrackingPolicy`. Product gains no tracking fields. Lot and serial generation is Warehouse's `generate#TrackingIdentities`. This settles R-PRD-13 here instead of in Open. |
 | Tags are typed categories | Multi-parent taxonomy and dated membership remain; accounting posting groups, marketing segments and store navigation are distinct uses, not collapsed into tags. Tags use the proposed `PctTag` category type, shown as chips on Product360 Summary and filtered by ProductFind's tag field (R-PRD-36). |
@@ -1321,22 +1362,25 @@ collects these IDs with the other app needs. Source paths in this table are rela
 | Merchandising compatibility, not a Commerce redesign | Typed store content/identifiers are retained; store publication, promotions, subscriptions, reviews and advanced merchandising stay with their corresponding later app designs. |
 | Existing framework widgets are reused | Tree, board, dashboard, context, status-bar and ordinary editor/upload facilities already exist. Only the variant matrix requires a custom qvue surface, with terminal parity. |
 | Existing automation on Products paths | D1. No active Mantle service ECA or entity ECA runs on the records Products writes: `Product`, `ProductPrice`, `ProductAssoc`, category, feature, content, identifier and `ProductParty` rows, `Uom` and `UomConversion`. Products keeps, conditions and replaces none. The order-line rules beside the price provenance write, the service ECA rules `OrderItemCreateCheckReserve` and `OrderItemUpdateCheckReserve` and the entity ECA rule `OrderItemHandleChange`, are kept unchanged by their owners; the new provenance fields do not change what they do. |
-| Kits are pick-assembly products | D15, R-PRD-10. A kit is a `PtPickAssembly` product whose components are `PatMfgBom` rows, maintained only in Product360's Kit components pane through proposed `store#KitComponent`. `PatMfgBom` stays only for kits; a released versioned BOM is the only manufacturing method, and Manufacturing's BOM migration excludes kits. Warehouse costs kit assembly (R-SA-04). |
-| BOM and routing screens are mounted, not designed | D15, R-PRD-02, R-XC-24. Product360's BOM tab mounts Manufacturing's BillOfMaterialsDetail, BillOfMaterialsExplosion, BillOfMaterialsCompare, WhereUsed and RoutingDetail with product and organization fixed (§3). Products defines no BOM form. |
+| Kits are pick-assembly products | D15, R-PRD-10. A kit is a `PtPickAssembly` product whose components are `PatMfgBom` rows, maintained only in Product360's Kit components pane through proposed `store#KitComponent`. `PatMfgBom` stays only for kits; a `ProductBom` with released, effective-dated `ProductBomItem` lines is the only manufacturing method (impl-products §4), and Manufacturing's BOM migration excludes kits. Warehouse costs kit assembly (R-SA-04). |
+| BOM and routing screens are mounted, not designed | D15, R-PRD-02, R-XC-24. Product360's BOM tab mounts Manufacturing's BillOfMaterialsDetail, BillOfMaterialsExplosion, BillOfMaterialsCompare, WhereUsed and RoutingDetail with product and organization fixed (§3). Products defines no BOM form; it builds the five Shared screens and Manufacturing's method records and services as Manufacturing's contract, with the Products context first (impl-products §4, P8). |
+| Methods are effective-dated (Oct 28, 2026) | impl-products §4. A proposed `ProductBom` header has audit-logged method fields and `ProductBomContent`; its `ProductBomItem` lines are effective-dated with a stable `bomItemId`; routings are Mantle's `WepRouting` and `WepRoutingTask` on dated `WeatRoutingComp` rows. A release is an approval decision that stamps the lines' dates; an explosion reads one date and a comparison two (§3). `ProductBomVersion`, `ProductBomVersionContent`, `RoutingVersion` and `RoutingVersionOperation` are dropped, and `PatMfgBom` stays for kits only (D15). |
 | Units exclude currencies, and unit writes are system-wide | D17, R-PRD-01. Units and Conversions exclude `UT_CURRENCY_MEASURE` units and their rates, which only Accounting's Currencies screen maintains. Because `Uom` and `UomConversion` are global, writes need the framework `ADMIN` group, the system administrators, not a Products group (decided Oct 28, 2026). |
 | Dimensional units and product-specific packs | D16, R-SA-14. Dimensional units (kg and g, each) use the global `UomConversion` rows and may appear in `quantityUomId`. Product-specific packs (case, pallet) are pack products with a `PatPackagingFor` contained quantity. A purchase in cases orders the pack product, or the base product in base units. Warehouse converts pack to base at receipt through `resolve#ScannedProduct`, or stocks the pack. `store#ProductPrice` refuses a case unit in `quantityUomId`. |
 | Stock postings keep the entered quantity | D16, R-SA-06; review-core-apps §4.1 step 36. Proposed `enteredQuantity`, `enteredQuantityUomId` and `appliedConversionFactor` on `AssetReceipt`, `AssetIssuance` and `ShipmentItemSource` are CX-POSTING fields written by the Warehouse and Manufacturing posting guards. Products owns the PRD-UOM validation. The stock unit is `Product.amountUomId`. |
 | Unpack and repack belong to Warehouse | D16; review-core-apps §4.1 step 35. Warehouse's proposed `Warehouse/Transfers/Repack` task runs `WarehouseTaskServices.repack#Asset` inside a `WepAssembling` work effort. A packaging relationship never moves stock. This settles R-PRD-03's request to Warehouse, so it is not an Open item. |
 | One list of grants, mapped to capability groups | D22, R-PRD-15. §1.1 is the one list; each grant maps to a proposed `BOSS_PRODUCTS_*` group in crosscut §1. Edit screens carry `app; catalog editor writes`. Stock policy uses Warehouse's facility-policy capability. Accounting's standard-estimate wording should say cost estimator and standard-cost approver. |
+| Organization filters and the admin group (Oct 28, 2026) | impl-products §4, impl-drawers-commons §4. `BOSS_PRODUCTS` is both the root user group and the artifact group. Products' ordinary groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`; `BOSS_PRODUCTS_ADMIN` is the Products admin group, with all authz on the root and `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`; `MANTLE_USER_ORG`'s Product, ProductCategory and ProductFeature filters admit `_NA_`; services still check organization access. The work-center group of the method contract is `BOSS_MANUFACTURING_RESOURCE_ADMIN` (§1.1). |
+| Catalog settings are effective-dated rows (Oct 28, 2026) | impl-products §4. `ProductCatalogSetting` rows by organization with typed, audit-logged fields and a change reason, as `ProductVariantSetting`, not revisions with a version sequence; `get#` and `store#CatalogSettings` keep their parameters, and self-approval, import defaults and required fields read the row in effect (§11). |
 | Price writes are named services | R-PRD-05. Proposed `mantle.product.PriceServices.store#ProductPrice`, `replace#ProductPrice` and `expire#ProductPrice` serve Prices, Product360, SupplierPrices, imports and Purchasing's proposed `SourcingServices.publish#SupplierQuotePrice`. `modify#ProductPrice` is the resolver's modifier interface, not a store. |
 | The price screens' per-app tables live here | R-PRD-06, R-XC-23. The tables after PriceExplain and SupplierPrices are the canonical per-app contexts; crosscut §3.21 links to them instead of restating them. Sales and Commerce rows are reserved for their design passes. |
-| Order lines record price provenance | R-PRD-07. The existing `OrderItem.productPriceId` keeps the row; proposed `OrderItem.priceListId`, `priceRuleId` and `priceRuleVersion` keep the list and rule. `OrderItem.standardCost` comes from the approved estimate when one exists. |
+| Order lines record price provenance | R-PRD-07. The existing `OrderItem.productPriceId` keeps the row; audit-logged `OrderItem.priceListId` and `priceRuleId` keep the list and rule, read as of the line's pricing time. `OrderItem.standardCost` comes from the approved estimate when one exists. |
 | Margin is shown only with price and cost access | R-PRD-34. Prices, Product360 Prices and PriceExplain show margin against the approved standard estimate when the user holds price reader and cost reader; the server computes it. |
 | Product parties are maintained; product geos are later | R-PRD-09. Product360's Parties pane maintains `ProductParty` codes for customers, manufacturers and distributors, and the palette and ProductFind search them. `ProductGeo` (export and sales geo restrictions) is `later`, because no first-release flow enforces it. Price-list geo scope is a separate rule scope (R-PRD-35). |
 | Product360 shows connections | R-PRD-08. Crosscut §3.5 gains a `ProductConnections` component with authorized per-type counts and links; the Products context shows every type the user may read. |
 | Baseline cost correction goes to Accounting | R-PRD-14. Asset FindAsset `UpdateProductCost` (`update#ProductAcquireCost`) is handed to Accounting InventoryValuation ValuationAdjustment, which posts through proposed `post#Revaluation`. Accounting maps the form there. |
 | ProductStore baseline handed off | R-PRD-21. Find/EditProductStore (store, shipping options, payment and shipping gateways, data documents), FindProductStoreCategory and the store Emails, Facility, Party and Settings forms go to Commerce. Promotion and PromoCode forms go to Marketing. Gateway credentials stay with Admin (crosscut §5). Store-scoped prices and content reference stores that Commerce maintains. |
-| Standard estimates have a version key | R-PRD-29. The key is proposed `productStandardCostId` plus `versionSeqId`. Request revaluation passes both, Accounting ValuationAdjustment and the Manufacturing run snapshot store both, and the snapshot version's standard unit cost is the output receipt's `acquireCost` (R-SA-01). |
+| Standard estimates are effective-dated rows | R-PRD-29, as impl-products §4 decides. The key is proposed `productStandardCostId`; an estimate is effective-dated by organization and product with its amounts audit-logged and no `versionSeqId`, and approval starts its row and ends the one before it. Request revaluation passes the key, Accounting ValuationAdjustment and the Manufacturing run store it (the run as an audit-logged field at release), and that estimate's standard unit cost is the output receipt's `acquireCost` (R-SA-01). |
 | Substitutes are associations, authorized by the source document | R-PRD-31 (as amended). Sales and purchasing substitutes are `PatEquivalent` and `PatReplacement` rows read as candidates. Production substitutes come from the BOM item's substitution rule, with `PatEquivalent` candidates only when that rule allows them. |
 | Documents and category content are one definition | R-PRD-32. Documents, DocumentDetail and CategoryContent are the one definition of the `ProductContent` and `ProductCategoryContent` forms. Commerce Merchandising mounts them with `productStoreId` fixed; publication stays with Commerce. |
 | No per-product defaults record | R-PRD-33. The default supplier is the `SpoMain` `ProductPrice` row per internal buyer; facility and reorder defaults are `ProductFacility`; GL is Accounting's `ProductGlAccount`; the default price list is PricingSettings. |
@@ -1348,7 +1392,7 @@ collects these IDs with the other app needs. Source paths in this table are rela
 Confirmed for the Products implementation:
 
 - Interactive generation defaults to 1,000 selected combinations and may be configured downward; larger selections use durable batches.
-- The cost estimator drafts and the standard-cost approver approves. Self-approval is an audited organization setting, off by default, and still requires the approval grant. Accounting posting remains separate.
+- The cost estimator drafts and the standard-cost approver approves. Self-approval is an audited organization setting on the dated CatalogSettings row, off by default, and still requires the approval grant. Accounting posting remains separate.
 - Identifier generation supports manual and existing internal IDs. External GS1 company-prefix allocation remains later.
 - Add nullable `Product.salesAllowed` and `purchaseAllowed`, with null allowed for legacy products. `check#ProductUsable` enforces them for Sell/Purchase; Products exposes the facets.
 - On virtual-base fallback, sum matching effective `PfatSelectable` `ProductFeatureAppl.amount` extras before list rules. Record a trace step and show the result in variant preview.

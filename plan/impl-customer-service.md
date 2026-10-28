@@ -291,10 +291,10 @@ Verify the design's riskiest assumptions against the code before building. Each 
 changes the design, an edit there. F1–F43 were found on Oct 28 while writing this plan. The design edits that §4's
 decisions call for (the case's organization and people as RequestParty roles, the effective-dated policies, which
 requests are cases, the queue intake in place of ProjIntake's triaged types, the forum service names, the order-change,
-warranty and template models, the Mantle case core, and design §14's answers, with crosscut §9's customer accounts)
-are made when P0 closes. So is the Support app: design §2 and §8 point to a new `mr-pass/plan/design-support.md`
-holding §8's pages on PASS's shell, identity and request contract, and design-forum §1 and §13 gain the app. Still to
-check:
+warranty and template models, the Mantle case core, and design §14's answers, with crosscut's customer accounts)
+were made in the Oct 28 design sweep. The Support app's are made when P0 closes: design §2 and §8 point to a new
+`mr-pass/plan/design-support.md` holding §8's pages on PASS's shell, identity and request contract, and design-forum
+§1 and §13 gain the app. Still to check:
 
 - **The other apps' state.** Which of Products P2, P5 and P7, Accounting P4, P6, P10, P17 and P18, Warehouse P8, P11,
   P13, P14 and P17, Manufacturing P11 and Purchasing P3, P4, P10 and P13 are built when the phases that use them start,
@@ -965,7 +965,7 @@ design-customer-service.md, or into the owner's design.
 | Oct 28, 2026 | A warranty claim is its `RqtWarranty` case: the product a RequestItem, the asset, order, invoice and agreement RequestRecord links, and a WarrantyDecision record. The design's WarrantyClaim record is dropped (P11) | The user's call (answer 4) |
 | Oct 28, 2026 | A case template is a DbForm with dependency rows, and a case's values a FormResponse linked to it. The design's CaseTemplate, Field, Dependency and Value records are dropped (P7) | The user's call (answer 5); F16. One form engine with the feedback forms (D24's reuse) |
 | Oct 28, 2026 | Design §14's policy items as it recommends: SLA policy by the most specific of customer agreement, customer, queue or type, and organization default, equal ranks refused, bound at intake (P4); a 14-day reopen window as a ServicePolicy field, then a follow-up case (P8); a merge keeps the sources' SLA evidence and deadlines as obligations (P8); warranty coverage by agreement, then the product's warranty at sale through the coverage lookup, then goodwill (P11); return validity set by organization, no fee without a published rule, manual review with no policy (P9); feedback comments private to service management, shared retention, invitation-linked responses immutable (P13) | The user's call (answer 6) |
-| Oct 28, 2026 | A signed-in customer contact is the UserAccount of the contact's party, the identity PASS public accounts will use, so the customer pages are not a third identity surface (P15) | The user's call (answer 7); written into crosscut §9 when P0 closes. With the Support app in mr-pass the contact is a PASS public account itself |
+| Oct 28, 2026 | A signed-in customer contact is the UserAccount of the contact's party, the identity PASS public accounts will use, so the customer pages are not a third identity surface (P15) | The user's call (answer 7); written into crosscut §8 in the Oct 28 design sweep. With the Support app in mr-pass the contact is a PASS public account itself |
 | Oct 28, 2026 | Chargeable repair: P11 records the charge estimate and the customer's consent on the warranty decision; the sales quote waits for Sales (§7) | The user's call (answer 8) |
 | Oct 28, 2026 | Who is viewing or typing on a case is later (§7), unless P0 finds the Dev AIDE presence (`set#Presence`) generalizes to a record topic at small cost; then it joins P5, beside the reply | The user's call (answer 9) |
 

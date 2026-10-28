@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Forum moderation in IronStone Comms (mr-pass design-forum.md §13.4): internal moderators work the same Mantle review queue
+    the public forum's staff use, through the same services (mantle.forum.ModerationServices), so a decision here is the
+    same decision, revision-checked and audited by the forum. These services only shape it for the Comms screens; the forum
+    decides who may. A public account has no moderation scopes here even if it moderates a public site. -->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+
+    <service verb="find" noun="Scopes" allow-remote="false">
+        <description>The sites and bound categories the current internal user moderates, as drop-down options keyed
+            siteId or siteId|contactListId.</description>
+        <out-parameters>
+            <parameter name="internal" type="Boolean"/>
+            <parameter name="scopeList" type="List"/>
+        </out-parameters>
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.forum.ModerationServices.find#ModerationScopes').parameters({input: {}}).call()?.result || {}
+            internal = !!out.internal
+            scopeList = Array.from(out.scopeList || []).map((s) => ({key: s.siteId + (s.contactListId ? '|' + s.contactListId : ''),
+                text: s.contactListId ? s.siteName + ' · ' + s.name : s.siteName + ' · all categories', siteId: s.siteId,
+                contactListId: s.contactListId || null}))
+        ]]></script></actions>
+    </service>
+
+    <service verb="find" noun="Reviews" allow-remote="false">
+        <description>Open review items in one scope, each with the title of the post or member it concerns.</description>
+        <in-parameters><parameter name="scope" required="true"/></in-parameters>
+        <out-parameters><parameter name="reviewList" type="List"/></out-parameters>
+        <actions><script><![CDATA[
+            const [siteId, contactListId] = String(scope).split('|')
+            const call = (verb, input) => ec.service.sync().name('mantle.forum.ModerationServices.' + verb).parameters({input}).call()?.result || {}
+            const list = Array.from(call('find#Reviews', {siteId, ...(contactListId ? {contactListId} : {}), limit: 50}).reviewList || [])
+            reviewList = list.map((r) => {
+                let title = r.targetType === 'account' ? 'Membership request' : r.targetType
+                if (r.targetType === 'post') {
+                    const detail = call('get#Review', {siteId, reviewId: r.reviewId})
+                    title = detail.post?.title || 'Post'
+                }
+                return {...r, siteId, title, scope}
+            })
+        ]]></script></actions>
+    </service>
+
+    <service verb="get" noun="Review" allow-remote="false">
+        <in-parameters>
+            <parameter name="siteId" required="true"/>
+            <parameter name="reviewId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="review" type="Map"/>
+            <parameter name="post" type="Map"/>
+            <parameter name="reportList" type="List"/>
+            <parameter name="noteList" type="List"/>
+        </out-parameters>
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.forum.ModerationServices.get#Review').parameters({input: {siteId, reviewId}}).call()?.result || {}
+            review = out.review || null
+            post = out.post || null
+            reportList = Array.from(out.reports || [])
+            noteList = Array.from(out.notes || [])
+        ]]></script></actions>
+    </service>
+
+    <service verb="claim" noun="Review" allow-remote="false">
+        <in-parameters>
+            <parameter name="siteId" required="true"/>
+            <parameter name="reviewId" required="true"/>
+            <parameter name="expectedRevision" type="Integer" required="true"/>
+        </in-parameters>
+        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.claim#Review').parameters({input: {siteId, reviewId, expectedRevision}}).call()</script></actions>
+    </service>
+
+    <service verb="decide" noun="Review" allow-remote="false">
+        <in-parameters>
+            <parameter name="siteId" required="true"/>
+            <parameter name="reviewId" required="true"/>
+            <parameter name="expectedRevision" type="Integer" required="true"/>
+            <parameter name="decision" required="true"/>
+            <parameter name="reason" required="true"/>
+        </in-parameters>
+        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.decide#Review').parameters({input: {siteId, reviewId, expectedRevision, decision, reason}}).call()</script></actions>
+    </service>
+
+    <service verb="decide" noun="Reviews" allow-remote="false">
+        <description>One decision for several items of a site; the forum answers per item, and a failed item does not stop the rest.</description>
+        <in-parameters>
+            <parameter name="siteId" required="true"/>
+            <parameter name="reviewIdList" type="List" required="true"/>
+            <parameter name="decision" required="true"/>
+            <parameter name="reason" required="true"/>
+        </in-parameters>
+        <out-parameters><parameter name="resultList" type="List"/></out-parameters>
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.forum.ModerationServices.decide#Reviews').parameters({input: {siteId,
+                reviewIds: Array.from(reviewIdList).map(String), decision, reason}}).call()?.result || {}
+            resultList = Array.from(out.results || out.resultList || [])
+        ]]></script></actions>
+    </service>
+
+    <service verb="add" noun="ReviewNote" allow-remote="false">
+        <in-parameters>
+            <parameter name="siteId" required="true"/>
+            <parameter name="reviewId" required="true"/>
+            <parameter name="noteText" required="true"/>
+        </in-parameters>
+        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.add#ReviewNote').parameters({input: {siteId, reviewId, body: noteText, operationId: ec.user.randomString(32)}}).call()</script></actions>
+    </service>
+</services>

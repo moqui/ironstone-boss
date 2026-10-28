@@ -1,0 +1,670 @@
+<?xml version="1.0" encoding="UTF-8"?><screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Prices" default-menu-index="1">
+    <parameter name="productId"/>
+    <parameter name="direction"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="priceTypeEnumId"/>
+    <parameter name="pricePurposeEnumId"/>
+    <parameter name="priceUomId"/>
+    <parameter name="vendorPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="productStoreId"/>
+    <parameter name="agreementId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="includeHistory"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition name="store">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#ProductPrice" in-map="context" out-map="answer"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="replace">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.replace#ProductPrice" in-map="context" out-map="answer"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="expire">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.expire#ProductPrice" in-map="context" out-map="answer"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="history">
+        <default-response url="//Products/Prices/PriceHistory"/>
+    </transition>
+    <transition name="bulk">
+        <default-response url="//Products/Products/BulkPrice"/>
+    </transition>
+    
+
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:'products',term:term}" out-map="choices"/>
+            <script><![CDATA[if(selectedProductId&&!choices.rows.some(r=>r.value===selectedProductId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:selectedProductId,checkOnly:true}).call();if(got.record)choices.rows.unshift({value:selectedProductId,label:got.record.productName||selectedProductId})}ec.web.sendJsonResponse(choices.rows)]]></script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    
+
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#PriceOptions" out-map="context"/>
+        <service-call name="ironstone.products.CatalogServices.find#ProductPrices" in-map="context" out-map="context"/>
+        <script><![CDATA[
+priceRowsPageIndex=pageIndex;priceRowsPageSize=pageSize;priceRowsPageMaxIndex=Math.max(0,Math.ceil(priceRowsCount/pageSize)-1);priceRowsPageRangeLow=priceRows.length?pageIndex*pageSize+1:0;priceRowsPageRangeHigh=pageIndex*pageSize+priceRows.length
+newSales={productId:productId||null,vendorPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:'PppPurchase',priceUomId:'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
+newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:'PppPurchase',priceUomId:'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
+]]></script>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Price scope"/>
+            <box-body>
+                <form-single name="PriceFind" transition=".">
+                    <field name="productId">
+                        <default-field title="Product">
+                            <drop-down allow-empty="true">
+                                <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="direction">
+                        <default-field title="Direction">
+                            <drop-down allow-empty="true">
+                                <option key="sales" text="Sales"/>
+                                <option key="purchase" text="Supplier offers"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.organizations" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="priceTypeEnumId">
+                        <default-field title="Type">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.types" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="pricePurposeEnumId">
+                        <default-field title="Purpose">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.purposes" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="priceUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.currencies" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="asOfDate">
+                        <default-field title="Effective as of">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="includeHistory">
+                        <default-field title="Rows">
+                            <drop-down>
+                                <option key="false" text="Effective rows"/>
+                                <option key="true" text="Include scheduled and ended rows"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Find prices">
+                            <submit/>
+                        </default-field>
+                    </field>
+                </form-single>
+            </box-body>
+        </container-box>
+        <section name="NewSalesPriceAllowed" condition="canPriceEdit">
+            <widgets>
+                <container-dialog id="NewSalesPriceDialog" title="New sales price" button-text="New sales price" width="960">
+                    <form-single name="NewSalesPrice" transition="store" map="newSales">
+                        <field name="productId">
+                            <default-field title="Product">
+                                <drop-down allow-empty="false">
+                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="vendorPartyId">
+                            <default-field title="Selling organization">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.organizations" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="customerPartyId">
+                            <default-field title="Customer">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.customers" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="priceTypeEnumId">
+                            <default-field title="Type">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.types" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="pricePurposeEnumId">
+                            <default-field title="Purpose">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.purposes" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="price">
+                            <default-field title="Unit price">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="priceUomId">
+                            <default-field title="Currency">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.currencies" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="minQuantity">
+                            <default-field title="Minimum quantity">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="quantityUomId">
+                            <default-field title="Quantity unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.units" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Effective from (empty: now)">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="productStoreId">
+                            <default-field title="Store">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.stores" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="agreementId">
+                            <default-field title="Agreement ID">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="agreementItemSeqId">
+                            <default-field title="Agreement item">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="termUomId">
+                            <default-field title="Term unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.units" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="taxInPrice">
+                            <default-field title="Tax included">
+                                <drop-down allow-empty="true">
+                                    <option key="Y" text="Yes"/>
+                                    <option key="N" text="No"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="taxAuthorityId">
+                            <default-field title="Tax authority ID">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="taxPercentage">
+                            <default-field title="Tax percent">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Create price">
+                                <submit/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        <section name="NewSupplierPriceAllowed" condition="canSupplierPriceEdit">
+            <widgets>
+                <container-dialog id="NewSupplierPriceDialog" title="New supplier price" button-text="New supplier price" width="960">
+                    <form-single name="NewSupplierPrice" transition="store" map="newSupplier">
+                        <field name="productId">
+                            <default-field title="Product">
+                                <drop-down allow-empty="false">
+                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="vendorPartyId">
+                            <default-field title="Supplier">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.suppliers" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="customerPartyId">
+                            <default-field title="Buying organization">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.organizations" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="priceTypeEnumId">
+                            <default-field title="Type">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.types" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="pricePurposeEnumId">
+                            <default-field title="Purpose">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.purposes" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="price">
+                            <default-field title="Unit price">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="priceUomId">
+                            <default-field title="Currency">
+                                <drop-down allow-empty="false">
+                                    <list-options list="priceOptions.currencies" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="minQuantity">
+                            <default-field title="Minimum quantity">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="quantityUomId">
+                            <default-field title="Quantity unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.units" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Effective from (empty: now)">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="productStoreId">
+                            <default-field title="Store">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.stores" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="agreementId">
+                            <default-field title="Agreement ID">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="agreementItemSeqId">
+                            <default-field title="Agreement item">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="termUomId">
+                            <default-field title="Term unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.units" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="taxInPrice">
+                            <default-field title="Tax included">
+                                <drop-down allow-empty="true">
+                                    <option key="Y" text="Yes"/>
+                                    <option key="N" text="No"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="taxAuthorityId">
+                            <default-field title="Tax authority ID">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="taxPercentage">
+                            <default-field title="Tax percent">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="otherPartyItemId">
+                            <default-field title="Supplier item code">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="otherPartyItemName">
+                            <default-field title="Supplier item name">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="standardLeadTimeDays">
+                            <default-field title="Lead time in days">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="quantityIncrement">
+                            <default-field title="Order increment">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="quantityIncluded">
+                            <default-field title="Quantity included">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Create price">
+                                <submit/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        <container-box>
+            <box-header title="Price rows"/>
+            <box-body>
+                <form-list name="Prices" list="priceRows" skip-form="true" paginate="true" saved-finds="true" header-dialog="false" show-csv-button="true" show-xlsx-button="true">
+                    <row-selection id-field="productPriceId" parameter="productPriceIds" list-mode="true" condition="canPriceEdit || canSupplierPriceEdit">
+                        <action>
+                            <dialog button-text="Review bulk change" title="Review selected prices"/>
+                            <form-single name="SelectedPriceChanges" transition="bulk">
+                                <field name="organizationPartyId">
+                                    <default-field title="Organization">
+                                        <drop-down allow-empty="false">
+                                            <list-options list="priceOptions.organizations" key="${value}" text="${label}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="direction">
+                                    <default-field title="Direction">
+                                        <drop-down>
+                                            <option key="sales" text="Sales"/>
+                                            <option key="purchase" text="Supplier offers"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Review price changes">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </action>
+                    </row-selection>
+                    <field name="productId">
+                        <default-field title="Product">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="productName">
+                        <default-field title="Name">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="direction">
+                        <default-field title="Direction">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="priceType">
+                        <default-field title="Type">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="price">
+                        <default-field title="Price">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="priceUomId">
+                        <default-field title="Currency">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="minQuantity">
+                        <default-field title="Minimum quantity">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="quantityUomId">
+                        <default-field title="Quantity unit">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="vendorPartyId">
+                        <default-field title="Vendor">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="customerPartyId">
+                        <default-field title="Customer">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="productStoreId">
+                        <default-field title="Store">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="agreementId">
+                        <default-field title="Agreement">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="fromDateText">
+                        <default-field title="Effective from">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="thruDateText">
+                        <default-field title="Through">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="state">
+                        <default-field title="State">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="history">
+                        <default-field title="History">
+                            <link url="history" text="History" parameter-map="{productId:productId,productPriceId:productPriceId}"/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <section-iterate name="PriceActions" list="priceRows" entry="entry">
+            <widgets>
+                <section name="PriceEditable" condition="entry.canEdit">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${entry.productPriceId} · ${entry.productName}"/>
+                            <box-body>
+                                <container-dialog id="CorrectPrice_${entry.productPriceId}" condition="entry.canCorrect" button-text="Correct ${entry.productPriceId}" title="Correct unreferenced price" width="720">
+                                    <form-single name="CorrectPrice" transition="store" map="entry">
+                                        <field name="productPriceId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="expectedLastUpdatedStamp" from="entry.lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="price" from="String(entry.price)">
+                                            <default-field title="Corrected unit price">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="minQuantity" from="String(entry.minQuantity || 0)">
+                                            <default-field title="Minimum quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="Effective from"><hidden/><display text="${entry.fromDateText}"/></default-field>
+                                        </field>
+                                        <field name="thruDate" from="entry.thruDateText">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason" from="''">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save correction">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="ChangePrice_${entry.productPriceId}" button-text="Schedule ${entry.productPriceId}" title="Schedule a successor price" width="720">
+                                    <form-single name="ChangePrice" transition="replace" map="entry">
+                                        <field name="productPriceId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="expectedLastUpdatedStamp" from="entry.lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="price" from="String(entry.price)">
+                                            <default-field title="Successor unit price">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="effectiveDate">
+                                            <default-field title="Effective date">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason" from="''">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Schedule change">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="EndPrice_${entry.productPriceId}" button-text="End ${entry.productPriceId}" title="End price interval" width="720">
+                                    <form-single name="EndPrice" transition="expire" map="entry">
+                                        <field name="productPriceId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="expectedLastUpdatedStamp" from="entry.lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate" from="''">
+                                            <default-field title="End date (empty: now)">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason" from="''">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="End price">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+            </widgets>
+        </section-iterate>
+    </widgets>
+</screen>

@@ -1,1 +1,1 @@
-suite(["ProductsShots", "ProductsWalk", "ProductsTaxonomyShots", "ProductsTaxonomyWalk", "ProductsVariantShots", "ProductsVariantWalk"], {server: {components: ["mr-boss"], specs: ["ProductsAccess", "ProductsShell"], conf: "conf/MoquiDevConf.xml"}})
+suite(["ProductsShots", "ProductsWalk", "ProductsTaxonomyShots", "ProductsTaxonomyWalk", "ProductsVariantShots", "ProductsVariantWalk", "ProductsPriceShots", "ProductsPriceWalk"], {server: {components: ["mr-boss"], specs: ["ProductsAccess", "ProductsShell", "ProductsPriceFixtures"], conf: "conf/MoquiDevConf.xml"}})

@@ -33,6 +33,7 @@ function storeSettings(p){
  if(copyFields.some(f=>!safeCopy.includes(f)))throw new Error('Identity, prices, costs and transactional fields are never copyable')
  if(data.identifierPattern&&data.identifierPattern!=='{base}_{features}')throw new Error('Use the canonical {base}_{features} identifier pattern')
  if(data.updateExisting===true||data.updateExisting==='Y')throw new Error('Existing overrides require a separate explicit propagation preview')
+ ec.context.putAll(Object.fromEntries(['fromDate','thruDate','batchLimit','copyFields','copyCategoryMembers','identifierPattern'].map(field=>[field+'_changeReason',p.changeReason||data.changeReason||'Variant policy changed'])))
  const all=rows(P+'ProductVariantSetting',{organizationPartyId}).sort((a,b)=>ms(a.fromDate)-ms(b.fromDate))
  if(all.some(r=>ms(r.fromDate)===at))throw new Error('A policy already starts at this time; choose a later effective date')
  const before=all.filter(r=>ms(r.fromDate)<at&&(!r.thruDate||ms(r.thruDate)>at)).at(-1),after=all.find(r=>ms(r.fromDate)>at)

@@ -50,6 +50,9 @@ const demoRecords = {
     "Products/Products/VariantBuilder": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Build variants"},
     "Products/Products/VariantBuilderTui": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Variant setup"},
     "Products/Settings/VariantSettings": {parameters: {organizationPartyId: "ORG_ZIZI_SERVICES"}, text: "Variant policy"},
+    "Products/Prices/List": {parameters: {productId: "BOSS_PRD_OWN"}, text: "Price scope"},
+    "Products/Prices/PriceHistory": {parameters: {productId: "BOSS_PRD_OWN"}, text: "Price changes"},
+    "Products/Products/BulkPrice": {parameters: {productIds: "BOSS_PRD_OWN"}, text: "Price change setup"},
     "Products/Home": {text: "Your catalog"},
     "Products/Products": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
     "Products/Products/List": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
@@ -376,7 +379,7 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
         // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings)
-        placeholders.length >= 92
+        placeholders.length >= 91
         failures.join("\n") == ""
     },
 })

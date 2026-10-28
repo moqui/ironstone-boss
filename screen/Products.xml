@@ -37,7 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
         <palette-type doc-type="MantleProduct"/>
         <palette-source group="Products" label="Product identifiers" icon="sym_o_inventory_2" prefix="#"
                 service="ironstone.products.CatalogServices.search#ProductIds" sequence="45"/>
-        <keymap scope="products">
+        <notification-topic topic="ProductPriceChanged"/><notification-topic topic="ProductPriceExpiring"/><keymap scope="products">
             <key keys="g p" label="Products" screen="Products/Products"/>
             <key keys="g c" label="Categories" screen="Products/Categories"/>
             <key keys="g f" label="Features" screen="Products/Features"/>

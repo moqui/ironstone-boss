@@ -187,3 +187,6 @@ feature('P4 variant service and screen entry points refuse readers and other own
   return {failures}
  },false)},then({failures}){failures.length==0},
 })
+feature('P5a price projections and writes retain their direction boundary inside internal callbacks',{
+ when(){const read=asCatalog('catalog.price.read',()=>call(CATALOG+'find#ProductPrices',{productId:'BOSS_PRD_OWN'}),false);const supplier=asCatalog('catalog.supplier.price.read',()=>call(CATALOG+'find#ProductPrices',{productId:'BOSS_PRD_OWN'}),false);const denied=asCatalog('catalog.reader',()=>{let rejected=false;try{call(CATALOG+'store#ProductPrice',{productId:'BOSS_PRD_OWN',vendorPartyId:'ORG_ZIZI_SERVICES',priceTypeEnumId:'PptCurrent',priceUomId:'USD',price:1})}catch(e){rejected=true}finally{ec.message.clearErrors()}return rejected},false);return{read,supplier,denied}},then({read,supplier,denied}){read.priceRows.every(r=>r.direction==='sales');!JSON.stringify(read).includes('SERV-SUPPLY-01');supplier.priceRows.every(r=>r.direction==='purchase');denied==true},
+})

@@ -31,4 +31,16 @@
 <mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_RED" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="1.00"/>
 <mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_SMALL" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="0.00"/>
 <mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_LARGE" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="3.00"/>
+<mantle.party.Party partyId="BOSS_PRD_SUPPLIER" partyTypeEnumId="PtyOrganization" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.party.Organization partyId="BOSS_PRD_SUPPLIER" organizationName="Services Supply"/>
+<mantle.party.PartyRole partyId="BOSS_PRD_SUPPLIER" roleTypeId="Supplier"/>
+<mantle.product.ProductPrice productPriceId="BOSS_PRICE_SALES" productId="BOSS_PRD_OWN" vendorPartyId="ORG_ZIZI_SERVICES" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="15.00" priceUomId="USD" minQuantity="0" quantityUomId="OTH_ea" fromDate="2026-01-01 00:00:00" thruDate="2026-11-15 00:00:00" changeReason="Catalog launch"/>
+<mantle.product.ProductPrice productPriceId="BOSS_PRICE_NEXT" productId="BOSS_PRD_OWN" vendorPartyId="ORG_ZIZI_SERVICES" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="16.00" priceUomId="USD" minQuantity="0" quantityUomId="OTH_ea" fromDate="2026-11-15 00:00:00" changeReason="Scheduled next price"/>
+<mantle.product.ProductPrice productPriceId="BOSS_PRICE_SUPPLIER" productId="BOSS_PRD_OWN" vendorPartyId="BOSS_PRD_SUPPLIER" customerPartyId="ORG_ZIZI_SERVICES" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="8.00" priceUomId="USD" minQuantity="0" quantityUomId="OTH_ea" fromDate="2026-01-01 00:00:00" otherPartyItemId="SERV-SUPPLY-01"/>
+<mantle.product.ProductPrice productPriceId="BOSS_PRICE_OTHER" productId="BOSS_PRD_OTHER" vendorPartyId="ORG_ZIZI_RETAIL" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="950.00" priceUomId="USD" minQuantity="0" quantityUomId="OTH_ea" fromDate="2026-01-01 00:00:00"/>
+<!-- A completed catalog sample sale for transaction statistics; it creates no stock or ledger posting. -->
+<mantle.party.PartyRole partyId="BOSS_PRD_SUPPLIER" roleTypeId="Customer"/>
+<mantle.order.OrderHeader orderId="BOSS_PRICE_ORDER" currencyUomId="USD" placedDate="2026-10-20 12:00:00" statusId="OrderCompleted" grandTotal="30.00"/>
+<mantle.order.OrderPart orderId="BOSS_PRICE_ORDER" orderPartSeqId="01" vendorPartyId="ORG_ZIZI_SERVICES" customerPartyId="BOSS_PRD_SUPPLIER" statusId="OrderCompleted" partTotal="30.00"/>
+<mantle.order.OrderItem orderId="BOSS_PRICE_ORDER" orderPartSeqId="01" orderItemSeqId="01" productId="BOSS_PRD_OWN" productPriceId="BOSS_PRICE_SALES" quantity="2" unitAmount="15.00"/>
 </entity-facade-xml>

@@ -1,0 +1,298 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Explain price" default-menu-index="4">
+    <parameter name="appRoot" />
+    <parameter name="productId" />
+    <parameter name="organizationPartyId" />
+    <parameter name="direction" />
+    <parameter name="vendorPartyId" />
+    <parameter name="customerPartyId" />
+    <parameter name="priceUomId" />
+    <parameter name="quantity" />
+    <parameter name="quantityUomId" />
+    <parameter name="validDate" />
+    <parameter name="priceListId" />
+    <parameter name="agreementId" />
+    <parameter name="agreementItemSeqId" />
+    <parameter name="productStoreId" />
+    <parameter name="termUomId" />
+    <parameter name="shipToCountryGeoId" />
+    <parameter name="billToCountryGeoId" />
+    <actions>
+        <service-call name="ironstone.products.PriceListServices.get#PriceListOptions" out-map="context" />
+        <set field="organizationPartyId" from="organizationPartyId || defaultOrganizationPartyId" />
+        <set field="direction" from="direction || (pricingAccess.canPriceRead ? 'sales' : 'purchase')" />
+        <set field="priceUomId" from="priceUomId || 'USD'" />
+        <set field="quantity" from="quantity || '1'" />
+        <set field="vendorPartyId" from="vendorPartyId || (direction === 'sales' ? organizationPartyId : null)" />
+        <set field="customerPartyId" from="customerPartyId || (direction === 'purchase' ? organizationPartyId : null)" />
+        <set field="traceRows" from="[]" />
+        <if condition="productId">
+            <service-call name="ironstone.products.PriceListServices.get#PriceExplanation" in-map="context" out-map="context" />
+        </if>
+    </actions>
+    <widgets>
+        <section name="ExplainContextControls" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <container-box>
+                    <box-header title="Transaction price context" />
+                    <box-body>
+                        <form-single name="PriceContext" transition=".">
+                            <field name="productId">
+                                <default-field title="Product ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId">
+                                <default-field title="Organization">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="pricingOptions.organizations" key="${value}" text="${label}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="direction">
+                                <default-field title="Direction">
+                                    <drop-down allow-empty="false">
+                                        <option key="sales" text="Sales" />
+                                        <option key="purchase" text="Supplier offers" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="vendorPartyId">
+                                <default-field title="Vendor ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="customerPartyId">
+                                <default-field title="Customer ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="priceUomId">
+                                <default-field title="Currency">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="pricingOptions.currencies" key="${value}" text="${label}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="quantity">
+                                <default-field title="Quantity">
+                                    <text-line input-type="number" />
+                                </default-field>
+                            </field>
+                            <field name="quantityUomId">
+                                <default-field title="Quantity unit">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="pricingOptions.units" key="${value}" text="${label}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="validDate">
+                                <default-field title="Effective date (empty: now)">
+                                    <date-time />
+                                </default-field>
+                            </field>
+                            <field name="priceListId">
+                                <default-field title="Explicit price list">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="pricingOptions.lists" key="${value}" text="${label}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="agreementId">
+                                <default-field title="Agreement ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="agreementItemSeqId">
+                                <default-field title="Agreement item">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="productStoreId">
+                                <default-field title="Store ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="termUomId">
+                                <default-field title="Term unit ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="shipToCountryGeoId">
+                                <default-field title="Ship-to country ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="billToCountryGeoId">
+                                <default-field title="Bill-to country ID">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Calculate price">
+                                    <submit />
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row>
+                                    <field-ref name="productId" />
+                                    <field-ref name="organizationPartyId" />
+                                    <field-ref name="direction" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="vendorPartyId" />
+                                    <field-ref name="customerPartyId" />
+                                    <field-ref name="priceUomId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="quantity" />
+                                    <field-ref name="quantityUomId" />
+                                    <field-ref name="validDate" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="priceListId" />
+                                    <field-ref name="agreementId" />
+                                    <field-ref name="agreementItemSeqId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="productStoreId" />
+                                    <field-ref name="termUomId" />
+                                    <field-ref name="shipToCountryGeoId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="billToCountryGeoId" />
+                                    <field-ref name="submitButton" />
+                                </field-row>
+                            </field-layout>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <label text="Product ${productId || &quot;not selected&quot;} · Organization ${organizationPartyId} · Quantity ${quantity} ${quantityUomId || &quot;stock units&quot;} · ${direction}" type="p" />
+        <section name="ResolvedPriceAvailable" condition="!!priceResult">
+            <widgets>
+                <container-box>
+                    <box-header title="Resolved price" />
+                    <box-body>
+                        <form-single name="PriceResult" transition="." map="priceResult">
+                            <field name="priceAvailable">
+                                <default-field title="Available">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="price">
+                                <default-field title="Unit price">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceUomId">
+                                <default-field title="Currency">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="listPrice">
+                                <default-field title="List price">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceSource">
+                                <default-field title="Source">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="productPriceId">
+                                <default-field title="Base price row">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceListId">
+                                <default-field title="Price list">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceRuleId">
+                                <default-field title="Dated rule">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="taxInPrice">
+                                <default-field title="Tax included">
+                                    <display />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+                <label text="Order promotions and final tax calculation are excluded." type="p" />
+                <container-box>
+                    <box-header title="Price explanation" />
+                    <box-body>
+                        <form-list name="PriceTrace" list="traceRows" skip-form="true" paginate="false">
+                            <field name="sequence">
+                                <default-field title="Step">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="kind">
+                                <default-field title="Action">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="sourceId">
+                                <default-field title="Source">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="eligibleText">
+                                <default-field title="Eligible">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <default-field title="Reason">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="quantity">
+                                <default-field title="Quantity">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="quantityUomId">
+                                <default-field title="Unit">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceUomId">
+                                <default-field title="Currency">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="beforeText">
+                                <default-field title="Before">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="operation">
+                                <default-field title="Operation">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="operandText">
+                                <default-field title="Operand">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="afterText">
+                                <default-field title="After">
+                                    <display />
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

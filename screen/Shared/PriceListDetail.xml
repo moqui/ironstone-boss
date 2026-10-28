@@ -1,0 +1,787 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Price list" default-menu-index="1">
+    <parameter name="appRoot" />
+    <parameter name="priceListId" />
+    <parameter name="asOfDate" />
+    <parameter name="includeHistory" />
+    <transition name="store">
+        <actions>
+            <service-call name="ironstone.products.PriceListServices.store#ProductPriceList" in-map="context" out-map="saved" />
+        </actions>
+        <default-response url=".">
+            <parameter name="priceListId" from="saved.priceListId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="rule">
+        <actions>
+            <service-call name="ironstone.products.PriceListServices.store#ProductPriceRule" in-map="context" />
+        </actions>
+        <default-response url=".">
+            <parameter name="priceListId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="publish">
+        <actions>
+            <service-call name="ironstone.products.PriceListServices.publish#ProductPriceList" in-map="context" />
+        </actions>
+        <default-response url=".">
+            <parameter name="priceListId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="retire">
+        <actions>
+            <service-call name="ironstone.products.PriceListServices.retire#ProductPriceList" in-map="context" />
+        </actions>
+        <default-response url=".">
+            <parameter name="priceListId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <actions>
+        <set field="includeHistory" from="sri.getRenderMode() === 'html-print' ? false : includeHistory" />
+        <service-call name="ironstone.products.PriceListServices.get#PriceListOptions" out-map="context" />
+        <service-call name="ironstone.products.PriceListServices.get#PriceListDetail" in-map="context" out-map="context" />
+        <set field="ruleEdits" from="priceRuleRows.map(r =&gt; Object.assign({},r,{expectedLastUpdatedStamp:r.lastUpdatedStamp,fromDate:null}))" />
+        <set field="header" from="Object.assign({},successor,{fromDate:null,expectedLastUpdatedStamp:priceList.lastUpdatedStamp,priority:String(priceList.priority || 0)})" />
+        <set field="printUrl" from="'/apps/Products/Prices/PriceLists/PriceListDetail?renderMode=html-print&amp;priceListId='+encodeURIComponent(priceListId)+'&amp;asOfDate='+encodeURIComponent(asOfDate || ec.user.nowTimestamp)" />
+    </actions>
+    <widgets>
+        <render-mode>
+            <text type="html-print">&lt;style&gt;body{font:14px/1.4 Arial,sans-serif;margin:24px}h1{font-size:24px}.pricing-print-scope{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.pricing-print-scope div{display:flex;gap:8px}.pricing-print-scope dt{font-weight:bold}.pricing-print-scope dd{margin:0}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{padding:6px;text-align:left;vertical-align:top}th{border-bottom:1px solid #777}thead{display:table-header-group}@page{size:A4 landscape;margin:14mm}&lt;/style&gt;</text>
+        </render-mode>
+        <render-mode>
+            <text type="html-print">${priceList.printHeaderHtml}</text>
+        </render-mode>
+        <section name="InteractiveList1" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <label text="${priceList.listName}" type="h4" />
+            </widgets>
+        </section>
+        <section name="InteractiveList2" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <label text="Effective policy at ${priceList.asOfDateText}" type="p" />
+            </widgets>
+        </section>
+        <section name="ListPrintAction" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <link text="Print effective list" url="${printUrl}" url-type="plain" link-type="anchor-button" target-window="_blank" />
+            </widgets>
+        </section>
+        <section name="InteractiveList4" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <container-box>
+                    <box-header title="List policy" />
+                    <box-body>
+                        <form-single name="PriceList" transition="." map="priceList">
+                            <field name="priceListId">
+                                <default-field title="List ID">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="listName">
+                                <default-field title="Name">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId">
+                                <default-field title="Organization">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="direction">
+                                <default-field title="Direction">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="priceUomId">
+                                <default-field title="Currency">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="pricePurposeEnumId">
+                                <default-field title="Purpose">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="stateText">
+                                <default-field title="State">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="fromDateText">
+                                <default-field title="Effective from">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="thruDateText">
+                                <default-field title="Through">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="productStoreId">
+                                <default-field title="Store">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="agreementId">
+                                <default-field title="Agreement">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="agreementItemSeqId">
+                                <default-field title="Agreement item">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="vendorPartyId">
+                                <default-field title="Vendor">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="customerPartyId">
+                                <default-field title="Customer">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="partyClassificationId">
+                                <default-field title="Party classification">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="geoId">
+                                <default-field title="Geography">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row>
+                                    <field-ref name="priceListId" />
+                                    <field-ref name="listName" />
+                                    <field-ref name="organizationPartyId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="direction" />
+                                    <field-ref name="priceUomId" />
+                                    <field-ref name="pricePurposeEnumId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="stateText" />
+                                    <field-ref name="fromDateText" />
+                                    <field-ref name="thruDateText" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="productStoreId" />
+                                    <field-ref name="agreementId" />
+                                    <field-ref name="agreementItemSeqId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="vendorPartyId" />
+                                    <field-ref name="customerPartyId" />
+                                    <field-ref name="partyClassificationId" />
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="geoId" />
+                                </field-row>
+                            </field-layout>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <container-box>
+            <box-header title="Rules effective at the selected date" />
+            <box-body>
+                <section name="EffectiveRuleFind" condition="sri.getRenderMode() !== 'html-print'">
+                    <widgets>
+                        <form-single name="PriceRulesFind" transition=".">
+                            <field name="priceListId">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="asOfDate">
+                                <default-field title="As of">
+                                    <date-time />
+                                </default-field>
+                            </field>
+                            <field name="includeHistory">
+                                <default-field title="Include all dates">
+                                    <drop-down allow-empty="true">
+                                        <option key="true" text="Yes" />
+                                        <option key="false" text="No" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Read rules">
+                                    <submit />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <form-list name="PriceRules" list="priceRuleRows" skip-form="true" paginate="false">
+                    <field name="sequenceNum">
+                        <default-field title="Sequence">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="priceRuleId">
+                        <default-field title="Rule ID">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="selectorText">
+                        <default-field title="Selection">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="minQuantity">
+                        <default-field title="Min qty">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="maxQuantity">
+                        <default-field title="Max qty">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="quantityUomId">
+                        <default-field title="Unit">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="calculation">
+                        <default-field title="Base">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="percentChange">
+                        <default-field title="Percent">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="amountChange">
+                        <default-field title="Adjustment">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="roundingIncrement">
+                        <default-field title="Rounding">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="minimumPrice">
+                        <default-field title="Floor">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="maximumPrice">
+                        <default-field title="Ceiling">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="fromDateText">
+                        <default-field title="From">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="thruDateText">
+                        <default-field title="Through">
+                            <display />
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <section name="ListEditAllowed" condition="priceList.canEdit &amp;&amp; sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <container-dialog id="DatedListSuccessor" title="Create dated list successor" button-text="Create dated list successor" width="960">
+                    <form-single name="DatedPriceList" transition="store" map="header">
+                        <field name="priceListId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="listName">
+                            <default-field title="Name">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="organizationPartyId">
+                            <default-field title="Organization">
+                                <drop-down allow-empty="false">
+                                    <list-options list="pricingOptions.organizations" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="direction">
+                            <default-field title="Direction">
+                                <drop-down allow-empty="false">
+                                    <option key="sales" text="Sales" />
+                                    <option key="purchase" text="Supplier offers" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="priceUomId">
+                            <default-field title="Currency">
+                                <drop-down allow-empty="false">
+                                    <list-options list="pricingOptions.currencies" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="pricePurposeEnumId">
+                            <default-field title="Purpose">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.purposes" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="priority">
+                            <default-field title="Priority">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="cloneFromPriceListId">
+                            <default-field title="Clone rules from">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.lists" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="vendorPartyId">
+                            <default-field title="Supplier scope">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.vendors" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="customerPartyId">
+                            <default-field title="Customer scope">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.customers" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="productStoreId">
+                            <default-field title="Store ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="agreementId">
+                            <default-field title="Agreement ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="agreementItemSeqId">
+                            <default-field title="Agreement item">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="partyClassificationId">
+                            <default-field title="Party classification ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="geoId">
+                            <default-field title="Country or geography group ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Effective from (empty: now)">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="expectedLastUpdatedStamp">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Save draft successor">
+                                <submit />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="NewPriceRuleDialog" title="New rule" button-text="New rule" width="960">
+                    <form-single name="NewPriceRule" transition="rule" map="defaultRule">
+                        <field name="priceListId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="priceRuleId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="expectedLastUpdatedStamp">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="sequenceNum">
+                            <default-field title="Sequence">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="selector">
+                            <default-field title="Selector">
+                                <drop-down allow-empty="false">
+                                    <option key="all" text="All products" />
+                                    <option key="product" text="Product" />
+                                    <option key="category" text="Category" />
+                                    <option key="feature" text="Feature" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="productId">
+                            <default-field title="Product ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productCategoryId">
+                            <default-field title="Category ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productFeatureId">
+                            <default-field title="Feature ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="partyClassificationId">
+                            <default-field title="Party classification ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="geoId">
+                            <default-field title="Country or geography group ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="minQuantity">
+                            <default-field title="Minimum quantity">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="maxQuantity">
+                            <default-field title="Maximum quantity (exclusive)">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="quantityUomId">
+                            <default-field title="Quantity unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.units" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Effective from (empty: now)">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="baseType">
+                            <default-field title="Base">
+                                <drop-down allow-empty="false">
+                                    <option key="typed" text="Typed price" />
+                                    <option key="fixed" text="Fixed amount" />
+                                    <option key="list" text="Another list" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="basePriceTypeEnumId">
+                            <default-field title="Typed base">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.types" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="basePriceListId">
+                            <default-field title="Base list">
+                                <drop-down allow-empty="true">
+                                    <list-options list="pricingOptions.lists" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="fixedPrice">
+                            <default-field title="Fixed amount">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="percentChange">
+                            <default-field title="Percentage change (negative: discount)">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="amountChange">
+                            <default-field title="Fixed adjustment">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="roundingIncrement">
+                            <default-field title="Rounding increment">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="minimumPrice">
+                            <default-field title="Minimum price">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="maximumPrice">
+                            <default-field title="Maximum price">
+                                <text-line input-type="number" />
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Save dated rule">
+                                <submit />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+                <section-iterate name="EditPriceRules" list="ruleEdits" entry="ruleEdit">
+                    <widgets>
+                        <container-dialog id="RuleSuccessor_${ruleEdit.priceRuleId}" title="Change rule ${ruleEdit.priceRuleId}" button-text="Change rule ${ruleEdit.priceRuleId}" width="960">
+                            <form-single name="ChangePriceRule" transition="rule" map="ruleEdit">
+                                <field name="priceListId">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="priceRuleId">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="expectedLastUpdatedStamp">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="sequenceNum">
+                                    <default-field title="Sequence">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="selector">
+                                    <default-field title="Selector">
+                                        <drop-down allow-empty="false">
+                                            <option key="all" text="All products" />
+                                            <option key="product" text="Product" />
+                                            <option key="category" text="Category" />
+                                            <option key="feature" text="Feature" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="productId">
+                                    <default-field title="Product ID">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="productCategoryId">
+                                    <default-field title="Category ID">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="productFeatureId">
+                                    <default-field title="Feature ID">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="partyClassificationId">
+                                    <default-field title="Party classification ID">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="geoId">
+                                    <default-field title="Country or geography group ID">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="minQuantity">
+                                    <default-field title="Minimum quantity">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="maxQuantity">
+                                    <default-field title="Maximum quantity (exclusive)">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="quantityUomId">
+                                    <default-field title="Quantity unit">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="pricingOptions.units" key="${value}" text="${label}" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="Effective from (empty: now)">
+                                        <date-time />
+                                    </default-field>
+                                </field>
+                                <field name="thruDate">
+                                    <default-field title="Through">
+                                        <date-time />
+                                    </default-field>
+                                </field>
+                                <field name="baseType">
+                                    <default-field title="Base">
+                                        <drop-down allow-empty="false">
+                                            <option key="typed" text="Typed price" />
+                                            <option key="fixed" text="Fixed amount" />
+                                            <option key="list" text="Another list" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="basePriceTypeEnumId">
+                                    <default-field title="Typed base">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="pricingOptions.types" key="${value}" text="${label}" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="basePriceListId">
+                                    <default-field title="Base list">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="pricingOptions.lists" key="${value}" text="${label}" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="fixedPrice">
+                                    <default-field title="Fixed amount">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="percentChange">
+                                    <default-field title="Percentage change (negative: discount)">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="amountChange">
+                                    <default-field title="Fixed adjustment">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="roundingIncrement">
+                                    <default-field title="Rounding increment">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="minimumPrice">
+                                    <default-field title="Minimum price">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="maximumPrice">
+                                    <default-field title="Maximum price">
+                                        <text-line input-type="number" />
+                                    </default-field>
+                                </field>
+                                <field name="changeReason">
+                                    <default-field title="Reason">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Save dated rule">
+                                        <submit />
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets>
+                </section-iterate>
+                <container-box>
+                    <box-header title="Publish reviewed scope" />
+                    <box-body>
+                        <label text="Review the organization, counterparties, dates and rule table above. Publishing applies this policy to matching future price lookups; recorded order lines retain their sources." type="p" />
+                        <form-single name="PublishPriceList" transition="publish">
+                            <field name="priceListId">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="publicationToken">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Publication reason">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Publish reviewed list">
+                                    <submit />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+                <container-dialog id="EndPriceList" title="End price list" button-text="End price list" width="960">
+                    <form-single name="EndPriceListForm" transition="retire">
+                        <field name="priceListId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through (empty: now)">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="End list">
+                                <submit />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        <section name="InteractiveList7" condition="sri.getRenderMode() !== 'html-print'">
+            <widgets>
+                <link text="Explain a transaction price" url="//Products/Prices/PriceExplain">
+                    <parameter name="priceListId" />
+                    <parameter name="organizationPartyId" from="priceList.organizationPartyId" />
+                    <parameter name="direction" from="priceList.direction" />
+                </link>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

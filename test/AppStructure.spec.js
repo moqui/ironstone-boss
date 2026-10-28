@@ -46,6 +46,13 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/PriceLists/": {text:"Find price lists"},
+    "Shared/PriceListDetail/": {parameters:{priceListId:"BOSS_PRICE_LIST"},text:"Services catalog policy"},
+    "Shared/PriceExplain/": {parameters:{productId:"BOSS_PRD_OWN",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Resolved price"},
+    "Products/Prices/PriceLists": {text:"m-subscreens-active"},
+    "Products/Prices/PriceLists/PriceListDetail": {parameters:{priceListId:"BOSS_PRICE_LIST"},text:"Services catalog policy"},
+    "Products/Prices/PriceExplain": {parameters:{productId:"BOSS_PRD_OWN",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"m-subscreens-active"},
+    "Products/Settings/PricingSettings": {parameters:{organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Organization pricing defaults"},
     "Insights/Dashboard": {parameters: {definitionId: "mantle-sales", from: "now-1y", thru: "now"}},
     "Products/Products/VariantBuilder": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Build variants"},
     "Products/Products/VariantBuilderTui": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Variant setup"},

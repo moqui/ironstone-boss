@@ -63,11 +63,12 @@
         <service-call name="ironstone.products.CatalogServices.find#ProductPrices" in-map="context" out-map="context"/>
         <script><![CDATA[
 priceRowsPageIndex=pageIndex;priceRowsPageSize=pageSize;priceRowsPageMaxIndex=Math.max(0,Math.ceil(priceRowsCount/pageSize)-1);priceRowsPageRangeLow=priceRows.length?pageIndex*pageSize+1:0;priceRowsPageRangeHigh=pageIndex*pageSize+priceRows.length
-newSales={productId:productId||null,vendorPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:'PppPurchase',priceUomId:'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
-newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:'PppPurchase',priceUomId:'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
+newSales={productId:productId||null,vendorPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:pricingDefaults.defaultPurposeEnumId||'PppPurchase',priceUomId:pricingDefaults.defaultCurrencyUomId||'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
+newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:pricingDefaults.defaultPurposeEnumId||'PppPurchase',priceUomId:pricingDefaults.defaultCurrencyUomId||'USD',quantityUomId:'OTH_ea',minQuantity:'0'}
 ]]></script>
     </actions>
     <widgets>
+        <link text="Explain price" url="//Products/Prices/PriceExplain"><parameter name="productId"/></link>
         <container-box>
             <box-header title="Price scope"/>
             <box-body>

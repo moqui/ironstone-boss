@@ -43,4 +43,6 @@
 <mantle.order.OrderHeader orderId="BOSS_PRICE_ORDER" currencyUomId="USD" placedDate="2026-10-20 12:00:00" statusId="OrderCompleted" grandTotal="30.00"/>
 <mantle.order.OrderPart orderId="BOSS_PRICE_ORDER" orderPartSeqId="01" vendorPartyId="ORG_ZIZI_SERVICES" customerPartyId="BOSS_PRD_SUPPLIER" statusId="OrderCompleted" partTotal="30.00"/>
 <mantle.order.OrderItem orderId="BOSS_PRICE_ORDER" orderPartSeqId="01" orderItemSeqId="01" productId="BOSS_PRD_OWN" productPriceId="BOSS_PRICE_SALES" quantity="2" unitAmount="15.00"/>
+    <mantle.product.ProductPriceList priceListId="BOSS_PRICE_LIST" listName="Services catalog policy" organizationPartyId="ORG_ZIZI_SERVICES" direction="sales" pricePurposeEnumId="PppPurchase" priceUomId="USD" priority="100" state="published" fromDate="2026-01-01 00:00:00" changeReason="Catalog pricing example"/>
+    <mantle.product.ProductPriceRule priceRuleId="BOSS_PRICE_RULE" priceListId="BOSS_PRICE_LIST" sequenceNum="10" selector="product" productId="BOSS_PRD_OWN" minQuantity="1" quantityUomId="OTH_ea" fromDate="2026-01-01 00:00:00" baseType="typed" basePriceTypeEnumId="PptCurrent" percentChange="-10" amountChange="0" roundingIncrement="0.05" changeReason="Services catalog discount example"/>
 </entity-facade-xml>

@@ -245,7 +245,7 @@
 
 <service verb="get" noun="PriceOptions" allow-remote="false">
     <in-parameters/>
-    <out-parameters>
+    <out-parameters><parameter name="pricingDefaults" type="Map"/>
         <parameter name="priceOptions" type="Map"/>
         <parameter name="defaultOrganizationPartyId"/>
         <parameter name="canPriceEdit" type="Boolean"/>

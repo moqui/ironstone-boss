@@ -123,7 +123,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
 | P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui f9641cda, Mantle 6d548a3e; BOSS f1c2a37 |
-| P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | built Oct 28; Mantle 54e6619a; BOSS commit below |
+| P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | built Oct 28; Mantle 54e6619a; BOSS 0a06b7d |
 | P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
 | P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
 | P5 Prices and price lists | Mantle, BOSS | Prices, PriceHistory, PriceLists, PriceListDetail, PriceExplain, PricingSettings | — |
@@ -247,7 +247,7 @@ P1 validation evidence:
   - an obsolete product's sales and purchase order lines are refused with the status named, while its open orders are
     unchanged (§12.3 #9, the order lines).
 
-**Built Oct 28 (P2).** Mantle `54e6619a`; BOSS implementation commit recorded below. Mantle product statuses/flow, audited lifecycle fields and nullable sales/purchase flags;
+**Built Oct 28 (P2).** Mantle `54e6619a`; BOSS `0a06b7d`. Mantle product statuses/flow, audited lifecycle fields and nullable sales/purchase flags;
 private usage, identifier and dated-kit validators; checks on both order-entry paths, including increases of an existing
 cart line. Existing orders remain unchanged. Kit availability retains zero as the minimum across all components.
 Organization catalog settings are immutable structured revisions, with optimistic revision checks and an organization lock.
@@ -633,3 +633,5 @@ Designed, not in this build:
 - **Screenshots** through the BOSS client spec of §2, light and dark.
 
 P1 committed after validation: framework `f9641cda`, Mantle `6d548a3e`, BOSS `f1c2a37`.
+
+P2 committed after validation: Mantle `54e6619a`, BOSS `0a06b7d`.

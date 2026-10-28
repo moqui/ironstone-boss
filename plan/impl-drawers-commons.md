@@ -643,6 +643,11 @@ with what the drawers and Commons gained for it.
 - Smaller items: the org chart and polls. Polls built Oct 21 in Chat (§8); the org chart is left.
 - Mail: the mailbox email bridge, an IMAP or JMAP server, S/MIME and PGP, and an archive policy.
 - Retention: a job for the personal books of disabled users.
+- Public pages to mr-pass, since public-facing applications go there and internal ones stay in mr-boss (decided
+  Oct 28, 2026; impl-customer-service §4): the shared-file page (`screen/PublicShare.xml` at `/s/<token>`, M8), the
+  unsubscribe page (`screen/Unsubscribe.xml` at `/u/<token>` with its List-Unsubscribe one-click POST, M11), and the
+  published calendar (`screen/PublishedCalendar.xml` at `/cal/<token>`), as pages of PASS apps. PASS already has its
+  own unsubscribe page for forum mail, which the list one may join.
 - Git: push and an HTTPS git server: built in the framework (mr-moqui docs/Git-Hosting.md). Oct 21: a version-controlled
   drive's repository takes the drive's members by the drive's own rule, and a drive's settings show its clone addresses with
   its WebDAV and SFTP addresses.

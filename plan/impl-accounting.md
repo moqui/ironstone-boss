@@ -1,7 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
 Oct 28, 2026 — plan; P0 partly done (F1–F46, found while writing it); the shared party-role and effective-date
-rules applied (§4)
+rules applied (§4); the customer and supplier pages as PASS apps in mr-pass (§4)
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -29,6 +29,9 @@ of Products P2, P6 and P9 are there to extend.
     builds Accounting's revaluation contract
   - [design-projects.md](design-projects.md) §10 Billing
   - [design-manufacturing.md](design-manufacturing.md): ProductionCosts and M8, for §7
+  - `mr-pass/plan/design-forum.md` §1, §4, §5 and §13.1: PASS's shell, app mounts, authority boundary, request
+    contract, identity and invitations, for P18's apps; with `mr-pass/plan/implementation-forum.md` and
+    `mr-pass/docs/Deployment.md`
 - The design review: [review-core-apps.md](review-core-apps.md) (D1–D28 and the §4 step owners) and
   [review-core-apps/accounting.md](review-core-apps/accounting.md), which explain the design's D- and R- IDs.
 - Guides and rules: [design-doc-guide.md](design-doc-guide.md), [style-guide.md](style-guide.md) §8, and
@@ -41,7 +44,7 @@ of Products P2, P6 and P9 are there to extend.
 - mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
 
 Framework paths are under the mr-moqui checkout (`crates/`, `runtime/base-component/`), Mantle paths under
-`runtime/component/mr-mantle/`.
+`runtime/component/mr-mantle/`, PASS paths under `runtime/component/mr-pass/`.
 
 Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phases](#3-phases) ·
 [4 decisions](#4-decisions) · [5 open](#5-open-questions) · [6 findings](#6-findings) · [7 later](#7-later) ·
@@ -54,7 +57,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
   - `runtime/component/mr-mantle`
-  - `runtime/component/mr-boss`
+  - `runtime/component/mr-boss`, the internal app
+  - `runtime/component/mr-pass`, the customer and supplier pages as PASS apps (P18; §4)
 
   `runtime/component/mr-marble` is read only, for the baseline Accounting, Asset and Party screens that design
   §16.1 maps.
@@ -63,8 +67,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     with the first-release parts of AC-16 (dated rates) and AC-20 (transfers and deposits).
   - The parts of other apps' needs that Accounting depends on (§4):
     - crosscut CX-ORDER-HOLD: `OrderHoldReason`, `hold#Order` and `release#OrderHold`;
-    - crosscut CX-PORTALS: `ExternalAccessServices`, and the ServicePortal and SupplierPortal roots with
-      Accounting's pages only;
+    - crosscut CX-PORTALS: `ExternalAccessServices`, and two PASS apps in mr-pass, Billing for customers and
+      Supplier for suppliers, in place of the ServicePortal and SupplierPortal roots, with Accounting's pages only;
     - Purchasing's SupplierProfile, its finance fields only;
     - Warehouse's `receive#ReturnItems`;
     - crosscut CX-AUTOMATION: the Mantle rule changes of design §1.4.
@@ -91,7 +95,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   15. budgets;
   16. reports;
   17. returns and order changes;
-  18. portals;
+  18. portals, as PASS apps;
   19. setup and activation;
   20. base-currency posting;
   21. the finish.
@@ -137,12 +141,26 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   currency is not the organization's base currency is refused, and Setup readiness says so (D18).
 - **Shared screens.** Accounting builds these with the Accounting context only:
   - `Shared/Customer360`, `Shared/ShipmentDetail`, `Shared/EquipmentDetail`, `Shared/ReturnDetail` and
-    `Shared/InvoiceMatch`;
-  - `Shared/InvoicePay` and `Shared/SupplierBillUpload`, under the portal roots.
+    `Shared/InvoiceMatch`.
+
+  InvoicePay and SupplierBillUpload are not BOSS screens: they are pages of PASS apps (below).
 
   It adds its context to `Shared/InvoiceDetail` and `Shared/OrderDetail`, and to Products' `Shared/Product360`,
   `Shared/Supplier360` and `Shared/InventoryValuation` (F4). Each takes `appRoot` and server-derived
   capabilities, on `Shared/RequestDetail`'s pattern (F2).
+- **Public pages in mr-pass, internal ones in mr-boss** (§4). The customer and supplier pages are PASS apps, on
+  PASS's foundation (design-forum §1, §4, §5), as impl-customer-service §2 sets out for its Support app:
+  - PASS's public shell with host and app-mount routing; server-rendered HTML with qvue enhancement, at 390 px and
+    on the desktop; no terminal UI, which PASS does not have yet.
+  - Public accounts hold only `ALL_USERS`. A customer or supplier contact reaches its records through Mantle's checks
+    of its relationship and of `ExternalAccessCapability`, never a UserGroup, so there is no `BOSS_SERVICE_PORTAL` or
+    `BOSS_SUPPLIER_PORTAL`.
+  - Pages call the authority only through `pass.Facade.call#Operation`: an operation in PASS's `Schema.js`, its route
+    in `Routes.js`, served to a remote frontend by Mantle's PassApi. So every service a page calls is Mantle's, and
+    what it calls is Mantle's too; no `ironstone.*` service, BOSS screen or BOSS group.
+  - PASS's request contract (design-forum §4.3), and its media staging and scanning for uploads.
+  - A bearer link is a page of the app that takes its token, as PASS's Unsubscribe does, checked by
+    `check#AccessToken`; no `<token-route>` in BOSS's `MoquiConf.xml`.
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record
   and service names, its Shared screen and its capability groups. A change found while building it is written
   into the owner's design. The owner's own screens stay with the owner.
@@ -165,6 +183,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - screenshots light and dark at 390, 1280 and 1440 px;
     - the inventories' **Implemented in** columns;
   - the `AccountingAccess` spec extended to the phase's services and mounts;
+  - for P18: `./moq test mr-pass mr-mantle mr-boss` with the apps' specs, the remote pair on PASS's RemoteFixtures
+    pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, lint clean for PASS, and the
+    apps' screenshots light and dark at 390 and 1280 px;
   - the phase's walk in §8;
   - its row and **Built** note here.
 
@@ -190,7 +211,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P15 Budgets | Mantle, BOSS | Budgets, BudgetDetail, BudgetControls, BudgetVariance | — |
 | P16 Reports | Mantle, BOSS | Reports, BalanceSheet, IncomeStatement, CashFlow, RetainedEarnings, FinancialRatios, PartnerLedger, AccountBalance, PostedSummary, SalesAnalysis | — |
 | P17 Returns and order changes | Mantle, BOSS | ReturnDetail | — |
-| P18 Portals | Mantle, BOSS | ServicePortal, SupplierPortal, InvoicePay, SupplierBillUpload | — |
+| P18 Portals | Mantle, mr-pass, BOSS | the PASS apps Billing, with InvoicePay, and Supplier, with BillUpload | — |
 | P19 Setup and activation | Mantle, BOSS | Setup | — |
 | P20 Base-currency posting | Mantle, BOSS | — | — |
 | P21 Finish | BOSS | — | — |
@@ -199,7 +220,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and,
 where it changes the design, an edit there. F1–F46 were found on Oct 28 while writing this plan; the design
-edits that F17, F25, F27 and F40 call for are made when P0 closes. Still to check:
+edits that F17, F25, F27 and F40 call for are made when P0 closes, and so are those of §4's PASS apps: InvoicePay
+and SupplierBillUpload in design-accounting, the audience roots of crosscut §2, §5 and D5 with their groups in §1.4,
+and the Billing and Supplier apps in design-forum §1 and §13. Still to check:
 
 - **REST.** Which Mantle REST mutators reach invoices, payments and accounting transactions, and what the BOSS
   groups would reach through them (F6, F11).
@@ -208,6 +231,14 @@ edits that F17, F25, F27 and F40 call for are made when P0 closes. Still to chec
 - **Inspection quantity.** What "open inspection" reads before CX-QUALITY exists (D21).
 - **A gateway for InvoicePay.** Mantle's `TEST_APPROVE` gateway always approves; InvoicePay's pending and
   declined paths need a test gateway that can answer them.
+- **PASS for its first apps beyond Forum** (§4). How an app registers: its `PublicSiteApp` mount and target,
+  navigation, readiness and operator configuration; the facade's operation and route catalogues and Mantle's PassApi
+  route table; PASS invitations with organization grants; media staging finalized into a record's content; and the
+  URLs Mantle builds for a site's pages (impl-customer-service F43). Also `Pass.xml`'s content security policy
+  (`form-action 'self'`, `frame-ancestors 'none'`) against the gateway's hosted page or redirect, and PASS's
+  local-return-path rule for the gateway's return.
+- **Where `import#Bill` lives.** If P6 builds it in BOSS, P18 moves the core that BillUpload needs into Mantle, since
+  a PASS page calls Mantle only.
 - **Products' state.** Which of Products P2, P6 and P9 are built when P6 and P13 start.
 
 ### P1 — Foundation
@@ -660,27 +691,44 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 
 ### P18 — Portals
 
-- **CX-PORTALS** (§4; F29):
-  - `mantle.party.ExternalAccessCapability`, and `mantle.party.ExternalAccessServices` `create#AccessCapability`,
-    `check#AccessCapability`, `revoke#AccessCapability` and `check#AccessToken`;
-  - the `pay` token route, and Purchasing's `/po/<token>` route, in `MoquiConf.xml` on the existing `<token-route>`
-    pattern (F44; §4). A PO's capability, which AP issues from OrderDetail through `create#AccessCapability`, opens
-    BillUpload for that PO; Purchasing's P16 adds OrderAcknowledgement to the same route, and its `send#PurchaseOrder`
-    issues one capability for both.
-- **The audience roots** (crosscut §5): `screen/ServicePortal.xml` and `screen/SupplierPortal.xml`, with
-  `BOSS_SERVICE_PORTAL` and `BOSS_SUPPLIER_PORTAL` and their filter sets on the client pattern, and Accounting's
-  pages only.
-- **AC-02, portal services:** `ironstone.accounting.PortalServices` `issue#InvoiceAccess`, `get#Invoice`,
-  `start#InvoicePayment`, `get#PaymentResult`, `submit#SupplierBill` and `get#Submission`, each calling
-  `check#AccessCapability` first. `send#Invoice` adds the pay link.
-- **Screens:** `Shared/InvoicePay` at `ServicePortal/InvoicePay`, and `Shared/SupplierBillUpload` at
-  `SupplierPortal/BillUpload`, both working at 390 px.
+Accounting's customer and supplier pages, as two PASS apps in mr-pass (§2, §4), on CX-PORTALS.
+
+- **CX-PORTALS** (§4; F29): `mantle.party.ExternalAccessCapability`, and `mantle.party.ExternalAccessServices`
+  `create#AccessCapability`, `check#AccessCapability`, `revoke#AccessCapability` and `check#AccessToken`.
+- **The PASS apps**, in place of crosscut §5's audience roots (F44):
+  - Billing (`screen/Billing.xml`, the `billing` mount): a customer's invoices, with InvoicePay;
+  - Supplier (`screen/Supplier.xml`, the `supplier` mount): a supplier's documents, with BillUpload. Purchasing P16
+    adds its home, QuoteResponse and OrderAcknowledgement.
+
+  Each is a `PublicSiteApp` with the organization as its target, under PASS's `Pass.xml`, with its navigation,
+  readiness and operator configuration on Forum's pattern. They are the first PASS apps beyond Forum, so P18 settles
+  how an app registers, which Purchasing P16 and Customer Service's Support app follow.
+- **Links and contacts.**
+  - An invoice's pay link opens InvoicePay. A PO's link opens BillUpload for that PO: AP issues its capability from
+    OrderDetail through `create#AccessCapability`; Purchasing P16 adds OrderAcknowledgement to the same link, and its
+    `send#PurchaseOrder` issues one capability for both. Each link is a page taking its token, checked by
+    `check#AccessToken` (§2).
+  - A signed-in customer or supplier contact is a PASS public account, invited through a PASS invitation bound to
+    the app and to the customer or supplier; redeeming it makes the relationship Mantle checks. No UserGroup.
+- **AC-02, portal services**, in Mantle so a PASS page can call them, locally or remotely:
+  `mantle.account.PortalServices` `issue#InvoiceAccess`, `get#Invoice`, `start#InvoicePayment`, `get#PaymentResult`,
+  `submit#SupplierBill` and `get#Submission`, each calling `check#AccessCapability` first, each an operation in
+  PASS's `Schema.js` and `Routes.js` served by Mantle's PassApi. `send#Invoice` adds the pay link, the Billing page
+  of the organization's site. `submit#SupplierBill` takes its files through PASS's media staging and scanning and
+  makes the incoming draft through `import#Bill`'s Mantle core (P0).
+- **Screens:** InvoicePay (PublicInvoice, PayInvoice, PaymentResult) in Billing, the gateway's return coming back to
+  a registered local path of the app; BillUpload, with SupplierBillUpload's forms, in Supplier. Both at 390 px and on
+  the desktop.
+- **Demo:** a PASS site for ORG_ZIZI_RETAIL with the Billing and Supplier mounts, a customer contact and a supplier
+  contact as invited PASS accounts, and token fixtures for the specs.
 - **Usable when** (§16.3 access, procure-to-pay):
   - a customer's link shows only that invoice, with no Chatter, cost or rates, and an expired or foreign token
     says unavailable;
   - a redirect return never marks the invoice paid, and a pending payment resumes;
   - a supplier upload creates an incoming draft, a repeat answers the first submission, and it never approves a
-    bill.
+    bill;
+  - the same pages through a remote PASS frontend with only framework, webroot and PASS installed, and Forum's
+    walks unchanged.
 
 ### P19 — Setup and activation
 
@@ -731,14 +779,16 @@ design-accounting.md, or into the owner's design.
 | Date | Decision | Notes |
 | --- | --- | --- |
 | Oct 28, 2026 | Phase order: the ledger and its posting guard first; then settings, receivables, payments, payables, matching, payment runs, banking, collections and credit, close, assets, valuation, tax, budgets, reports, returns, portals, setup and base currency | The user's call. The alternatives were the §16.3 flows first, and tax before invoices |
-| Oct 28, 2026 | Accounting builds the parts of other apps' needs it depends on: crosscut CX-ORDER-HOLD (P10); Purchasing's SupplierProfile finance fields (P6); Warehouse's `receive#ReturnItems` (P17); crosscut CX-PORTALS with the two audience roots (P18); and the CX-AUTOMATION rule changes of design §1.4, each in the phase of its path. These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call, as Products decided for its own. The alternative was features that wait for their owners |
+| Oct 28, 2026 | Accounting builds the parts of other apps' needs it depends on: crosscut CX-ORDER-HOLD (P10); Purchasing's SupplierProfile finance fields (P6); Warehouse's `receive#ReturnItems` (P17); crosscut CX-PORTALS with the PASS Billing and Supplier apps (P18); and the CX-AUTOMATION rule changes of design §1.4, each in the phase of its path. These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call, as Products decided for its own. The alternative was features that wait for their owners |
 | Oct 28, 2026 | ProductionCostClose and CostingPolicies are built with Manufacturing's cost events, output receipt and run close. P13 seeds their GL account types and the scrap account, and P19's readiness checks the WIP and transfer accounts | The user's call |
 | Oct 28, 2026 | Accounting is built after Products. It adds its context to Products' Supplier360 (P6), Product360 and InventoryValuation (P13), and uses P9's revaluation services and dialogs | The user's call |
 | Oct 28, 2026 | The shared screens Accounting builds first carry the Accounting context only. Another app's context is added when that app is built | Follows from the above, as in Products |
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply: parties by role, and changes by effective date and the audit log. Here: SupplierProfile, InvoiceMatchPolicy, FixedAssetClass and BudgetControlPolicy are effective-dated rows with audit-logged key fields; budget amounts are audit-logged and a budget revision is a time; a sent invoice and an approved budget store their PDFs; a budget's other parties are BudgetParty rows. Mantle's existing audit-logged invoice, payment and transaction fields are kept | The user's call, in the Purchasing plan review (impl-purchasing §4) |
 | Oct 28, 2026 | `import#Bill` takes a Purchasing buyer's upload as well as AP intake's (P6) | The user's call (impl-purchasing §4, answer 4); design-purchasing §1's AP-intake row is corrected when P0 closes |
 | Oct 28, 2026 | The legacy match backfill is Accounting's (P7), run by AP or a buyer with the match group, from either app | The user's call (impl-purchasing §4, answer 5); it settles design-purchasing §18's migration item |
-| Oct 28, 2026 | The supplier bill link is Purchasing's `/po/<token>` route, which Accounting adds in P18 with BillUpload (F44) | The user's call (impl-purchasing §4, answer 14) |
+| Oct 28, 2026 | The supplier bill link is Purchasing's PO link, which Accounting adds in P18 with BillUpload (F44); with the move below it is the Supplier app's page for the PO, not a `/po/<token>` route | The user's call (impl-purchasing §4, answer 14) |
+| Oct 28, 2026 | Public-facing applications are in mr-pass and internal ones in mr-boss. Accounting's customer and supplier pages are PASS apps: Billing with InvoicePay, and Supplier with BillUpload, which Purchasing P16 extends; not `screen/ServicePortal.xml` and `screen/SupplierPortal.xml` in BOSS. They follow PASS's foundation (§2): public accounts with no UserGroup, Mantle services through the facade for a local or remote authority, PASS invitations, media and request contract | The user's call, Oct 28, in the Customer Service plan review (impl-customer-service §4). It reverses crosscut D5's two BOSS roots; Customer Service's pages are its own PASS app, Support |
+| Oct 28, 2026 | Two apps by owner and audience, Billing for customers and Supplier for suppliers, rather than one customer app with Customer Service's Support | The plan's choice: P18 comes before Customer Service, and PASS shares accounts and navigation across a site's apps (design-forum §13.1) |
 
 ## 5. Open questions
 
@@ -813,7 +863,7 @@ design, it is written there too.
 | F41 | P0: `TaxAuthorityRate` is commented out, its relationship keyed by a composite that is not TaxAuthority's key. `calculate#SalesTaxLocal` only logs; `calculate#InvoiceSalesTax` is empty. Tax lines post through `ItemTypeGlAccount`; `TaxAuthorityGlAccount` is unused. `ItemVatTax` is not left out of totals. The 1099 selection is by invoice date over 600, with no eligibility flag | P14 |
 | F42 | P0: Budget has no organization (its period's party is), and its status type has no items or transitions. Sub-period entry covers twelve periods. `run#BudgetExpenseReport`'s actual is posted debits of expense accounts only; the detail report is invoice-based. No budget service checks status or permission | P15 |
 | F43 | P0: approvals are NotificationTopics with approve and refuse services; there is no provider registry. Commons Notifications filters by `appName` | P6's mount; a §5 question |
-| F44 | P0: MoquiConf `<token-route>` is generic: a token service answers `valid` and a route context, and the screen gets the token. Crosscut §5 names `/pay` for InvoicePay and no route for bill upload | P18; the bill route is a §5 question |
+| F44 | P0: MoquiConf `<token-route>` is generic: a token service answers `valid` and a route context, and the screen gets the token. Crosscut §5 names `/pay` for InvoicePay and no route for bill upload | P18. The customer and supplier links are pages of the PASS apps taking their tokens, not `<token-route>`s (§4); the bill link is the PO's (§4) |
 | F45 | P0: impl-projects §7 hands project cost posting (`post#WorkEffortCost`, an empty stub) and a link to Mantle budgets to Accounting; design-accounting names neither | A §5 question |
 | F46 | P0: Projects' invoices check no currency (impl-projects F91), and its approve finalizes and posts | P4's `change#InvoiceState` applies D18 to them too |
 

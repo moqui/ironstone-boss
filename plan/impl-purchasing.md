@@ -1,7 +1,8 @@
 # IronStone BOSS — Purchasing implementation
 
 Oct 28, 2026 — plan; P0 partly done (F1–F22, found while writing it); the phase order and the open questions decided
-(§4), on the shared party-role and effective-date rules (impl-drawers-commons §4)
+(§4), on the shared party-role and effective-date rules (impl-drawers-commons §4); the supplier pages in a PASS app in
+mr-pass (§4)
 
 How [design-purchasing.md](design-purchasing.md) gets built, in phases from the foundation to the supplier portal, each
 ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md),
@@ -24,8 +25,8 @@ Purchasing is built last (§4), so these are there to extend:
   `request#HoldRelease`, the conditioned receipt-bill SECA, `OrderItem.costCenterId`, and its contexts on InvoiceDetail,
   OrderDetail, Supplier360 and ShipmentDetail (P6); `Shared/InvoiceMatch`, MatchPolicies, `queue#MatchReevaluation` and
   the legacy match backfill (P7); CX-ORDER-HOLD (P10); LandedCosts (P13); BudgetCommitment and `BudgetServices` (P15);
-  `settle#Return` and `Shared/ReturnDetail` (P17); CX-PORTALS, the SupplierPortal root with its BillUpload page and the
-  `/po/<token>` route (P18);
+  `settle#Return` and `Shared/ReturnDetail` (P17); CX-PORTALS, and the PASS Supplier app in mr-pass with its BillUpload
+  page and the PO's link (P18);
 - from Warehouse: `ensure#PurchaseReceipt`, `adjust#ExpectedReceipt`, `close#ReceiptRemainder`, the receive guard and
   Purchasing's `close#PurchaseRemainders` (P7); CX-QUALITY with `Shared/QualityInspection`, `Shared/InspectionTemplates`
   and `get#SourceInspectionStatus` (P8); `ship#SupplierReturn` and Purchasing's `find#ReturnableReceipts` with the
@@ -51,11 +52,13 @@ Purchasing is built last (§4), so these are there to extend:
   - [design-manufacturing.md](design-manufacturing.md): SupplyPlanning and Subcontracting
   - [design-projects.md](design-projects.md) §6 Requests
   - [design-drawers-commons.md](design-drawers-commons.md) §4, for the topic seeds
+  - `mr-pass/plan/design-forum.md` §1, §4, §5 and §13.1: PASS's shell, app mounts, authority boundary, request
+    contract, identity and invitations, for P16's pages
 - Plans:
   - [impl-products.md](impl-products.md): the pattern; P5, P6 and P7, which build the price, supplier-price and
     availability screens Purchasing mounts; the BOSS client screenshot spec (its F23).
-  - [impl-accounting.md](impl-accounting.md): P6, P7, P10, P13, P15, P17 and P18, and its §7 list of Purchasing's
-    callers.
+  - [impl-accounting.md](impl-accounting.md): P6, P7, P10, P13, P15, P17 and P18 (the PASS Supplier app), and its §7
+    list of Purchasing's callers.
   - [impl-warehouse.md](impl-warehouse.md): P7, P8, P14 and P16, which build Purchasing's three services, and its §7
     list of Purchasing's contexts and callers.
   - [impl-manufacturing.md](impl-manufacturing.md): P13 and P14, and its §7 list of Purchasing's mount and buy
@@ -71,7 +74,7 @@ Purchasing is built last (§4), so these are there to extend:
 - mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
 
 Framework paths are under the mr-moqui checkout (`crates/`, `runtime/base-component/`), Mantle paths under
-`runtime/component/mr-mantle/`.
+`runtime/component/mr-mantle/`, PASS paths under `runtime/component/mr-pass/`.
 
 Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phases](#3-phases) ·
 [4 decisions](#4-decisions) · [5 open](#5-open-questions) · [6 findings](#6-findings) · [7 later](#7-later) ·
@@ -84,11 +87,13 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
   - `runtime/component/mr-mantle`
-  - `runtime/component/mr-boss`
+  - `runtime/component/mr-boss`, the internal app
+  - `runtime/component/mr-pass`, the supplier pages in its Supplier app (P16; §4)
 
-  Design §16 needs no new framework widget, and the token routes are the existing `<token-route>` (impl-accounting
-  F44), so no phase plans framework work; P0 confirms it. `runtime/component/mr-marble` is read only, for the baseline
-  Supplier, Party, Request, Order, Agreement, Facility, Shipment, Return and Invoice screens that design §14.3 maps.
+  Design §16 needs no new framework widget, and the supplier links are pages of PASS's Supplier app taking their
+  tokens (impl-accounting P18), so no phase plans framework work; P0 confirms it. `runtime/component/mr-marble` is read
+  only, for the baseline Supplier, Party, Request, Order, Agreement, Facility, Shipment, Return and Invoice screens
+  that design §14.3 maps.
 - **Scope.**
   - Every `parity` and `new` row of design §2, and the §16 needs they use, with PUR-DROPSHIP (§4), except PUR-LATER.
   - The design reshaped by the shared rules (§2, §4): a supplier's quote is a purchase order in Mantle's quote
@@ -111,7 +116,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - Manufacturing's SupplyPlanning;
     - Commons' Notifications, as Approvals (crosscut §3.15);
 
-    and its pages in Accounting's SupplierPortal root.
+    and its pages in the PASS Supplier app in mr-pass, which Accounting P18 starts (§4).
   - The callers the other plans leave to Purchasing (their §7): the budget commitments at request, award and PO
     approval and at a cancel; match re-evaluation from a revision; PrepareReceipt and the revision's
     `adjust#ExpectedReceipt`; the buy conversion; placing and approving the service PO; `publish#SupplierQuotePrice`.
@@ -126,7 +131,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   7. agreements;
   8. replenishment;
   9. performance;
-  10. the supplier portal;
+  10. the supplier portal, in the PASS Supplier app;
   11. the finish.
 
 ## 2. Ground rules
@@ -183,6 +188,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Shared screens.** Purchasing builds none. It adds its context to the shared screens of §1, each taking `appRoot` and
   server-derived capabilities on `Shared/RequestDetail`'s pattern, and its context adds no right a borrowed capability
   does not give (design §1).
+- **Public pages in mr-pass, internal ones in mr-boss** (§4). The supplier pages are in the PASS Supplier app, on
+  PASS's foundation (design-forum §1, §4, §5), as impl-accounting §2 sets out: PASS's shell and mounts, at 390 px and
+  on the desktop with no terminal UI; a supplier contact is a PASS public account reaching its own documents through
+  Mantle's checks of its supplier relationship and `ExternalAccessCapability`, with no `BOSS_SUPPLIER_PORTAL` group;
+  pages call only Mantle services through `pass.Facade.call#Operation`, so the same pages work with a local or remote
+  authority; PASS's request contract and media; links are pages taking their tokens, not `<token-route>`s.
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
   service names, its Shared screen and its capability groups. A change found while building it is written into the
   owner's design. The owner's own screens stay with the owner.
@@ -205,9 +216,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Purchasing in its non-placeholder
       list (F16);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px, and the supplier pages at 390;
+    - screenshots light and dark at 390, 1280 and 1440 px;
     - the inventories' **Implemented in** columns;
   - the `PurchasingAccess` spec extended to the phase's services and mounts;
+  - for P16: `./moq test mr-pass mr-mantle mr-boss` with the Supplier app's specs, the remote pair on PASS's
+    RemoteFixtures pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, lint clean
+    for PASS, and the pages' screenshots light and dark at 390 and 1280 px;
   - the phase's walk in §8;
   - its row and **Built** note here.
 
@@ -231,7 +245,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P13 Agreements | Mantle, BOSS | Agreements, AgreementDetail | — |
 | P14 Replenishment | Mantle, BOSS | SupplyPlanning, InventoryAvailability, ReorderRules | — |
 | P15 Performance | Mantle, BOSS | Scorecards, ScorecardDetail, Spend, Commitments, ProcurementTracker, PurchaseHistory, SupplierStatement, ScorecardPolicies | — |
-| P16 Supplier portal | Mantle, BOSS | SupplierPortal, QuoteResponse, OrderAcknowledgement | — |
+| P16 Supplier portal | Mantle, mr-pass, BOSS | the PASS Supplier app's SupplierHome, QuoteResponse and OrderAcknowledgement | — |
 | P17 Finish | BOSS | — | — |
 
 ### P0 — Checks
@@ -239,14 +253,15 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
 changes the design, an edit there. F1–F22 were found on Oct 28 while writing this plan. The design edits that §4's
 decisions call for (the quote model, the audit-log revisions, the party roles, drop-ship on Moqui Java's model, the
-quote tiers, the buyer's bill upload) are
-made when P0 closes. Still to check:
+quote tiers, the buyer's bill upload, the supplier pages in the PASS Supplier app) are made when P0 closes. Still to
+check:
 
 - **The other apps' state.** Which of Products P5, P6, P7, P11 and P12, Accounting P6, P7, P10, P13, P15, P17 and P18,
   Warehouse P7, P8, P14 and P16, and Manufacturing P13 and P14 are built when the phases that use them start, and
   whether each built its Purchasing part as its plan says: `close#PurchaseRemainders` (with its `release#Commitment`
   call), `find#ReturnableReceipts`, `accept#ServiceItem`, `BOSS_PURCHASING_BUYER`, the outside-processing conversion,
-  SupplierProfile's finance fields, the buyer's `import#Bill`, the match backfill and the `/po/<token>` route.
+  SupplierProfile's finance fields, the buyer's `import#Bill`, the match backfill, and the PASS Supplier app with the
+  PO's link and how its pages register (impl-accounting P18).
 - **Service-line matching.** Whether Accounting P7 or Manufacturing P14 made `evaluate#InvoiceMatch` read
   ServiceAcceptance; if not, P6 adds it as Accounting's contract.
 - **REST and bulk writes** (F9). Which BOSS groups would reach the Mantle REST order, return and request mutators and
@@ -806,25 +821,34 @@ P7 ports it into mr-mantle and finishes it.
 
 ### P16 — Supplier portal
 
-These are Purchasing's pages in the SupplierPortal root Accounting built (P18), on CX-PORTALS.
+These are Purchasing's pages in the PASS Supplier app Accounting P18 started in mr-pass (§2, §4), on CX-PORTALS.
 
-- **PUR-PORTAL.**
-  - The `/rfq/<token>` route in `MoquiConf.xml`, rate limited and checked by `check#AccessToken`, and on Accounting's
-    `/po/<token>` route (§4), OrderAcknowledgement beside BillUpload.
-  - `ironstone.purchasing.PortalServices`, thin wrappers that call `check#AccessCapability` first: `get#SupplierHome`,
+- **PUR-PORTAL, the Mantle side**, so a PASS page can call it locally or remotely:
+  - `mantle.order.SupplierPortalServices`, each calling `check#AccessCapability` first: `get#SupplierHome`,
     `get#QuoteInvitation`, `save#QuoteResponse`, `submit#QuoteResponse`, `get#PublishedPurchaseOrder` and
     `acknowledge#PurchaseOrder`. A quote response moves the supplier's quote order to OrderProposed, and its quantity
     tiers become price rows only when a buyer publishes them (P11); an acknowledgement writes P9's audit-logged fields.
     Both are claims for internal review, and a repeat answers its receipt.
+  - What they call is Mantle's too: where P9's acknowledgement or P11's quote response is a BOSS service, its core
+    moves into Mantle and the BOSS service calls it, since PASS reaches no BOSS service (impl-customer-service F41).
+- **PUR-PORTAL, the PASS side.**
+  - Each of those as an operation in `Schema.js` and `Routes.js`, served by Mantle's PassApi to a remote frontend.
+  - The RFQ link: QuoteResponse taking its token, checked by `check#AccessToken`; and on Accounting's PO link (§4),
+    OrderAcknowledgement beside BillUpload. PASS's throttling limits the posts.
   - `send#QuoteRequest` and `send#PurchaseOrder` create the quote order's or revision's capability through
-    `create#AccessCapability` and mail its link; the PO's capability covers acknowledgement and bill upload. A new
-    revision, a cancel and `close#QuoteRequest` revoke it.
+    `create#AccessCapability` and mail its link, the Supplier app's page on the buying organization's site; the PO's
+    capability covers acknowledgement and bill upload. A new revision, a cancel and `close#QuoteRequest` revoke it.
+  - A signed-in supplier contact is a PASS public account invited from Supplier360 through a PASS invitation bound to
+    the Supplier app and the supplier; redeeming it makes the supplier relationship Mantle checks.
+  - Quote and acknowledgement attachments go through PASS's media staging and scanning into OrderContent.
   - A drop-ship supplier reports delivery from the PO page, and the buyer confirms it (P7).
-- **Screens** (design §13): SupplierPortal at `SupplierPortal/Home` (SupplierDocuments, SupplierContact), QuoteResponse
+- **Screens** (design §13), in the Supplier app: SupplierHome (SupplierDocuments, SupplierContact), QuoteResponse
   (PublishedQuoteRequest, SupplierOffer, SubmitResponse) and OrderAcknowledgement (PublishedPurchaseOrder,
-  AcknowledgeOrder), with a subcontract PO's service lines and custody. BillUpload stays Accounting's page.
+  AcknowledgeOrder), with a subcontract PO's service lines and custody, at 390 px and on the desktop. BillUpload stays
+  Accounting's page. BOSS gains Supplier360's Invite to the Supplier app.
 - **Shell:** the supplier-response notification topic.
-- **Demo:** a supplier contact on `BOSS_SUPPLIER_PORTAL`, and token fixtures for the specs.
+- **Demo:** a supplier contact of ZiddlemanInc as an invited PASS account on the demo site's Supplier mount, and token
+  fixtures for the specs.
 - **Usable when** (design §13; crosscut §5):
   - an invited supplier opens the RFQ link, saves a draft, and submits; the buyer sees the quote proposed with the
     supplier's prices, and a repeated submit answers the first receipt;
@@ -832,13 +856,14 @@ These are Purchasing's pages in the SupplierPortal root Accounting built (P18), 
   - the supplier sees no competitor, internal request, maximum price or private file;
   - acknowledging revision 2 with a later date goes to the buyer for review and changes no quantity; revision 1's link
     answers SupersededRevision; the same PO link opens BillUpload;
-  - a signed-in supplier user sees only its own documents.
+  - a signed-in supplier user sees only its own documents;
+  - the same walk through a remote PASS frontend with only framework, webroot and PASS installed.
 
 ### P17 — Finish
 
 - The terminal twins, and the server-static pass.
 - The design §14.4 acceptance review. A Purchasing user with no other launcher is refused cost, finance, stock posting
-  and other organizations' prices, through URLs, shared contexts, exports, the palette, search and the supplier pages.
+  and other organizations' prices, through URLs, shared contexts, exports, the palette, search and the Supplier app.
   With the receive and finance groups, the same user works from the shared mounts without the Warehouse or Accounting
   root.
 - The §15 outputs not built earlier.
@@ -870,9 +895,10 @@ design-purchasing.md, or into the owner's design.
 | Oct 28, 2026 | Maximum stock and a reorder method on ProductFacility, and SuggestLevels on ReorderRules (P14) | The user's call (answer 11) |
 | Oct 28, 2026 | Held quantity in planning follows Manufacturing: a pending-release line left out of netting, with an organization option | The user's call (answer 12); decided in impl-manufacturing §4 |
 | Oct 28, 2026 | The performance date basis and sample as design §18 recommends: the first acknowledged date, else the line's required date; five eligible receipts | The user's call (answer 13) |
-| Oct 28, 2026 | Accounting's `/po/<token>` route opens BillUpload, and P16 adds OrderAcknowledgement to it | The user's call (answer 14); written into impl-accounting P18 |
+| Oct 28, 2026 | Accounting's PO link opens BillUpload, and P16 adds OrderAcknowledgement to it; with the move below the link is the PASS Supplier app's page for the PO, not a `/po/<token>` route | The user's call (answer 14); written into impl-accounting P18 |
 | Oct 28, 2026 | Purchasing builds the parts of other needs it still depends on: Projects' RequestDetail Items tab and CX-REQUEST's type check (P10); Accounting's service-acceptance match rule, unless built (P6), and the drop-ship delivery as match evidence (P7); Warehouse's `store#ProductFacilityPolicy` snooze, maximum and method, and Products' ProductImport reorder rows (P14). These keep the owner's names, packages and Shared screens | The plan's choice, as Products, Accounting, Warehouse and Manufacturing decided for theirs |
-| Oct 28, 2026 | Purchasing builds no shared screen. It adds its context to the fifteen the other apps built, and its pages to Accounting's SupplierPortal root | Follows from the above: each shared screen it mounts has another owner, built first |
+| Oct 28, 2026 | Purchasing builds no shared screen. It adds its context to the fifteen the other apps built, and its pages to the PASS Supplier app Accounting P18 starts | Follows from the above: each shared screen it mounts has another owner, built first |
+| Oct 28, 2026 | Public-facing applications are in mr-pass and internal ones in mr-boss. The supplier pages are in the PASS Supplier app, not `screen/SupplierPortal.xml` in BOSS: public accounts with no UserGroup (no `BOSS_SUPPLIER_PORTAL`), Mantle's `SupplierPortalServices` through PASS's facade for a local or remote authority, PASS invitations, media and request contract (§2, P16) | The user's call, Oct 28, in the Customer Service plan review (impl-customer-service §4). It reverses crosscut D5's SupplierPortal root; Accounting P18 builds the app with BillUpload |
 | Oct 28, 2026 | P3 approves with the design's no-policy rule, the decision record and the auto-approval SECA; P4 adds the policies, topics and the Approvals list | The plan's choice: no placed PO is approved without a decision from the first phase that places one |
 | Oct 28, 2026 | A PO has one purchase part. Revisions, sends and acknowledgements key on the order header's revision | The plan's choice (F7); `create#PurchaseRequestOrder` already makes one order per supplier |
 | Oct 28, 2026 | Internal entry first: quotes and acknowledgements are entered on the supplier's behalf from P9 and P11, and the supplier pages come in P16 | The plan's choice; design §18's "internal on-behalf-of entry remains complete" |
@@ -955,4 +981,5 @@ Designed, not in this build:
 | Drop-ship order to customer invoice and supplier bill (design §18) | P7 |
 | A revision and its as-of print (§2) | P9; P11 (the RFQ), P13 (the agreement) |
 
-- **Screenshots** through the BOSS client spec of §2, light and dark, and the supplier pages at phone width.
+- **Screenshots** through the BOSS client spec of §2, light and dark, and the Supplier app's pages through PASS's
+  client spec at phone and desktop widths.

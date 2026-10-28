@@ -1,6 +1,7 @@
 # IronStone BOSS — Projects implementation
 
-Oct 22, 2026 — built: P0 through P11 done; what remains is §7 Later and the open findings of §6
+Oct 22, 2026 — built: P0 through P11 done; what remains is §7 Later and the open findings of §6. Oct 28, 2026
+addendum (§9): the client portal as a PASS app in mr-pass, planned
 
 How [design-projects.md](design-projects.md) gets built, in phases from the foundation to client access, each ending
 tested and usable. This file is kept at a high level: each phase names its scope by the design's sections and §15 rows
@@ -17,7 +18,7 @@ they name a component.
 
 Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phases](#3-phases) ·
 [4 decisions](#4-decisions) · [5 open](#5-open-questions) · [6 findings](#6-findings) · [7 later](#7-later) ·
-[8 verification](#8-verification)
+[8 verification](#8-verification) · [9 client portal](#9-addendum-the-client-portal-in-mr-pass)
 
 ---
 
@@ -756,6 +757,9 @@ Designed, not in this build:
 - Code search and editing repository files in the browser: the developer tools app (§16). Forks (§16).
 - Custom fields on work items, with the visual developer tools (§16).
 - A project forum setting (§16).
+- The client mode and the public request form (`screen/RequestIntake.xml` at `/r/<token>`, P5) move to mr-pass as
+  the Client app, since public-facing applications go there and internal ones stay in mr-boss (decided Oct 28, 2026;
+  impl-customer-service §4). The addendum, §9, plans it.
 - `get#VisibleProjectInfo` returns id lists for an IN condition; an organization with thousands of projects wants a
   subquery or a view instead.
 - A sequence refill with a bank of 1 can skip one number across a server restart.
@@ -828,3 +832,227 @@ Designed, not in this build:
 - **End to end,** `./moq run`, signed in as `john.doe` (and the demo client user from P10), walking each built phase's
   "usable when" in order.
 - **Screenshots** with `example/test/gallery-shots.mjs`, light and dark.
+
+## 9. Addendum: the client portal in mr-pass
+
+Oct 28, 2026 — planned, not built; C0 partly done (F152–F158, found while writing it)
+
+Public-facing applications go in mr-pass and internal ones stay in mr-boss (decided Oct 28, 2026;
+impl-customer-service §4). P10 gave clients the client states of BOSS's Projects screens. This addendum gives them a
+PASS app instead, **Client**, the client portal, on the pattern of Accounting's Billing and Supplier apps
+(impl-accounting P18) and Customer Service's Support app (impl-customer-service P13, P15), and then retires the client
+mode in BOSS. The rules it serves are design-projects §1.1's and what P10 built; the app's page design is written when
+C0 closes, as `mr-pass/plan/design-client.md`, and design-projects §1.1, §6 RequestIntake and §15 then point to it.
+
+**Inputs.** design-projects §1.1, §4 (ProjectDetail, MilestoneDetail, ReleaseDetail), §5 WorkItemDetail, §6
+(Requests, RequestDetail, RequestIntake), §10 Billing and §15 Client access; P5, P8b and P10 here, with F114–F137;
+`mr-pass/plan/design-forum.md` §1, §4, §5 and §13.1; impl-accounting §2 and P18, and impl-customer-service §2 and
+F41–F43, for the PASS pattern.
+
+### 9.1 Scope and order
+
+- **Repositories:** `runtime/component/mr-mantle`; `runtime/component/mr-pass`, the app; `runtime/component/mr-boss`,
+  for the invitations, the old form's redirect and C7. Framework work only if C5 needs a git read the framework lacks.
+- **Scope:** everything a P10 client can do, in the Client app:
+  - Home: counters, gates waiting, projects, requests, replies, milestones and invoices due;
+  - the client's projects: the overview, the status updates posted for the client, shared work items, milestones,
+    and releases with their published notes;
+  - a shared work item with the messages for the client, and the hours when the project shares them;
+  - requests: raise one with files, add files while it is open, cancel one it raised, and read it with its outward
+    messages;
+  - send a message, and reply, to the record's internal people;
+  - decide a milestone gate as its approver, which is how an estimate is approved;
+  - sent invoices, read only, paid through Accounting's Billing app once it is built;
+  - shared repositories, read only;
+  - the project's public request form, today RequestIntake at `/r/<token>`.
+
+  Then BOSS's client mode is retired (C7).
+- **Order** (proposed): checks; the foundation; projects and work; requests and messages; gates, estimates and
+  invoices; shared repositories; the public request form; retiring BOSS's client mode. When to build it is §9.5's.
+
+### 9.2 Ground rules
+
+- **PASS's pattern** (impl-accounting §2, impl-customer-service §2): PASS's shell and app mounts; HTML with qvue at
+  390 px and on the desktop, with no terminal UI; public accounts with only `ALL_USERS`, so no `BOSS_PROJECT_CLIENT`
+  group; pages call only Mantle services through `pass.Facade.call#Operation` (`Schema.js`, `Routes.js`, Mantle's
+  PassApi), so a remote PASS frontend works too; PASS's request contract, its media staging and scanning, and bearer
+  links as pages taking their tokens.
+- **One client rule, in Mantle.** Design-projects §1.1's rule, as Mantle's `get#ClientProjectInfo`,
+  `get#VisibleProjectInfo`, `get#ClientRecordVisibility` and `filter#ClientAudience` apply it, is the only rule. A
+  Client app operation applies it to its caller always, without the `PROJECT_CLIENT` permission BOSS's client mode
+  reads (F153).
+- **What the app calls is Mantle's** (impl-customer-service F41). `mantle.work.ClientPortalServices` holds the
+  client's reads and the writes `ironstone.client.ClientServices` holds today (F152); the BOSS services call the Mantle
+  ones until C7 removes them.
+- **Nothing internal leaves.** P10's isolation holds for every operation: no Chatter note or activity, rate, cost,
+  allocation, other client, internal member, setting, unshared item or unpublished note. A refused action is absent
+  from the projection's capabilities, as P10b hid refused controls.
+- **Done for a phase:** §2's Done for the Mantle and BOSS parts; `./moq test mr-pass mr-mantle mr-boss` with the app's
+  specs, among them `ClientPortalAccess`, which carries ClientIsolation's cases over to the operations; the remote
+  pair on PASS's RemoteFixtures pattern; `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern;
+  lint clean for PASS; screenshots light and dark at 390 and 1280 px; WorkProjectClients and the BOSS Client specs
+  passing until C7 changes them; the phase's walk, and its row and **Built** note here.
+
+### 9.3 Phases
+
+| Phase | Repos | Pages | Status |
+| --- | --- | --- | --- |
+| C0 Checks | all (read) | — | partly done Oct 28 (§9.6 F152–F158) |
+| C1 Foundation | Mantle, mr-pass, BOSS | the Client app root, Home | — |
+| C2 Projects and work | Mantle, mr-pass | Projects, ProjectDetail, WorkItemDetail, MilestoneDetail, ReleaseDetail, Hours | — |
+| C3 Requests and messages | Mantle, mr-pass, BOSS | Requests, RequestDetail, NewRequest | — |
+| C4 Gates, estimates and invoices | Mantle, mr-pass, BOSS | MilestoneDetail's decision, Estimate, Invoices, InvoiceDetail | — |
+| C5 Shared repositories | Mantle, mr-pass (mr-moqui, C0) | Code, a repository's files, history and releases | — |
+| C6 The public request form | Mantle, mr-pass, BOSS | RequestForm | — |
+| C7 Retiring BOSS's client mode | Mantle, BOSS | — | — |
+
+#### C0 — Checks
+
+Each result is a row in §9.6 and, where it changes the design, an edit there. Still to check:
+
+- **PASS app registration.** What Accounting P18 settled for its Billing and Supplier apps, and Customer Service's
+  Support app if built (impl-customer-service F43). If neither is built yet, C1 settles it as they would.
+- **The client rule's services.** Which read `PROJECT_CLIENT` or the user's groups, and how a PASS public account's
+  party reaches them (F153).
+- **A client's account through the move** (F154, §9.5): what a client keeps (its party, messages, files and
+  decisions) and how PASS classifies an account that still holds `BOSS_PROJECT_CLIENT`.
+- **Client links** (F155): every email, notice and print a client gets, and the page each should open.
+- **Client files** (F156): whether a client's file list of a visible request includes RqCntInternal content.
+- **Shared repositories.** Which framework git reads a Mantle projection can serve to a remote frontend (tree, file,
+  log, tags) and their size limits, for C5.
+- **The public form.** RequestIntake's checks (honeypot, CAPTCHA, the per-project and per-address limits) in a PASS
+  page, and a redirect from `/r/<token>` on BOSS's host to the project's site (C6).
+- **Demo.** sheldon.acme (ACME) and gob.bluth (BLUTH), and the demo PASS site the other apps add.
+
+#### C1 — Foundation
+
+- **The app:** `screen/Client.xml` under PASS's `Pass.xml`, the `client` app of `PublicSiteApp` mounted at `/client`,
+  its target the organization whose projects it serves; its navigation, readiness and operator configuration as
+  Accounting P18's apps have them.
+- **Access:** `mantle.work.ClientPortalServices.get#ClientContext`, the caller's party, its client organizations and
+  its client projects by the one rule; every operation starts with it.
+- **Invitations:** ProjectDetail's client contacts in BOSS gain Invite to the client portal, for project managers: a
+  PASS invitation bound to the Client app and the client organization. Redeeming it gives site membership and the
+  contact relationship the rule reads (`PrtContact` or `PrtRepresentative`). Domain matching never makes a client.
+- **Home:** as P10b's client Home: gates waiting, open requests, unread replies, milestones due and projects; invoices
+  due come with C4.
+- **Demo:** the demo PASS site gains the Client mount, with sheldon.acme and gob.bluth invited.
+- **Specs:** `ClientPortalAccess`, started.
+- **Usable when:** sheldon.acme signs in on the PASS site and sees ACME's projects only, and gob.bluth BLUTH's only; a
+  forged project ID is concealed (404); an anonymous visitor is asked to sign in; the same through a remote frontend.
+
+#### C2 — Projects and work
+
+- **Mantle reads**, as projections with capabilities, revisions and cursors: `find#ClientProjects`,
+  `get#ClientProject` (overview, counts and the status updates for the client), `find#ClientWorkItems` (shared items
+  only, as a tree), `get#ClientWorkItem` (with the messages for the client, through `filter#ClientAudience`),
+  `get#ClientMilestone`, `get#ClientRelease` (published notes only) and `find#ClientTime` (only when the project shares
+  hours, and only the entries a client may see, F125).
+- **Pages:** Projects, ProjectDetail (Overview, Work items, Roadmap, and Hours when shared), WorkItemDetail,
+  MilestoneDetail and ReleaseDetail.
+- **Usable when:** ACME's client sees the shared work items but not a Work group or Restricted one, the status updates
+  but not a note, hours only with sharing on, and a release's notes only once published.
+
+#### C3 — Requests and messages
+
+- **Mantle writes**, the cores of `ironstone.client.ClientServices` (F152): `send#ClientMessage` and
+  `reply#ClientMessage` (to the record's internal people only: its assignees and the project's managers, never another
+  client or an outside party), `raise#ClientRequest` (the public form's kinds and limits), `add#ClientRequestFiles`
+  (while open, through PASS's media staging and scanning into RequestContent) and `cancel#ClientRequest` (one it
+  raised); and the reads `find#ClientRequests` and `get#ClientRequest` (outward messages and client-visible files only,
+  F156). BOSS's ClientServices call them until C7.
+- **Links:** a reply's notice and `send#ProjectUpdateEmail` link to the Client app's page on the project's site (F155);
+  `filter#ClientAudience` is unchanged.
+- **Pages:** Requests, RequestDetail and NewRequest.
+- **Usable when:** the client raises a request with two files, one refused by scanning and named, then adds a file and
+  cancels it; a reply reaches the item's assignees and the managers, not another client; a note's text is in no notice.
+
+#### C4 — Gates, estimates and invoices
+
+- **Gates:** `decide#ClientGate` in Mantle: approve, or refuse with a reason, as a `WorkEffortApproval`; the estimate is
+  approved through its Estimate milestone's gate; a manager's decision `recordedFor` the client stays (P8b, F100).
+  `send#EstimateEmail` links to the Client app's MilestoneDetail and to the estimate as sent, its stored PDF (F155).
+- **Invoices:** `find#ClientInvoices` and `get#ClientInvoice`: invoices sent to the client's organization, read only.
+  Pay opens Accounting's Billing app (impl-accounting P18) when it is built; until then there is no pay action.
+- **Pages:** MilestoneDetail's decision, Estimate, Invoices and InvoiceDetail; Home's invoices due.
+- **Usable when:** ACME's approver approves the estimate from the email's link, and the project and its orders move as
+  P8b's walk says; a contact who is not the approver sees the gate without the decision; a draft invoice never shows,
+  and a sent one shows read only, with Pay once Billing exists.
+
+#### C5 — Shared repositories
+
+- **Mantle reads**, for a repository the project shares with the client (F119): `find#ClientRepositories`,
+  `get#ClientRepositoryTree`, `get#ClientRepositoryFile`, `find#ClientCommits` and `find#ClientReleaseTags`, over the
+  framework's git reads, naming no Restricted or unshared item (F127). No compare, review threads, CI statuses, access
+  or settings, as P10b.
+- **Pages:** Code, with a repository's files, history and releases.
+- **Usable when:** ACME's client browses a shared repository's files and history; an unshared repository is concealed;
+  a commit that names a Restricted item shows it unnamed.
+
+#### C6 — The public request form
+
+- RequestIntake becomes the Client app's RequestForm page, anonymous, taking the project's token through
+  `check#IntakeToken`: P5's form, honeypot, CAPTCHA, limits and file rules, with the files through PASS's media;
+  `create#IntakeRequest` is unchanged.
+- `/r/<token>` on BOSS's host redirects to the page on the project's site, so the links already sent keep working;
+  `screen/RequestIntake.xml` and the `r` token route then leave BOSS.
+- A Customer Service queue's form is its Support app's (impl-customer-service P15), on the same token service.
+- **Usable when:** an old link redirects and its submit makes the request; an unknown, rotated or turned-off token says
+  the form is not available; ProjectRequests and RequestWalk pass against the new page.
+
+#### C7 — Retiring BOSS's client mode
+
+- Each client user moves to a PASS account for its party, as §9.5 decides, invited and told by email.
+- In BOSS: `BOSS_PROJECT_CLIENT`'s memberships end and the `BOSS_PROJECTS_CLIENT` authz goes; the client states of
+  Home, ProjectDetail, Overview, WorkItems, WorkItemDetail, Requests, RequestDetail, MilestoneDetail, ReleaseDetail,
+  ClientHours, Billing's client view and the shared repositories are removed; `ironstone.client.ClientServices` is
+  removed once its Mantle cores serve the app (C3, C4). The `BOSS_PROJECTS_INTERNAL` deny patterns and
+  `EXTERNAL_USER` stay, refusing anyone left with a client grant.
+- Specs: ClientWalk, ClientWrites, ClientBilling, ClientCode, ClientChatDrive and ClientIsolation become "a client
+  account reaches no BOSS screen or service", their cases carried by `ClientPortalAccess`; WorkProjectClients is
+  unchanged.
+- design-projects §1.1 and §15 describe the Client app.
+- **Usable when:** sheldon.acme walks all of P10's client walk in the Client app; at BOSS's sign-in the same account
+  reaches nothing; internal users' Projects is unchanged.
+
+### 9.4 Decisions
+
+| Date | Decision | Notes |
+| --- | --- | --- |
+| Oct 28, 2026 | Project clients get a PASS app, Client, in mr-pass, on the pattern of the Billing, Supplier and Support apps | The user's call (Oct 28): public-facing applications in mr-pass, internal ones in mr-boss |
+| Oct 28, 2026 | Once the app does everything P10 gave clients, BOSS's client mode is retired (C7) | The plan's choice, following the user's rule; until then both work |
+| Oct 28, 2026 | The app is named Client, mounted at `/client` | The plan's choice |
+| Oct 28, 2026 | Mantle holds the client's services, `mantle.work.ClientPortalServices`, with the writes `ironstone.client.ClientServices` holds today | Follows from PASS's pattern (impl-customer-service F41) |
+| Oct 28, 2026 | The public request form joins the Client app (C6), with the old links redirected | The plan's choice; it was §7's later move |
+
+### 9.5 Open questions
+
+| Question | Decides | Notes |
+| --- | --- | --- |
+| When to build the addendum | before C1 | Recommended: after Accounting P18, so the app follows the registration P18 settles and Pay opens its Billing app. It needs nothing from Warehouse, Manufacturing, Purchasing or Customer Service. Built earlier, C1 settles the registration itself and C4 leaves Pay out |
+| A client's account through the move (F154) | before C7 | Recommended: the same UserAccount with its BOSS group ended, so the party, its messages and its decisions stay one identity; a new account only for a client who wants a separate sign-in |
+
+### 9.6 Findings
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| F152 | C0: a client's only writes are BOSS services, `ironstone.client.ClientServices` (`send#` and `reply#ChatterMessage`, `raise#` and `cancel#ClientRequest`, `store#ClientRequestFiles`, `upload#ClientRequestFile`, `decide#ClientGate`), with `get#ClientHome` and the write checks; a PASS page cannot call them | C3 and C4 move their cores into Mantle; C7 removes them |
+| F153 | C0: Mantle knows a client by the `PROJECT_CLIENT` permission (`get#VisibleProjectInfo`'s `isClient`), which the BOSS group grants; a PASS public account holds no permission | The Client app's operations apply the rule to their caller always (§9.2) |
+| F154 | C0: PASS counts an enabled account with any group beside `ALL_USERS` as internal (design-forum §5.1), so a client still in `BOSS_PROJECT_CLIENT` would be internal for PASS's and Comms' receipts and recipients | C7 ends the group; §9.5 |
+| F155 | C0: what a client is sent links into BOSS: the estimate's print and milestone URLs (`/apps/Projects/Projects/EstimatePrint`, `/qapps/Projects/Projects/MilestoneDetail`, built in ironstone.projects BillingServices), and the project update and estimate emails | C3 and C4 link to the Client app's pages |
+| F156 | C0: a client's file list of a visible request may include RqCntInternal content (impl-customer-service F18) | C0 confirms; C3 lists client-visible files only |
+| F157 | C0: RequestIntake is a BOSS public page, `screen/RequestIntake.xml` at `/r/<token>` (a `<token-route>` in BOSS's `MoquiConf.xml`), its token the project's `WstIntakeToken` | C6 |
+| F158 | C0: the demo clients sheldon.acme and gob.bluth hold `BOSS_PROJECT_CLIENT` and `EXTERNAL_USER` (F134) | C1 invites them to the app; C7 ends their BOSS grants |
+
+### 9.7 Later
+
+- §7's client items, where they still apply, in the app: clients accepting deliverables, and their presence to
+  internal users. The others end with BOSS's client mode (C7), and the estimate email's link is C4's.
+- The app's terminal pages, when PASS gains a terminal UI.
+- Calendars, DAV and SFTP for clients, which PASS does not offer.
+
+### 9.8 Verification
+
+- **Per phase,** §9.2's Done and the phase's "usable when".
+- **End to end,** the demo PASS site as sheldon.acme and gob.bluth, locally and through a remote frontend, walking
+  each built phase's "usable when" in order; after C7, P10's client walk as the same steps in the app.

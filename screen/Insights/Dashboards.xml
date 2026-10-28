@@ -2,7 +2,7 @@
 <!-- This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Dashboards &amp; KPIs" default-menu-index="2" menu-image="sym_o_widgets" menu-image-type="icon">
     <widgets>
-        <link url="//apps/dashboards/Dashboard" text="Sales dashboard" parameter-map="{definitionId:'mantle-sales',from:'now-1y',thru:'now'}"/>
+        <link url="../Dashboard" text="Sales dashboard" parameter-map="{definitionId:'mantle-sales',from:'now-1y',thru:'now'}"/>
         <include-screen location="component://tools/screen/Dashboards/Home.xml" share-scope="true"/>
     </widgets>
 </screen>

@@ -1341,40 +1341,16 @@ collects these IDs with the other app needs. Source paths in this table are rela
 | Product360 blocks are per-app tabs | Answers research's AureusERP ProductSchemaRegistry pattern: per-app contexts of crosscut §3.5 decide the tabs; there is no slot registry. |
 | Tab paths | R-PRD-38. InventoryAvailability is mounted at the Product360 tab path `Stock` and CategoryContent at the CategoryDetail tab path `Content`; other files already cite these paths. |
 
-## 16. Open
+## 16. Implementation decisions (Oct 28, 2026)
 
-- **Default generation limit.** Recommend 1,000 selected combinations per interactive run,
-  configurable downward per organization; larger selections use the same durable batch/result
-  pattern as imports. Confirm against representative apparel catalogs before implementation.
-  The limit is VariantSettings' batch limit, so the matrix and its terminal twin read one value.
-- **Cost-estimate approval separation** (also in crosscut §9). Recommend that the cost
-  estimator drafts and the standard-cost approver (§1.1) approves standards. Whether one person
-  may approve an estimate they drafted is an audited organization setting in CatalogSettings,
-  which a small business may turn on. This does not change Accounting's separate
-  posting authority; Accounting's text should name the cost estimator and standard-cost
-  approver instead of catalog administrators.
-- **Identifier generation integrations.** Recommend manual entry plus existing internal ID
-  generation first; externally allocated GS1 company-prefix rules are an optional configured
-  provider. Never imply that generating a syntactically valid code allocates a registry number.
-- **Configurable-product rollout.** Recommend typed choices, numbers and simple dependencies
-  before advanced geometric/CAD configurators. The later configuration screens and frozen
-  answer contract stay valid whichever optional design tool is integrated.
-- **Purpose eligibility** (also in crosscut §9). Five reference apps separate "can be sold"
-  from "can be purchased", and the single lifecycle cannot mark a raw material purchasable but
-  not sellable. Recommend proposed `Product.salesAllowed` and `Product.purchaseAllowed`
-  indicators, where null means allowed for legacy rows, checked by `check#ProductUsable` for the
-  Sell and Purchase usages. Show them as ProductFind facets and in the Sales and Purchasing
-  product lookups (D19, R-PRD-12).
-- **Feature-value price extras** (also in crosscut §9). "First eligible rule wins" cannot stack
-  extras such as size XL +2 and color Gold +5. Recommend a resolver step: when a variant falls
-  back to its virtual product's base row, add the sum of the dated `ProductFeatureAppl.amount`
-  values on the virtual's `PfatSelectable` rows that match the variant's distinguishing
-  features. It runs as a traced "feature extras" step before list rules, and VariantPreview
-  shows the resulting price (R-PRD-11).
-- **Packaging pane in Product360** (also in crosscut §9). Purchasing expects a units, barcodes
-  and packaging tab. Recommend that crosscut §3.5 gain a read and edit `ProductPackaging`
-  component that mounts this file's Packaging forms with the base product fixed (R-PRD-03).
-- **Merging duplicate products** (also in crosscut §9). Recommend a `later` proposed
-  `mantle.product.ProductServices.merge#Product` that re-points references on draft or unused
-  records. It is refused when stock, cost or posted documents differ in UOM or organization;
-  otherwise the duplicate is retired with a `PatReplacement` link (R-PRD-37).
+Confirmed for the Products implementation:
+
+- Interactive generation defaults to 1,000 selected combinations and may be configured downward; larger selections use durable batches.
+- The cost estimator drafts and the standard-cost approver approves. Self-approval is an audited organization setting, off by default, and still requires the approval grant. Accounting posting remains separate.
+- Identifier generation supports manual and existing internal IDs. External GS1 company-prefix allocation remains later.
+- Add nullable `Product.salesAllowed` and `purchaseAllowed`, with null allowed for legacy products. `check#ProductUsable` enforces them for Sell/Purchase; Products exposes the facets.
+- On virtual-base fallback, sum matching effective `PfatSelectable` `ProductFeatureAppl.amount` extras before list rules. Record a trace step and show the result in variant preview.
+- Add the read/edit ProductPackaging pane to Product360, mounting Packaging with the base product fixed.
+- Label formats include Code 128, EAN-13, UPC-A, EAN-8, ITF-14, GS1-128, QR and DataMatrix. Browser/PDF and existing feature-gated IPP are the printer paths.
+- ProductPrice REST keeps its URLs, routes writes through the named guarded services and maps DELETE to expiration.
+- Configurations and duplicate-product merging retain their `later` scope in §15 and impl-products §7.

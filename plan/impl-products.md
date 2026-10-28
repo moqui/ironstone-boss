@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F25, found while writing it)
+Oct 28, 2026 — implementation in progress; P0 checked, P1 next
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -21,7 +21,7 @@ Accounting and Purchasing are placeholders too.
   - [design-manufacturing.md](design-manufacturing.md): §5, and M3 and M5 of §12
   - [design-accounting.md](design-accounting.md): InventoryValuation and AC-07
 - The design review: `review-core-apps.md` and `review-core-apps/products.md`, which explain the design's R- IDs and the
-  "§4.1 step" references. They are on branch `review-core-apps` (0e53a04), not on master (F25).
+  "§4.1 step" references. The documentation-only `review-core-apps` branch (0e53a04) is integrated (F25).
 - Guides and rules: [design-doc-guide.md](design-doc-guide.md), [style-guide.md](style-guide.md) §8, and
   [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules).
 - [impl-projects.md](impl-projects.md): the pattern, and its findings that recur here (F9, F15, F17).
@@ -121,7 +121,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
-| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F25) |
+| P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge 9de723 |
 | P1 Foundation | Mantle, BOSS | the Products root and menu | — |
 | P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | — |
 | P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
@@ -139,28 +139,10 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 ### P0 — Checks
 
-Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
-changes the design, an edit there. F1–F25 were found on Oct 28 while writing this plan. Still to check:
-
-- **Filter set.** Which entity filter set the Products root takes, and how `_NA_` rows show (F1, F2).
-  `MANTLE_ACTIVE_ORG` keeps `_NA_` and `MANTLE_USER_ORG` drops it; design §1.1 shows shared records explicitly.
-- **Resolver callers.** Every caller of the price resolver, checked against the direction fix of F3:
-  `get#OrderProductPrice`, `check#OrderPreApprove`, mr-marble `Order/QuickItems.xml`, and the OrderProcureToPay and
-  OrderToCash specs.
-- **Writes around the guards** (F5): `mantle.rest.xml` entity CRUD on ProductPrice, and the mr-marble Catalog screens.
-- **Settings storage.** Whether `PartySetting.settingValue` (255 characters, impl-projects F9) holds CatalogSettings'
-  required-field list and VariantSettings' copy allowlist, or Products needs a settings record (PRD-SETTINGS).
-- **Category tree.** How `view-tree` takes occurrence keys for the multi-parent category graph (F9), the framework
-  change of P3.
-- **Barcodes.** The symbologies Labels and IdentificationTypes need (EAN-13, UPC-A, EAN-8, ITF-14, GS1-128; QR and
-  DataMatrix licensing), and the printer path (F18).
-- **`OrderItem.standardCost`.** What it means on a sales line (F24), before P9 sets it from the approved estimate.
-- **Owner records.** The records P7–P9 add, checked against Mantle:
-  - WH-POLICY's tracking fields;
-  - M3's BOM and routing records, beside WorkEffort `WepRouting` templates and `get#ProductBomDetail` (F13);
-  - M5's WorkCenter and WorkCenterRate;
-  - AC-07's revaluation accounts and open-period check.
-- **Today source.** Which records the Commons Today source's "assigned catalog-review activities" are (design §1.3).
+Checked Oct 28 against the current framework, Mantle and read-only Marble source. F1–F25 remain the baseline;
+F26–F33 below close the remaining checks. The documentation-only review branch was integrated as `9de723` after
+checking its diff contained only the ten review documents. No executable changes in this phase. Validation: source
+cross-checks, review-document presence and `git diff --check`.
 
 ### P1 — Foundation
 
@@ -466,23 +448,26 @@ or into the owner's design.
 | Oct 28, 2026 | Products builds the parts of other apps' needs it depends on: Warehouse's `store#ProductFacilityPolicy` and TrackingPolicy (P7); Manufacturing's versioned methods, with the five shared method screens and `get#OperationCostBasis` (P8); Accounting's `preview#` and `post#Revaluation`, with their two dialogs (P9). These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call. The alternative was tabs that wait for their apps |
 | Oct 28, 2026 | The shared screens Products builds first carry the Products context only. Another app's context is added when that app is built, as InvoiceDetail and OrderDetail were in Projects | Follows from the above |
 
+Decisions confirmed with the user before implementation:
+
+- Keep `BOSS_PRODUCTS` as the root user group and artifact group; they are different entities.
+- Root filter `MANTLE_ACTIVE_ORG`; services independently verify membership/owner/capability, including when no org is active.
+  Shared `_NA_` records are readable; shared master writes require framework `ADMIN`.
+- Versioned structured Mantle settings records, not serialized 255-character `PartySetting` values.
+- Add nullable `salesAllowed`/`purchaseAllowed` (legacy null means allowed), traced virtual-product feature extras, and the Product360 packaging pane.
+- Interactive variants default to 1,000, configurable downward; larger runs use durable batches introduced in P4 and reused in P12.
+- Self-approval is an audited organization setting, off by default; enabling it still requires cost-approval authority.
+- Manual/internal identifier generation first; external GS1 allocation remains later.
+- Price REST keeps its URLs, guards reads, routes POST/PATCH through validated services and DELETE through expiration.
+- Search fallback reports unavailability; no framework lag reporting is added.
+- Labels include Code 128, EAN-13, UPC-A, EAN-8, ITF-14, GS1-128, QR and DataMatrix, with browser/PDF and existing IPP printing.
+- After each phase passes its checks, commit it separately in each affected repo and record its commit IDs here.
+
 ## 5. Open questions
 
 | Question | Decides | Notes |
 | --- | --- | --- |
-| Which filter set the Products root takes, and how `_NA_` rows show (F1, F2) | at P1 start | MANTLE_ACTIVE_ORG keeps `_NA_`; design §1.1 shows shared records explicitly |
-| `BOSS_PRODUCTS` is both the artifact group and crosscut §1.4's root user group (F22) | at P1 start | They are different entities, so the keys do not clash. Projects used plural artifact groups and singular user groups |
-| Whether to merge branch `review-core-apps`, so the design's R- IDs resolve (F25) | before P1 | |
-| Where catalog settings live: `PartySetting` rows or a Products settings record | at P2 start | P0 checks the 255 characters |
-| Purpose eligibility: `Product.salesAllowed` and `purchaseAllowed`, checked by `check#ProductUsable` (design §16) | at P2 start | Recommended there; five reference apps separate the two |
-| A stale search index: say "unavailable" only, or add a framework read of index lag (F8) | at P2 start | |
-| The default generation limit of 1,000 (design §16) | at P4 start | The review agreed; it is Odoo's default |
-| Feature-value price extras as a traced resolver step (design §16) | at P5b start | |
-| REST entity CRUD on ProductPrice: keep it, refuse it, or route it through `store#ProductPrice` (F5) | at P5a start | |
-| Self-approval of a standard estimate as an audited organization setting (design §16) | at P9 start | Recommended there |
-| A Product360 packaging pane (design §16) | at P11 start | |
-| Identifier generation: manual and internal first, a GS1 prefix provider later (design §16) | at P11 start | Recommended there |
-| Which symbologies and printers labels need (F18) | P0 | |
+| Further issues discovered during implementation | the affected phase | Record findings and decisions here; the original open choices are resolved below |
 
 Merging duplicates (`merge#Product`, design §16) is `later`, there and in §7.
 
@@ -518,6 +503,14 @@ is written there too.
 | F23 | P0: `example/test/gallery-shots.mjs` was removed (67df2c1e, Oct 26) for `moqui test-client example --serve --spec GalleryShots`, which shoots 1280 in light and some screens at 390 and in dark | A BOSS client spec on that pattern (§2) |
 | F24 | P0: `OrderItem.standardCost` exists and is audit-logged; its description is purchase accounting cost | P0 checks it before P9 sets it on sales lines |
 | F25 | P0: the review the design cites (`review-core-apps.md`, with its R- IDs and §4.1 steps) is only on branch `review-core-apps` (0e53a04) | A §5 question |
+| F26 | P0: `get#OrderProductPrice` derives parties from OrderPart/store; `check#OrderPreApprove` calls the type resolver for sales min/max; Marble QuickItems omits vendor; procure-to-pay directly passes external vendor/internal buyer and expects 9.00/8.00 | P5b infers legacy direction from party roles and preserves default public sales lookup; regression specs unchanged |
+| F27 | P0: REST has raw price GET/POST/PATCH/DELETE, and Marble Catalog uses entity-auto writes; clone also copies raw prices | REST uses guarded services in P5; Products clone goes through the domain writers; Marble source stays read only |
+| F28 | P0: PartySetting.settingValue is text-medium (255); structured defaults also need versions | Add Mantle catalog settings records in P2; no field widening |
+| F29 | P0: view-tree keys by the first key field; existing children/ancestor/move protocols assume record identity | Add optional occurrence/parent-occurrence fields with legacy defaults, keeping category edge identity in move payloads (P3) |
+| F30 | P0: barcode.rs has a reusable linear SVG renderer; script API exposes code128Svg. qrcodegen 1.8.0 declares MIT and datamatrix 0.3.3 Apache-2.0 OR MIT (both allowed by deny.toml) | Add linear encoders, QR/DataMatrix wrappers and shared GS1 parsing in P11; run dependency gate; no printer-driver subsystem |
+| F31 | P0: OrderItem.standardCost is consumed by AssetServices receipt acquisition and CarrierServices; no sales-cost meaning exists | Preserve purchase semantics; approved estimates populate sales snapshots only (P9) |
+| F32 | P0: ProductFacility/Location already own reorder/location fields, with no tracking fields; proposed BOM versions, WorkCenter/Rate and AssetBookEvent do not exist. LedgerServices.post#AcctgTrans checks fiscal periods | P7 uses WarehousePolicy tracking records; P8 uses new immutable versions beside legacy templates; P9 requires configured accounts/open periods and value-only events, never receipt rewrites |
+| F33 | P0: Commons tasks already support assigned WetTask rows and generic WorkEffortRecord links | Catalog-review activities are assigned tasks linked to catalog records; no parallel activity model |
 
 ## 7. Later
 

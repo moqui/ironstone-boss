@@ -11,10 +11,11 @@ function recipients(r){
  for(const m of memberships)(groups[m.userId]||=new Set()).add(m.userGroupId)
  const role=d==='purchase'?'BOSS_PRODUCTS_SUPPLIER_PRICE_':'BOSS_PRODUCTS_PRICE_',out=[]
  for(const [userId,g]of Object.entries(groups)){
-  const admin=g.has('ADMIN');if(!admin&&(!g.has('BOSS_PRODUCTS')||!g.has(role+'READ')&&!g.has(role+'EDIT')))continue
+  const admin=g.has('ADMIN'),productAdmin=g.has('BOSS_PRODUCTS_ADMIN');if(!admin&&(g.has('BOSS_PROJECT_CLIENT')||!productAdmin&&(!g.has('BOSS_PRODUCTS')||!g.has(role+'READ')&&!g.has(role+'EDIT'))))continue
+  if([r.vendorPartyId,r.customerPartyId].filter(Boolean).some(id=>{const party=one('mantle.party.Party',{partyId:id});return !party||party.privateOwnerUserId&&party.privateOwnerUserId!==userId||!admin&&party.ownerPartyId&&!['_NA_',org].includes(party.ownerPartyId)&&id!==org}))continue
   if(!admin&&product.ownerPartyId!=='_NA_'&&product.ownerPartyId!==org)continue
   const u=one('moqui.security.UserAccount',{userId});if(!u?.partyId)continue
-  if(!rows('mantle.party.PartyRelationship',{fromPartyId:u.partyId,toPartyId:org,toRoleTypeId:'OrgInternal'}).some(effective))continue
+  if(!rows('mantle.party.PartyRelationship',{fromPartyId:u.partyId,toPartyId:org}).some(r=>effective(r)&&['PrtAgent','PrtEmployee','PrtMember'].includes(r.relationshipTypeEnumId)))continue
   out.push(userId)
  }
  return out

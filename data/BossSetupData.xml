@@ -13,102 +13,21 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <entity-facade-xml type="seed-initial">
-    <!-- An artifact group and authz per IronStone app, via its root screen. Commons and Comms are for everyone who signs
-        in (design-drawers-commons.md §2) but the Projects client contacts, denied them below (design-projects.md §1.1; their
-        ALL_USERS authz is AUTHZT_ALLOW, not AUTHZT_ALWAYS, so a deny reaches; impl-projects.md F3, P10); a deployment narrows that
-        with its own authz. Each business app is ADMIN only
-        until its design file names its user groups. The active organization limits finds and search, as in PopCommerce;
-        MANTLE_USER_ORG limits to all the user's orgs. MANTLE_PRIVATE_CONTACT keeps another user's personal contacts
-        hidden whether or not an organization is active. -->
-    <artifactGroups artifactGroupId="BOSS_COMMONS" description="IronStone Commons App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Commons.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_COMMONS_ALL_USERS" userGroupId="ALL_USERS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_COMMS" description="IronStone Comms App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Comms.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_COMMS_ALL_USERS" userGroupId="ALL_USERS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-
-    <!-- Not yet implemented:
-    <artifactGroups artifactGroupId="BOSS_SALES" description="IronStone Sales App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Sales.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_SALES_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_MARKETING" description="IronStone Marketing App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Marketing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_MARKETING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_CUSTOMER_SERVICE" description="IronStone Customer Service App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/CustomerService.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_CUSTOMER_SERVICE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_COMMERCE" description="IronStone Commerce App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Commerce.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_COMMERCE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_PURCHASING" description="IronStone Purchasing App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Purchasing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_PURCHASING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_WAREHOUSE" description="IronStone Warehouse App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Warehouse.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_WAREHOUSE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_MANUFACTURING" description="IronStone Manufacturing App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Manufacturing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_MANUFACTURING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_MAINTENANCE" description="IronStone Maintenance App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Maintenance.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_MAINTENANCE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_ACCOUNTING" description="IronStone Accounting App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Accounting.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCOUNTING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_PEOPLE" description="IronStone People App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/People.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_PEOPLE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-
-    <artifactGroups artifactGroupId="BOSS_INSIGHTS" description="IronStone Insights App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Insights.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_INSIGHTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    <artifactGroups artifactGroupId="BOSS_ADMIN" description="IronStone Admin App (via root screen)">
-        <artifacts artifactName="component://mr-boss/screen/Admin.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ADMIN_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
-            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-    </artifactGroups>
-    -->
-    <!-- Products P1: grants compose. Services independently check the action and owner. -->
+    <!-- Groups precede the authorization rows that reference them. -->
+    <moqui.security.UserGroup userGroupId="BOSS_COMMONS_ADMIN" description="Commons administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_COMMS_ADMIN" description="Comms administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_SALES_ADMIN" description="Sales administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MARKETING_ADMIN" description="Marketing administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_CUSTOMER_SERVICE_ADMIN" description="Customer Service administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_COMMERCE_ADMIN" description="Commerce administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PURCHASING_ADMIN" description="Purchasing administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_ADMIN" description="Warehouse administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MAINTENANCE_ADMIN" description="Maintenance administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_ADMIN" description="Accounting administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PEOPLE_ADMIN" description="People administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_INSIGHTS_ADMIN" description="Insights administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_ADMIN_ADMIN" description="Admin administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PROJECTS_ADMIN" description="Projects administrator"/>
     <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS" description="Catalog reader"/>
     <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" description="Catalog editor"/>
     <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_PRICE_READ" description="Price reader"/>
@@ -121,16 +40,143 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroup userGroupId="BOSS_PRODUCTS_ADMIN" description="Catalog administrator"/>
     <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" description="Stock planner"/>
     <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_MANAGER" description="Warehouse manager"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" description="Work-center administrator"/>
     <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_READ" description="Method reader"/>
     <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_METHOD" description="Method engineer"/>
     <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" description="Method approver"/>
-    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_ADMIN" description="Work-center administrator"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_ADMIN" description="Manufacturing administrator"/>
     <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_GL" description="General ledger posting"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_TEAM" description="Project team (IronStone Projects): employees and contractors who do project work"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_MANAGER" description="Project managers (IronStone Projects): project, delivery and resource managers, and who bills the work"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_CLIENT" description="Project clients (IronStone Projects): client contacts with a user account"/>
+    <moqui.security.UserGroup userGroupId="BOSS_CONTACT_ADMIN" description="Contact admins (IronStone): edit and delete directory contacts, review duplicates"/>
+
+    <!-- Ordinary users carry MANTLE_USER_ORG and private-contact filters. App administrators carry
+        MANTLE_ACTIVE_ORG and private-contact filters; framework ADMIN records retain their grants.
+        Every service still verifies its own owner, organization and action capability. -->
+    <artifactGroups artifactGroupId="BOSS_COMMONS" description="IronStone Commons App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Commons.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_COMMONS_ALL_USERS" userGroupId="ALL_USERS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_USER_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_COMMONS_APPADMIN" userGroupId="BOSS_COMMONS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_COMMS" description="IronStone Comms App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Comms.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_COMMS_ALL_USERS" userGroupId="ALL_USERS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_USER_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_COMMS_APPADMIN" userGroupId="BOSS_COMMS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+
+    <!-- App administrators have root access; business capabilities are still checked by domain services. -->
+    <artifactGroups artifactGroupId="BOSS_SALES" description="IronStone Sales App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Sales.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_SALES_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_SALES_APPADMIN" userGroupId="BOSS_SALES_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_MARKETING" description="IronStone Marketing App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Marketing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_MARKETING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_MARKETING_APPADMIN" userGroupId="BOSS_MARKETING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_CUSTOMER_SERVICE" description="IronStone Customer Service App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/CustomerService.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_CUSTOMER_SERVICE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_CUSTOMER_SERVICE_APPADMIN" userGroupId="BOSS_CUSTOMER_SERVICE_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_COMMERCE" description="IronStone Commerce App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Commerce.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_COMMERCE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_COMMERCE_APPADMIN" userGroupId="BOSS_COMMERCE_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PURCHASING" description="IronStone Purchasing App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Purchasing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PURCHASING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_PURCHASING_APPADMIN" userGroupId="BOSS_PURCHASING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_WAREHOUSE" description="IronStone Warehouse App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Warehouse.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_WAREHOUSE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_WAREHOUSE_APPADMIN" userGroupId="BOSS_WAREHOUSE_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_MANUFACTURING" description="IronStone Manufacturing App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Manufacturing.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_MANUFACTURING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_MANUFACTURING_APPADMIN" userGroupId="BOSS_MANUFACTURING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_MAINTENANCE" description="IronStone Maintenance App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Maintenance.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_MAINTENANCE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_MAINTENANCE_APPADMIN" userGroupId="BOSS_MAINTENANCE_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_ACCOUNTING" description="IronStone Accounting App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Accounting.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_ACCOUNTING_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_ACCOUNTING_APPADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PEOPLE" description="IronStone People App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/People.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PEOPLE_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_PEOPLE_APPADMIN" userGroupId="BOSS_PEOPLE_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+
+    <artifactGroups artifactGroupId="BOSS_INSIGHTS" description="IronStone Insights App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Insights.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_INSIGHTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_INSIGHTS_APPADMIN" userGroupId="BOSS_INSIGHTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_ADMIN" description="IronStone Admin App (via root screen)">
+        <artifacts artifactName="component://mr-boss/screen/Admin.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_ADMIN_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_ADMIN_APPADMIN" userGroupId="BOSS_ADMIN_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+    </artifactGroups>
+    <!-- Products P1: grants compose. Services independently check the action and owner. -->
     <artifactGroups artifactGroupId="BOSS_PRODUCTS" description="IronStone Products">
         <artifacts artifactName="component://mr-boss/screen/Products.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
             <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
         <authz artifactAuthzId="BOSS_PRODUCTS_READER" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_USER_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_PRODUCTS_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
             <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SERVICES" description="Guarded catalog services">
@@ -138,7 +184,7 @@ along with this software (see the LICENSE.md file). If not, see
         <artifacts artifactName="ironstone\.products\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_SYSADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_READ" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL"/>
-    </artifactGroups>
+    <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_PRICES" description="Products Prices capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Shared/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_READ" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_EDIT" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
@@ -147,13 +193,13 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_READ" userGroupId="BOSS_PRODUCTS_COST_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_ESTIMATE" userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_APPROVE" userGroupId="BOSS_PRODUCTS_COST_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-    </artifactGroups>
+    <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SUPPLIERPRICES" description="Products SupplierPrices capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERPRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIER_READ" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIER_EDIT" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-    </artifactGroups>
+    <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERPRICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SETTINGS" description="Products Settings capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/Settings.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SETTINGS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
@@ -218,24 +264,23 @@ along with this software (see the LICENSE.md file). If not, see
         its menu; the client contacts (impl-projects.md P10) are ALLOW under the BOSS_PROJECT_CLIENT filter set, denied the
         managers' and the internal screens (BOSS_PROJECTS_INTERNAL), every write of an IronStone service or a Mantle entity, and
         Commons and Comms, so Projects' shared part is their whole BOSS. -->
-    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_TEAM" description="Project team (IronStone Projects): employees and contractors who do project work"/>
-    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_MANAGER" description="Project managers (IronStone Projects): project, delivery and resource managers, and who bills the work"/>
-    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_CLIENT" description="Project clients (IronStone Projects): client contacts with a user account"/>
     <artifactGroups artifactGroupId="BOSS_PROJECTS" description="IronStone Projects App (via root screen)">
         <artifacts artifactName="component://mr-boss/screen/Projects.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PROJECTS_ADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
             <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
         <authz artifactAuthzId="BOSS_PROJECTS_MANAGER" userGroupId="BOSS_PROJECT_MANAGER" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_USER_ORG"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
         <authz artifactAuthzId="BOSS_PROJECTS_TEAM" userGroupId="BOSS_PROJECT_TEAM" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/>
+            <filters entityFilterSetId="MANTLE_USER_ORG"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
         <!-- the client contacts: the client filter set in place of the organization filter (design-projects.md §1.1) -->
         <authz artifactAuthzId="BOSS_PROJECTS_CLIENT" userGroupId="BOSS_PROJECT_CLIENT" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
             <filters entityFilterSetId="BOSS_PROJECT_CLIENT"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <authz artifactAuthzId="BOSS_PROJECTS_APPADMIN" userGroupId="BOSS_PROJECTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PROJECTS_MANAGERS" description="IronStone Projects screens for managers only">
         <artifacts artifactName="component://mr-boss/screen/Projects/WorkItems/Import.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
@@ -450,7 +495,6 @@ along with this software (see the LICENSE.md file). If not, see
         duplicates (Commons/Contacts/Duplicates), with Mantle's CONTACT_ADMIN permission (which the ADMIN group has too). A pair
         a contact admin marks "not a duplicate" is Mantle's PartyNotDuplicate; the PartySetting BossNotDuplicates that held such
         pairs before is moved to it on a load (ironstone.commons.ContactServices.migrate#NotDuplicateSettings, nothing to do once done). -->
-    <moqui.security.UserGroup userGroupId="BOSS_CONTACT_ADMIN" description="Contact admins (IronStone): edit and delete directory contacts, review duplicates"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_CONTACT_ADMIN" userPermissionId="CONTACT_ADMIN" fromDate="0"/>
     <ironstone.commons.ContactServices.migrate-NotDuplicateSettings/>
 
@@ -509,9 +553,9 @@ along with this software (see the LICENSE.md file). If not, see
 <artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_FEATURE_GROUP"><artifacts artifactName="component://mr-boss/screen/Products/Features/FeatureGroups/NewGroup.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
 <artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS"><artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilder.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
 <artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS_TUI"><artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilderTui.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_BULK_PRICE"><artifacts artifactName="component://mr-boss/screen/Products/Products/BulkPrice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_EDIT" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SUP" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
+<artifactGroups artifactGroupId="BOSS_PRODUCTS_BULK_PRICE"><artifacts artifactName="component://mr-boss/screen/Products/Products/BulkPrice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_EDIT" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SUP" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
 <moqui.security.user.NotificationTopic topic="ProductPriceChanged" inboxEnumId="NinUpdates" description="Catalog price changes" titleTemplate="Price changed for ${productName}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="info"/>
 <moqui.security.user.NotificationTopic topic="ProductPriceExpiring" inboxEnumId="NinNotifications" description="Expiring catalog prices" titleTemplate="Price for ${productName} expires ${thruDate}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="warning"/>
 <moqui.service.job.ServiceJob jobName="send_ExpiringProductPrices" serviceName="ironstone.products.PriceNoticeServices.send#ExpiringPriceNotices" description="Notify authorized pricing staff about prices ending in 30 days" cronExpression="0 0 6 * * ?" paused="N"/>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_LISTS" description="Shared price-list and explanation capabilities"><artifacts artifactName="component://mr-boss/screen/Shared/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceListDetail.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_0" userGroupId="BOSS_PRODUCTS_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_1" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_2" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_3" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_4" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
+<artifactGroups artifactGroupId="BOSS_PRODUCTS_LISTS" description="Shared price-list and explanation capabilities"><artifacts artifactName="component://mr-boss/screen/Shared/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceListDetail.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_0" userGroupId="BOSS_PRODUCTS_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_1" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_2" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_3" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_4" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
 </entity-facade-xml>

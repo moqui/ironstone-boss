@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <transition name="rows" read-only="true">
+        <actions>
+            <service-call name="mantle.party.PartyServices.setup#UserOrganizationInfo" out-map="context"/>
+            <entity-find entity-name="mantle.product.Product" list="products"><econdition field-name="productId" operator="like" value="ORG_FILTER_%"/><order-by field-name="productId"/></entity-find>
+            <entity-find entity-name="mantle.product.category.ProductCategory" list="categories"><econdition field-name="productCategoryId" operator="like" value="ORG_FILTER_%"/><order-by field-name="productCategoryId"/></entity-find>
+            <entity-find entity-name="mantle.product.feature.ProductFeature" list="features"><econdition field-name="productFeatureId" operator="like" value="ORG_FILTER_%"/><order-by field-name="productFeatureId"/></entity-find>
+            <entity-find entity-name="mantle.party.Party" list="parties"><econdition field-name="partyId" operator="like" value="ORG_FILTER_%"/><order-by field-name="partyId"/></entity-find>
+            <script>ec.web.sendJsonResponse({products:Array.from(products,r=>r.productId),categories:Array.from(categories,r=>r.productCategoryId),features:Array.from(features,r=>r.productFeatureId),parties:Array.from(parties,r=>r.partyId),activeOrgId,filterOrgIds,userActiveOrgId:ec.user.context.activeOrgId,filters:Array.from(ec.artifactExecution.getFindFiltersForUser('mantle.product.Product')||[],r=>r.entityFilterSetId)})</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <widgets><label text="Organization-filter test fixture"/></widgets>
+</screen>

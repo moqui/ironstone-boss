@@ -25,7 +25,7 @@ feature('the Products menu follows the composed grants', {
         {user: 'catalog.cost.read', extra: ['Prices']},
         {user: 'catalog.cost.estimate', extra: ['Prices']},
         {user: 'catalog.cost.approve', extra: ['Prices']},
-        {user: 'catalog.admin', extra: ['Settings']},
+        {user: 'catalog.admin', extra: ['Prices', 'SupplierPrices', 'Settings']},
     ],
     when({user}) {
         return asProductUser(user, () => {

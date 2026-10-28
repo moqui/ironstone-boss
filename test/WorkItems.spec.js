@@ -112,7 +112,7 @@ feature("the smart lists and the find narrow the work items, each row with its t
     },
 })
 
-feature("Joe Developer sees the projects he is on, not the Work group project HIRE; Bob only IRON", {
+feature("Employees see their member and organization-visible projects; the Work group project HIRE stays private", {
     when() {
         return { joe: as("joe.developer", () => idsOf(rows({ list: "all" }))), bob: as("bob.developer", () => idsOf(rows({ list: "all" }))),
             joeOptions: as("joe.developer", () => sys(() => call("ironstone.projects.WorkItemServices.get#ProjectOptions", {}).projectList.map((option) => option.key))) }
@@ -122,7 +122,7 @@ feature("Joe Developer sees the projects he is on, not the Work group project HI
         joe.includes("ACME-3")
         !joe.includes("HIRE-1")
         bob.includes("IRON-9")
-        !bob.includes("ACME-1")
+        bob.includes("ACME-1")
         !bob.includes("HIRE-1")
         joeOptions.includes("IRON")
         !joeOptions.includes("HIRE")

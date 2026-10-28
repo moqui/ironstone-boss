@@ -49,6 +49,10 @@ const personOf = (planner, partyId) => planner.personList.find((person) => perso
 spec({
     setupSpec() {
         login("john.doe")
+        sys(() => {
+            call('create#mantle.party.Party',{partyId:'BOSS_RESOURCE_UNSHARED',partyTypeEnumId:'PtyPerson',ownerPartyId:'ORG_ZIZI_SERVICES'})
+            call('create#mantle.party.Person',{partyId:'BOSS_RESOURCE_UNSHARED',firstName:'Unassigned',lastName:'Colleague'})
+        })
         ec.artifactExecution.enableAuthz()
     },
     cleanupSpec() {
@@ -132,7 +136,7 @@ feature("joe.developer sees the plan read only: no changes, no requests to decid
     },
 })
 
-feature("Allocations' Requested list and the staffing dialog for john.doe; Ana's PersonDetail tabs; bob may not open Ana", {
+feature("Allocations' Requested list and the staffing dialog for john.doe; Ana's PersonDetail tabs; Bob sees a person on a shared project but not an unrelated colleague", {
     when() {
         const requested = render("apps/Projects/Resources/Allocations", { list: "requested" })
         const placeholder = sys(() => Array.from(ec.entity.find("mantle.work.effort.WorkEffortAllocation").condition({ rootWorkEffortId: "ACME" })
@@ -143,9 +147,11 @@ feature("Allocations' Requested list and the staffing dialog for john.doe; Ana's
         for (const tab of ["Overview", "Allocations", "WorkItems", "Time", "Capacity"]) tabs[tab] = render(`apps/Projects/Resources/PersonDetail/${tab}`, { partyId: "EX_PRJ_ANA" })
         const joeTime = render("apps/Projects/Resources/PersonDetail/Time", { partyId: "ORG_ZIZI_JD" })
         const bob = as("bob.developer", () => render("apps/Projects/Resources/PersonDetail", { partyId: "EX_PRJ_ANA" }))
-        return { requested, staff, edit, tabs, joeTime, bob }
+        const unrelated = as("bob.developer", () => render("apps/Projects/Resources/PersonDetail", {partyId:"BOSS_RESOURCE_UNSHARED"}))
+        const bobAccess=as("bob.developer",()=>sys(()=>call("ironstone.projects.ResourceServices.get#PersonAccess",{partyId:"EX_PRJ_ANA"})))
+        return { requested, staff, edit, tabs, joeTime, bob, unrelated, bobAccess }
     },
-    then({ requested, staff, edit, tabs, joeTime, bob }) {
+    then({ requested, staff, edit, tabs, joeTime, bob, unrelated, bobAccess }) {
         requested.status == 200
         !requested.broken
         requested.output.includes("Requested · 2")
@@ -166,7 +172,11 @@ feature("Allocations' Requested list and the staffing dialog for john.doe; Ana's
         tabs.Allocations.output.includes("Acme customer portal")
         tabs.Capacity.output.includes("Capacity by week")
         joeTime.output.includes("The support queue")
-        bob.output.includes("This person is not available")
+        bobAccess.canView == true
+        bob.status == 200
+        !bob.broken
+        !bob.output.includes("This person is not available")
+        unrelated.output.includes("This person is not available")
     },
 })
 

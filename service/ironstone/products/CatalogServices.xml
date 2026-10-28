@@ -12,7 +12,7 @@
         <actions><script><![CDATA[
             const admin = !!ec.user.userId && ec.user.isInGroup('ADMIN')
             const blockedClient = !!ec.user.userId && !admin && ec.user.isInGroup('BOSS_PROJECT_CLIENT')
-            const has = (group) => !!ec.user.userId && !blockedClient && (admin || ec.user.isInGroup(group))
+            const has = (group) => !!ec.user.userId && !blockedClient && (admin || ec.user.isInGroup(group) || group.startsWith('BOSS_PRODUCTS') && ec.user.isInGroup('BOSS_PRODUCTS_ADMIN'))
             const grants = {
                 read: 'BOSS_PRODUCTS', catalogEdit: 'BOSS_PRODUCTS_CATALOG_EDIT',
                 priceRead: 'BOSS_PRODUCTS_PRICE_READ', priceEdit: 'BOSS_PRODUCTS_PRICE_EDIT',
@@ -21,7 +21,7 @@
                 costApprove: 'BOSS_PRODUCTS_COST_APPROVE', catalogAdmin: 'BOSS_PRODUCTS_ADMIN',
                 stockPlan: 'BOSS_WAREHOUSE_STOCK_PLANNER', stockManage: 'BOSS_WAREHOUSE_MANAGER',
                 methodRead: 'BOSS_MANUFACTURING_READ', methodEdit: 'BOSS_MANUFACTURING_METHOD',
-                methodApprove: 'BOSS_MANUFACTURING_METHOD_APPROVE', methodAdmin: 'BOSS_MANUFACTURING_ADMIN',
+                methodApprove: 'BOSS_MANUFACTURING_METHOD_APPROVE', methodAdmin: 'BOSS_MANUFACTURING_RESOURCE_ADMIN',
                 glPost: 'BOSS_ACCOUNTING_GL'
             }
             capabilities = {systemAdmin: admin}

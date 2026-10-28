@@ -72,6 +72,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
+  - parties by role;
+  - changes by effective date and the audit log (added Oct 28, from P4 on; §4);
   - demo data;
   - builds and commits.
 
@@ -386,8 +388,9 @@ Built in two parts: P5a the price rows, then P5b the lists, rules and resolver.
     - availability and source flags;
     - anonymous callers get the public price only;
     - the modifier interface gains context and the trace.
-  - `OrderItem.priceListId`, `priceRuleId` and `priceRuleVersion`, stored by `create#OrderItem` and
-    `add#OrderProductQuantity`.
+  - `OrderItem.priceListId` and `priceRuleId`, stored by `create#OrderItem` and `add#OrderProductQuantity`. Lists and
+    rules are effective-dated rows with their key fields audit-logged, and a change ends a rule and starts another, so
+    the stored rule pins what applied (impl-drawers-commons §4); no rule version field.
   - `Shared/PriceLists`, `PriceListDetail` and `PriceExplain`, with the Products row of their per-app table.
   - PricingSettings.
   - The effective price list print.
@@ -454,8 +457,10 @@ These are Manufacturing's contracts (§4), built to design-manufacturing §5 and
 ### P9 — Standard costs
 
 - **PRD-COST.**
-  - `mantle.product.cost.ProductStandardCost`, keyed by `productStandardCostId` and `versionSeqId`, and
-    `ProductStandardCostComponent`.
+  - `mantle.product.cost.ProductStandardCost`, keyed by `productStandardCostId` and effective-dated by organization
+    and product (`fromDate`, `thruDate`), with its amounts audit-logged, and `ProductStandardCostComponent`. Approval
+    starts the estimate's row and ends the one before it; no `versionSeqId` (impl-drawers-commons §4). The approved
+    estimate's PDF is stored with it.
   - `mantle.product.CostServices`:
     - `find#ProductStandardCosts`;
     - `store#ProductStandardCost` and `store#StandardCostComponent`;
@@ -557,6 +562,7 @@ or into the owner's design.
 | Oct 28, 2026 | Phase order: the catalog first; then the other apps' contracts that Product360 and the roll-up need; then documents, units, import and checks | The user's call |
 | Oct 28, 2026 | Products builds the parts of other apps' needs it depends on: Warehouse's `store#ProductFacilityPolicy` and TrackingPolicy (P7); Manufacturing's versioned methods, with the five shared method screens and `get#OperationCostBasis` (P8); Accounting's `preview#` and `post#Revaluation`, with their two dialogs (P9). These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call. The alternative was tabs that wait for their apps |
 | Oct 28, 2026 | The shared screens Products builds first carry the Products context only. Another app's context is added when that app is built, as InvoiceDetail and OrderDetail were in Projects | Follows from the above |
+| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply from P4 on: parties by role, and changes by effective date and the audit log. Price lists and rules (P5b) and standard costs (P9) are effective-dated rows with audit-logged key fields, with no version fields; ProductParty, ProductPrice's dates and P5a's audit log already follow them. What was built before (P2's settings) and the methods (P8) are §5's questions | The user's call, in the Purchasing plan review (impl-purchasing §4) |
 
 Decisions confirmed with the user before implementation:
 
@@ -578,6 +584,8 @@ Decisions confirmed with the user before implementation:
 | Question | Decides | Notes |
 | --- | --- | --- |
 | Further issues discovered during implementation | the affected phase | Record findings and decisions here; the original open choices are resolved below |
+| P2's organization catalog settings, built as immutable structured revisions with optimistic revision checks, against the shared effective-date rule (§4): move them to effective-dated rows with audit-logged key fields, or keep them as built | before P14 | Recommended: move them at P14, keeping the settings' readers; the confirmed decision below chose versioned records before the rule existed |
+| The methods (P8) under the shared effective-date rule: BOM and routing versions as effective-dated Mantle rows (the PatMfgBom ProductAssoc lines and routing WorkEffort templates) with the audit log, a release stamping their from date and a comparison reading two dates; or the designed `ProductBomVersion` and `RoutingVersion` records | before P8 | Recommended: the rule, Mantle's existing method pattern. Warehouse P16's run snapshots (impl-warehouse §5) and Manufacturing (its §5) follow the answer |
 
 Merging duplicates (`merge#Product`, design §16) is `later`, there and in §7.
 

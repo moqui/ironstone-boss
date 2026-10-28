@@ -1,6 +1,7 @@
 # IronStone BOSS — Warehouse implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F32, found while writing it); five open questions decided (§4)
+Oct 28, 2026 — plan; P0 partly done (F1–F32, found while writing it); five open questions and the shared party-role
+and effective-date rules decided (§4)
 
 How [design-warehouse.md](design-warehouse.md) gets built, in phases from the foundation to the reports, each ending
 tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md) and
@@ -105,6 +106,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
+  - parties by role;
+  - changes by effective date and the audit log;
   - demo data;
   - builds and commits.
 
@@ -279,7 +282,8 @@ and F13 call for, and those of the Oct 28 decisions in §4, are made when P0 clo
     `store#OperationPolicy`;
   - the facility reservation default without a store, through `store#ReservationPolicy`;
   - `resolve#WarehousePolicy` and its trace: organization, facility, store override, product exception;
-  - versions with effective dates and audit. A change applies at posting and rewrites no history.
+  - effective-dated rows with their key fields audit-logged (impl-drawers-commons §4): a change ends one row and
+    starts the next, applies at posting and rewrites no history.
 - **Screens** (design §14):
   - Settings;
   - StockPolicies: OperationPolicy, TrackingPolicy, ProductTrackingExceptions (the records Product360/Stock shows) and
@@ -421,9 +425,14 @@ and F13 call for, and those of the Oct 28 decisions in §4, are made when P0 clo
 
 These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 
-- **Records:** `mantle.product.quality.InspectionTemplate` and `InspectionTemplateItem` (versioned; a published
-  revision is immutable), `QualityInspection`, `InspectionReading` and `QualityInspectionContent`. The one disposition
-  vocabulary is seeded: Release, Quarantine, Rework or repair, Return to customer, Return to supplier, Scrap, Use as is.
+- **Records:** `mantle.product.quality.InspectionTemplate` and `InspectionTemplateItem`, `QualityInspection`,
+  `InspectionReading` and `QualityInspectionContent`. The one disposition vocabulary is seeded: Release, Quarantine,
+  Rework or repair, Return to customer, Return to supplier, Scrap, Use as is.
+  - Template revisions follow the shared rule (impl-drawers-commons §4), not version records: template items are
+    effective-dated rows with their key fields audit-logged. Publishing stamps their from date; a change to a published
+    item ends it and starts a new row, never editing it in place. An inspection keeps its template and the time it was
+    created, and reads the items as of then; Revision history reads the rows and the audit log, and the template
+    prints as of a date.
 - **`mantle.product.QualityServices`:**
   - `store#InspectionTemplate`, `create#Inspection`, `save#InspectionReading`, `submit#Inspection` and
     `verify#Inspection`, which a separate role runs;
@@ -444,7 +453,8 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - a receipt that needs inspection lands in quarantine, and its held quantity shows to matching;
   - an inspector saves readings and submits;
   - a quality manager releases part, which is reserved first to the waiting order, and scraps the rest;
-  - an inspector cannot verify, and a published template revision cannot be edited.
+  - an inspector cannot verify; a change to a published template item starts a new row, and an earlier inspection
+    still shows the items it used.
 
 ### P9 — Putaway
 
@@ -651,12 +661,14 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 These are Manufacturing's contracts (§4), built to design-manufacturing NewWorkOrder, WorkOrderDetail,
 MaterialIssueReceipt and SubcontractDetail, and M2 and M4 of its §12; and Purchasing's service acceptance, built to
 design-purchasing PUR-RECEIPT. They use Products P8's released BOM and routing versions and P9's approved standard
-costs. Built in two parts: P16a the runs and their snapshots, then P16b the stock guards.
+costs. Built in two parts: P16a the runs and their snapshots, then P16b the stock guards. Whether the snapshot records
+stay, or the run's own WorkEffortProduct rows and operation children become its frozen copy under the shared
+effective-date rule, is §5's question; P16a below is the designed form.
 
 - **P16a, the runs (part of M4).**
   - Records:
     - `mantle.work.production.ProductionRunSnapshot`: the run, its revision, the BOM, routing and policy versions,
-      the frozen standard cost (`productStandardCostId` and `versionSeqId`) and the demand IDs;
+      the frozen standard cost (its effective-dated `productStandardCostId`, Products P9) and the demand IDs;
     - `ProductionMaterialSnapshot`: the immutable material and output lines, each with its source BOM item, role,
       product, quantity and unit, exact stock conversion, and operation;
     - `ProductionOperationSnapshot`: each operation child with its routing operation, sequence and work center.
@@ -746,7 +758,8 @@ design-warehouse.md, or into the owner's design.
 | Oct 28, 2026 | Warehouse builds Purchasing's `close#PurchaseRemainders` (P7) and `find#ReturnableReceipts` with its receipt link (P14), as Purchasing's contracts. Purchasing is built later | The user's call, since both are small. Each is one service, over `cancel#OrderItem` or receipt and return reads |
 | Oct 28, 2026 | The cycle-count schedule is flexible (P10): CountSchedule rows of WarehousePolicy by facility, location type, area or location, product category or ABC class, each periodic every N days, annual on a date, or zero confirmation. Last count dates are kept on FacilityLocation and ProductFacility; the next date is the earlier of the periodic and annual dates; the short-pick recount and Request a count are ad hoc dues. Accuracy- and movement-based frequencies, and computed ABC classes, are §7 | The user's call, from the common options. Odoo: a location's frequency in days with last and next dates, the company's annual count date, and Request a count with a date and assignee. OCA's stock_cycle_count for Odoo (not in the checkouts): periodic, zero-confirmation, accuracy and turnover rules. SAP and NetSuite: ABC classes with a frequency per class. ERPNext has no schedule; its counts are Stock Reconciliation entries. Carbon scopes counts by storage unit, item type, storage type and tags, with no schedule. Ever Gauzy has full, cycle, spot and recount modes |
 | Oct 28, 2026 | Labels are PDF only in the first release; ZPL, with FacilityPrinter's format field, is §7 | The user's call. The design's §19 recommendation, without its ZPL option |
-| Oct 28, 2026 | Warehouse also builds Manufacturing's production runs and their snapshots (P16a): `create#ProductionOrder`, `release#ProductionOrder` and the run, material and operation snapshot records of M4. The guards key the snapshot lines, and output takes the frozen standard cost. Manufacturing's screens, and the rest of M4 and of M2, stay Manufacturing's | The user's call, to the existing design. It removes the stand-in line keys that P16 would otherwise need |
+| Oct 28, 2026 | Warehouse also builds Manufacturing's production runs and their snapshots (P16a): `create#ProductionOrder`, `release#ProductionOrder` and the run, material and operation snapshot records of M4. The guards key the snapshot lines, and output takes the frozen standard cost. Manufacturing's screens, and the rest of M4 and of M2, stay Manufacturing's | The user's call, to the existing design. It removes the stand-in line keys that P16 would otherwise need. The snapshot form is reopened in §5 by the shared rule below |
+| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply: parties by role, and changes by effective date and the audit log. Here: WarehousePolicy and CountSchedule are effective-dated rows with audit-logged key fields; inspection templates change by effective-dated items (P8); the Custodian FacilityParty role stays (P15). Mantle's existing audit-logged Asset, Shipment, Lot and ReturnItem fields are kept | The user's call, in the Purchasing plan review (impl-purchasing §4) |
 
 ## 5. Open questions
 
@@ -760,6 +773,7 @@ design-warehouse.md, or into the owner's design.
 | The ABC classes: their enumeration, and whether a class is per product or per product at a facility (`ProductFacility`, as P10 assumes) | at P10 start | Set by hand first; computed classes are §7 |
 | Reopening a package whose invoice Mantle finalized at pack (F11) | before P12 | Accounting's answer to its F25 (impl-accounting §5, before its P17) |
 | A test shipping gateway, since Mantle has none (F14) | at P13 start | It needs rates, labels, a timeout and a refund |
+| Production runs under the shared effective-date rule (impl-drawers-commons §4): the run's own WorkEffortProduct rows and operation children, audit-logged and frozen at release, as its copy of the method, with a sequence and unit added to WorkEffortProduct (impl-manufacturing F11); or P16a's ProductionRunSnapshot, ProductionMaterialSnapshot and ProductionOperationSnapshot | before P16 | Recommended: the rule, which Mantle's runs already half follow. It goes with impl-products §5's method question, and Manufacturing's amendments follow (its §5) |
 
 The design's other §19 items are `later` there and in §7.
 

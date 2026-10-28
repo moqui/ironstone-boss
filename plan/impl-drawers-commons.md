@@ -90,6 +90,30 @@ Each finding was verified in the code. Each resolution is now part of the design
 - **`.qvue` screens** copy the gallery pattern (`example/screen/Gallery/Board.qvue`, `Calendar.qvue`): JSON transitions
   with `ec.web.sendJsonResponse`, `moqui.request`, a watch on `$root.currentParameters`, and only `m-*` inputs
   (style-guide §4.8).
+- **Parties by role** (added Oct 28, 2026, for the core apps). A party's part in a record is a row of Mantle's role
+  association for that record, with a seeded RoleType and dated where the entity is: RequestParty, RequirementParty,
+  OrderPartParty, OrderItemParty, AgreementParty, AgreementItemParty, InvoiceParty, ShipmentParty, FacilityParty,
+  ProductParty, WorkEffortParty, BudgetParty, or a PartyRelationship between two parties. A new party field is added
+  only where Mantle already keys the record by that party (OrderPart's vendor and customer, an owner, a filer) or the
+  ledger summarizes by it (a cost centre), and the plan says so.
+- **Changes by effective date and the audit log** (added Oct 28, 2026; the Moqui Java pattern):
+  - Associations, settings and policies change by effective-dated rows. A change ends the current row (`thruDate`) and
+    starts the next (`fromDate`); nothing is overwritten or deleted, and a read takes an as-of date, now by default.
+  - The key fields of a business record (quantities, amounts, prices, dates, parties and status) have
+    `enable-audit-log`, so EntityAuditLog keeps each change with its user, time and reason. Mantle already does this for
+    OrderItem's product, quantity, unit amount and required date, OrderPart's parties and facility, ReturnItem,
+    Shipment, Asset, Agreement and AgreementItem's quantity.
+  - A revision is a point in time: a counter where Mantle has one (`OrderHeader.orderRevision`, itself audit-logged so
+    each number has its time), otherwise a timestamp. A record as of a revision, or as of any date and time, is read
+    back from its current rows and the audit log, as `get#OrderDisplayInfo` and `get#OrderItemDisplayInfo` read item
+    history.
+  - A print takes an effective date and time. A key revision (a sent PO or RFQ, an approved agreement, estimate or
+    budget) also stores its rendered PDF as the record's content (OrderContent, RequestContent, AgreementContent and
+    so on), stamped with that time.
+  - No parallel version, revision or snapshot records for what effective-dated rows, the audit log and stored PDFs
+    cover. A separate record stays only for a fact with an identity of its own, such as an approval decision, a posting
+    or a count, and the plan says why.
+  - Mantle's existing uses of both patterns are kept, not replaced.
 - **Demo data.** BOSS adds `data/BossDemoData.xml` (type demo) per milestone so specs and screenshots have content.
 - **Done for a milestone:**
   - Tests: `cargo test` for the touched crates, with goldens reviewed; the new Mantle specs in `test/suite.js` passing

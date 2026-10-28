@@ -1,7 +1,7 @@
 # IronStone BOSS — Manufacturing implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F21, found while writing it); the phase order and supply planning decided
-(§4)
+Oct 28, 2026 — plan; P0 partly done (F1–F21, found while writing it); the phase order, supply planning, held quantity
+and the shared party-role and effective-date rules decided (§4)
 
 How [design-manufacturing.md](design-manufacturing.md) gets built, in phases from the foundation to the reports, each
 ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md),
@@ -127,6 +127,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
+  - parties by role;
+  - changes by effective date and the audit log;
   - demo data;
   - builds and commits.
 
@@ -336,12 +338,14 @@ The rest of M5 and CX-WORKCENTER (design §6), over Products P8's `WorkCenter` a
 
 ### P4 — Policy and reasons
 
-- **Records:** `mantle.work.production.ProductionPolicy`, versioned and effective-dated, with an organization default
+- **Records:** `mantle.work.production.ProductionPolicy`, effective-dated rows with their key fields audit-logged
+  (impl-drawers-commons §4), with an organization default
   and an explicit plant override (design ProductionSettings): consumption (manual or backflush, issue point,
   over-consumption and overproduction tolerances, substitute approval, quality defaults), time and cost (time-log
   enforcement, machine runtime, work type, piece rate, estimate refresh), and planning (horizon, time fence, shortage
   release policy, calendar, lead-time basis, freshness limit). The production reason codes (design ReasonCodes), with
-  category, equipment fault, planned stop and approval threshold, versioned.
+  category, equipment fault, planned stop and approval threshold, effective-dated. A run keeps the policy row it was
+  released under.
 - **Services:** `store#ProductionPolicy`, `get#ProductionPolicy` with the source of each value, and
   `store#ProductionReasons`.
 - **Screens:** ProductionSettings (Consumption, TimeAndCost with a read-only link to CostingPolicies, Planning) and
@@ -591,15 +595,17 @@ Design §7 ProductionSchedule and Capacity, §3 Operations' Reschedule; M5, the 
 Crosscut CX-PLANNING and §3.20, with design §7 SupplyPlanning (§4). These are a shared contract: crosscut's record
 and service names, and `Shared/SupplyPlanning`, which Purchasing mounts when it is built and Warehouse from its §7.
 
-- **Records:** `mantle.request.requirement.PlanningRun`, `PlanningSuggestion` and `RequirementSupply`, and
-  `Requirement.organizationPartyId` (R-SA-15).
+- **Records:** `mantle.request.requirement.PlanningRun`, `PlanningSuggestion` and `RequirementSupply`. A
+  requirement's organization (R-SA-15) is a RequirementParty in the OrgInternal role, not a new field
+  (impl-drawers-commons §4); `Requirement.quantityUomId` (crosscut §3.20).
 - **`mantle.product.SupplyPlanningServices`:**
   - `run#SupplyPlan`: one current run per organization and facility set; it nets `get#InventoryProjectedInfo`, drafts'
     WeptConsume and WeptProduce rows included, by the run's line and its parent warehouse, with kit assemblies told
     apart from production (F16); it explodes make demand through `get#BomExplosion`, dates releases from the
-    version's lead and preparation days (R-MFG-31), shows held receipts and output as a pending-release line left out
-    of netting (§5), and calls `check#ProductUsable`;
-  - `get#SupplyPlan` and `store#PlanSchedule`, the one schedule;
+    version's lead and preparation days (R-MFG-31), shows held receipts and output as a pending-release line with
+    the inspection's due date, left out of netting (§4), and calls `check#ProductUsable`;
+  - `get#SupplyPlan` and `store#PlanSchedule`, the one schedule. The schedule carries the organization's option to
+    net held quantity whose inspection is due within the lead time (§4); off by default;
   - `convert#PlanningSuggestions`: make through `create#ProductionOrder` with the method version, the RequirementSupply
     link and WorkRequirementFulfillment `WrfDelivers`, under lock and operation identity, a result per group. P14 adds
     the outside-processing buy conversion; ordinary buy and transfer suggestions are shown with their links, and their
@@ -654,7 +660,8 @@ CX-SUBCONTRACT; review §4.1 steps 26–31.
 Accounting's contracts (§4), built to design-accounting ProductionCostClose and AC-07 and crosscut §3.24; review §4.1
 steps 20–23.
 
-- **Records:** `ProductionAllocationPolicy`, versioned.
+- **Records:** `ProductionAllocationPolicy`, effective-dated rows with their key fields audit-logged; a cost close
+  keeps the row it applied.
 - **`ironstone.accounting.ProductionCostServices`:**
   - `store#AllocationPolicy`: the overhead basis and the co-product method (§5's default rule);
   - `find#CostCloseQueue`, the runs P6's review request queued;
@@ -721,7 +728,9 @@ Made for this plan:
 
 | Date | Decision | Notes |
 | --- | --- | --- |
-| Oct 28, 2026 | Manufacturing is built after Products, Accounting and Warehouse, and before Purchasing. It extends what those three built for it, and Purchasing later adds its context and conversions to what Manufacturing builds: SupplyPlanning and the outside-processing PO lines | The user's call. The three plans assume the first; Purchasing has no implementation plan yet |
+| Oct 28, 2026 | Manufacturing is built after Products, Accounting and Warehouse, and before Purchasing. It extends what those three built for it, and Purchasing later adds its context and conversions to what Manufacturing builds: SupplyPlanning and the outside-processing PO lines | The user's call. The three plans assume the first; [impl-purchasing.md](impl-purchasing.md) now follows it |
+| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply: parties by role, and changes by effective date and the audit log. Here: ProductionPolicy, the reason codes and ProductionAllocationPolicy are effective-dated rows with audit-logged key fields, and a requirement's organization is a RequirementParty role. Whether the methods and runs follow it too is §5's question | The user's call, in the Purchasing plan review (impl-purchasing §4) |
+| Oct 28, 2026 | Held quantity in planning (design §14, crosscut §9): a pending-release line with the inspection's due date, left out of netting by default; the plan schedule's organization option nets held quantity whose inspection is due within the lead time (P13) | The user's call, in the Purchasing plan review (impl-purchasing §4, answer 12); the design's recommendation |
 | Oct 28, 2026 | Phase order: methods, work centers and the production policy first; then the runs and their materials; cost evidence early, so each later fact writes its event as it is built; then quantities and quality, controlled changes, the shop floor and downtime, scheduling, supply planning, subcontracting, the cost close and reports | The user's call. The alternative was the run first (P5 before P2–P4), on Products P8's methods and a default policy |
 | Oct 28, 2026 | Manufacturing builds crosscut CX-PLANNING (P13): PlanningRun, PlanningSuggestion and RequirementSupply, `run#SupplyPlan`, `get#SupplyPlan`, `store#PlanSchedule` and `convert#PlanningSuggestions`, and `Shared/SupplyPlanning` with the Manufacturing context. It converts make suggestions (P13) and outside-processing requirements to draft service PO lines (P14), the second for `BOSS_PURCHASING_BUYER` on the Manufacturing mount, which crosscut §3.20's Manufacturing row gains. Purchasing adds its mount and buy conversion when it is built, and Warehouse its mount and transfer conversion from its §7 | The user's call. The alternative was to wait for Purchasing, with SupplyPlanning, make conversion and the service PO conversion in §7. Warehouse had left CX-PLANNING for its owner (impl-warehouse §4) |
 
@@ -738,7 +747,7 @@ Made for this plan:
 | Skill certification and safety acknowledgment: blocking when configured, advisory otherwise, over PartySkill and WorkEffortSkillStandard (design §14) | at P10 start | |
 | Machine runtime with no effective WorkCenterRate: refused, or recorded without value and listed for review | at P10 start | |
 | The panes the canonical screens lack (design §14): EquipmentDetail's Request maintenance (P11), Supplier360's subcontract orders (P14), OrderDetail's production links (P5, P14) | at each phase's start | Each goes into crosscut when accepted |
-| Held quantity as conditional supply: a pending-release line left out of netting by default, with an organization option (design §14, crosscut §9) | at P13 start | |
+| Methods and runs under the shared effective-date rule (impl-drawers-commons §4): BOM and routing versions as effective-dated Mantle rows (PatMfgBom ProductAssoc, routing WorkEffort templates) with the audit log, and a run's own WorkEffortProduct rows and operation children as its frozen copy, in place of M3's version records and M4's snapshot records | before P2 | Asked in impl-products §5 (before its P8) and impl-warehouse §5 (before its P16); Manufacturing follows both answers |
 | The default overhead and co-product allocation rule (crosscut §9; Accounting's Open list) | at P15 start | The review recommends quantity-normalized co-product allocation and a work-center-hour overhead rate |
 
 The design's other §14 items are `later` there and in §7.

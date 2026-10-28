@@ -1,6 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F46, found while writing it)
+Oct 28, 2026 — plan; P0 partly done (F1–F46, found while writing it); the shared party-role and effective-date
+rules applied (§4)
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -107,6 +108,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
+  - parties by role;
+  - changes by effective date and the audit log;
   - demo data;
   - builds and commits.
 
@@ -307,9 +310,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - `ironstone.accounting.InvoiceServices.change#InvoiceState`, the one invoice state guard over Mantle's status
     flow (F18): status, period, posting, hold (D6), and the single-currency refusal (D18). Projects'
     `update#InvoiceStatus` calls it, so project invoices are refused too (F46).
-  - `send#Invoice`, with or without a store: it renders the invoice version and its attachments, sends through
-    `send#EmailDraft` and records the outcome per recipient (F21). Projects' `send#Invoice` calls it (F2). The
-    InvoicePay link is added in P18.
+  - `send#Invoice`, with or without a store: it renders the invoice as sent and its attachments, stores the PDF as the
+    invoice's content stamped with its time (impl-drawers-commons §4), sends through `send#EmailDraft` and records the
+    outcome per recipient (F21). Projects' `send#Invoice` calls it (F2). The InvoicePay link is added in P18.
   - `InvoiceFinalizedSendEmail` skips a version `send#Invoice` has sent (CX-AUTOMATION).
   - `process#Batch`, and the duplicate-source guard.
 - **Screens** (design §4):
@@ -359,15 +362,17 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 ### P6 — Payables
 
 - **Purchasing's contract** (§4, PUR-SUPPLIER; F29):
-  - `mantle.party.supplier.SupplierProfile`, keyed by supplier and organization, with `settlementTermId` and
-    `selfBillingIndicator` only;
+  - `mantle.party.supplier.SupplierProfile`, effective-dated by organization and supplier (`fromDate`, `thruDate`),
+    with `settlementTermId` and `selfBillingIndicator` only, both audit-logged (impl-drawers-commons §4);
   - the finance fields of `ironstone.purchasing.SupplierServices.store#SupplierProfile`, which checks a finance
     group.
 
   The rest of the profile stays Purchasing's.
 - **AC-02, bill intake** (D2):
   - `InvoiceServices.import#Bill`, keyed by organization, supplier and supplier reference, or by shipment for a
-    self-billed draft. A repeat is refused, naming the earlier bill;
+    self-billed draft. A repeat is refused, naming the earlier bill. It takes an upload from AP intake, and from a
+    Purchasing buyer (`BOSS_PURCHASING_BUYER`, seeded with Manufacturing P14) for a bill on a PO of an organization
+    the buyer belongs to (§4); Purchasing's Bills mounts it in its P6;
   - `create#InvoiceFromSource`, on the ordered or the accepted received basis, applying order payments; from
     the InvoiceFromSource dialog of OrderDetail and ShipmentDetail;
   - `approve#Payable`;
@@ -418,6 +423,13 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
     InvoiceItem EECAs, with its background job.
   - Quantity under open inspection is excluded as P0 settles. Service lines wait for Purchasing's acceptance
     (§7).
+  - `InvoiceMatchPolicy` as effective-dated rows with their key fields audit-logged; a match line keeps the policy
+    row it applied (impl-drawers-commons §4).
+  - The legacy match backfill (design-purchasing §18), `MatchServices` `preview#LegacyMatches` and
+    `apply#LegacyMatches`: it links existing bill lines to orders and receipts only from unambiguous OrderItemBilling
+    and AssetReceipt evidence, names each ambiguous line as a match exception and goes on, and never matches an
+    unexplained balance. AP and a buyer with the match group run it, from MatchPolicies here and from Purchasing's
+    MatchExceptions (§4).
 - **Screens:** `Shared/InvoiceMatch` (crosscut §3.22) with the Accounting context, opened from BillDetail's Match
   tab; MatchPolicies.
 - **Usable when** (§16.3 procure-to-pay, matching):
@@ -526,8 +538,8 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 ### P12 — Fixed assets
 
 - **AC-07, the books.**
-  - `mantle.product.asset.FixedAssetClass`, versioned, beside the `AssetClass` enumeration it replaces as the
-    source of defaults (F38), and `AssetBookEvent`.
+  - `mantle.product.asset.FixedAssetClass`, effective-dated rows with their key fields audit-logged, beside the
+    `AssetClass` enumeration it replaces as the source of defaults (F38), and `AssetBookEvent`.
   - `ironstone.accounting.AssetBookServices`:
     - `find#Classes` and `store#Class`;
     - `capitalize#Asset`, `adjust#AssetBook`, `dispose#Asset` and `reverse#AssetBookEvent`;
@@ -591,7 +603,11 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 
 - **AC-14.**
   - The Budget status items and flow, which Mantle declares no items for (F42).
-  - `BudgetControlPolicy` and `mantle.other.budget.BudgetCommitment`.
+  - Budget amounts audit-logged, so a revision is its time and BudgetVariance reads a budget as of one; the approved
+    budget's PDF stored as its content. The organization comes from the budget's period, and other parties are
+    BudgetParty rows (impl-drawers-commons §4).
+  - `BudgetControlPolicy`, effective-dated rows with their key fields audit-logged, and
+    `mantle.other.budget.BudgetCommitment`.
   - `ironstone.accounting.BudgetServices` `revise#Budget`, `store#Policy`, `find#Exceptions`, `check#Budget`,
     `reserve#Commitment`, `convert#Commitment` and `release#Commitment`, each idempotent per source revision.
   - `approve#Payable` (P6) converts a PO's commitment to actual.
@@ -647,8 +663,10 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 - **CX-PORTALS** (§4; F29):
   - `mantle.party.ExternalAccessCapability`, and `mantle.party.ExternalAccessServices` `create#AccessCapability`,
     `check#AccessCapability`, `revoke#AccessCapability` and `check#AccessToken`;
-  - the `pay` token route, and the supplier invitation route §5 decides, in `MoquiConf.xml` on the existing
-    `<token-route>` pattern (F44).
+  - the `pay` token route, and Purchasing's `/po/<token>` route, in `MoquiConf.xml` on the existing `<token-route>`
+    pattern (F44; §4). A PO's capability, which AP issues from OrderDetail through `create#AccessCapability`, opens
+    BillUpload for that PO; Purchasing's P16 adds OrderAcknowledgement to the same route, and its `send#PurchaseOrder`
+    issues one capability for both.
 - **The audience roots** (crosscut §5): `screen/ServicePortal.xml` and `screen/SupplierPortal.xml`, with
   `BOSS_SERVICE_PORTAL` and `BOSS_SUPPLIER_PORTAL` and their filter sets on the client pattern, and Accounting's
   pages only.
@@ -717,6 +735,10 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | ProductionCostClose and CostingPolicies are built with Manufacturing's cost events, output receipt and run close. P13 seeds their GL account types and the scrap account, and P19's readiness checks the WIP and transfer accounts | The user's call |
 | Oct 28, 2026 | Accounting is built after Products. It adds its context to Products' Supplier360 (P6), Product360 and InventoryValuation (P13), and uses P9's revaluation services and dialogs | The user's call |
 | Oct 28, 2026 | The shared screens Accounting builds first carry the Accounting context only. Another app's context is added when that app is built | Follows from the above, as in Products |
+| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply: parties by role, and changes by effective date and the audit log. Here: SupplierProfile, InvoiceMatchPolicy, FixedAssetClass and BudgetControlPolicy are effective-dated rows with audit-logged key fields; budget amounts are audit-logged and a budget revision is a time; a sent invoice and an approved budget store their PDFs; a budget's other parties are BudgetParty rows. Mantle's existing audit-logged invoice, payment and transaction fields are kept | The user's call, in the Purchasing plan review (impl-purchasing §4) |
+| Oct 28, 2026 | `import#Bill` takes a Purchasing buyer's upload as well as AP intake's (P6) | The user's call (impl-purchasing §4, answer 4); design-purchasing §1's AP-intake row is corrected when P0 closes |
+| Oct 28, 2026 | The legacy match backfill is Accounting's (P7), run by AP or a buyer with the match group, from either app | The user's call (impl-purchasing §4, answer 5); it settles design-purchasing §18's migration item |
+| Oct 28, 2026 | The supplier bill link is Purchasing's `/po/<token>` route, which Accounting adds in P18 with BillUpload (F44) | The user's call (impl-purchasing §4, answer 14) |
 
 ## 5. Open questions
 
@@ -737,7 +759,6 @@ design-accounting.md, or into the owner's design.
 | Who posts project cost: `post#WorkEffortCost` (F45) | before P11 | impl-projects §7 hands it to Accounting; design-accounting does not name it |
 | Product360 GL mappings (design §20) | at P13 start | Until then PostingDefaults edits them |
 | The pack invoice (F25): finalize it at ship instead of at pack for an organization on BOSS's rules, or correct a finalized one through InvoiceCorrection | before P17 | D3 assumes it is still in process; the answer goes into design §14 and crosscut §3.8 |
-| The supplier bill invitation route: Purchasing's `/po/<token>` or its own (F44) | at P18 start | crosscut §5 lists none for bill upload |
 | Chart templates on Mantle's one global chart, whose account codes are unique (F14) | at P19 start | |
 
 The design's other §20 items are `later` there and in §7.

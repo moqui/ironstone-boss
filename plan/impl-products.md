@@ -9,8 +9,8 @@ screen and record detail. During the build this file is the log: phase status an
 open questions, findings against the code, and what is deferred.
 
 At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
-Settings), and the `BOSS_PRODUCTS` authz was commented out. None of the design's proposed services, entities, fields or
-status items exist yet in Mantle or BOSS. Products is the first core ERP app built, so Warehouse, Manufacturing,
+Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed services, entities, fields or
+status items existed in Mantle or BOSS. P1 is now built below; P2–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
 Accounting and Purchasing are placeholders too.
 
 **Inputs.**
@@ -122,7 +122,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
-| P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui 6ebf53c3, Mantle 6d548a3e; BOSS commit recorded below |
+| P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui f9641cda, Mantle 6d548a3e; BOSS f1c2a37 |
 | P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | — |
 | P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
 | P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
@@ -172,7 +172,7 @@ cross-checks, review-document presence and `git diff --check`.
 - **Usable when:** the Products menu renders for each grant. A catalog reader sees the shared products and their own
   organization's products, but not another organization's, in lists, the palette and record links.
 
-**Built Oct 28 (P1).** Framework `6ebf53c3`, Mantle `6d548a3e`; BOSS commit recorded below. Composable Products grants plus the owner apps' grants; active-org root filters; trusted Mantle
+**Built Oct 28 (P1).** Framework `f9641cda`, Mantle `6d548a3e`; BOSS f1c2a37. Composable Products grants plus the owner apps' grants; active-org root filters; trusted Mantle
 `get#CatalogOwnerScope` and BOSS capability/record/find guards; a guarded read list and minimal product/category record
 routes (P2/P3 expand them); exact-ID palette, catalog links and key scope; ten independent demo accounts; shared and
 owned isolation fixtures. Catalog record-file/room callbacks enforce owner scope even with authorization disabled.
@@ -592,3 +592,5 @@ Designed, not in this build:
 | 11 Unit and currency writes refused | P11 |
 
 - **Screenshots** through the BOSS client spec of §2, light and dark.
+
+P1 committed after validation: framework `f9641cda`, Mantle `6d548a3e`, BOSS `f1c2a37`.

@@ -97,8 +97,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - `runtime/component/mr-pass`, the customer pages as its Support app (§4)
 
   `runtime/component/mr-marble` is read only, for the baseline Request, Return, Customer, Order and Survey screens that
-  design §10 maps. Framework work is limited to what P0 finds CS-FORM-ELEMENTS needs (P5, P7), DbForm's version fields
-  (P7), and a record viewers topic if P0 finds it cheap (P5).
+  design §10 maps. Framework work is limited to what P0 finds CS-FORM-ELEMENTS needs (P5, P7), DbForm's dated, audit-logged
+  fields (P7), and a record viewers topic if P0 finds it cheap (P5).
 - **Scope.**
   - Every `parity` and `new` row of design §2, and the §12 needs they use, except ChannelAutomation.
   - The design reshaped by the shared rules (§2, §4): queues, service-level policies, status mappings, assignment
@@ -618,9 +618,12 @@ Design §3 NewCase's CaseDescription, §9 CaseTemplates; CS-TEMPLATES, CS-FORM-E
 - **CS-TEMPLATES** on DbForm (§4):
   - a template is a DbForm with dependency rows (source field, operator and value; target field; show or require) and
     an audience per field;
-  - the framework's DbForm gains `versionOfFormId` and `publishedDate` (F16), which P13's feedback forms reuse: a
-    published template with responses is not edited, and its next version is a cloned DbForm, a record of its own
-    because responses answer it;
+  - a template changes by effective-dated rows (§4), which P13's feedback forms reuse (F16): the framework's
+    DbFormField and DbFormFieldOption gain `fromDate` and `thruDate` with their key fields audit-logged, and the
+    dependency rows are effective-dated with theirs. A draft field has no from date and Publish starts it; an answered
+    field or option is ended, never deleted; label, required and option edits are audit-logged; a field whose type or
+    meaning changes, or a change set for a later date, is a successor field from that date. The form renders as of a
+    date, now by default, and a FormResponse reads it as of its response time. No DbForm is cloned for a version;
   - a case's values are a FormResponse linked to the case;
   - `ironstone.customerservice.TemplateServices`: `find#Templates`, `save#Template` and `validate#Template`; the values
     checked by Mantle's `SupportCaseServices.validate#TemplateValues`, which NewCase and the Support app share (F41).
@@ -633,7 +636,8 @@ Design §3 NewCase's CaseDescription, §9 CaseTemplates; CS-TEMPLATES, CS-FORM-E
   - a "Defective product" template requires a serial when the product is equipment, and the server refuses a submit
     without it;
   - an internal field never reaches the customer-visible variant;
-  - a template changed from a date leaves an earlier case's values readable as submitted;
+  - a template changed from a date leaves an earlier case's values readable as submitted, with the form as it was
+    then;
   - a dependency cycle is refused.
 
 ### P8 — Merge, split and closing
@@ -820,8 +824,8 @@ Design §7 SatisfactionResults and ResponseDetail, §8 Feedback, §9 FeedbackFor
 FeedbackDeliveryPolicy; CS-FEEDBACK, CS-JOBS.
 
 - **The survey builder** (Commons', crosscut §8; §4): `Shared/SurveyForms` and `Shared/SurveyFormDetail` with the
-  Customer Service context, mounted as FeedbackForms and FeedbackFormDetail. Published versions are P7's: a form with
-  responses is not edited, and its next version is a cloned DbForm (F16). The rating options' key is the score.
+  Customer Service context, mounted as FeedbackForms and FeedbackFormDetail. A form changes by P7's dated fields and
+  options (F16), and a response reads the form as of its time. The rating options' key is the score.
 - **CS-FEEDBACK.**
   - `mantle.request.support.CaseSurveyInvitation`, a record of its own: case, episode, form, delivery state and
     response; its token an ExternalAccessCapability (Accounting P18).
@@ -963,7 +967,7 @@ design-customer-service.md, or into the owner's design.
 | Oct 28, 2026 | A case is a request in a service queue: a RequestCategory with a current ServiceQueue row. CaseTypes' service-enabled flag says which types a queue offers, and puts a request of that type with a Customer RequestParty and no category into the type's default queue. `RqtSupport` alone makes no case, so an employee's Commons request stays plain (P2) | The user's call (answer 2); F5. The design's "every service-enabled type" would have made every Commons request a case |
 | Oct 28, 2026 | An order change is its `RqtOrderChange` Request, its lines RequestItems linked to their order items by RequestItemOrder (product, quantity, unit from Purchasing P10, ship date as `requiredByDate`), with the line action and proposed unit price added and the key fields audit-logged, and an OrderChangeDecision record. The design's OrderChange, OrderChangeLine and application records are dropped (P10) | The user's call (answer 3); F4. One document, as Purchasing made a quote its PO |
 | Oct 28, 2026 | A warranty claim is its `RqtWarranty` case: the product a RequestItem, the asset, order, invoice and agreement RequestRecord links, and a WarrantyDecision record. The design's WarrantyClaim record is dropped (P11) | The user's call (answer 4) |
-| Oct 28, 2026 | A case template is a DbForm with dependency rows, and a case's values a FormResponse linked to it. The design's CaseTemplate, Field, Dependency and Value records are dropped (P7) | The user's call (answer 5); F16. One form engine with the feedback forms (D24's reuse) |
+| Oct 28, 2026 | A case template is a DbForm with dependency rows, and a case's values a FormResponse linked to it. Its fields, options and dependency rows are effective-dated with audit-logged key fields, and a response reads the form as of its time; no DbForm is cloned for a version, and P13's feedback forms work the same way. The design's CaseTemplate, Field, Dependency and Value records are dropped (P7) | The user's call (answer 5), with dated rows over a cloned DbForm per version (design sweep review); F16. One form engine with the feedback forms (D24's reuse) |
 | Oct 28, 2026 | Design §14's policy items as it recommends: SLA policy by the most specific of customer agreement, customer, queue or type, and organization default, equal ranks refused, bound at intake (P4); a 14-day reopen window as a ServicePolicy field, then a follow-up case (P8); a merge keeps the sources' SLA evidence and deadlines as obligations (P8); warranty coverage by agreement, then the product's warranty at sale through the coverage lookup, then goodwill (P11); return validity set by organization, no fee without a published rule, manual review with no policy (P9); feedback comments private to service management, shared retention, invitation-linked responses immutable (P13) | The user's call (answer 6) |
 | Oct 28, 2026 | A signed-in customer contact is the UserAccount of the contact's party, the identity PASS public accounts will use, so the customer pages are not a third identity surface (P15) | The user's call (answer 7); written into crosscut §8 in the Oct 28 design sweep. With the Support app in mr-pass the contact is a PASS public account itself |
 | Oct 28, 2026 | Chargeable repair: P11 records the charge estimate and the customer's consent on the warranty decision; the sales quote waits for Sales (§7) | The user's call (answer 8) |
@@ -999,7 +1003,7 @@ is written there too.
 | F13 | P0: working hours are the user's own WetAvailable (`store#WorkingHours`); there is no team or organization schedule and no holiday editor. `get#NextBusinessDay` and `get#FutureBusinessDay` count whole days less WepHoliday; nothing computes business minutes | P4: a team schedule and a Mantle business-time service |
 | F14 | P0: the approvals list is a section of Commons Notifications, filtered by `appName` only; a topic is an approval by its `approveServiceName` and `refuseServiceName`; `get#UserNotifications` accepts a topic | P9, on Accounting's filter answer (its F43) |
 | F15 | P0: WikiPageReview approves a page version before publishing; it is not a suggestion. `publicPageUrl` is a WikiSpace URL template, and BOSS has no public help-centre page | P12's Suggest edit; P15's CustomerArticle |
-| F16 | P0: DbForm has no version, name or title field (description and purpose only); DbFormFieldOption has no score; FormResponse is nontransactional; `update#FormResponse` and `delete#FormResponse` exist | P7: templates on DbForm (§4) and the version fields in the framework; P13: the option key as score, the guard |
+| F16 | P0: DbForm has no version, name or title field (description and purpose only); DbFormFieldOption has no score; FormResponse is nontransactional; `update#FormResponse` and `delete#FormResponse` exist | P7: templates on DbForm (§4) and the dated, audit-logged fields in the framework; P13: the option key as score, the guard |
 | F17 | P0: no `ExternalAccessServices` exists (Accounting P18). EXTERNAL_USER is a permission. The client deny pattern's service pattern names `ironstone.(commons\|comms\|projects\|products\|shared)` and a fixed verb list, and ClientWrites walks every ironstone service file | P1 adds the package and verbs; customers never reach BOSS (§4) |
 | F18 | P0: client checks are bound to projects: `get#ClientWriteContext` refuses a request with no project, Chatter's client mode comes from PROJECT_CLIENT, and `get#ClientRecordVisibility` shows a request the client filed or one of a client project. A client's file list may include RqCntInternal content (P0 confirms) | Customers read through the Support app's Mantle projections, outward messages and approved files only (§4, P15), so these stay as they are; P0 confirms the internal-content question for Projects' own clients |
 | F19 | P0: the borrowed groups (`BOSS_ACCOUNTING_AR`, `_TREASURY`, `_APPROVE`, Warehouse's receive, inspect and quality manager) do not exist yet | Their owners' P1; P0 checks |

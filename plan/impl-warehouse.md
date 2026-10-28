@@ -1,6 +1,6 @@
 # IronStone BOSS — Warehouse implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F31, found while writing it)
+Oct 28, 2026 — plan; P0 partly done (F1–F32, found while writing it); five open questions decided (§4)
 
 How [design-warehouse.md](design-warehouse.md) gets built, in phases from the foundation to the reports, each ending
 tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md) and
@@ -14,7 +14,8 @@ Today `screen/Warehouse/` holds seven placeholders, and the root mounts only Cha
 services, entities, fields or status items exist in Mantle or BOSS beyond what Products and Accounting build first.
 Warehouse is built after both (§4), so these are there to extend:
 - from Products: Product360, Supplier360 and InventoryAvailability; `store#ProductFacilityPolicy` and the TrackingPolicy
-  records (its P7); the kit components (P2); `resolve#ScannedProduct`, packaging, the GS1 parse and the barcodes (P11);
+  records (its P7); the kit components (P2); the released BOM and routing versions (P8) and approved standard costs
+  (P9); `resolve#ScannedProduct`, packaging, the GS1 parse and the barcodes (P11);
 - from Accounting: ShipmentDetail, ReturnDetail, EquipmentDetail and InventoryValuation; the posting guard in
   `post#AcctgTrans`; `receive#ReturnItems`, `release#ShipmentDraftInvoice` and `queue#MatchReevaluation`; the conditioned
   SECAs.
@@ -67,9 +68,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - The parts of other apps' needs that Warehouse depends on (§4):
     - crosscut CX-QUALITY: the shared inspection records, `mantle.product.QualityServices`, and
       `Shared/QualityInspection` and `Shared/InspectionTemplates`;
+    - Manufacturing's production runs and their snapshots (part of M4): `create#ProductionOrder`,
+      `release#ProductionOrder`, and the run, material and operation snapshot records;
     - Manufacturing's production stock guards (M2): `issue#ProductionMaterial`, `return#UnusedMaterial`,
       `receive#ProductionOutput` and `receive#SubcontractOutput`, with the CX-PRODUCTION movement fields;
-    - Purchasing's `accept#ServiceItem`, over `ServiceAcceptance`.
+    - Purchasing's `accept#ServiceItem` over `ServiceAcceptance`, `close#PurchaseRemainders`, and
+      `find#ReturnableReceipts` with its receipt link.
   - The shared screens no app has built, with the Warehouse context only: FacilityDetail, MaterialIssueReceipt,
     QualityInspection, InspectionTemplates and StockAtDate (F29).
   - Warehouse's context on shared screens other apps built:
@@ -87,7 +91,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   6. picking, packing, then shipping;
   7. returns;
   8. transfers and requests;
-  9. production stock;
+  9. production runs and stock;
   10. reports;
   11. the finish.
 
@@ -164,7 +168,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
-| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F31) |
+| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F32) |
 | P1 Foundation | Mantle, BOSS | the Warehouse root and menu, Home | — |
 | P2 Facilities and locations | Mantle, BOSS | Facilities, FacilityDetail, EquipmentDetail | — |
 | P3 Policies | Mantle, BOSS | Settings, StockPolicies, ReservationPolicies, AssetPools | — |
@@ -180,16 +184,18 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P13 Shipping, labels and printers | Mantle, BOSS | Ship, PackageTracking, Carriers, Printers, InvoiceDetail | — |
 | P14 Returns | Mantle, BOSS | Returns, ReturnDetail, ReturnReceipt, SupplierReturnShipment | — |
 | P15 Transfers and requests | Mantle, BOSS | Transfers, TransferShipmentDetail, SubcontractShipmentDetail, StockRequests, RequestDetail | — |
-| P16 Production stock | Mantle, BOSS | MaterialIssueReceipt (work efforts), SubcontractShipmentDetail's output receipt | — |
+| P16 Production runs and stock | Mantle, BOSS | MaterialIssueReceipt (work efforts), SubcontractShipmentDetail's output receipt | — |
 | P17 Reports | Mantle, BOSS | Reports, StockAtDate, OperationsHistory, InventoryValuation | — |
 | P18 Finish | BOSS | — | — |
 
 ### P0 — Checks
 
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
-changes the design, an edit there. F1–F31 were found on Oct 28 while writing this plan; the design edits that F9, F10
-and F13 call for are made when P0 closes. Still to check:
+changes the design, an edit there. F1–F32 were found on Oct 28 while writing this plan. The design edits that F9, F10
+and F13 call for, and those of the Oct 28 decisions in §4, are made when P0 closes. Still to check:
 
+- **An empty organization list.** What the Facility filter answers for a user in no organization whose authz has the
+  filter: no facility, or every one (§4).
 - **REST and baseline writes.** Which BOSS groups would reach the Mantle REST stock mutators of F3, and which raw writes
   the mr-marble Asset and Shipment screens make.
 - **A transfer's receipt totals** (F10): whether the ShipmentItemDetail view multiplies receipts on a shipment that also
@@ -213,9 +219,13 @@ and F13 call for are made when P0 closes. Still to check:
     `BOSS_WAREHOUSE_MANAGER` exist from Products P1, and `BOSS_ACCOUNTING_READ` from Accounting P1.
   - The root's authz comes out of BossSetupData's commented block (F1), with `MANTLE_ACTIVE_ORG` and the service checks
     of §2 (F2).
-  - `ironstone.warehouse.AccessServices`: the user's organizations, the facilities and owners they may work with (§5),
-    and their capabilities. Every later Warehouse service and shared mount calls it, and a supplied facility, asset,
-    shipment, count or return is checked against it.
+  - Facility scope as Moqui has it (§4). A BOSS filter set holds Mantle's Facility filter, `ownerPartyId` in
+    `filterOrgIds`: the active organization, or else every organization the user belongs to. The Warehouse groups'
+    authz carries it beside `MANTLE_ACTIVE_ORG`, so other entities filter as before. A user whose Warehouse authz has
+    no organization filter works in every facility of every organization.
+  - `ironstone.warehouse.AccessServices`: the user's organizations, the facilities they may work in (read through
+    that filter), and their capabilities. Every later Warehouse service and shared mount calls it. A supplied facility,
+    asset, shipment, count or return is checked against it, and stock rows are scoped by their facility.
   - No artifact authorization for the raw stock services or their REST paths (F3).
 - **The Warehouse root.**
   - The menu of design §1: the placeholders renamed, and Inspection, Counts, Transfers, Picking, Handheld and Reports
@@ -373,8 +383,14 @@ and F13 call for are made when P0 closes. Still to check:
   - `ensure#PurchaseReceipt`: one open receipt per PO part.
   - `adjust#ExpectedReceipt`: Purchasing's revision call, refused with ReceiptInProgress while a receive holds the
     source.
-  - `close#ReceiptRemainder`. Close calls Purchasing's `close#PurchaseRemainders` (§5). Backorder calls
+  - `close#ReceiptRemainder`. Close calls Purchasing's `close#PurchaseRemainders`. Backorder calls
     `ensure#PurchaseReceipt` and `update#ShipmentItem`. Only then does it call `deliver#Shipment`.
+- **Purchasing's contract** (§4, design-purchasing ClosePurchaseOrders):
+  `ironstone.purchasing.OrderServices.close#PurchaseRemainders`. Per item, the remainder is the quantity less what was
+  cancelled and received (accepted and rejected). It records that through `cancel#OrderItem` with an explicit
+  cancelQuantity, releases the Requirement allocation, calls Accounting's `release#Commitment` where the PO has a
+  commitment (impl-accounting P15), and completes the order when nothing is open. Purchasing's ClosePurchaseOrders
+  screen stays Purchasing's.
   - `generate#TrackingIdentities`, with the TrackingPolicy pattern and a uniqueness preview.
   - The receive guard over `receive#ShipmentProduct`. It keeps the entered unit and converts a PO line's unit. A pack
     scan resolves through `resolve#ScannedProduct`.
@@ -453,7 +469,21 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 ### P10 — Counts
 
 - **WH-COUNT, the records.** The PhysicalInventory and PhysicalInventoryCount fields of the design's need, and the
-  status transitions of the four PI statuses (F4). The count schedule is a §5 question.
+  status transitions of the four PI statuses (F4).
+- **The count schedule** (§4), as count-schedule rows of WarehousePolicy, `mantle.facility.CountSchedule`:
+  - scope: organization, facility, location type, area or location, product category, and ABC class;
+  - kind:
+    - periodic, every N days (Odoo's location frequency);
+    - annual, on a month and day (Odoo's company count date);
+    - zero confirmation, when a location's stock reaches zero (OCA's stock_cycle_count);
+  - the count mode (full, cycle or spot), the blind default and the assignee, with effective dates.
+
+  `FacilityLocation.lastCountDate` and `ProductFacility.lastCountDate` are written by `post#Count`.
+  `ProductFacility.abcClassEnumId` (A, B, C) is set by hand through `store#ProductFacilityPolicy`.
+  `find#DueCounts` gives each location, or product at a facility, its next date: the last count plus the frequency,
+  or the annual date, whichever is earlier, as Odoo does. Ad hoc dues are the short-pick recount (P11) and Request a
+  count. That is Odoo's wizard: on selected Assets or Availability rows it opens NewCount with that scope, a date, an
+  assignee and the blind flag.
 - **`mantle.product.InventoryCountServices`:**
   - `create#`, `update#` and `start#Count`, which snapshots the scope;
   - `record#CountLine`, which saves an observation only;
@@ -462,8 +492,9 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
     records each line's outcome, and a retry skips the successes;
   - `find#DueCounts`.
 - **Screens** (design §7, §14):
-  - Counts, CountDetail and CountEntry. CountEntry has a desktop grid and one line at a time on a handheld, and the
-    server withholds blind quantities.
+  - Counts, with the Due saved find, CountDetail and CountEntry. CountEntry has a desktop grid and one line at a time
+    on a handheld, and the server withholds blind quantities.
+  - The count schedule under StockPolicies, and Request a count on Assets and Availability.
   - CountReview: VarianceReview, ResolveConflict and PostCount. Its valuation basis shows with financial read only.
   - CountVariance, under Reports with a link from Counts.
   - HandheldCount.
@@ -472,6 +503,8 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - the count-entry CSV import and its row-result CSV;
   - due counts on Home, as a notification and as a Today source.
 - **Usable when** (crosscut §6, count with moving stock):
+  - a pick-face location type counted every 30 days, the facility's annual date and a location that just reached zero
+    each show as due, with the earlier date winning;
   - a blind count snapshots its scope, a move during counting is found, and a recount resolves it;
   - the approved lines post, an uncounted line stays unchanged, a failed line is named, and a retry posts nothing
     twice;
@@ -534,11 +567,11 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - durable provider-request records for label request, tracking and refund. After a timeout, the provider is asked
     before any retry;
   - a test shipping gateway for the specs, with rates, labels, a timeout and a refund (F14; §5);
-  - FacilityPrinter's `labelFormatEnumId`, `copies`, `fromDate` and `thruDate`, and the PtpLotLabel, PtpLocationLabel
-    and PtpCountDocuments purposes (F15);
+  - FacilityPrinter's `copies`, `fromDate` and `thruDate`, and the PtpLotLabel, PtpLocationLabel and PtpCountDocuments
+    purposes (F15);
   - `mantle.facility.PrintServices.dispatch#Document` and `get#PrinterCapabilities`, over the framework's
     `print#Document` and NetworkPrinter (F16);
-  - PDF labels through Products P11's barcodes, with ZPL as §5 decides.
+  - PDF labels only, through Products P11's barcodes. ZPL, with FacilityPrinter's `labelFormatEnumId`, is §7 (§4).
 - **WH-POST, shipping:** `record#PackageDelivery`. Dispatch requires tracking totals, inspection release and unexpired
   lots.
 - **Screens** (design §10, §12):
@@ -563,7 +596,11 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - ReturnReceipt runs Accounting P17's `receive#ReturnItems`. Quarantine and inspection are P8's.
   - `ship#SupplierReturn` sets ReturnShipped.
   - A supplier return issues the specific quarantined asset through `issue#AnyAssetForShipmentItemSource`, under
-    disposition authority. Purchasing's `find#ReturnableReceipts` gives the returnable receipts and lots (§5).
+    disposition authority. Purchasing's `find#ReturnableReceipts` gives the returnable receipts and lots.
+- **Purchasing's contract** (§4, PUR-RETURN): `ironstone.purchasing.ReturnServices.find#ReturnableReceipts`, with
+  PUR-RETURN's link from a ReturnItem to the AssetReceipt and asset it returns (F32). Eligibility is the accepted plus
+  quarantined quantity less earlier supplier returns, locked per receipt and lot. Warehouse's NewReturn uses it for a
+  supplier return; Purchasing's NewSupplierReturn and `create#ReplacementOrder` stay Purchasing's.
   - `request#ReturnLabel`, for Customer Service's "Issue return label".
 - **WH-RECORD-HOSTS, the return part:** `mantle.order.return.ReturnContent`, registered in `get#RecordLinkInfo`.
 - **Screens** (design §11):
@@ -609,31 +646,57 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - a stock request is approved, allocated by transfer, and shows requested, allocated, transferred and received;
   - components dispatched to a vendor-custody facility stay the organization's and show under custody at supplier.
 
-### P16 — Production stock
+### P16 — Production runs and stock
 
-These are Manufacturing's M2 guards and Purchasing's service acceptance (§4), built to design-manufacturing
-MaterialIssueReceipt and SubcontractDetail, and design-purchasing PUR-RECEIPT.
+These are Manufacturing's contracts (§4), built to design-manufacturing NewWorkOrder, WorkOrderDetail,
+MaterialIssueReceipt and SubcontractDetail, and M2 and M4 of its §12; and Purchasing's service acceptance, built to
+design-purchasing PUR-RECEIPT. They use Products P8's released BOM and routing versions and P9's approved standard
+costs. Built in two parts: P16a the runs and their snapshots, then P16b the stock guards.
 
-- **CX-PRODUCTION's fields:** `AssetIssuance.productionMaterialLineId`, `AssetReceipt.productionOutputLineId`, and
-  `operationWorkEffortId` on both (F7). `sourceAssetIssuanceId` came with P6.
-- **`mantle.work.ProductionServices`:**
-  - `issue#ProductionMaterial`: a new AssetIssuance per operation key and material line. It refuses an asset that is not
-    AstAvailable, or whose owner is not the run's owner;
-  - `return#UnusedMaterial`: a new receipt fact at the original acquireCost. It never calls `cancel#AssetIssuance`;
-  - `receive#ProductionOutput`: AstQuarantine when an inspection applies, with GenerateTracking (P7);
-  - `receive#SubcontractOutput`. In one transaction it issues the components from the vendor-custody facility, receives
-    the output with the run's workEffortId and no transfer shipment, and calls `accept#ServiceItem`.
-  - Before Manufacturing's run snapshots (M4) exist, what keys a line and what the output's cost is are a §5 question.
-- **Purchasing:** `ironstone.purchasing.ReceiptServices.accept#ServiceItem`, over
-  `mantle.order.purchase.ServiceAcceptance`.
+- **P16a, the runs (part of M4).**
+  - Records:
+    - `mantle.work.production.ProductionRunSnapshot`: the run, its revision, the BOM, routing and policy versions,
+      the frozen standard cost (`productStandardCostId` and `versionSeqId`) and the demand IDs;
+    - `ProductionMaterialSnapshot`: the immutable material and output lines, each with its source BOM item, role,
+      product, quantity and unit, exact stock conversion, and operation;
+    - `ProductionOperationSnapshot`: each operation child with its routing operation, sequence and work center.
+  - `mantle.work.ProductionServices`:
+    - `create#ProductionOrder`, to design-manufacturing §12's contract. It calls `create#ProductionRun` without the
+      legacy consume and produce products, so no `PatMfgBom` row is read or written. It sets the run's
+      `ownerPartyId` to the organization, writes the draft lines and `WeptConsume`/`WeptProduce` rows from the
+      selected versions, and calls `check#ProductUsable` with usage Produce;
+    - `release#ProductionOrder`: it freezes the snapshot and revalidates superseded versions. It creates the operation
+      children with their owner, and rewrites the WorkEffortProduct rows from the snapshot;
+    - `get#ProductionOrder`, the read MaterialIssueReceipt shows.
+  - The seeded `WeApproved`→`WeInPlanning` transition, for an unrelease while no stock fact exists.
+  - Manufacturing's WorkOrders, NewWorkOrder and WorkOrderDetail screens stay Manufacturing's. A demo service creates
+    and releases the runs the walks need.
+- **P16b, the stock guards (M2).**
+  - CX-PRODUCTION's fields: `AssetIssuance.productionMaterialLineId`, `AssetReceipt.productionOutputLineId`, and
+    `operationWorkEffortId` on both (F7), each a snapshot line or operation. `sourceAssetIssuanceId` came with P6.
+  - `mantle.work.ProductionServices`:
+    - `issue#ProductionMaterial`: a new AssetIssuance per operation key and material line. It refuses an asset that
+      is not AstAvailable, or whose owner is not the run's owner;
+    - `return#UnusedMaterial`: a new receipt fact at the original acquireCost. It never calls
+      `cancel#AssetIssuance`;
+    - `receive#ProductionOutput`: acquireCost is the snapshot's frozen standard unit cost. With no approved standard
+      it is the issued cost to date ÷ quantity, marked provisional. Output is AstQuarantine when an inspection applies,
+      with GenerateTracking (P7);
+    - `receive#SubcontractOutput`. In one transaction it issues the snapshot components from the vendor-custody
+      facility, receives the output with the run's workEffortId and no transfer shipment, and calls
+      `accept#ServiceItem`.
+  - Purchasing: `ironstone.purchasing.ReceiptServices.accept#ServiceItem`, over
+    `mantle.order.purchase.ServiceAcceptance`.
 - **Screens:**
   - `Shared/MaterialIssueReceipt` gains the work-effort source: Source, Material lines, Tracking, Posted
     issues/receipts, Unused returns and Files;
   - SubcontractShipmentDetail's Output receipt pane.
 - **Usable when** (design §19, subcontract output):
+  - a run for DEMO_1_1 is created from Products P8's released version and released, with snapshot lines and its
+    frozen standard; a later version leaves the released run's lines as they were;
   - two components are issued to a run in two operations as two issuances, and a retried issue answers the first;
   - one unused component returns as a new receipt at its cost;
-  - output is received into quarantine with generated serials;
+  - output is received into quarantine with generated serials, at the snapshot's standard cost;
   - subcontract output is received from the vendor-custody facility: its components are issued and the service line is
     accepted once;
   - a quarantined component is refused.
@@ -679,23 +742,24 @@ design-warehouse.md, or into the owner's design.
 | Oct 28, 2026 | Warehouse builds the parts of other needs it depends on: crosscut CX-QUALITY with its two shared screens (P8); Manufacturing's production stock guards with the CX-PRODUCTION fields (P16); Purchasing's `accept#ServiceItem` (P16). These keep the owner's names, packages and Shared screens. Supply planning (CX-PLANNING) waits for its owner, so SupplyPlanning and RequirementSupply are §7 | The user's call, as Products and Accounting decided for theirs |
 | Oct 28, 2026 | The shared screens Warehouse builds first carry the Warehouse context only. Another app's context is added when that app is built | Follows from the above, as in Products and Accounting |
 | Oct 28, 2026 | Each task phase brings its handheld mount, on P5's `scan-input` and `density="handheld"` | The plan's choice: a handheld phase at the end would test each task twice |
+| Oct 28, 2026 | Facility scope follows Moqui's organization filters. A user works in the facilities their organizations own (`Facility.ownerPartyId`): the active organization's when one is set, or else those of every organization they belong to (`filterOrgIds`, with direct child organizations). A user whose Warehouse authz has no organization filter works in every facility of every organization. Facilities owned by a third party that hold the organization's stock are §7 | The user's call. Vendor-custody facilities are organization-owned, so they are in scope (F2) |
+| Oct 28, 2026 | Warehouse builds Purchasing's `close#PurchaseRemainders` (P7) and `find#ReturnableReceipts` with its receipt link (P14), as Purchasing's contracts. Purchasing is built later | The user's call, since both are small. Each is one service, over `cancel#OrderItem` or receipt and return reads |
+| Oct 28, 2026 | The cycle-count schedule is flexible (P10): CountSchedule rows of WarehousePolicy by facility, location type, area or location, product category or ABC class, each periodic every N days, annual on a date, or zero confirmation. Last count dates are kept on FacilityLocation and ProductFacility; the next date is the earlier of the periodic and annual dates; the short-pick recount and Request a count are ad hoc dues. Accuracy- and movement-based frequencies, and computed ABC classes, are §7 | The user's call, from the common options. Odoo: a location's frequency in days with last and next dates, the company's annual count date, and Request a count with a date and assignee. OCA's stock_cycle_count for Odoo (not in the checkouts): periodic, zero-confirmation, accuracy and turnover rules. SAP and NetSuite: ABC classes with a frequency per class. ERPNext has no schedule; its counts are Stock Reconciliation entries. Carbon scopes counts by storage unit, item type, storage type and tags, with no schedule. Ever Gauzy has full, cycle, spot and recount modes |
+| Oct 28, 2026 | Labels are PDF only in the first release; ZPL, with FacilityPrinter's format field, is §7 | The user's call. The design's §19 recommendation, without its ZPL option |
+| Oct 28, 2026 | Warehouse also builds Manufacturing's production runs and their snapshots (P16a): `create#ProductionOrder`, `release#ProductionOrder` and the run, material and operation snapshot records of M4. The guards key the snapshot lines, and output takes the frozen standard cost. Manufacturing's screens, and the rest of M4 and of M2, stay Manufacturing's | The user's call, to the existing design. It removes the stand-in line keys that P16 would otherwise need |
 
 ## 5. Open questions
 
 | Question | Decides | Notes |
 | --- | --- | --- |
-| Which facilities a user may work in: those their organizations own, plus vendor-custody facilities and third-party facilities that hold the organization's stock (F2) | at P1 start | Mantle comments out `MANTLE_ACTIVE_ORG_F` "for 3rd party facilities" |
 | `BOSS_WAREHOUSE` as the root user group beside the artifact group of that name | at P1 start | Products kept both (impl-products §4) |
 | `scan-input`: a new form field element, or a mode of `text-line`; and its resolver contract (F24) | at P5 start | style-guide §8.1 checklist |
 | `density="handheld"` against the shell's density preference: the screen's attribute wins on its screens (F24) | at P5 start | Manufacturing uses the same attribute |
 | The expiry gate inside Mantle's reservation and issue, for an organization on BOSS's rules, or in the guards only (F12) | at P5 start | The adoption setting is Accounting's |
 | Scrap's account: Accounting's P13 scrap account, if the variance poster reads it, or shrinkage (F5, F21) | at P6 start | P0 checks the poster |
-| Purchasing's `close#PurchaseRemainders` and `find#ReturnableReceipts`: Warehouse builds them as Purchasing's contracts, or Close remainder and supplier returns wait for Purchasing | at P7 start (the first), P14 start (the second) | Both are small; Warehouse's paths are their first callers |
-| The cycle-count schedule: FacilityLocation `countFrequencyDays`, `lastCountDate` and `nextCountDate`, or a WarehousePolicy row (design §19) | at P10 start | The design recommends the fields |
+| The ABC classes: their enumeration, and whether a class is per product or per product at a facility (`ProductFacility`, as P10 assumes) | at P10 start | Set by hand first; computed classes are §7 |
 | Reopening a package whose invoice Mantle finalized at pack (F11) | before P12 | Accounting's answer to its F25 (impl-accounting §5, before its P17) |
-| ZPL labels in the first release, or PDF first with ZPL for an explicitly configured printer (design §19) | at P13 start | FacilityPrinter gains the format either way (F15) |
 | A test shipping gateway, since Mantle has none (F14) | at P13 start | It needs rates, labels, a timeout and a refund |
-| The production guards before Manufacturing's run snapshots (M4): what keys a material or output line, and the output's cost without a frozen snapshot standard (Products' approved estimate at receipt, or cost to date marked provisional) | at P16 start | Manufacturing replaces the stand-in with its snapshot lines |
 
 The design's other §19 items are `later` there and in §7.
 
@@ -707,7 +771,7 @@ is written there too.
 | # | Finding | Resolution |
 | --- | --- | --- |
 | F1 | P0: `screen/Warehouse/` has seven placeholders: Home, Inventory, Locations ("Locations & facility setup"), Receiving, Returns ("Returns receiving"), Settings and Shipping. There are no Inspection, Counts, Transfers, Picking, Handheld or Reports areas; the root mounts only Chatter and RecordFiles and has no `<shell-providers>`. The `BOSS_WAREHOUSE` authz is in BossSetupData's commented block. Products P1 seeds the `BOSS_WAREHOUSE_STOCK_PLANNER` and `BOSS_WAREHOUSE_MANAGER` groups | P1 |
-| F2 | P0: `MANTLE_USER_ORG` filters Facility by `ownerPartyId`; `MANTLE_ACTIVE_ORG`'s Facility filter is commented out. Neither set filters Asset, AssetDetail or PhysicalInventory, and nothing filters by facility. Shipment (from or to party) and ReturnHeader (vendor or customer) are filtered in both | Stock rows through services (§2); the facility scope is a §5 question |
+| F2 | P0: `MANTLE_USER_ORG` filters Facility by `ownerPartyId`; `MANTLE_ACTIVE_ORG`'s Facility filter is commented out. Neither set filters Asset, AssetDetail or PhysicalInventory, and nothing filters by facility. Shipment (from or to party) and ReturnHeader (vendor or customer) are filtered in both. `filterOrgIds` is the active organization, or else every organization the user belongs to with direct child organizations | Stock rows through services (§2); facility scope through Mantle's Facility filter (§4, P1) |
 | F3 | P0: Mantle REST posts `record#PhysicalInventoryQuantity`, `record#PhysicalInventoryChange`, `receive#Asset`, `issue#Asset`, `move#AssetReservation`, `receive#ShipmentProduct` and `receive#EntireShipment` with no BOSS guard | P1 grants the Warehouse groups no REST stock path; P0 checks the rest |
 | F4 | P0: `record#PhysicalInventoryQuantity` given a count line writes the line's `quantityOnHand` and posts the delta at once; with no `physicalInventoryId` it creates one already PIComplete. PhysicalInventoryCount has no status, counter, reason or snapshot. Nothing in Mantle or Marble creates count lines. The four PI statuses have no transitions, and only PIComplete is used. Only AssetReservationMisc tests counts | P10's records and services; the immediate service stays for its callers |
 | F5 | P0: `post#PhysicalInventoryVariance` (SECA `AssetDetailPhysicalVarianceGlPost`) posts once per asset per PhysicalInventory, and answers a message for a second delta, which never reaches the GL. It values the delta at the asset's acquireCost; a null cost is AtrNoAcquireCost and posts nothing. It picks the found or shrinkage account by the delta's sign. It never reads `varianceReasonEnumId`, and `VarianceReasonGlAccount` is unused | P10's per-asset sums (design CountReview); a scrap PhysicalInventory per operation (P6); scrap's account is a §5 question |
@@ -721,11 +785,11 @@ is written there too.
 | F13 | P0: the 16 SECAs of design §15.2 exist under those names, all SECAs; the two emails run on commit. Not in the design: `AssetStatusNotAvailableReservations`, which checks reservations when an asset leaves AstAvailable, and the asset EECAs of F9. `ReturnApprovedProcess` runs `create#ReturnShipment` and then `process#ReturnItemResponses` | Written into design §15.2; P0 checks what quarantine does to a reservation before P8 |
 | F14 | P0: `CarrierServices.get#ShipmentRates` is commented out. The active interfaces are `get#ShippingRatesBulk`, `get#ShippingRate`, the label request, refund and track services and `validate#ShippingPostalAddress`. The only implementation is `get#OrderShippingRateLocal` (NA_LOCAL, ShGtwyLocal). Neither Mantle nor the framework has a carrier integration, and CarrierServices.spec stubs the labels | P13's adapter and local-rules provider; a test gateway is a §5 question |
 | F15 | P0: FacilityPrinter has only `facilityId`, `printerPurposeEnumId` and `networkPrinterId`. The purposes are PtpContainerLabel, PtpPackageLabel, PtpPickingDocuments, PtpPackingDocuments and PtpShipmentDocuments | P13 |
-| F16 | P0: `print#Document` is a Rust service behind the moqui-host `print` feature, in the enterprise and maximal builds only; without it a call answers "not installed". NetworkPrinter exists, with Mantle's `assetId`. There is no ZPL. The framework draws Code 128 as SVG only, with no GS1 parse; Products P11 adds the rest | P13 over Products P11; ZPL is a §5 question |
+| F16 | P0: `print#Document` is a Rust service behind the moqui-host `print` feature, in the enterprise and maximal builds only; without it a call answers "not installed". NetworkPrinter exists, with Mantle's `assetId`. There is no ZPL. The framework draws Code 128 as SVG only, with no GS1 parse; Products P11 adds the rest | P13 over Products P11, PDF only (§4) |
 | F17 | P0: `complete#ShipmentPack` takes getLabels and getReturnLabels (default false), a carrier and method, `networkPrinterId` and `makeDefaultPrinter` | CompletePack passes false for both (P12) |
 | F18 | P0: `binLocationNumber` is on Shipment and on ShipmentItemSource, and the source's value wins | LoadShipments edits the right one (P11) |
 | F19 | P0: ProductFacilityLocation's `minimumStock` and `moveQuantity`, and ProductFacility's `minimumStock` and `reorderQuantity`, are read by no service; Marble only edits them | `find#PickFaceReplenishment` is the first reader (P11); Products P7 is the one writer |
-| F20 | P0: Lot has no `productId`, and is unique by manufacturer and lot number. FacilityLocation has `capacity` and `capacityUomId`, but no count schedule | Lots open Product360 from an asset (design); the schedule is a §5 question |
+| F20 | P0: Lot has no `productId`, and is unique by manufacturer and lot number. FacilityLocation has `capacity` and `capacityUomId`, but no count schedule | Lots open Product360 from an asset (design); P10's count schedule (§4) |
 | F21 | P0: `AssetTypeGlAccount.transferGlAccountId` exists; there is no scrap account in Mantle | Transfers need the account (P15, Accounting P19); Accounting P13 adds the scrap account |
 | F22 | P0: none of AssetContent, ReturnContent, RequirementSupply, PlanningRun, PutawayRule, WarehousePolicy, ShipmentPickException, DeliveryStop, InspectionTemplate or QualityInspection exists. RequirementRequestItem and OrderItemWorkEffort do. FacilityParty is generic, and there is no Custodian role | Each record in its phase; RequirementSupply is §7 |
 | F23 | P0: `get#InventoryProjectedInfo` is in `mantle.product.InventoryReportServices`, not AssetServices | `get#InventoryAtDate` joins it there (P17) |
@@ -737,6 +801,7 @@ is written there too.
 | F29 | P0: BOSS has `Shared/OrderDetail`, `InvoiceDetail` and `RequestDetail` (Projects) and `Product360` (Products). Products adds Supplier360 and InventoryAvailability, and Accounting ShipmentDetail, ReturnDetail, EquipmentDetail and InventoryValuation (impl-accounting F4). No plan builds FacilityDetail, MaterialIssueReceipt, QualityInspection, InspectionTemplates or StockAtDate | Warehouse builds them (§2) |
 | F30 | P0: Delivery has no status and no driver; ShipmentRouteSegment links to it | WH-TRIP is §7 |
 | F31 | P0: Accounting reads "open inspection" with a stand-in before CX-QUALITY exists (impl-accounting P0) | P8's `get#SourceInspectionStatus` replaces it |
+| F32 | P0: ReturnItem has an order item but no AssetReceipt, asset or lot, so nothing says which receipt a supplier return sends back | P14 adds PUR-RETURN's receipt link with `find#ReturnableReceipts` |
 
 ## 7. Later
 
@@ -753,6 +818,9 @@ Designed, not in this build:
   - pivot and graph views (WH-REPORT; F25);
   - CSV mass moves;
   - camera scanning;
+  - ZPL labels, with FacilityPrinter's `labelFormatEnumId` and label-printer capability;
+  - facilities owned by a third party that hold the organization's stock;
+  - count schedules by accuracy or by movement, and ABC classes computed from value or movement;
   - the §19 items: a production pick mode with `AssetReservation.workEffortId`, held quantity as supply in planning,
     and owner-stock portals and storage fees.
 - **Supply planning (CX-PLANNING, with WH-PLAN):**
@@ -771,10 +839,13 @@ Designed, not in this build:
   - Manufacturing: the Components Stage action (Move) and ReceiveOutput's GenerateTracking.
 - **The rest of the other apps' needs:**
   - Manufacturing:
-    - the run snapshots (M4), whose lines replace P16's stand-in;
+    - the rest of M4: amendments (`amend#ProductionOrder`), `ProductionQuantityEvent`, instruction versions, and the
+      lifecycle beyond release (`transition#ProductionOrder`, with its hold transition);
     - the cost events of the guards (`record#ProductionCostEvent`, M8);
     - `record#ProductionLoss`, `request#SubcontractService` and SubcontractDetail;
-  - Purchasing: the service PO, and the rest of PUR-RECEIPT;
+    - its WorkOrders, NewWorkOrder and WorkOrderDetail screens;
+  - Purchasing: the service PO, ClosePurchaseOrders, NewSupplierReturn, `create#ReplacementOrder`, and the rest of
+    PUR-RECEIPT and PUR-RETURN;
   - CX-QUALITY's later NCR, CAPA and gauges.
 
 ## 8. Verification

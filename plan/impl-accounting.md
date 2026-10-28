@@ -1,7 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
 Oct 28, 2026 — plan; P0 partly done (F1–F46, found while writing it); the shared party-role and effective-date
-rules applied (§4); the customer and supplier pages as PASS apps in mr-pass (§4)
+rules applied (§4); the customer and supplier pages as PASS apps in mr-pass (§4); its open questions decided (§4)
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -165,8 +165,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   and service names, its Shared screen and its capability groups. A change found while building it is written
   into the owner's design. The owner's own screens stay with the owner.
 - **Mantle rule changes keep Mantle's default.** Each CX-AUTOMATION change, and each new refusal in a Mantle
-  service, applies to an organization that has adopted BOSS's rules (§5), and ships with a test of its
-  condition and of its unchanged default (crosscut §7.1).
+  service, sits behind its own flag, off by default (§4), and ships with a test of its condition and of its
+  unchanged default (crosscut §7.1).
 - **Existing callers stay compatible.**
   - Mantle's specs pass unchanged, including the flow specs' SECA invoices, return responses and posted
     amounts (F27).
@@ -244,9 +244,10 @@ and the Billing and Supplier apps in design-forum §1 and §13. Still to check:
 ### P1 — Foundation
 
 - **AC-01, access.**
-  - The groups of design §1.1, with `BOSS_ACCOUNTING_MATCH` (crosscut §1.4) and `BOSS_ACCOUNTING` as the root
-    user group. `BOSS_ACCOUNTING_GL` exists from Products P1.
-  - The root's authz comes out of BossSetupData's commented block (F1), with the filter set §5 decides (F5).
+  - The groups of design §1.1, with `BOSS_ACCOUNTING_MATCH` (crosscut §1.4), `BOSS_ACCOUNTING` as the root
+    user group and `BOSS_ACCOUNTING_ADMIN` as the admin group (§4). `BOSS_ACCOUNTING_GL` exists from Products P1.
+  - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
+    impl-drawers-commons §4: `MANTLE_USER_ORG` for the groups, `MANTLE_ACTIVE_ORG` for the admin group (F5).
   - `ironstone.accounting.AccessServices`: the user's organizations and capabilities. Every later Accounting
     service and shared mount calls it, and a supplied organization or record is checked against it.
   - No artifact authorization for the restricted services of §2, or for the Mantle REST ledger paths (F6).
@@ -300,7 +301,7 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
     - TransactionEntries;
     - Periods and PeriodLocks.
   - **Reports** (design §13): TrialBalance and GeneralLedger, with the shared report options and drill-down.
-    TrialBalance reads summaries kept as §5 decides (F16).
+    TrialBalance reads closed periods' summaries and sums open periods' posted entries (§4; F16).
 - **P2b.**
   - **AC-13:** `AcctgTransTemplate` and `AcctgTransTemplateEntry`; `ironstone.accounting.JournalServices`
     `store#Template`, `store#TemplateLines`, `create#FromTemplate`, `validate#Batch` and `post#Batch`. The batch
@@ -313,8 +314,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 - **Usable when** (design §16.3 bank-to-close, its closed-period part):
   - a GL user creates, balances and posts a manual entry, then reverses it on a later date with a reason, and
     the posted entry stays read only;
-  - a backdated posting into a locked or closed period is refused, by a direct post and by an auto-post SECA
-    alike, while a soft exception lets one named user post one scope until it expires;
+  - a backdated posting into a locked or closed period is refused by a direct post, and an auto-post SECA's
+    goes to the error journal with the lock named, while a soft exception lets one named user post one scope until
+    it expires;
   - a batch with one unbalanced entry posts the others and names the failure.
 
 ### P3 — Settings
@@ -326,7 +328,7 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - PostingDefaults: the mappings by kind, `ProductGlAccount` and `ProductCategoryGlAccount` among them, and
     the missing-mapping queue over `get#DefaultGlAccountByType`, which also lists the transactions sent to the
     error journal for a missing account (F10);
-  - PaymentTerms: due terms only (§5);
+  - PaymentTerms: due terms, and from P8 the term lines (§4);
   - Currencies: currency units and dated rates, the only writer of either (D17; Products Units excludes them;
     F20);
   - PaymentMethods: masked methods and gateway bindings; secrets stay Admin's;
@@ -413,9 +415,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - `mantle.account.invoice.InvoiceHold` and its seeded reasons;
   - `ironstone.accounting.MatchServices` `hold#Invoice`, `release#InvoiceHold` (never by the placer),
     `request#HoldRelease` and `find#BillExceptions`;
-  - the hold guard on every payable payment path, placed as §5 decides: `apply#Settlement`, and payable
-    `create#InvoicePayment` and `apply#InvoicePayment`.
-- **CX-AUTOMATION**, for an organization on BOSS's rules (§5; F27):
+  - the hold guard inside Mantle, where a payment is applied to a payable invoice, behind its flag (§4): it
+    covers `apply#Settlement`, payable `create#InvoicePayment` and `apply#InvoicePayment`, and the SECAs below.
+- **CX-AUTOMATION**, each change behind its flag (§4; F27):
   - `ShipmentIncomingDeliveredCreateInvoices` runs only for a self-billing supplier, and
     `create#PurchaseShipmentInvoices` takes `acceptedOnly`, which bills accepted quantity and no leftover or
     service line (F26);
@@ -434,7 +436,7 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - OrderDetail: `Shared/OrderDetail` with the Accounting context (Header, Items, Invoices/payments,
     Fulfillment, History);
   - ShipmentDetail: `Shared/ShipmentDetail` (crosscut §3.8) with the Accounting context;
-  - Approvals: the Commons Notifications mount, filtered as §5 decides (F43), with the BillApproval and
+  - Approvals: the Commons Notifications mount, filtered by Accounting's approval topics (§4; F43), with the BillApproval and
     BillHoldRelease topics. Later phases add theirs.
 - **Usable when** (§16.3 procure-to-pay, intake and holds):
   - a receipt from a supplier that is not self-billing creates no bill, and one from a self-billing supplier bills
@@ -472,6 +474,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 
 ### P8 — Payment runs
 
+- **Payment terms** (§4): `SettlementTermLine` as effective-dated rows, `store#SettlementTerm`, and the per-invoice
+  `InvoiceDueSchedule` written at issue, which aging, the workbench, runs and `apply#Settlement` read; a discount
+  taken within its date posts to the discount account.
 - **AC-04.**
   - `mantle.account.payment.PaymentRun` and `PaymentRunItem`.
   - `ironstone.accounting.PaymentRunServices` `find#Runs`, `create#Run`, `select#Bills`, `approve#Run` and
@@ -484,7 +489,7 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
     (F32).
 - **Screens** (design §5): PayablesWorkbench, with ApplySupplierCredit; PaymentRuns; PaymentRunDetail, with
   checks, NACHA and Positive Pay through the existing services, and bank returns through `import#NachaReturn`.
-  The discount columns stay empty (§5).
+  The discount columns read the due schedule.
 - **Usable when** (§16.3 procure-to-pay and batch):
   - a run selects the due approved bills and excludes a held one with its reason;
   - after approval, one supplier's payment fails and the others keep their payments and file;
@@ -558,6 +563,11 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - The close commits the closing entries, `close#FinancialTimePeriod` and the snapshot at once. Mantle's close
     is fixed to count only the organization's unposted transactions, and its closing entries to use the
     organization's own net-income account (F37). Reopen is audited and keeps the old close.
+- **Project cost** (§4; F45): `mantle.ledger.OtherAutoPostServices.post#WorkEffortCost`, on project timesheet
+  approval behind its flag: approved project time at the entry's cost rate to project cost, from the labor clearing
+  account, keyed by time entry, with a dated reversing delta when the approval is undone or the entry changes.
+  Production time is left to Manufacturing (D12). The two GL account types are seeded and mapped in
+  PostingDefaults.
 - **The period-run contract:** `mantle.ledger.transaction.AccountingPeriodRun` and its results, with
   `PeriodRunServices.find#Runs` and `preview#Run`. P12's depreciation is its first kind.
 - **Screens:** PeriodCloseDetail and PeriodRuns; the InvoiceReconciliation report.
@@ -603,8 +613,13 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   and `post#LandedCost`. The on-hand share goes to the asset's cost and the issued share to COGS or variance.
 - **AC-07, for Manufacturing's cost close:** the GL account types `GatLaborApplied`, `GatOverheadApplied`,
   `GatOutsideProcessAccrued` and `GatProductionVariance`, and `AssetTypeGlAccount.scrapGlAccountId` (§4).
+- **Scrap by reason** (impl-warehouse §4): `post#PhysicalInventoryVariance` reads the organization's
+  `VarianceReasonGlAccount` row for the variance reason, then for a scrap reason the asset type's
+  `scrapGlAccountId`, and otherwise found or shrinkage by sign as before; the demo organization's InVrScrap and
+  InVrExpired rows are seeded.
 - **Screens:** InventoryValuation; LandedCosts, linked from BillDetail; Product360: Products' `Shared/Product360`
-  with the Accounting context (Summary, Costs/history, source movements, permitted Prices); the
+  with the Accounting context (Summary, Costs/history, source movements, permitted Prices, and the GL mappings pane
+  of §4); the
   StockTransactions report.
 - **Usable when** (§16.3 production-to-GL, the valuation part):
   - a freight bill line allocated by weight to two receipts raises the on-hand asset's cost and sends the
@@ -670,23 +685,25 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
 - **Warehouse's contract** (§4, WH-RETURN): `mantle.shipment.WarehouseTaskServices.receive#ReturnItems`. It sets
   `ReturnItem.receivedQuantity` and processes no responses, replacing `ShipmentDeliveredReturnReceive` and
   `ReturnReceivedProcess` on this path. Warehouse's ReturnReceipt screen stays Warehouse's.
-- **CX-AUTOMATION**, for an organization on BOSS's rules (§5): `ReturnApprovedProcess` keeps only
+- **CX-AUTOMATION**, behind D11's flag (§4): `ReturnApprovedProcess` keeps only
   `create#ReturnShipment` (D11).
 - **AC-02, returns:** `ironstone.accounting.ReturnSettlementServices.preview#Return` and `settle#Return`.
   - The customer branch calls `process#ReturnItemResponses` inside the settlement.
   - The supplier branch is new code: Mantle refuses responses for a purchase return (F35).
   - Both cover the result codes of design §14, a receiptless credit with an approver, `complete#ReturnItem`, and
     `ReturnItemBilling.assetReceiptId`. Settlement queues match re-evaluation.
-- **AC-02, between pack and ship** (D3): `InvoiceServices.release#ShipmentDraftInvoice` and
-  `SettlementServices.refund#OrderPayment`, as §5 settles for an invoice Mantle has already finalized at pack
-  (F25).
+- **AC-02, between pack and ship** (D3, behind its flag; §4, F25): the pack SECA leaves the sales invoice
+  InvoiceInProcess with no payments applied, and a ShipShipped SECA finalizes it, applying captured payments and
+  sending it; `InvoiceServices.release#ShipmentDraftInvoice` and `SettlementServices.refund#OrderPayment` serve
+  the changes in between.
 - **Screens:** ReturnDetail: `Shared/ReturnDetail` (crosscut §3.18) with the Accounting context.
 - **Usable when** (§16.3 return-to-refund; invoice-to-cash, the reopened package):
   - approving an RMA creates no credit;
   - receiving part of it credits only that part, a second box later is still credited, and a refund stays
     within the original paid amount;
   - a supplier return creates the payable credit;
-  - a package reopened after pack takes its lines off the shipment's invoice;
+  - a package reopened after pack takes its lines off the shipment's invoice, which is finalized only when the
+    shipment ships;
   - ReturnToResponseBasicFlow and OrderToCashBasicFlow pass unchanged.
 
 ### P18 — Portals
@@ -741,7 +758,8 @@ Accounting's customer and supplier pages, as two PASS apps in mr-pass (§2, §4)
     - `check#Readiness`: the rows of design §15 Setup, among them single currency, the WIP and transfer accounts,
       and the paused reminder job;
     - `activate#Accounting`, once per run version.
-  - The chart templates, on Mantle's one global chart as §5 decides (F14).
+  - The chart templates (§4; F14): a seeded template organization from Mantle's installed chart, copied by
+    `init#PartyAccountingConfiguration`.
 - **Screens:** Setup. Home offers it first to an unconfigured organization.
 - **Usable when** (§16.3 batch/activation):
   - a new organization's opening trial balance and open items tie before activation;
@@ -788,28 +806,28 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | The legacy match backfill is Accounting's (P7), run by AP or a buyer with the match group, from either app | The user's call (impl-purchasing §4, answer 5); it settles design-purchasing §18's migration item |
 | Oct 28, 2026 | The supplier bill link is Purchasing's PO link, which Accounting adds in P18 with BillUpload (F44); with the move below it is the Supplier app's page for the PO, not a `/po/<token>` route | The user's call (impl-purchasing §4, answer 14) |
 | Oct 28, 2026 | Public-facing applications are in mr-pass and internal ones in mr-boss. Accounting's customer and supplier pages are PASS apps: Billing with InvoicePay, and Supplier with BillUpload, which Purchasing P16 extends; not `screen/ServicePortal.xml` and `screen/SupplierPortal.xml` in BOSS. They follow PASS's foundation (§2): public accounts with no UserGroup, Mantle services through the facade for a local or remote authority, PASS invitations, media and request contract | The user's call, Oct 28, in the Customer Service plan review (impl-customer-service §4). It reverses crosscut D5's two BOSS roots; Customer Service's pages are its own PASS app, Support |
+| Oct 28, 2026 | The root: `BOSS_ACCOUNTING` as root user group and artifact group. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_ACCOUNTING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4). `AccessServices` checks every supplied organization and record. The records no filter covers (F5) are read only through services that check their parent's organization, and `GlAccount` stays global (F14) | The user's call (§5 review), for every BOSS root |
+| Oct 28, 2026 | Each Mantle rule change is adopted by its own flag, off by default, so plain Mantle and its flow specs keep their behavior (F27). A flag lives with its owner's settings: Accounting's (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards) are audit-logged fields of `PartyAcctgPreference`, inherited as its other fields are; another app's are fields of its effective-dated policy rows (WarehousePolicy's expiry gate, ProductionPolicy's approver rule, the buying policy's approval gate, Customer Service's ServicePolicy). The names are neutral, since Mantle never names BOSS. BOSS's demo organization turns them on; the organizations Mantle's specs use leave them off | The user's call (§5 review). The alternatives were one adoption flag on PartyAcctgPreference, and one PartySetting type |
+| Oct 28, 2026 | A posting-guard failure is split by source (F9, F10). A finance user's direct post (a manual entry, an invoice or payment post, a batch line) is refused with the reason. An automatic post from an operational event (a receipt, issue, shipment or production fact) goes to the error journal with the failed guard named; Accounting's MissingMappings and error-journal list and Today show it, and P11's close refuses a period that still holds one. An auto-poster that finds no account records a failure, not `AtrSuccess` | The user's call (§5 review). Design §15: a missing map blocks and is named, never a silent suspense. The alternatives were always refusing and always the error journal |
+| Oct 28, 2026 | CX-POSTING keeps one Mantle operation record, keyed by `operationKey`, with the operation type, organization, user, time, request hash, preview version, status and links to the records it made or posted (F8). Each posting service checks and writes it in the posting's transaction: a retry with the same hash returns the stored result, and a different request under the same key is refused. Products' `ProductCatalogOperation` stays as built, for its resumable batches | The user's call (§5 review); a fact with an identity of its own under the shared rule. The alternative was an `operationKey` field on each target record. Warehouse, Manufacturing, Purchasing and Customer Service use the same record |
+| Oct 28, 2026 | Lock scopes go by the transaction's source document. Sales: transactions whose invoice the organization issued (sales invoices, customer credits and returns, their adjustments). Purchases: those whose invoice it received. Tax: any transaction with an entry on a `GatTax` account, and `AttTaxDue` and `AttTaxInvoice`. All: every transaction, so payments, stock, depreciation and manual entries fall under it only. A hard lock takes no exception, and `TimePeriod.isClosed` still applies | The user's call (§5 review). Odoo's company lock dates, whose sale and purchase dates cover only those journals. The alternatives were an editable map of AcctgTrans types, and payments in the sales and purchase scopes |
+| Oct 28, 2026 | Reports read closed periods' GL summary rows, which P11's close computes and stores, creating any that are missing (F16); open periods are summed from posted AcctgTransEntry rows at read time. `realTimeGlSummary` stays as each organization has it, and no report depends on it | The user's call (§5 review). The alternatives were requiring live summaries, which lock summary rows on each post, and recalculating before each report |
+| Oct 28, 2026 | Exchange rates: P3 has manual dated UomConversion rates with a CSV import, each marked with its source. P20 builds `refresh#Rates` as a provider interface, a service name in the organization's settings, with the European Central Bank's daily reference rates as the shipped provider (free, no key; cross rates through EUR). A fetch proposes rates that a finance user accepts before they are active (AC-16) | The user's call (§5 review). Until P20 every document is in the base currency (D18). The alternatives were manual rates only, and the fetch at P3 |
+| Oct 28, 2026 | Self-approval (design §1.1): one audit-logged `PartyAcctgPreference` field, off by default, which only `BOSS_ACCOUNTING_ADMIN` sets. It covers every Accounting approval (bills, invoices, journal entries, payment runs, write-offs), and a decision whose approver drafted the record is stamped self-approved, for the audit and the approvals report | The user's call (§5 review), as Products decided for estimates. The alternatives were a setting per document type, and none |
+| Oct 28, 2026 | The payable hold guard is inside Mantle, at the one point where a payment is applied to a payable invoice, behind the hold flag. `PaymentApplyForInvoice` and `InvoiceApplyForPayments` catch its refusal and leave the payment unapplied with a named exception; `apply#Settlement`, `create#InvoicePayment`, `apply#InvoicePayment` and P8's runs meet the same check | The user's call (§5 review). Mantle reads its own InvoiceHold and never calls BOSS. The alternative was BOSS adapters with the SECAs conditioned, which leaves direct Mantle callers unguarded |
+| Oct 28, 2026 | An app's Approvals list filters Commons Notifications by the approval topics it owns, passed by its mount; `get#UserNotifications` takes a list of topics (F43). Commons' own app chips stay. Purchasing (P4) and Customer Service (P9) mount theirs the same way | The user's call (§5 review). A bill approval stays in Accounting's list whichever app sent it. The alternative was the `appName` filter |
+| Oct 28, 2026 | Payment terms (P8): `SettlementTermLine` (sequence, portion percent, days basis, discount percent, discount days) as effective-dated rows with audit-logged fields, saved through `store#SettlementTerm`; a per-invoice `InvoiceDueSchedule` (due date, amount, discount date, discount amount) written at issue, the invoice's own audit-logged rows, so a later term change never alters an issued invoice. Aging, PayablesWorkbench, PaymentRunDetail and `apply#Settlement` read it, and a discount taken within its date posts to the discount account, for customer receipts and supplier payments | The user's call (§5 review): design §20's recommendation, with dated rows in place of its versions. The alternatives were a single discount on SettlementTerm, and due terms only |
+| Oct 28, 2026 | Accounting builds project cost posting (P11; F45): `post#WorkEffortCost` reclasses a project's approved time at the entry's cost rate, debiting project cost and crediting a labor clearing account (both GL account types seeded, mapped in PostingDefaults), with the project on the transaction. It runs on timesheet approval behind its own flag, keyed by time entry on the operation record, and posts a dated reversing delta when the approval is undone or the entry changes. Production time is excluded, since Manufacturing's labor events post it (D12) | The user's call (§5 review). impl-projects §7 handed it to Accounting. The alternative was §7, with the People app's payroll; payroll then credits the clearing account rather than wage expense, which the organization's setup decides |
+| Oct 28, 2026 | Product360's Accounting context gains a GL mappings pane over `ProductGlAccount` and `ProductCategoryGlAccount` (P13), organization-scoped and edited by finance admin; PostingDefaults stays the bulk editor, and the Products context does not show it | The user's call (§5 review): design §20's recommendation. It goes into crosscut §3.5 when P13 starts. The alternative was PostingDefaults only |
+| Oct 28, 2026 | The pack invoice (F25), behind D3's flag: the pack SECA creates the sales invoice InvoiceInProcess, without applying payments, and a ShipShipped SECA finalizes it (posting it, applying captured payments and sending it). Between pack and ship, Warehouse's Reopen package and put-back and Customer Service's `apply#OrderChange` call `release#ShipmentDraftInvoice` as D3 designs; after ship, changes go through returns and credit memos. With the flag off Mantle finalizes at pack as before, so OrderToCashBasicFlow passes unchanged | The user's call (§5 review). Revenue and receivable then come at shipment. The alternative was finalizing at pack and building InvoiceCorrection for every change after it. Design §14 (D3) and crosscut §3.8 are corrected when P17 starts; Warehouse P12 and Customer Service P10 follow |
+| Oct 28, 2026 | Chart templates (P19; F14) are seeded template organizations on Mantle's one global chart: a Party with no transactions, holding its account links, type defaults and mappings, copied into a new organization by Mantle's `init#PartyAccountingConfiguration` (`sourcePartyId`). The first release ships one template, from Mantle's installed chart; country charts whose codes conflict are §7's country packs | The user's call (§5 review), Mantle's existing setup copy. The alternatives were template records applied by a BOSS service, and account codes unique per organization |
 | Oct 28, 2026 | Two apps by owner and audience, Billing for customers and Supplier for suppliers, rather than one customer app with Customer Service's Support | The plan's choice: P18 comes before Customer Service, and PASS shares accounts and navigation across a site's apps (design-forum §13.1) |
 
 ## 5. Open questions
 
 | Question | Decides | Notes |
 | --- | --- | --- |
-| Which filter set the Accounting root takes, and how the records no filter covers are scoped (F5) | at P1 start | Products took `MANTLE_ACTIVE_ORG` with service checks |
-| `BOSS_ACCOUNTING` as the root user group beside the artifact group of that name | at P1 start | Products kept both (impl-products §4) |
-| How an organization adopts BOSS's rules, so plain Mantle and its flow specs keep their behavior (F27): one setting, for example on PartyAcctgPreference, that D2, D3, D11 and D18 read | at P2 start | The first reader is P4's currency refusal |
-| A guard failure: Mantle's error journal, or a refusal to the caller (F9, F10) | at P2 start | Design §15: a missing map blocks and names its type, never a silent suspense |
-| Where the preview version and operation key live: one Mantle operation-result record for CX-POSTING, or keys on each record (F8) | at P2 start | Warehouse and Manufacturing share CX-POSTING |
-| Lock scopes (all, sales, purchases, tax) against AcctgTrans types | at P2 start | |
-| GL summaries kept live (`realTimeGlSummary`) for BOSS organizations, or recalculated before each report (F16) | at P2 start | The demo organization keeps them live |
-| The rate source for `CurrencyServices.refresh#Rates`, or manual rates only | at P3 start | |
-| Self-approval as an audited organization setting, off by default (design §1.1) | at P4 start | Products decided the same for estimates |
-| The hold guard inside Mantle's payment services, or only in BOSS adapters with the SECAs conditioned | at P6 start | `PaymentApplyForInvoice` runs with no BOSS adapter |
-| `Accounting/Approvals`: Commons Notifications' `appName` filter, or a topic filter (F43) | at P6 start | |
-| Payment term discounts and installments (design §20) | at P8 start | Until decided, the discount columns stay empty |
-| Who posts project cost: `post#WorkEffortCost` (F45) | before P11 | impl-projects §7 hands it to Accounting; design-accounting does not name it |
-| Product360 GL mappings (design §20) | at P13 start | Until then PostingDefaults edits them |
-| The pack invoice (F25): finalize it at ship instead of at pack for an organization on BOSS's rules, or correct a finalized one through InvoiceCorrection | before P17 | D3 assumes it is still in process; the answer goes into design §14 and crosscut §3.8 |
-| Chart templates on Mantle's one global chart, whose account codes are unique (F14) | at P19 start | |
+| Further issues discovered during implementation | the affected phase | Record findings and decisions here; the open questions of the plan as written are decided in §4 |
 
 The design's other §20 items are `later` there and in §7.
 
@@ -824,18 +842,18 @@ design, it is written there too.
 | F2 | P0: `Shared/InvoiceDetail` and `Shared/OrderDetail` are mounted by Projects only and do not branch on `appRoot`. InvoiceDetail's `invoices` transition, its print and PDF URLs and its email attachment name Projects' screens. Projects' `update#InvoiceStatus` covers client invoices only; its `send#Invoice` approves a draft, sends the `BOSS_PROJECT_INVOICE` template with the PDF and marks the invoice Sent | P4 adds the context on `Shared/RequestDetail`'s pattern and a shared invoice print; Projects' services call Accounting's |
 | F3 | P0: AppStructure's non-placeholder list is fixed at Commons, Comms, Insights and Projects, and its placeholder floor is 97 | P1 adds Accounting and lowers the floor |
 | F4 | P0: BOSS has no Customer360, Supplier360, ShipmentDetail, ReturnDetail, EquipmentDetail, Product360, InventoryValuation or Approvals screen. Products builds Product360 (its P2), Supplier360 (P6) and InventoryValuation's two dialogs (P9) | Accounting builds the rest with its context (§2); it extends Products' |
-| F5 | P0: `MANTLE_USER_ORG` and `MANTLE_ACTIVE_ORG` filter Invoice and Payment (from or to party), AcctgTrans and FinancialAccount (organization), TimePeriod, ReturnHeader, Shipment and OrderPart. Nothing filters InvoiceItem, PaymentApplication, AcctgTransEntry, GlAccount, GlAccountOrganization, PaymentMethod, PaymentMethodTrans, Budget, TaxStatement or Asset | Those are read through services that check the organization (§2); the root's filter set is a §5 question |
+| F5 | P0: `MANTLE_USER_ORG` and `MANTLE_ACTIVE_ORG` filter Invoice and Payment (from or to party), AcctgTrans and FinancialAccount (organization), TimePeriod, ReturnHeader, Shipment and OrderPart. Nothing filters InvoiceItem, PaymentApplication, AcctgTransEntry, GlAccount, GlAccountOrganization, PaymentMethod, PaymentMethodTrans, Budget, TaxStatement or Asset | Those are read through services that check the organization (§2); the root's filters are the organization filters (§4) |
 | F6 | P0: Mantle's ledger report services check no access. `get#GlAccountClassReportInfo` filters by period only, not by organization; `get#SalesTopProduct` and `get#InvoicesByCustomerClass` take no organization; the ledger reports are on Mantle REST | P1 grants no REST ledger path; P16's adapters check the organization and its periods |
 | F7 | P0: the demo runs `init#PartyAccountingConfiguration` for `ORG_ZIZI_CORP` (with `realTimeGlSummary=Y`); `ORG_ZIZI_RETAIL` has no preference of its own and inherits through its rollup. Periods exist only for the load year and the next, and no accounting transactions are seeded | P1's demo data builds on it and runs its postings through a demo service |
-| F8 | P0: the framework has no operation-key helper (only AgentRun's `clientRequestId`); payments have no idempotency key, `paymentRefNum` is not unique, and `create#InvoicePayment`'s only duplicate guard is a covered total | A §5 question at P2 start; P5 is the first heavy user |
-| F9 | P0: `post#AcctgTrans` checks the balance, `disallowPosting`, the scheduled date and every fiscal period of the date for `isClosed` (bypassed by `forcePost` with `GL_POST_CLOSED`), and diverts failures to the error journal. It checks no organization, currency or lock date, and `verifyOnly` already moves a failed transaction to the error journal | P2a adds the guard and fixes `verifyOnly`; no BOSS group gets `GL_POST_CLOSED`; the error journal is a §5 question |
+| F8 | P0: the framework has no operation-key helper (only AgentRun's `clientRequestId`); payments have no idempotency key, `paymentRefNum` is not unique, and `create#InvoicePayment`'s only duplicate guard is a covered total | One operation record (§4); P5 is the first heavy user |
+| F9 | P0: `post#AcctgTrans` checks the balance, `disallowPosting`, the scheduled date and every fiscal period of the date for `isClosed` (bypassed by `forcePost` with `GL_POST_CLOSED`), and diverts failures to the error journal. It checks no organization, currency or lock date, and `verifyOnly` already moves a failed transaction to the error journal | P2a adds the guard and fixes `verifyOnly`; no BOSS group gets `GL_POST_CLOSED`; a failure is refused or goes to the error journal by its source (§4) |
 | F10 | P0: an auto-poster that finds no GL account sets the error journal itself, without calling `post#AcctgTrans`, and still records `AtrSuccess` on a stock movement | P3's MissingMappings and P11's checklist list the error-journal transactions; P13 lists the movements |
 | F11 | P0: `update#AcctgTransPosted` checks nothing and can change a posted transaction's organization or type. `unpost#AcctgTrans` and every `repost#*` (invoices, payments, receipts, issuances, variances, assets) unpost and hard-delete the posted transaction, so each fails in a closed period. `AssetIssuanceGlRePost` runs on any AssetIssuance update | No BOSS group is granted them (P1); P2a's metadata adapter and `repost#AssetIssuance` delta |
 | F12 | P0: `post#ReverseAcctgTrans` keeps the original's transaction date, and marks the original reversed even when the reversal lands in the error journal | P2a adds a reversal date (Mantle's default unchanged) and marks only a posted reversal |
 | F13 | P0: `check#NextFiscalTimePeriods` assumes a calendar fiscal year; `fiscalYearStartMonth` and `fiscalYearStartDay` are read nowhere. `get#OrganizationFiscalTimePeriods` creates periods when it finds none | P2a follows the organization's start; P19's Setup sets it |
-| F14 | P0: GlAccount is global, with a unique digits-only `accountCode`. `GlAccountOrganization` has no dates or active flag. `set#GlAccountFlags` always overwrites `isDebit` and `isTemporary` | P2a adds the dates; chart templates are a §5 question at P19 |
+| F14 | P0: GlAccount is global, with a unique digits-only `accountCode`. `GlAccountOrganization` has no dates or active flag. `set#GlAccountFlags` always overwrites `isDebit` and `isTemporary` | P2a adds the dates; chart templates are template organizations (§4, P19) |
 | F15 | P0: `AcctgTransEntry` has `productId` and `assetId` but no facility or cost centre; `AcctgTrans.workEffortId` is never set by an auto-poster; the `COST_CENTER` GL account category type exists and is unused | P2b and P6 add the dimensions; the cost centre stays a Party (design AC-22) |
-| F16 | P0: `GlAccountOrgTimePeriod` has no currency and is kept live only with `realTimeGlSummary=Y`; `recalculate#GlAccountOrgTimePeriodAmounts` fixes existing rows and creates none | A §5 question at P2 start; P20 keeps one currency per summary |
+| F16 | P0: `GlAccountOrgTimePeriod` has no currency and is kept live only with `realTimeGlSummary=Y`; `recalculate#GlAccountOrgTimePeriodAmounts` fixes existing rows and creates none | Closed periods' rows and open periods' live sums (§4); P20 keeps one currency per summary |
 | F17 | P0: `post#GlJournal` returns on a raised error, but a transaction diverted to the error journal raises none and is counted as posted, and `closeJournal` marks the journal posted regardless. The design says it stops at the first error | P2b's `post#Batch`; design §8 JournalBatches corrected |
 | F18 | P0: there is no guarded invoice transition. Status changes are `update#Invoice` against the status flows, with `INVOICE_APPROVE` enforced by the framework; `unapply#PaymentApplication` changes an invoice's status by a direct update | P4's `change#InvoiceState`; unapply runs through the guard |
 | F19 | P0: Mantle converts no currency. Every poster writes the document's currency as the transaction's, the GL summaries add currencies together, the original and local currency fields are never filled, `post#PaymentApplication` books no FX, and `GatForExGain` and `GatForExLoss` exist with no default mapping. `get#ReceivableStatementInfo` mixes currencies | P4's refusal (D18), statements by currency; P20 |
@@ -844,9 +862,9 @@ design, it is written there too.
 | F22 | P0: `create#InvoiceCreditMemo` makes one reversed-party item, not linked to the original or applied to it; `reverse#Invoice` refuses an invoice with applications | P4 links and applies the credit memo |
 | F23 | P0: Mantle's write-off status is reached only from Payment Received, which a SECA refuses while anything is unpaid; there is no payable write-off | P5's write-off is a posted adjustment to its account |
 | F24 | P0: `autoApply#Payment` and `autoApplyTo#Invoice` are empty stubs (Remaining-Work lists the first) | P5 implements `autoApply#Payment` |
-| F25 | P0: the pack SECA calls `create#SalesShipmentInvoices` with `applyPayments` defaulting to true, which finalizes the invoice, and so posts it, at pack. D3's `release#ShipmentDraftInvoice` assumes it is still in process | A §5 question before P17 |
+| F25 | P0: the pack SECA calls `create#SalesShipmentInvoices` with `applyPayments` defaulting to true, which finalizes the invoice, and so posts it, at pack. D3's `release#ShipmentDraftInvoice` assumes it is still in process | Behind D3's flag the invoice is finalized at ship (§4, P17) |
 | F26 | P0: `create#PurchaseShipmentInvoices` bills each receipt's accepted quantity, then a leftover line with no asset for what was shipped and not accepted, and every non-product order line in full on the first shipment's invoice. It has no `acceptedOnly` | P6 adds `acceptedOnly` |
-| F27 | P0: Mantle's flow specs assert the behaviors D2, D3 and D11 change: OrderProcureToPayBasicFlow the SECA's purchase invoice with its freight line, OrderToCashBasicFlow the pack invoice paid, ReturnToResponseBasicFlow the responses. Six specs assert posted amounts | Each change applies to an organization on BOSS's rules (§2, §5); the specs pass unchanged |
+| F27 | P0: Mantle's flow specs assert the behaviors D2, D3 and D11 change: OrderProcureToPayBasicFlow the SECA's purchase invoice with its freight line, OrderToCashBasicFlow the pack invoice paid, ReturnToResponseBasicFlow the responses. Six specs assert posted amounts | Each change sits behind its own flag, off by default (§2, §4); the specs pass unchanged |
 | F28 | P0: the due date is set by the `InvoiceSetDueDate` EECA: the invoice's term, else the newest agreement term, else PartyAcctgPreference's for a receivable only | P6 adds SupplierProfile's term for a bill |
 | F29 | P0: there is no SupplierProfile, no OrderHoldReason (OrderHold is only an order status) and no external access capability; the nearest are the unsubscribe tokens and the forum's access grants | P6, P10 and P18, under the owners' names (§4) |
 | F30 | P0: `update#BankAccount` copies a non-internal owner's bank account to a new payment method and expires the old one | P8's approval void keys on the supplier |
@@ -862,9 +880,9 @@ design, it is written there too.
 | F40 | P0: `AssetValuationSummary` values on-hand quantity at each asset's current cost, not from the GL. A zero-cost receipt posts zero. `cogsMethodEnumId` is read by no service: posting is always actual cost. There is no scrap account. An issuance to a work effort another party owns posts to COGS | P13 sets the valuation beside the accounts and lists the exceptions; P3 shows the COGS method as it is; design §10 and §18.2 corrected |
 | F41 | P0: `TaxAuthorityRate` is commented out, its relationship keyed by a composite that is not TaxAuthority's key. `calculate#SalesTaxLocal` only logs; `calculate#InvoiceSalesTax` is empty. Tax lines post through `ItemTypeGlAccount`; `TaxAuthorityGlAccount` is unused. `ItemVatTax` is not left out of totals. The 1099 selection is by invoice date over 600, with no eligibility flag | P14 |
 | F42 | P0: Budget has no organization (its period's party is), and its status type has no items or transitions. Sub-period entry covers twelve periods. `run#BudgetExpenseReport`'s actual is posted debits of expense accounts only; the detail report is invoice-based. No budget service checks status or permission | P15 |
-| F43 | P0: approvals are NotificationTopics with approve and refuse services; there is no provider registry. Commons Notifications filters by `appName` | P6's mount; a §5 question |
+| F43 | P0: approvals are NotificationTopics with approve and refuse services; there is no provider registry. Commons Notifications filters by `appName` | P6's mount, filtered by topic list (§4) |
 | F44 | P0: MoquiConf `<token-route>` is generic: a token service answers `valid` and a route context, and the screen gets the token. Crosscut §5 names `/pay` for InvoicePay and no route for bill upload | P18. The customer and supplier links are pages of the PASS apps taking their tokens, not `<token-route>`s (§4); the bill link is the PO's (§4) |
-| F45 | P0: impl-projects §7 hands project cost posting (`post#WorkEffortCost`, an empty stub) and a link to Mantle budgets to Accounting; design-accounting names neither | A §5 question |
+| F45 | P0: impl-projects §7 hands project cost posting (`post#WorkEffortCost`, an empty stub) and a link to Mantle budgets to Accounting; design-accounting names neither | P11 builds the posting (§4); the budget link is §7 |
 | F46 | P0: Projects' invoices check no currency (impl-projects F91), and its approve finalizes and posts | P4's `change#InvoiceState` applies D18 to them too |
 
 ## 7. Later
@@ -878,8 +896,7 @@ Designed, not in this build:
   `ProductionAllocationPolicy`, the ProductionCostReview notice, Accounting's side of the production posting rule
   (D12), and the cost-close part of §16.3 production-to-GL.
 - **Other design items:** payment references and the invoice QR block (AC-20); dunning fees and interest;
-  percentage distribution across cost centres; the posted-entry hash; inbound direct debit; payment-term
-  discounts and installments, unless §5 brings them in; the country and book packs (cash-basis tax,
+  percentage distribution across cost centres; the posted-entry hash; inbound direct debit; the country and book packs (cash-basis tax,
   withholding); statement formats beyond BAI2, OFX and CSV (camt.053, then MT940).
 - **Other apps' contexts:** Customer Service and Sales on Customer360; Purchasing, Warehouse and Customer Service
   on ReturnDetail; Warehouse on ShipmentDetail, and its `Warehouse/Reports/InventoryValuation` mount;
@@ -891,7 +908,7 @@ Designed, not in this build:
   - Quality: `get#SourceInspectionStatus` and `dispose#Inspection`.
   - Warehouse: Reopen package and put-back, `ship#SupplierReturn`, `post#Count`.
   - Customer Service: `authorize#Return` and `apply#OrderChange`.
-  - Projects: the labor cost events at timesheet approval (with Manufacturing).
+  - Projects: a project's link to a Mantle budget (impl-projects §7). Its cost posting is P11's (§4).
 - **The rest of the other apps' needs:** the rest of PUR-SUPPLIER (approval status, risk); CX-RETURNS' policy
   records; CX-QUALITY.
 

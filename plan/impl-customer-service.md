@@ -61,8 +61,8 @@ provide. Customer Service is the last of the six core apps (§4), so these are t
     forum's case escalation)
 - Plans:
   - [impl-products.md](impl-products.md): the pattern; P2, P5 and P7; the BOSS client screenshot spec (its F23).
-  - [impl-accounting.md](impl-accounting.md): P4, P6, P10, P17 and P18, its §5 questions on the adoption setting, the
-    operation record and the pack invoice, and its §7 list of Customer Service's contexts and callers.
+  - [impl-accounting.md](impl-accounting.md): P4, P6, P10, P17 and P18, its rule flags, operation record and pack
+    invoice (§4), and its §7 list of Customer Service's contexts and callers.
   - [impl-warehouse.md](impl-warehouse.md): P8, P11, P13, P14 and P17, and its §7 list.
   - [impl-purchasing.md](impl-purchasing.md): P3, P4, P8, P10 and P13, and its §7 list.
   - [impl-manufacturing.md](impl-manufacturing.md): P11.
@@ -159,7 +159,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - builds and commits.
 
   Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2), as `CustomerServiceShots`.
-- **Service rows through services.** Under `MANTLE_ACTIVE_ORG`, Party, OrderPart, Shipment, ReturnHeader and Invoice
+- **Service rows through services.** Under the organization filters (impl-drawers-commons §4), Party, OrderPart, Shipment, ReturnHeader and Invoice
   are filtered, but not Request, RequestCategory, OrderHeader, OrderItem, CommunicationEvent or the Request joins (F2).
   Customer Service reads and writes them only through services: `ironstone.customerservice.AccessServices` checks the
   organization, the customer, the queue and team, the record and the capability, then the Mantle service runs.
@@ -219,8 +219,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   and a link to CaseDetail. `Request.responseRequiredDate` on a case is written by SlaServices only.
 - **Revisions and operations.** Every authorization, application, decision, settlement call, bulk action, saved-reply
   apply, send and Support app submission names its source revision and an operation identity. A retry answers the first
-  result, and a stale revision is refused naming the current one. The operation record is the CX-POSTING record
-  Accounting decides at its P2 (impl-accounting §5). A batch names each failure and goes on: cases, replies, returns,
+  result, and a stale revision is refused naming the current one. The operation record is Accounting P2's
+  CX-POSTING record (impl-accounting §4). A batch names each failure and goes on: cases, replies, returns,
   invitations, feedback reviews. One merge, split, authorization or application with its links commits atomically.
 - **Shared screens.** Customer Service builds only the survey builder's two screens (§4). It adds its context to the
   shared screens of §1, each taking `appRoot` and server-derived capabilities on `Shared/RequestDetail`'s pattern, and
@@ -232,7 +232,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Mantle rule changes keep Mantle's default.** Each new rule or refusal in Mantle acts only on a case (a request in a
   service queue), a queue route or a feedback invitation, which exist only where Customer Service is configured, and
   ships with a test of its condition and of its unchanged default (crosscut §7.1). The return and pack-invoice rules
-  are Accounting's, for an organization on BOSS's rules (impl-accounting §5).
+  are Accounting's, behind their flags (impl-accounting §4); Customer Service's own are ServicePolicy flags.
 - **Mantle callers stay compatible.** Existing callers of these keep working:
   - `create#Request` from Comms, Chat, Commons QuickRequest, Projects NewRequest, `create#RequestFromEmail`,
     `create#IntakeRequest` and the forum's `create#CaseFromTopic`;
@@ -308,9 +308,8 @@ check:
   Mantle's PassApi route table; PASS invitations with organization grants, for a customer contact; media staging
   finalized into a record's content; the site pages' wiki binding, for published help articles; and the URLs Mantle
   builds for notices to a site's members.
-- **Accounting's §5 answers.** The adoption setting; the CX-POSTING record; the pack invoice (impl-accounting F25 and
-  its question before P17), which decides whether an order change after pack releases an invoice or needs
-  InvoiceCorrection (F26); the Approvals filter (appName or topic, F14).
+- **Accounting's §5 answers.** The rule flags (its §4); the CX-POSTING record; the pack invoice, decided: behind D3's flag it is
+  finalized at ship, so an order change between pack and ship releases it (impl-accounting §4, F26). The Approvals filter is decided: the topic list (impl-accounting §4, F14).
 - **Which requests are cases** (F5, §4). Each entry point's type, category, parties and status at create, against the
   service-queue rule, and what Commons Today and the request lists show for a case.
 - **The paths around a case** (F8). For each path that changes a request's status, due date or resolution, whether the
@@ -341,8 +340,9 @@ check:
     `_KNOWLEDGE` and `_ADMIN`, composed as Products' are, with `BOSS_CUSTOMER_SERVICE` as the root user group beside the
     artifact group of that name (§4, F3). W and F are the owners' groups (crosscut §1.4). C, the customer contact, is
     a PASS public account with no group (§2).
-  - The root's authz comes out of BossSetupData's commented block (F1), with `MANTLE_ACTIVE_ORG` and
-    `MANTLE_PRIVATE_CONTACT` and the service checks of §2.
+  - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
+    impl-drawers-commons §4 (`MANTLE_USER_ORG` for the groups, `MANTLE_ACTIVE_ORG` for `BOSS_CUSTOMER_SERVICE_ADMIN`,
+    `MANTLE_PRIVATE_CONTACT` for both) and the service checks of §2.
   - `ironstone.customerservice.AccessServices`: the user's service organizations, their capabilities, own and borrowed,
     the queues and teams they work, and the customers they may serve: a Customer-role party whose owner passes the
     active or available organization filter, as Purchasing's supplier scope. Every later Customer Service service and
@@ -697,8 +697,8 @@ CX-RETURNS, CX-APPROVAL. On Accounting P17's settlement and receipt and Warehous
   - QualityInspection: Warehouse's `Shared/QualityInspection` at `CustomerService/Returns/QualityInspection` with the
     Customer Service row: read for A and R, inspect and dispose for W (F38).
   - ReturnPolicies: ReturnPolicyList, ReturnPolicyEdit, ReturnReasons and ReturnPolicyPreview.
-  - Approvals: Commons Notifications at `CustomerService/Approvals`, filtered to the service topics as Accounting P6
-    decides (F14).
+  - Approvals: Commons Notifications at `CustomerService/Approvals`, filtered to the service topics, the topic list
+    Accounting P6 builds (impl-accounting §4; F14).
   - Home's AwaitingReturns and ApprovalsWaiting and the Request return shortcut; CaseDetail's request RMA; Customer360's
     Returns tab; OrderDetail's create return.
 - **Shell:** the return palette type; quick create Request return; the return-decision notification topic.
@@ -738,8 +738,9 @@ CX-ORDER-CHANGE. On Accounting P10 and P17 and Warehouse P11 and P12.
   - the substitution kind, on Warehouse P11's ShipmentPickException: the approved substitute line (a PatEquivalent or
     PatReplacement of the product, passing `check#ProductUsable`, with the customer's consent), the short remainder
     cancelled, and Warehouse picking it;
-  - after pack, Accounting's answer on the pack invoice (F26): `release#ShipmentDraftInvoice` and `refund#OrderPayment`
-    with Warehouse's put-back, or the InvoiceCorrection link; a billed amount always links InvoiceCorrection;
+  - after pack and before ship, `release#ShipmentDraftInvoice` and `refund#OrderPayment` with Warehouse's put-back,
+    since the pack invoice is finalized only at ship (impl-accounting §4; F26); after ship the change is
+    `AlreadyShipped`, and a return handles it;
   - the named failures `StaleOrder`, `StockChanged`, `AlreadyShipped`, `BillingConflict`, `ApprovalExpired`,
     `Forbidden` and `ClosedPeriod`, each leaving the order unchanged;
   - price, quantity increase, ship date, address, ship method and carrier are approved here and routed to the order
@@ -949,7 +950,7 @@ design-customer-service.md, or into the owner's design.
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4, parties by role and changes by effective date and the audit log, apply; Mantle's existing uses of both are kept | The user's call, in the Purchasing plan review (impl-purchasing §4). Applied here in §2 |
 | Oct 28, 2026 | A case's organization is a RequestParty in the OrgInternal role, its customer, contact and assignee RequestParty rows; a team member is a dated PartyRelationship; a queue's organization an owner field | Follows from impl-purchasing §4 (answer 7) and the owner rule; the design's CaseProfile organization field is dropped |
 | Oct 28, 2026 | Policies, settings, mappings, rules and templates are effective-dated rows with audit-logged key fields; the design's versions and "publish a version" become a row started from a date. Episodes, events, case relations, decisions, article feedback, invitations and the assignment cursor stay records of their own | The plan's choice under the rule above; each phase says why a record stays |
-| Oct 28, 2026 | The root group and filter sets as Products and Purchasing: `BOSS_CUSTOMER_SERVICE` as root user group and artifact group, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`, with service checks. The root user group is also the global saved replies' group | Follows from impl-products §4 and impl-purchasing §4; F3 |
+| Oct 28, 2026 | The root group and filter sets as Products and Purchasing: `BOSS_CUSTOMER_SERVICE` as root user group and artifact group, with service checks. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_CUSTOMER_SERVICE_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4). The root user group is also the global saved replies' group | Follows from impl-products §4 and impl-purchasing §4; F3. The filters revised in the core-app question review, for every BOSS root |
 | Oct 28, 2026 | Customer Service builds the parts of other needs it still depends on: CX-REQUEST's case rules and the support-case rule (P2, P4); the team working hours and business time (P4, Commons' contract); the survey builder (P13, Commons'); a customer credit-status read if Accounting P10 has none (P3, Accounting's); Customer360's service and delivered-items forms (P11, P14, crosscut §3.2); the forum queue route (P6). These keep the owner's names, packages and Shared screens | The plan's choice, as the other five plans decided for theirs |
 | Oct 28, 2026 | Customer Service builds one shared screen pair, the survey builder's `Shared/SurveyForms` and `Shared/SurveyFormDetail`, with its context only; the names go into design-drawers-commons when its survey pass is written. Otherwise it adds its context to the fourteen shared screens the other apps built | Commons owns the builder (crosscut §8), whose screens no plan builds |
 | Oct 28, 2026 | Internal entry first: agents enter cases and returns for customers from P2 and P9; the customer pages come in P15, except the feedback page in P13 | The plan's choice, as Purchasing's; the design's internal paths are complete without the customer pages |
@@ -1007,8 +1008,8 @@ is written there too.
 | F22 | P0: `cancel#Return` cancels the items and header but not the return shipment approval made | P9 |
 | F23 | P0: `add#ReturnToShipment` sets `ReturnItemBilling.shipmentId`, which is not a field | P9's Mantle fix, unless Warehouse P14 made it |
 | F24 | P0: ReturnHeader has no assignee, expiry or customer reference, and Mantle has no ReturnParty. ReturnContent is a TODO, which Warehouse P14 adds; RecordFiles does not cover returns yet | P9: the fields audit-logged and a dated ReturnParty, a new role association on the rule's pattern |
-| F25 | P0: approval runs `process#ReturnItemResponses`, which makes a replacement order for RrspReplace whatever `responseImmediate` says; receipt cuts `returnQuantity` to the quantity received, ignores rejected units and runs once when the shipment is Delivered. ReturnToResponseBasicFlow asserts all of it | Accounting P17's conditioned rules and `receive#ReturnItems`, for an organization on BOSS's rules; P9 builds on them |
-| F26 | P0: the invoice made at pack is finalized, posted and mailed, not a draft (impl-accounting F25); no plan builds InvoiceCorrection | P10 on Accounting's answer before its P17 |
+| F25 | P0: approval runs `process#ReturnItemResponses`, which makes a replacement order for RrspReplace whatever `responseImmediate` says; receipt cuts `returnQuantity` to the quantity received, ignores rejected units and runs once when the shipment is Delivered. ReturnToResponseBasicFlow asserts all of it | Accounting P17's conditioned rules and `receive#ReturnItems`, behind their flags; P9 builds on them |
+| F26 | P0: the invoice made at pack is finalized, posted and mailed, not a draft (impl-accounting F25); no plan builds InvoiceCorrection | Decided: finalized at ship behind D3's flag (impl-accounting §4); P10 releases it before ship |
 | F27 | P0: OrderHold is an existing order status, reachable from Open, Placed, Processing and Approved but not Sent; mr-marble holds through `update#OrderStatus`; releasing to Approved fires the OrderApproved rules again (the email, deduplicated by type, reservations, subscriptions, notify) | Accounting P10's `hold#Order`; P0 checks the release; P10 |
 | F28 | P0, read not run: `cancel#OrderItem` has no order-status guard and on a partial cancel relies on a rule; `reserve#AssetForOrderItem` returns before its over-reserved branch, so excess reservations may stay | P10's explicit `reduce#AssetReservation`; P0 runs it |
 | F29 | P0: `send#OrderStoreEmail` renders the order as it is now, and sends nothing without a store and a ProductStoreEmail row; POPC_DEFAULT has none, and store-less orders never send | P3 resends the stored confirmation (§4) |

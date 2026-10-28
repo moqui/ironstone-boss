@@ -96,6 +96,13 @@ Each finding was verified in the code. Each resolution is now part of the design
   ProductParty, WorkEffortParty, BudgetParty, or a PartyRelationship between two parties. A new party field is added
   only where Mantle already keys the record by that party (OrderPart's vendor and customer, an owner, a filer) or the
   ledger summarizes by it (a cost centre), and the plan says so.
+- **Organization filters** (added Oct 28, 2026, for every BOSS root). An app's ordinary user groups, and Commons' and
+  Comms' `ALL_USERS`, take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, so a user always works within their own
+  organizations: `filterOrgIds` is the active organization when one is set, or else every organization they belong to
+  with its direct children. Each app has an admin group, `BOSS_<APP>_ADMIN`, with `AUTHZT_ALWAYS` and `AUTHZA_ALL` on its
+  root and `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`: every organization until one is made active. Framework
+  `ADMIN` keeps its rows. `MANTLE_USER_ORG`'s Product, ProductCategory and ProductFeature filters admit `_NA_`, as its
+  Party filter does. Services still check organization access themselves, whatever the filter.
 - **Changes by effective date and the audit log** (added Oct 28, 2026; the Moqui Java pattern):
   - Associations, settings and policies change by effective-dated rows. A change ends the current row (`thruDate`) and
     starts the next (`fromDate`); nothing is overwritten or deleted, and a read takes an as-of date, now by default.

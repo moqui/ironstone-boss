@@ -148,7 +148,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - builds and commits.
 
   Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2), as `PurchasingShots`.
-- **Purchase rows through services.** Under `MANTLE_ACTIVE_ORG`, OrderPart, Shipment, ReturnHeader, Invoice and Party
+- **Purchase rows through services.** Under the organization filters (impl-drawers-commons §4), OrderPart, Shipment, ReturnHeader, Invoice and Party
   are filtered, but not OrderHeader, OrderItem, Request, RequestItem, Requirement, Agreement, AgreementItem, ProductPrice
   or AssetReceipt (F2). Purchasing reads and writes them only through services: `ironstone.purchasing.AccessServices`
   checks the buying organization, the supplier, the record and the capability, then the Mantle service runs.
@@ -174,13 +174,13 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - Records of their own stay where a fact has its own identity: an approval decision, a scorecard evaluation, an
     agreement release allocation.
 - **One approval gate.** In BOSS a purchase part reaches OrderApproved only through `decide#PurchaseApproval`, and
-  Mantle's `autoApprove#Order` meets `check#PurchaseApprovalRequired`'s warning (design §6, D8). The SECA applies to an
-  organization on BOSS's rules, through the setting Accounting decides (impl-accounting §5), and Mantle's
+  Mantle's `autoApprove#Order` meets `check#PurchaseApprovalRequired`'s warning (design §6, D8). The SECA applies where the
+  organization's buying policy turns its flag on (impl-accounting §4), and Mantle's
   `approve#Order` itself is unchanged, so the flow specs' direct approval keeps working (F9).
 - **Revisions and operations.** Every approval, conversion, award, release, revision, send, reminder and portal
   submission names its source revision and an operation identity. A retry answers the first result, and a stale
-  revision is refused naming the current one. The operation record is the CX-POSTING record Accounting decides at its
-  P2 (impl-accounting §5). A batch names each failure and goes on: supplier groups, invitations, recipients, approvals,
+  revision is refused naming the current one. The operation record is Accounting P2's CX-POSTING record
+  (impl-accounting §4). A batch names each failure and goes on: supplier groups, invitations, recipients, approvals,
   evaluations, import rows. One award, conversion or revision with its links commits atomically.
 - **Restricted values stay on the server.** A service leaves out of its answer any supplier price, cost, budget,
   bank, payment or competing-quote value the user may not read. An inaccessible amount is omitted or said to be
@@ -197,8 +197,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
   service names, its Shared screen and its capability groups. A change found while building it is written into the
   owner's design. The owner's own screens stay with the owner.
-- **Mantle rule changes keep Mantle's default.** A new refusal or condition in a Mantle service or SECA applies to an
-  organization that has adopted BOSS's rules, and ships with a test of its condition and of its unchanged default
+- **Mantle rule changes keep Mantle's default.** A new refusal or condition in a Mantle service or SECA sits behind
+  its own flag, off by default (impl-accounting §4), and ships with a test of its condition and of its unchanged default
   (crosscut §7.1). A new `enable-audit-log` changes no behavior and needs no setting.
 - **Mantle callers stay compatible.** Existing callers of these keep working:
   - `create#PurchaseRequestOrder`, which BOSS never calls but CrmMiscServices does (F4);
@@ -266,7 +266,7 @@ check:
   ServiceAcceptance; if not, P6 adds it as Accounting's contract.
 - **REST and bulk writes** (F9). Which BOSS groups would reach the Mantle REST order, return and request mutators and
   `change#OrderPartsStatus`, and which raw writes the mr-marble Order, Request, Agreement and Supplier screens make.
-- **The adoption setting.** That the setting Accounting decided at its P2 can condition `check#PurchaseApprovalRequired`,
+- **The rule flags.** That a buying-policy flag (impl-accounting §4) can condition `check#PurchaseApprovalRequired`,
   and what the demo organizations have.
 - **Approval handlers.** What Commons passes to a topic's approve and refuse services (recordEntityName, recordId, the
   message JSON), against design §1's `sourceRevision`, `policyVersion` (here the policy row) and `decisionStepId`.
@@ -291,8 +291,9 @@ check:
     `BOSS_PURCHASING_READ` and `BOSS_PURCHASING_ADMIN`, with `BOSS_PURCHASING` as the root user group beside the
     artifact group of that name, as in Products (§4). `BOSS_PURCHASING_BUYER` exists from Manufacturing P14; the
     borrowed groups from their owners (crosscut §1.4).
-  - The root's authz comes out of BossSetupData's commented block (F1), with `MANTLE_ACTIVE_ORG` and the service checks
-    of §2.
+  - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
+    impl-drawers-commons §4 (`MANTLE_USER_ORG` for the groups, `MANTLE_ACTIVE_ORG` for `BOSS_PURCHASING_ADMIN`) and
+    the service checks of §2.
   - `ironstone.purchasing.AccessServices`: the user's buying organizations, their capabilities, own and borrowed, and
     the suppliers they may work with: any Supplier-role party whose owner passes the organization filter, that is owned
     by the active organization or, with none active, by one of the user's organizations, or shared `_NA_` (§4). Every
@@ -528,7 +529,7 @@ P7 ports it into mr-mantle and finishes it.
   - `finalize#DropShipPurchaseOrder`, on the supplier's confirmation: the confirmed quantities and tracking code on the
     PO's shipment, shipped; then, through `parentOrderId`, the sales order's shipment found or created, packed with
     that tracking code and shipped, so Mantle's pack SECA invoices the customer.
-- **BOSS on the port**, for an organization on BOSS's rules (§2):
+- **BOSS on the port**, where the approval gate's flag is on (§2):
   - the PO is placed and goes through P4's approval gate, where the branch approves it at once (Mantle's default
     stays for other organizations);
   - a drop-ship facility with no remote sends its PO by P3's `send#PurchaseOrder`;
@@ -881,7 +882,7 @@ design-purchasing.md, or into the owner's design.
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4, parties by role and changes by effective date and the audit log, apply to Purchasing and the other core apps; Mantle's existing uses of both are kept | The user's call, the Moqui Java pattern. Applied here in §2, and in the other plans |
 | Oct 28, 2026 | Revisions are audit-logged key fields with `orderRevision` and its time; prints take an effective date and time; key revisions store their PDFs on the record. PurchaseOrderRevision and PurchaseAcknowledgement are dropped (P9), and policies and profiles are effective-dated rows | The user's call (answer 6) |
 | Oct 28, 2026 | A supplier's quote is a purchase OrderHeader in OrderRequested and OrderProposed, and an award places it. PurchaseRfqInvitation, SupplierQuote, SupplierQuoteItem, SupplierQuoteContent and PurchaseAward are dropped (P11, P12) | The user's call (answer 6: the order "should still be an OrderHeader in the early quote statuses"), confirmed as read here. Mantle's quote transitions fit (F19) |
-| Oct 28, 2026 | The root group and filter set as Products: `BOSS_PURCHASING` as root user group and artifact group, `MANTLE_ACTIVE_ORG` with service checks | The user's call (answer 1) |
+| Oct 28, 2026 | The root group and filter set as Products: `BOSS_PURCHASING` as root user group and artifact group, with service checks. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_PURCHASING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` (impl-drawers-commons §4) | The user's call (answer 1); the filters revised in the core-app question review, for every BOSS root |
 | Oct 28, 2026 | A buyer may work with any Supplier-role party whose owner passes the active or available organization filter, or shared `_NA_`; no SupplierProfile is required | The user's call (answer 2) |
 | Oct 28, 2026 | Approval thresholds as design §18 recommends: no monetary auto-approval outside configured policy, a buyer and manager split, budget Warn with finance choosing Stop, and P3's no-policy step | The user's call (answer 3) |
 | Oct 28, 2026 | Buyers upload supplier bills as well as AP intake, through Accounting's `import#Bill` | The user's call (answer 4); written into impl-accounting P6 |
@@ -926,7 +927,7 @@ is written there too.
 | F6 | P0: `Shared/RequestDetail` has no request items; Projects left request items and purchase orders for later (impl-projects P5). The Commons and Projects request lists filter by type on request and leave none out | P10 builds the Items tab for every context; P11's RFQ type policy |
 | F7 | P0: `OrderHeader.orderRevision` is on the header, and not audit-logged; `increment#OrderRevision` adds one under a for-update lock and checks nothing | One purchase part per PO (§4); P3 audit-logs it, and P9 guards the call |
 | F8 | P0: the order status flow is as design §6 says: OrderBeingChanged only from Open or Proposed; Open, Placed, Processing and Approved go to Hold; Hold goes to Processing, Placed, Approved or Cancelled; Sent goes to Approved ("Approve (un-send)"), Processing, Completed or Cancelled, and not to Hold. OrderAutoReorder exists unused | The design holds (D7); P3 and P9 |
-| F9 | P0: OrderProcureToPayBasicFlow places and approves a PO directly; OrderBulk's `change#OrderPartsStatus` and OrderLifecycle's `autoApprove#OrdersDelayed` approve orders too. Mantle REST posts orders, parts, items, part payments and returns with no BOSS guard | The approval gate is the BOSS adapter and the SECA, for an organization on BOSS's rules (§2); P1 grants no REST or bulk path; P0 checks the groups |
+| F9 | P0: OrderProcureToPayBasicFlow places and approves a PO directly; OrderBulk's `change#OrderPartsStatus` and OrderLifecycle's `autoApprove#OrdersDelayed` approve orders too. Mantle REST posts orders, parts, items, part payments and returns with no BOSS guard | The approval gate is the BOSS adapter and the SECA, behind the approval gate's flag (§2); P1 grants no REST or bulk path; P0 checks the groups |
 | F10 | P0: the Agreement status type has no items. AgreementType has AgrProduct, AgrSales, AgrEmployment, AgrOther, AgrCommission and AgrEula, but no AgrPurchase. AitPurchase exists. AgreementItem has quantity, unit, dates and text, but no amount | P13 |
 | F11 | P0: the party classification types are Customer, EEOC, Minority, Income, Industry, Revenue, Number of Employees, SIC Code and NAICS Code; there is no supplier category | P2 seeds `PcltSupplierCategory` |
 | F12 | P0: no `mantle.order.purchase` or `mantle.party.supplier` record exists. Accounting P6 adds SupplierProfile with its finance fields, and Warehouse P16 ServiceAcceptance | Under the shared rules only PurchasePolicy, PurchaseApprovalPolicy, PurchaseApprovalDecision, the release allocation and the scorecard records are new here (§2) |
@@ -937,7 +938,7 @@ is written there too.
 | F17 | P0: OrderItem has `quantityUomId`, `unitListPrice`, `isModifiedPrice`, `productPriceId`, `standardCost`, `quantityCancelled`, `requiredByDate` and `overrideGlAccountId`, but no promised date, and no `costCenterId` until Accounting P6. OrderPart has `otherPartyOrderId`, `otherPartyOrderDate`, `estimatedShipDate`, `estimatedDeliveryDate`, `validFromDate`, `validThruDate`, `settlementTermId` and `tradeTermEnumId` | The acknowledgement on OrderPart and a promised date per line (P9); the quote's validity and terms on OrderPart (P11) |
 | F18 | P0: the audit log covers OrderHeader's status; OrderItem's product, quantity, required date, unit amount and standard cost; OrderPart's status, vendor, customer, facility, carrier, shipment method, address and priority; Agreement's status, other party and dates; AgreementItem's quantity; and only the status of Request, RequestItem and Requirement. `get#OrderDisplayInfo` and `get#OrderItemDisplayInfo` read the order's audit history. Not covered: `orderRevision`, OrderItem's unit and cancelled quantity, OrderPart's supplier reference, validity and terms, and RequestItem's quantity, product, date and supplier | Each phase adds `enable-audit-log` to the fields it locks (P3, P9, P10, P11, P13) |
 | F19 | P0: Mantle's quote flow is OrderOpen → OrderRequested ("Request Quote") → OrderProposed ("Propose Quote") → OrderPlaced ("Place from Quote"), with OrderRequested → OrderRejected ("Reject Request") and OrderProposed → OrderCancelled ("Cancel Quote") or OrderBeingChanged. The statuses read "Quote Requested by Customer" and "Quote Proposed by Vendor"; on a PO the customer is the buying organization | Supplier quotes as purchase orders in these statuses (§4, P11, P12); P0 checks the services on them and whether Not awarded needs Proposed → Rejected |
-| F21 | P7: Moqui Java's drop-ship lives on the `dropship-moqui` branch of mantle-udm (Facility `dropShipRemoteId`, `FcTpDropShip`, the `CustomerShipFrom` and `VendorShipTo` roles) and mantle-usl (`send#DropShipPurchaseOrderPart`, `create#DropShipPurchaseOrder`, `finalize#DropShipPurchaseOrder`, the SECA after `reserve#AssetsForOrder`, a README setup), Aug 2024 to May 2025, never merged into master. It links by cloning the sales order: `parentOrderId`, a `CustomerShipTo` OrderPartParty and the ship-to contact mechs; lines match by product, and two lines of one product refuse to finalize. It places and approves the PO itself. Mantle's `reserve#AssetForOrderItem` with no stock creates a shell asset with negative availability, owned by the selling organization, so a drop-ship facility needs no supplier stock feed | P7 ports it into mr-mantle, with BOSS's approval gate for an organization on BOSS's rules |
+| F21 | P7: Moqui Java's drop-ship lives on the `dropship-moqui` branch of mantle-udm (Facility `dropShipRemoteId`, `FcTpDropShip`, the `CustomerShipFrom` and `VendorShipTo` roles) and mantle-usl (`send#DropShipPurchaseOrderPart`, `create#DropShipPurchaseOrder`, `finalize#DropShipPurchaseOrder`, the SECA after `reserve#AssetsForOrder`, a README setup), Aug 2024 to May 2025, never merged into master. It links by cloning the sales order: `parentOrderId`, a `CustomerShipTo` OrderPartParty and the ship-to contact mechs; lines match by product, and two lines of one product refuse to finalize. It places and approves the PO itself. Mantle's `reserve#AssetForOrderItem` with no stock creates a shell asset with negative availability, owned by the selling organization, so a drop-ship facility needs no supplier stock feed | P7 ports it into mr-mantle, with BOSS's approval gate behind its flag |
 | F22 | P11: Mantle's promotions are ProductStorePromotion rows whose `apply#Promotion` services (`apply#BuyGetDiscount`, `apply#FlatDiscount` and others) add `isPromo` child OrderItems with `parentItemSeqId` and `promoQuantity`, removed and reapplied by `apply#OrderPromotions` on order changes. They are found through the order's ProductStore. The resolver picks purchase price rows by date and minimum quantity | Both tier ways in P11; P0 checks the promotion's purchase scope |
 | F20 | P0: Mantle has a dated RoleType association for most records: RequestParty, RequirementParty, ProductParty, FacilityParty, WorkEffortParty and others, and undated OrderPartParty, OrderItemParty, AgreementParty, AgreementItemParty, InvoiceParty, ShipmentParty and BudgetParty. The Buyer, Supplier and OrgInternal roles exist, Buyer in the order role group. RequestContent and AgreementContent exist | The party roles of §2 |
 

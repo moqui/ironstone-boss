@@ -431,19 +431,22 @@ These are Warehouse's contracts (§4), built to design-warehouse StockPolicies a
 
 ### P8 — Methods
 
-These are Manufacturing's contracts (§4), built to design-manufacturing §5 and §12.
+These are Manufacturing's contracts (§4), built to design-manufacturing §5 and §12, under the shared rule as §4 decides:
+a BOM or routing "version" is its state as of a date, and a release is the decision that stamps it.
 
 - **CX-METHOD (M3).**
   - Records:
-    - `mantle.product.bom.ProductBom`;
-    - `ProductBomVersion`, with `ProductBomVersionContent`;
-    - `ProductBomItem`, with `applicabilityFeatureIds`;
-    - `mantle.work.production.RoutingVersion` and `RoutingVersionOperation`.
-  - `mantle.product.BomServices`: `find#Boms`, `store#Bom`, `store#BomVersion`, `store#BomItem`,
-    `validate#BomVersion`, `release#BomVersion`, `get#BomExplosion`, `compare#BomVersions` and `get#BomWhereUsed`.
-  - `mantle.work.RoutingServices`: `store#RoutingVersion`, `store#RoutingOperation`, `store#RoutingResource` and
-    `release#RoutingVersion`.
-  - The import of a manufactured product's `PatMfgBom` rows into a draft version. Kits are skipped.
+    - `mantle.product.bom.ProductBom`, with its audit-logged method fields, and `ProductBomContent`;
+    - `ProductBomItem`, effective-dated, with a stable `bomItemId`, `applicabilityFeatureIds` and audit-logged key
+      fields;
+    - the release decision, a record of its own (approver, time, reason and the lines it stamped);
+    - routings: Mantle's `WepRouting` and `WepRoutingTask` WorkEfforts on dated `WeatRoutingComp` rows, their
+      standards audit-logged.
+  - `mantle.product.BomServices`: `find#Boms`, `store#Bom`, `store#BomItem`, `validate#BomDraft`,
+    `release#BomDraft`, `get#BomExplosion` (an as-of date), `compare#BomDates` (two dates) and `get#BomWhereUsed`.
+  - `mantle.work.RoutingServices`: `store#Routing`, `store#RoutingOperation`, `store#RoutingResource` and
+    `release#RoutingDraft`.
+  - The import of a manufactured product's `PatMfgBom` rows into draft lines. Kits are skipped.
 - **CX-WORKCENTER (M5),** only the part the roll-up needs: `WorkCenter` and `WorkCenterRate`, `store#WorkCenter` and
   `get#OperationCostBasis`. Capacity, alternates and load stay Manufacturing's.
 - **Screens.** The Shared screens of Manufacturing §5 (BillOfMaterialsDetail, BillOfMaterialsExplosion,
@@ -451,7 +454,8 @@ These are Manufacturing's contracts (§4), built to design-manufacturing §5 and
   (design §3). Their cost columns wait for P9.
 - **Usable when:**
   - a method engineer without the Manufacturing launcher imports DEMO_1_1's legacy BOM into a draft, adds a routing
-    with a work-center rate, releases both, explodes them, and compares two versions;
+    with a work-center rate, releases both, explodes them, changes a line and releases again, and compares the two
+    release dates;
   - WhereUsed lists the DEMO_PA kit read only, and the kit is never offered as a BOM (§12.3 #10, second half).
 
 ### P9 — Standard costs
@@ -519,7 +523,7 @@ These are Manufacturing's contracts (§4), built to design-manufacturing §5 and
 - **PRD-PACKAGING** (F12).
   - `ProductAssoc.quantityUomId`, `store#ProductPackaging` and `resolve#ScannedProduct`.
   - Design §10 Packaging.
-  - Product360's packaging pane, if §5's question is answered yes.
+  - Product360's packaging pane (§4, confirmed before implementation).
 - **PRD-IDENTIFIERS policy:** IdentificationTypes, with `ironstone.products.LabelServices.validate#ProductIdentifier`.
 - **PRD-LABELS:** Labels, with `prepare#ProductLabels` and `render#ProductLabels`.
 - **Usable when:** §12.3 #7 and #11.
@@ -562,14 +566,19 @@ or into the owner's design.
 | Oct 28, 2026 | Phase order: the catalog first; then the other apps' contracts that Product360 and the roll-up need; then documents, units, import and checks | The user's call |
 | Oct 28, 2026 | Products builds the parts of other apps' needs it depends on: Warehouse's `store#ProductFacilityPolicy` and TrackingPolicy (P7); Manufacturing's versioned methods, with the five shared method screens and `get#OperationCostBasis` (P8); Accounting's `preview#` and `post#Revaluation`, with their two dialogs (P9). These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call. The alternative was tabs that wait for their apps |
 | Oct 28, 2026 | The shared screens Products builds first carry the Products context only. Another app's context is added when that app is built, as InvoiceDetail and OrderDetail were in Projects | Follows from the above |
-| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply from P4 on: parties by role, and changes by effective date and the audit log. Price lists and rules (P5b) and standard costs (P9) are effective-dated rows with audit-logged key fields, with no version fields; ProductParty, ProductPrice's dates and P5a's audit log already follow them. What was built before (P2's settings) and the methods (P8) are §5's questions | The user's call, in the Purchasing plan review (impl-purchasing §4) |
+| Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply from P4 on: parties by role, and changes by effective date and the audit log. Price lists and rules (P5b) and standard costs (P9) are effective-dated rows with audit-logged key fields, with no version fields; ProductParty, ProductPrice's dates and P5a's audit log already follow them. What was built before (P2's settings) and the methods (P8) are decided below | The user's call, in the Purchasing plan review (impl-purchasing §4) |
+| Oct 28, 2026 | The organization filters of impl-drawers-commons §4 apply to every BOSS root, in one commit after P5 (BossSetupData is in P5's working tree): Commons' and Comms' `ALL_USERS`, Projects' groups and Products' groups move to `MANTLE_USER_ORG`; `BOSS_PRODUCTS_ADMIN` (Catalog administrator) becomes the Products admin group, with `MANTLE_ACTIVE_ORG` on the root; `BOSS_MANUFACTURING_ADMIN` becomes Manufacturing's admin group and the work-center group P8 uses is `BOSS_MANUFACTURING_RESOURCE_ADMIN`; Mantle's three product filters admit `_NA_`. The built apps' specs run with it, and crosscut §1.4 is corrected | The user's call (§5 review), reversing the first confirmed decision below. The alternatives were the core apps only, and a separate `_APP_ADMIN` name |
+| Oct 28, 2026 | P2's catalog settings move to the shared form before P9, as their own commit after P5. `ProductCatalogSetting` becomes effective-dated rows by organization with typed, audit-logged fields and a change reason, as P4's `ProductVariantSetting`; `get#` and `store#CatalogSettings` keep their parameters, and the optimistic check compares the current row's from date. P9's self-approval, P12's defaults and P13's required fields read the dated row | The user's call (§5 review). The alternatives were the move at P14 and keeping the JSON revisions. Nothing seeds them, so nothing migrates |
+| Oct 28, 2026 | The methods (P8) follow the shared rule with line records of their own. A `ProductBom` header (product, organization and method; the Chatter and Files host) has audit-logged method fields: base quantity and unit, phantom, routing, lead and preparation days. Its `ProductBomItem` lines have a stable `bomItemId`, are effective-dated, and audit-log their key fields: role, product, quantity and unit, scrap, consuming operation and applicability. Routings are Mantle's `WepRouting` templates and `WepRoutingTask` operations, on dated `WeatRoutingComp` rows, with audit-logged standards. A release is an approval decision that stamps the draft lines' from date and the replaced lines' thru date; an explosion reads one date and a comparison two. `ProductBomVersion`, `ProductBomVersionContent`, `RoutingVersion` and `RoutingVersionOperation` are dropped, and `PatMfgBom` stays for kits only (D15) | The user's call (§5 review). ProductAssoc's key cannot hold a component twice, a unit, a draft or a line an issuance references, so the lines are records with an identity (the shared rule's exception). The alternatives were `PatMfgBom` rows with sequence and unit added to the key, and the designed version records. Warehouse P16a's runs follow (impl-warehouse §4); design-manufacturing M3 and M4 are corrected when P8 starts |
 
 Decisions confirmed with the user before implementation:
 
 - Keep `BOSS_PRODUCTS` as the root user group and artifact group; they are different entities.
 - Root filter `MANTLE_ACTIVE_ORG`; services independently verify membership/owner/capability, including when no org is active.
+  Revised in §4: the groups take `MANTLE_USER_ORG`, and `BOSS_PRODUCTS_ADMIN` `MANTLE_ACTIVE_ORG`.
   Shared `_NA_` records are readable; shared master writes require framework `ADMIN`.
-- Versioned structured Mantle settings records, not serialized 255-character `PartySetting` values.
+- Structured Mantle settings records, not serialized 255-character `PartySetting` values. P2 built them as versioned
+  revisions; §4 moves them to effective-dated rows before P9.
 - Add nullable `salesAllowed`/`purchaseAllowed` (legacy null means allowed), traced virtual-product feature extras, and the Product360 packaging pane.
 - Interactive variants default to 1,000, configurable downward; larger runs use durable batches introduced in P4 and reused in P12.
 - Self-approval is an audited organization setting, off by default; enabling it still requires cost-approval authority.
@@ -583,9 +592,7 @@ Decisions confirmed with the user before implementation:
 
 | Question | Decides | Notes |
 | --- | --- | --- |
-| Further issues discovered during implementation | the affected phase | Record findings and decisions here; the original open choices are resolved below |
-| P2's organization catalog settings, built as immutable structured revisions with optimistic revision checks, against the shared effective-date rule (§4): move them to effective-dated rows with audit-logged key fields, or keep them as built | before P14 | Recommended: move them at P14, keeping the settings' readers; the confirmed decision below chose versioned records before the rule existed |
-| The methods (P8) under the shared effective-date rule: BOM and routing versions as effective-dated Mantle rows (the PatMfgBom ProductAssoc lines and routing WorkEffort templates) with the audit log, a release stamping their from date and a comparison reading two dates; or the designed `ProductBomVersion` and `RoutingVersion` records | before P8 | Recommended: the rule, Mantle's existing method pattern. Warehouse P16's run snapshots (impl-warehouse §5) and Manufacturing (its §5) follow the answer |
+| Further issues discovered during implementation | the affected phase | Record findings and decisions here; the open questions of the plan as written, P2's settings and the methods among them, are decided in §4 |
 
 Merging duplicates (`merge#Product`, design §16) is `later`, there and in §7.
 
@@ -600,10 +607,10 @@ is written there too.
 | F2 | P0: the Zca demo's SA, RM, EQUIP and DIG products, the Popc categories and all ten features have no owner (`_NA_`), so `MANTLE_USER_ORG` hides them | The BOSS demo gives owners where a spec needs one; `_NA_` stays for shared records |
 | F3 | P0: `get#ProductPriceByType` matches on no direction, `quantityUomId`, `agreementId` or `termUomId`, so a sales row with no vendor can answer a lookup that passes a supplier's `vendorPartyId`. `get#ProductPrice`'s agreement parameters are TODO comments | P5b fixes direction and adds agreement matching; P0 checks every caller |
 | F4 | P0: the `ProductPriceModify` hook runs, but no rows are seeded | P5b's list modifier is its first row |
-| F5 | P0: no ProductPrice store service exists. Rows are written by entity-auto in mr-marble `EditPrices.xml`, by `mantle.rest.xml` entity CRUD and by `clone#Product` | `store#ProductPrice` (P5a); the REST path is a §5 question |
+| F5 | P0: no ProductPrice store service exists. Rows are written by entity-auto in mr-marble `EditPrices.xml`, by `mantle.rest.xml` entity CRUD and by `clone#Product` | `store#ProductPrice` (P5a); the REST path is decided in §4 |
 | F6 | P0: `create#VariantProducts` makes every combination of the selectable features, answers nothing and reads no `ProductFeatureIactn`. `create#VariantProduct`'s existing-variant check ignores dates and application type. `get#VariantProductsInfo` is a stub (TODO). `find#ProductFeatureGroups` reads an undeclared `productFeatureGroupIdSet` and does not deduplicate | P4 |
 | F7 | P0: `find#ProductByIdValue` answers no product when several identifiers match, and searches no party item codes and no `ProductOtherIdentification` | The palette's text find (P2) and `resolve#ScannedProduct` (P11) |
-| F8 | P0: the `MantleProduct` document has no status, product parties or party item codes, and indexes the old `ProductDimension`. Scripts can ask `ec.search.isAvailable()`, but nothing reports index lag | P2 extends the document; staleness is a §5 question |
+| F8 | P0: the `MantleProduct` document has no status, product parties or party item codes, and indexes the old `ProductDimension`. Scripts can ask `ec.search.isAvailable()`, but nothing reports index lag | P2 extends the document; staleness is decided in §4 (the fallback reports unavailability; no lag reporting) |
 | F9 | P0: `view-tree` keys a row by its first key field and shows that key under one parent | P3 verifies separate path occurrence IDs through existing key-fields; record/dated-edge keys follow the occurrence (F38) |
 | F10 | P0: the `Product` status type has no items. Only `Product.ownerPartyId` and `ProductPrice.price` are audit-logged. `update#OrderItem`'s re-price and `recalc#OrderItemAmount` leave `productPriceId` as it was | P2 (status, Product audit), P5a (ProductPrice audit), P5b (provenance kept on a re-price) |
 | F11 | P0: there is no ProductStandardCost, not even commented out (the commented block is CostComponent and ProductAverageCost). `AssetStandardCost` is active and unused | P9's new records. The design's "refine commented concepts" reads as new records |
@@ -617,7 +624,7 @@ is written there too.
 | F19 | P0: the work-item and contact imports keep nothing between steps; the forum import is the only durable import model | P12's records |
 | F20 | P0: the framework has entity-auto `create#` and `update#UomConversion` and `convert#Uom`, but no unit screens and no `ADMIN` guard | P11 |
 | F21 | P0: the `BOSS_PRODUCTS` authz sits in BossSetupData's commented not-yet-implemented block. There is no Units placeholder, and the root has no `<shell-providers>` | P1 |
-| F22 | P0: crosscut §1.4 names `BOSS_PRODUCTS` as the root user group, but BossSetupData already uses it as an artifact group (with `BOSS_PRODUCTS_ADMIN` as an artifact authz id) | A §5 question |
+| F22 | P0: crosscut §1.4 names `BOSS_PRODUCTS` as the root user group, but BossSetupData already uses it as an artifact group (with `BOSS_PRODUCTS_ADMIN` as an artifact authz id) | Decided in §4: both, and the admin group revised with the organization filters |
 | F23 | P0: `example/test/gallery-shots.mjs` was removed (67df2c1e, Oct 26) for `moqui test-client example --serve --spec GalleryShots`, which shoots 1280 in light and some screens at 390 and in dark | A BOSS client spec on that pattern (§2) |
 | F24 | P0: `OrderItem.standardCost` exists and is audit-logged; its description is purchase accounting cost | P0 checks it before P9 sets it on sales lines |
 | F25 | P0: the review the design cites (`review-core-apps.md`, with its R- IDs and §4.1 steps) is only on branch `review-core-apps` (0e53a04) | Integrated in b00c2c7 |

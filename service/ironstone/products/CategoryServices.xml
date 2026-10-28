@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="find" noun="Categories">
+        <in-parameters>
+            <parameter name="text"/>
+            <parameter name="productCategoryTypeEnumId"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="parentOccurrenceId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="allCategories" type="Boolean"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="categoryRows" type="List"/>
+            <parameter name="categoryCount" type="Long"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('findCategories',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CategoryAncestors">
+        <in-parameters>
+            <parameter name="ids"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="categoryRows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('ancestors',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="Category">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="pseudoId"/>
+            <parameter name="productCategoryTypeEnumId"/>
+            <parameter name="categoryName"/>
+            <parameter name="description"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="createOnly" type="Boolean"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="parentProductCategoryId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeMaster',Object.assign({},context,{kind:'category'})))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="CategoryParent">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="parentProductCategoryId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="sequenceNum" type="Long"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeRollup',context))</script>
+        </actions>
+    </service>
+    <service verb="move" noun="CategoryParent">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="parentProductCategoryId"/>
+            <parameter name="originalParentProductCategoryId"/>
+            <parameter name="occurrenceId"/>
+            <parameter name="parentOccurrenceId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="previousSiblingId"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('move',context))</script>
+        </actions>
+    </service>
+    <service verb="expire" noun="CategoryParent">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="parentProductCategoryId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="operation"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('expireRollup',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CategoryDetail">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('detail',Object.assign({},context,{kind:'category'})))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="CategoryRow">
+        <in-parameters>
+            <parameter name="rowKind"/>
+            <parameter name="operation"/>
+            <parameter name="productCategoryId"/>
+            <parameter name="productId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="comments"/>
+            <parameter name="sequenceNum" type="Long"/>
+            <parameter name="quantity" type="BigDecimal"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="applTypeEnumId"/>
+            <parameter name="productCategoryIdentId"/>
+            <parameter name="identTypeEnumId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="marketSegmentId"/>
+            <parameter name="idValue"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="amount" type="BigDecimal"/>
+            <parameter name="recurringAmount" type="BigDecimal"/>
+            <parameter name="featureProductId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeRow',context))</script>
+        </actions>
+    </service>
+    <service verb="delete" noun="UnusedCategory">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('deleteMaster',Object.assign({},context,{kind:'category'})))</script>
+        </actions>
+    </service>
+    <service verb="preview" noun="CategorySlug">
+        <in-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="categoryName"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="outUrlSlug"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('slug',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CategoryOptions">
+        <in-parameters/>
+        <out-parameters>
+            <parameter name="options" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('options',context))</script>
+        </actions>
+    </service>
+</services>

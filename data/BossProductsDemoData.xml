@@ -11,4 +11,15 @@
 <mantle.product.Product productId="BOSS_PRD_OBSOLETE" productName="Retired catalog product" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES" statusId="PrdObsolete" amountUomId="OTH_ea"/>
 <mantle.product.ProductParty productId="BOSS_PRD_OWN" partyId="ORG_ZIZI_SERVICES" roleTypeId="Customer" fromDate="2026-01-01 00:00:00" otherPartyItemId="SERVICES-PART-01"/>
 <mantle.product.ProductUomDimension productUomDimensionId="BOSS_PRD_HEIGHT" productId="BOSS_PRD_OWN" uomDimensionTypeId="Height" value="0.2" uomId="LEN_m"/>
+<mantle.product.category.ProductCategory productCategoryId="BOSS_PRD_PARENT_A" categoryName="Applications" productCategoryTypeEnumId="PctCatalog" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.category.ProductCategory productCategoryId="BOSS_PRD_PARENT_B" categoryName="Industries" productCategoryTypeEnumId="PctCatalog" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.category.ProductCategoryRollup productCategoryId="BOSS_PRD_CAT" parentProductCategoryId="BOSS_PRD_PARENT_A" fromDate="2026-01-01 00:00:00" sequenceNum="1"/>
+<mantle.product.category.ProductCategoryRollup productCategoryId="BOSS_PRD_CAT" parentProductCategoryId="BOSS_PRD_PARENT_B" fromDate="2026-01-01 00:00:00" sequenceNum="1"/>
+<mantle.product.category.ProductCategoryMember productCategoryId="BOSS_PRD_CAT" productId="BOSS_PRD_OWN" fromDate="2026-01-01 00:00:00"/>
+<mantle.product.category.ProductCategory productCategoryId="BOSS_PRD_TAG" categoryName="Ready for review" productCategoryTypeEnumId="PctTag" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.category.ProductCategoryMember productCategoryId="BOSS_PRD_TAG" productId="BOSS_PRD_OWN" fromDate="2026-01-01 00:00:00"/>
+<mantle.product.feature.ProductFeature productFeatureId="BOSS_PRD_FEATURE" description="Industrial blue" productFeatureTypeEnumId="PftColor" abbrev="IB" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeatureGroup productFeatureGroupId="BOSS_PRD_GROUP" description="Services finishes" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeatureGroupAppl productFeatureGroupId="BOSS_PRD_GROUP" productFeatureId="BOSS_PRD_FEATURE" fromDate="2026-01-01 00:00:00" sequenceNum="1"/>
+<mantle.product.feature.ProductCategoryFeatGrpAppl productCategoryId="BOSS_PRD_CAT" productFeatureGroupId="BOSS_PRD_GROUP" fromDate="2026-01-01 00:00:00" applTypeEnumId="PfatSelectable"/>
 </entity-facade-xml>

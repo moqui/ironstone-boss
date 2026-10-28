@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Parents &amp; children" default-menu-index="2">
+    <transition name="storeParents">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.store#CategoryParent" in-map="context"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="storeChildren">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.store#CategoryParent" in-map="{productCategoryId:childProductCategoryId,parentProductCategoryId:productCategoryId,fromDate:fromDate,thruDate:thruDate,sequenceNum:sequenceNum}"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="moveParent">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.move#CategoryParent" in-map="context"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <set field="childRows" from="detail ? detail.children.map(row =&gt; Object.assign({},row,{childProductCategoryId:row.productCategoryId})) : []"/>
+    </actions>
+    <transition name="endParent">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.expire#CategoryParent" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productCategoryId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Available" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Parents"/>
+                    <box-body>
+                        <form-list name="ParentsList" list="detail.parents" skip-form="true" paginate="false">
+                            <field name="parentProductCategoryId">
+                                <header-field title="Parent"/>
+                                <default-field>
+                                    <link url="//Products/Categories/CategoryDetail" text="${parentProductCategoryId}" parameter-map="{productCategoryId:parentProductCategoryId}" link-type="anchor"/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="sequenceNum">
+                                <header-field title="Sequence"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="ParentsEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddParents" button-text="Add" title="Parents" width="640">
+                                    <form-single name="AddParents" transition="storeParents">
+                                        <field name="productCategoryId">
+                                            <default-field title="Category">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="parentProductCategoryId">
+                                            <default-field title="Parent">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.categories" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="From">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sequenceNum">
+                                            <default-field title="Sequence">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="ParentsRows" list="detail.parents" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditParents_${entry_index}" button-text="Edit ${entry.parentProductCategoryId}" title="Parents" width="640">
+                                            <form-single name="EditParents" transition="storeParents" map="entry">
+                                                <field name="productCategoryId">
+                                                    <default-field title="Category">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="parentProductCategoryId">
+                                                    <default-field title="Parent">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field title="From">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="thruDate">
+                                                    <default-field title="Through">
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="sequenceNum">
+                                                    <default-field title="Sequence">
+                                                        <text-line input-type="number"/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                        <link url="endParent" text="End ${entry.parentProductCategoryId}" link-type="hidden-form" confirmation="End this category parent edge now?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate}" condition="Number(entry.fromDate) &lt; Number(ec.user.nowTimestamp) &amp;&amp; (!entry.thruDate || Number(entry.thruDate) &gt; Number(ec.user.nowTimestamp))"/>
+                                        <link url="endParent" text="Remove future ${entry.parentProductCategoryId}" link-type="hidden-form" confirmation="Remove this future category edge?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate,operation:'delete'}" condition="Number(entry.fromDate) &gt; Number(ec.user.nowTimestamp)"/>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                        <section name="MoveEditor" condition="canEdit">
+                            <widgets>
+                                <section-iterate name="MoveEdges" list="detail.parents" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="MoveParent_${entry_index}" button-text="Move from ${entry.parentProductCategoryId}" title="Move this parent edge; other parents stay" width="640">
+                                            <form-single name="MoveCategoryParent" transition="moveParent" map="entry">
+                                                <field name="productCategoryId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="originalParentProductCategoryId" from="entry.parentProductCategoryId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="parentProductCategoryId">
+                                                    <default-field title="New parent">
+                                                        <drop-down allow-empty="true">
+                                                            <list-options list="options.categories" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="effectiveDate">
+                                                    <default-field title="Effective date">
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Move selected edge">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Children"/>
+                    <box-body>
+                        <form-list name="ChildrenList" list="childRows" skip-form="true" paginate="false">
+                            <field name="childProductCategoryId">
+                                <header-field title="Child"/>
+                                <default-field>
+                                    <link url="//Products/Categories/CategoryDetail" text="${childProductCategoryId}" parameter-map="{productCategoryId:childProductCategoryId}" link-type="anchor"/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="sequenceNum">
+                                <header-field title="Sequence"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="ChildrenEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddChildren" button-text="Add" title="Children" width="640">
+                                    <form-single name="AddChildren" transition="storeChildren">
+                                        <field name="childProductCategoryId">
+                                            <default-field title="Child">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.categories" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="From">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sequenceNum">
+                                            <default-field title="Sequence">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="ChildrenRows" list="childRows" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditChildren_${entry_index}" button-text="Edit ${entry.childProductCategoryId}" title="Children" width="640">
+                                            <form-single name="EditChildren" transition="storeChildren" map="entry">
+                                                <field name="childProductCategoryId">
+                                                    <default-field title="Child">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field title="From">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="thruDate">
+                                                    <default-field title="Through">
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="sequenceNum">
+                                                    <default-field title="Sequence">
+                                                        <text-line input-type="number"/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

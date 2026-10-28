@@ -1,9 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Category" default-menu-include="false">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Category" default-menu-include="false">
     <parameter name="productCategoryId" required="true"/>
-    <actions><service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordEntityName:'mantle.product.category.ProductCategory', recordId:productCategoryId}" out-map="catalog"/></actions>
-    <widgets><section name="CategoryAvailable" condition="!!catalog.record"><widgets>
-        <container-box><box-header title="${catalog.record.categoryName}"/><box-body><label text="${productCategoryId}" type="p"/></box-body></container-box>
-    </widgets></section></widgets>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordEntityName:'mantle.product.category.ProductCategory',recordId:productCategoryId,checkOnly:true}" out-map="catalog"/>
+        <set field="recordFound" from="!!catalog.record"/>
+        <if condition="recordFound">
+            <service-call name="ironstone.products.CategoryServices.get#CategoryDetail" in-map="context" out-map="context"/>
+            <service-call name="ironstone.products.CategoryServices.get#CategoryOptions" out-map="context"/>
+            <set field="master" from="detail.master"/>
+            <set field="canEdit" from="detail.canEdit"/>
+        </if>
+    </always-actions>
+    <subscreens default-item="Summary"/>
+    <transition name="save">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.store#Category" in-map="context"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="delete">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.delete#UnusedCategory" in-map="context"/>
+        </actions>
+        <default-response url="../List"/>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Record" condition="recordFound">
+            <widgets>
+                <context record-entity="mantle.product.category.ProductCategory" record-id="${productCategoryId}" title="${master.categoryName}"/>
+                <container style="m-record-header">
+                    <label text="${productCategoryId}" style="text-mono"/>
+                    <label text="${master.categoryName}" type="h5"/>
+                    <label text="${master.ownerPartyId === '_NA_' ? 'Shared catalog record' : master.ownerPartyId}" type="p"/>
+                    <link url="delete" text="Delete unused category" link-type="hidden-form" condition="canEdit" confirmation="Delete this unused category?" parameter-map="{productCategoryId:productCategoryId}"/>
+                </container>
+                <subscreens-menu id="CategoryTabs" type="tab"/>
+                <subscreens-active/>
+            </widgets>
+        </section>
+        <section name="Unavailable" condition="!recordFound">
+            <widgets>
+                <label text="Catalog record not available" type="p"/>
+            </widgets>
+        </section>
+    </widgets>
 </screen>

@@ -84,6 +84,21 @@ spec({
             screens.push([`${base}/Products.xml`, path])
             demoParameters['Products/' + path] = {productId: tab === 'KitComponents' ? 'DEMO_PA' : tab === 'Equipment' ? 'EQUIP_1' : 'BOSS_PRD_OWN'}
         }
+        demoParameters['Products/Categories/CategoryDetail']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Categories/CategoryDetail/Summary']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Categories/CategoryDetail/Parents']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Categories/CategoryDetail/Products']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Categories/CategoryDetail/FeatureDefaults']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Categories/CategoryDetail/Identifiers']={productCategoryId:'BOSS_PRD_CAT'}
+        demoParameters['Products/Features/FeatureDetail']={productFeatureId:'BOSS_PRD_FEATURE'}
+        demoParameters['Products/Features/FeatureDetail/Summary']={productFeatureId:'BOSS_PRD_FEATURE'}
+        demoParameters['Products/Features/FeatureDetail/Groups']={productFeatureId:'BOSS_PRD_FEATURE'}
+        demoParameters['Products/Features/FeatureDetail/Products']={productFeatureId:'BOSS_PRD_FEATURE'}
+        demoParameters['Products/Features/FeatureDetail/Interactions']={productFeatureId:'BOSS_PRD_FEATURE'}
+        demoParameters['Products/Features/FeatureGroups/FeatureGroupDetail']={productFeatureGroupId:'BOSS_PRD_GROUP'}
+        demoParameters['Products/Features/FeatureGroups/FeatureGroupDetail/Summary']={productFeatureGroupId:'BOSS_PRD_GROUP'}
+        demoParameters['Products/Features/FeatureGroups/FeatureGroupDetail/Features']={productFeatureGroupId:'BOSS_PRD_GROUP'}
+        demoParameters['Products/Features/FeatureGroups/FeatureGroupDetail/Categories']={productFeatureGroupId:'BOSS_PRD_GROUP'}
     },
     setup() { ec.artifactExecution.disableAuthz() },
     cleanup() { ec.artifactExecution.enableAuthz() },

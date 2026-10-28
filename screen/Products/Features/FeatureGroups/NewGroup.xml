@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="New feature group" default-menu-include="false">
+    <transition name="create">
+        <actions>
+            <service-call name="ironstone.products.FeatureServices.store#FeatureGroup" in-map="Object.assign({},context,{createOnly:true})" out-map="created"/>
+            <if condition="!ec.message.hasError()">
+                <set field="productFeatureGroupId" from="created.productFeatureGroupId"/>
+            </if>
+        </actions>
+        <default-response url="../FeatureGroupDetail">
+            <parameter name="productFeatureGroupId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.FeatureServices.get#FeatureOptions" out-map="context"/>
+        <set field="newMaster" from="{ownerPartyId:access.activeOrganizationPartyId || access.organizationPartyIds[0]}"/>
+    </actions>
+    <widgets>
+        <section name="Editor" condition="access.capabilities.catalogEdit">
+            <widgets>
+                <container-box>
+                    <box-header title="Create feature group"/>
+                    <box-body>
+                        <form-single name="NewFeatureGroup" transition="create" map="newMaster">
+                            <field name="productFeatureGroupId">
+                                <default-field title="ID (empty: generated)">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="ownerPartyId">
+                                <default-field title="Owner">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.owners" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Create">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

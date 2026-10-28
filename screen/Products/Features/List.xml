@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Features" default-menu-include="false">
+    <parameter name="text"/>
+    <parameter name="productFeatureTypeEnumId"/>
+    <parameter name="ownerPartyId"/>
+    <parameter name="productFeatureGroupId"/>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.FeatureServices.get#FeatureOptions" out-map="context"/>
+        <service-call name="ironstone.products.FeatureServices.find#Features" in-map="context" out-map="context"/>
+        <set field="rowsCount" from="count"/>
+    </actions>
+    <widgets>
+        <context title="Features"/>
+        <link url="../NewFeature" text="Create feature" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+        <form-list name="Features" list="rows" skip-form="true" paginate="false" header-dialog="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="text">
+                <header-field title="ID, description or code">
+                    <text-line/>
+                </header-field>
+                <default-field>
+                    <ignored/>
+                </default-field>
+            </field>
+            <field name="productFeatureId">
+                <header-field title="ID"/>
+                <default-field>
+                    <link url="../FeatureDetail" text="${productFeatureId}" parameter-map="{productFeatureId:productFeatureId}" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="description">
+                <header-field title="Description"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="productFeatureTypeEnumId">
+                <header-field title="Type">
+                    <drop-down allow-empty="true">
+                        <list-options list="options.featureTypes" key="${value}" text="${label}"/>
+                    </drop-down>
+                </header-field>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="abbrev">
+                <header-field title="Abbreviation"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="idCode">
+                <header-field title="Code"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="numberSpecified">
+                <header-field title="Number"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="numberUomId">
+                <header-field title="Unit"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Owner">
+                    <drop-down allow-empty="true">
+                        <list-options list="options.owners" key="${value}" text="${label}"/>
+                    </drop-down>
+                </header-field>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="productFeatureGroupId">
+                <header-field title="Group">
+                    <drop-down allow-empty="true">
+                        <list-options list="options.groups" key="${value}" text="${label}"/>
+                    </drop-down>
+                </header-field>
+                <default-field>
+                    <ignored/>
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

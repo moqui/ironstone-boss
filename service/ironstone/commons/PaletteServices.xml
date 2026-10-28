@@ -47,15 +47,19 @@ along with this software (see the LICENSE.md file). If not, see
         </in-parameters>
         <out-parameters><parameter name="url"/><parameter name="icon"/></out-parameters>
         <actions><script><![CDATA[
-            const catalogEntity = {'MantleProduct': 'mantle.product.Product', 'MantleProductCategory': 'mantle.product.category.ProductCategory'}[docType]
-                || (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(recordEntityName) ? recordEntityName : null)
+            const catalogTypes = {'MantleProduct':'mantle.product.Product','MantleProductCategory':'mantle.product.category.ProductCategory',
+                'MantleProductFeature':'mantle.product.feature.ProductFeature','MantleProductFeatureGroup':'mantle.product.feature.ProductFeatureGroup'}
+            const catalogRoutes = {'mantle.product.Product':'Products/Product360?productId=',
+                'mantle.product.category.ProductCategory':'Categories/CategoryDetail?productCategoryId=',
+                'mantle.product.feature.ProductFeature':'Features/FeatureDetail?productFeatureId=',
+                'mantle.product.feature.ProductFeatureGroup':'Features/FeatureGroups/FeatureGroupDetail?productFeatureGroupId='}
+            const own = (object,key) => Object.prototype.hasOwnProperty.call(object,key)
+            const catalogEntity = own(catalogTypes,docType) ? catalogTypes[docType] : own(catalogRoutes,recordEntityName) ? recordEntityName : null
             if (catalogEntity) {
                 const found = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord')
-                    .parameters({recordEntityName: catalogEntity, recordId: id, checkOnly: true}).disableAuthz().call() || {}
-                const category = catalogEntity === 'mantle.product.category.ProductCategory'
-                url = found.record ? '/qapps/Products/' + (category ? 'Categories/CategoryDetail?productCategoryId=' : 'Products/Product360?productId=')
-                        + encodeURIComponent(String(id)) : null
-                icon = category ? 'sym_o_category' : 'sym_o_inventory_2'
+                    .parameters({recordEntityName:catalogEntity,recordId:id,checkOnly:true}).disableAuthz().call() || {}
+                url = found.record ? '/qapps/Products/'+catalogRoutes[catalogEntity]+encodeURIComponent(String(id)) : null
+                icon = catalogEntity==='mantle.product.Product' ? 'sym_o_inventory_2' : catalogEntity==='mantle.product.category.ProductCategory' ? 'sym_o_category' : 'sym_o_style'
                 return
             }
             const q = encodeURIComponent(String(id))

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Feature" default-menu-include="false">
+    <parameter name="productFeatureId" required="true"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordEntityName:'mantle.product.feature.ProductFeature',recordId:productFeatureId,checkOnly:true}" out-map="catalog"/>
+        <set field="recordFound" from="!!catalog.record"/>
+        <if condition="recordFound">
+            <service-call name="ironstone.products.FeatureServices.get#FeatureDetail" in-map="context" out-map="context"/>
+            <service-call name="ironstone.products.FeatureServices.get#FeatureOptions" out-map="context"/>
+            <set field="master" from="detail.master"/>
+            <set field="canEdit" from="detail.canEdit"/>
+        </if>
+    </always-actions>
+    <subscreens default-item="Summary">
+        <subscreens-item name="Interactions" location="component://mr-boss/screen/Products/Features/FeatureInteractions.xml" menu-index="4"/>
+    </subscreens>
+    <transition name="save">
+        <actions>
+            <service-call name="ironstone.products.FeatureServices.store#Feature" in-map="context"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="delete">
+        <actions>
+            <service-call name="ironstone.products.FeatureServices.delete#UnusedFeature" in-map="context"/>
+        </actions>
+        <default-response url="../List"/>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Record" condition="recordFound">
+            <widgets>
+                <context record-entity="mantle.product.feature.ProductFeature" record-id="${productFeatureId}" title="${master.description}"/>
+                <container style="m-record-header">
+                    <label text="${productFeatureId}" style="text-mono"/>
+                    <label text="${master.description}" type="h5"/>
+                    <label text="${master.ownerPartyId === '_NA_' ? 'Shared catalog record' : master.ownerPartyId}" type="p"/>
+                    <link url="delete" text="Delete unused feature" link-type="hidden-form" condition="canEdit" confirmation="Delete this unused feature?" parameter-map="{productFeatureId:productFeatureId}"/>
+                </container>
+                <subscreens-menu id="FeatureTabs" type="tab"/>
+                <subscreens-active/>
+            </widgets>
+        </section>
+        <section name="Unavailable" condition="!recordFound">
+            <widgets>
+                <label text="Catalog record not available" type="p"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

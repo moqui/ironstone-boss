@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
+    <widgets>
+        <section name="Available" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Feature"/>
+                    <box-body>
+                        <section name="Editor" condition="canEdit">
+                            <widgets>
+                                <form-single name="Feature" transition="../save" map="master">
+                                    <field name="productFeatureId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="expectedLastUpdatedStamp" from="master.lastUpdatedStamp">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productFeatureTypeEnumId">
+                                        <default-field title="Type">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.featureTypes" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="abbrev">
+                                        <default-field title="Abbreviation">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="idCode">
+                                        <default-field title="Code">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="numberSpecified">
+                                        <default-field title="Number">
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="numberUomId">
+                                        <default-field title="Unit">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.units" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="defaultAmount">
+                                        <default-field title="Default amount">
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="defaultSequenceNum">
+                                        <default-field title="Sequence">
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <section name="Reader" condition="!canEdit">
+                            <widgets>
+                                <label text="Description: ${master.description || '—'}" type="p"/>
+                                <label text="Type: ${master.productFeatureTypeEnumId || '—'}" type="p"/>
+                                <label text="Owner: ${master.ownerPartyId || '—'}" type="p"/>
+                                <label text="Abbreviation: ${master.abbrev || '—'}" type="p"/>
+                                <label text="Code: ${master.idCode || '—'}" type="p"/>
+                                <label text="Number: ${master.numberSpecified || '—'}" type="p"/>
+                                <label text="Unit: ${master.numberUomId || '—'}" type="p"/>
+                                <label text="Default amount: ${master.defaultAmount || '—'}" type="p"/>
+                                <label text="Sequence: ${master.defaultSequenceNum || '—'}" type="p"/>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

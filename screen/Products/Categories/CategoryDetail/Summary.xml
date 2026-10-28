@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
+    <widgets>
+        <section name="Available" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Category"/>
+                    <box-body>
+                        <section name="Editor" condition="canEdit">
+                            <widgets>
+                                <form-single name="Category" transition="../save" map="master">
+                                    <field name="productCategoryId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="expectedLastUpdatedStamp" from="master.lastUpdatedStamp">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="categoryName">
+                                        <default-field title="Name">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productCategoryTypeEnumId">
+                                        <default-field title="Type">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.categoryTypes" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <section name="Reader" condition="!canEdit">
+                            <widgets>
+                                <label text="Name: ${master.categoryName || '—'}" type="p"/>
+                                <label text="Type: ${master.productCategoryTypeEnumId || '—'}" type="p"/>
+                                <label text="Owner: ${master.ownerPartyId || '—'}" type="p"/>
+                                <label text="Description: ${master.description || '—'}" type="p"/>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

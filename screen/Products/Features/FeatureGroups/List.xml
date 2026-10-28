@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Feature groups" default-menu-include="false">
+    <parameter name="text"/>
+    <parameter name="productFeatureTypeEnumId"/>
+    <parameter name="ownerPartyId"/>
+    <parameter name="productFeatureGroupId"/>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.FeatureServices.get#FeatureOptions" out-map="context"/>
+        <service-call name="ironstone.products.FeatureServices.find#FeatureGroups" in-map="context" out-map="context"/>
+        <set field="rowsCount" from="count"/>
+    </actions>
+    <widgets>
+        <context title="Feature groups"/>
+        <link url="../NewGroup" text="Create feature group" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+        <form-list name="FeatureGroups" list="rows" skip-form="true" paginate="false" header-dialog="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="text">
+                <header-field title="ID, description or code">
+                    <text-line/>
+                </header-field>
+                <default-field>
+                    <ignored/>
+                </default-field>
+            </field>
+            <field name="productFeatureGroupId">
+                <header-field title="ID"/>
+                <default-field>
+                    <link url="../FeatureGroupDetail" text="${productFeatureGroupId}" parameter-map="{productFeatureGroupId:productFeatureGroupId}" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="description">
+                <header-field title="Description"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Owner"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="featureCount">
+                <header-field title="Features"/>
+                <default-field>
+                    <link url="../FeatureGroupDetail/Features" text="${featureCount}" parameter-map="{productFeatureGroupId:productFeatureGroupId}" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="categoryCount">
+                <header-field title="Categories"/>
+                <default-field>
+                    <link url="../FeatureGroupDetail/Categories" text="${categoryCount}" parameter-map="{productFeatureGroupId:productFeatureGroupId}" link-type="anchor"/>
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

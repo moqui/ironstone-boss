@@ -30,6 +30,8 @@ along with this software (see the LICENSE.md file). If not, see
     </subscreens>
 
     <shell-providers>
+        <quick-create kind="category" label="Category" icon="sym_o_category" screen="Products/Categories/NewCategory" sequence="86"/>
+        <quick-create kind="feature" label="Feature" icon="sym_o_style" screen="Products/Features/NewFeature" sequence="87"/>
         <quick-create kind="product" label="Product" icon="sym_o_inventory_2" screen="Products/Products/NewProduct" sequence="85"/>
         <palette-source group="Products" label="Products" icon="sym_o_inventory_2" service="ironstone.products.CatalogServices.search#Catalog" sequence="46"/>
         <palette-type doc-type="MantleProduct"/>

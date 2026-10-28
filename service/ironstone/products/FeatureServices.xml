@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="find" noun="Features">
+        <in-parameters>
+            <parameter name="text"/>
+            <parameter name="productFeatureTypeEnumId"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="productFeatureGroupId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+            <parameter name="count" type="Long"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('listMasters',Object.assign({},context,{kind:'feature'})))</script>
+        </actions>
+    </service>
+    <service verb="find" noun="FeatureGroups">
+        <in-parameters>
+            <parameter name="text"/>
+            <parameter name="ownerPartyId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+            <parameter name="count" type="Long"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('listMasters',Object.assign({},context,{kind:'group'})))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="Feature">
+        <in-parameters>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureTypeEnumId"/>
+            <parameter name="description"/>
+            <parameter name="numberSpecified" type="BigDecimal"/>
+            <parameter name="numberUomId"/>
+            <parameter name="defaultAmount" type="BigDecimal"/>
+            <parameter name="defaultSequenceNum" type="Long"/>
+            <parameter name="abbrev"/>
+            <parameter name="idCode"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="numberPerPallet" type="BigDecimal"/>
+            <parameter name="perPalletTier" type="BigDecimal"/>
+            <parameter name="tiersPerPallet" type="BigDecimal"/>
+            <parameter name="createOnly" type="Boolean"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="productId"/>
+            <parameter name="applTypeEnumId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeMaster',Object.assign({},context,{kind:'feature'})))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="FeatureGroup">
+        <in-parameters>
+            <parameter name="ownerPartyId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="description"/>
+            <parameter name="createOnly" type="Boolean"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeMaster',Object.assign({},context,{kind:'group'})))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="FeatureDetail">
+        <in-parameters>
+            <parameter name="productFeatureId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('detail',Object.assign({},context,{kind:'feature'})))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="FeatureGroupDetail">
+        <in-parameters>
+            <parameter name="productFeatureGroupId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('detail',Object.assign({},context,{kind:'group'})))</script>
+        </actions>
+    </service>
+    <service verb="delete" noun="UnusedFeature">
+        <in-parameters>
+            <parameter name="productFeatureId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('deleteMaster',Object.assign({},context,{kind:'feature'})))</script>
+        </actions>
+    </service>
+    <service verb="delete" noun="UnusedFeatureGroup">
+        <in-parameters>
+            <parameter name="productFeatureGroupId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('deleteMaster',Object.assign({},context,{kind:'group'})))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="FeatureRow">
+        <in-parameters>
+            <parameter name="rowKind"/>
+            <parameter name="operation"/>
+            <parameter name="productCategoryId"/>
+            <parameter name="productId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="comments"/>
+            <parameter name="sequenceNum" type="Long"/>
+            <parameter name="quantity" type="BigDecimal"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="applTypeEnumId"/>
+            <parameter name="productCategoryIdentId"/>
+            <parameter name="identTypeEnumId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="marketSegmentId"/>
+            <parameter name="idValue"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="amount" type="BigDecimal"/>
+            <parameter name="recurringAmount" type="BigDecimal"/>
+            <parameter name="featureProductId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeRow',context))</script>
+        </actions>
+    </service>
+    <service verb="find" noun="FeatureInteractions">
+        <in-parameters>
+            <parameter name="productFeatureId"/>
+            <parameter name="productId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('interactions',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="FeatureInteraction">
+        <in-parameters>
+            <parameter name="productFeatureId"/>
+            <parameter name="toProductFeatureId"/>
+            <parameter name="iactnTypeEnumId"/>
+            <parameter name="productId"/>
+            <parameter name="quantity" type="BigDecimal"/>
+            <parameter name="amount" type="BigDecimal"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="productFeatureGroupId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('storeInteraction',context))</script>
+        </actions>
+    </service>
+    <service verb="preview" noun="FeatureInteractions">
+        <in-parameters>
+            <parameter name="productId"/>
+            <parameter name="productFeatureIds" type="List"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="valid" type="Boolean"/>
+            <parameter name="issues" type="List"/>
+            <parameter name="compositions" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('preview',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="FeatureOptions">
+        <in-parameters/>
+        <out-parameters>
+            <parameter name="options" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Taxonomy.js').execute('options',context))</script>
+        </actions>
+    </service>
+</services>

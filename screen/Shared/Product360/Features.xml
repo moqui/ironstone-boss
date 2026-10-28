@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Variants &amp; features" default-menu-index="2">
+    <transition name="newFeature"><actions><service-call name="ironstone.products.FeatureServices.store#Feature" in-map="{createOnly:true,productId:productId,productFeatureId:newProductFeatureId,description:newFeatureDescription,productFeatureTypeEnumId:productFeatureTypeEnumId,ownerPartyId:ownerPartyId,applTypeEnumId:newApplTypeEnumId}"/></actions><default-response url="."><parameter name="productId"/></default-response><error-response url="."/></transition>
     <transition name="storeRow">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'feature'})"/>
@@ -14,7 +15,7 @@
             <widgets>
                 <container-box>
                     <box-header title="Variants &amp; features"/>
-                    <box-body>
+                    <box-body><section name="CreateFeature" condition="canEdit"><widgets><container-dialog id="CreateAndApplyFeature" button-text="Create and apply feature" title="New feature for this product" width="640"><form-single name="NewFeature" transition="newFeature"><field name="productId"><default-field><hidden/></default-field></field><field name="newProductFeatureId"><default-field title="ID (empty: generated)"><text-line/></default-field></field><field name="newFeatureDescription"><default-field title="Description"><text-line/></default-field></field><field name="productFeatureTypeEnumId"><default-field title="Feature type"><drop-down><list-options list="options.featureTypes" key="${value}" text="${label}"/></drop-down></default-field></field><field name="ownerPartyId" from="product.ownerPartyId"><default-field title="Owner"><drop-down><list-options list="options.owners" key="${value}" text="${label}"/></drop-down></default-field></field><field name="newApplTypeEnumId" from="'PfatStandard'"><default-field title="Application"><drop-down><option key="PfatStandard" text="Standard"/><option key="PfatSelectable" text="Selectable"/><option key="PfatDistinguishing" text="Distinguishing"/></drop-down></default-field></field><field name="submitButton"><default-field title="Create and apply"><submit/></default-field></field></form-single></container-dialog></widgets></section>
                         <container-box>
                             <box-header title="Variants"/>
                             <box-body>

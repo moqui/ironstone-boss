@@ -152,3 +152,31 @@ feature('P2 catalog projections and writers keep grants and owner checks with au
   hidden==true
  },
 })
+
+feature('P3 feature/group links and shared record callbacks enforce the real owner with authorization disabled',{
+ when(){
+  asCatalog('john.doe',()=>{
+   call('store#mantle.product.feature.ProductFeature',{productFeatureId:'BOSS_ACCESS_OTHER_FEATURE',description:'Hidden access feature',productFeatureTypeEnumId:'PftColor',ownerPartyId:'ORG_ZIZI_RETAIL'})
+   call('store#mantle.product.feature.ProductFeatureGroup',{productFeatureGroupId:'BOSS_ACCESS_OTHER_GROUP',description:'Hidden access group',ownerPartyId:'ORG_ZIZI_RETAIL'})
+  },false)
+  return asCatalog('catalog.reader',()=>({
+   feature:call('ironstone.commons.PaletteServices.get#RecordLink',{recordEntityName:'mantle.product.feature.ProductFeature',id:'BOSS_PRD_FEATURE'}),
+   group:call('ironstone.commons.PaletteServices.get#RecordLink',{recordEntityName:'mantle.product.feature.ProductFeatureGroup',id:'BOSS_PRD_GROUP'}),
+   hidden:call('ironstone.commons.PaletteServices.get#RecordLink',{recordEntityName:'mantle.product.feature.ProductFeatureGroup',id:'BOSS_ACCESS_OTHER_GROUP'}),
+   callback:call('mantle.party.CommunicationServices.get#RecordLinkInfo',{recordEntityName:'mantle.product.feature.ProductFeatureGroup',recordId:'BOSS_ACCESS_OTHER_GROUP',checkOnly:true})
+  }),false)
+ },then({feature,group,hidden,callback}){
+  feature.url=='/qapps/Products/Features/FeatureDetail?productFeatureId=BOSS_PRD_FEATURE'
+  group.url=='/qapps/Products/Features/FeatureGroups/FeatureGroupDetail?productFeatureGroupId=BOSS_PRD_GROUP'
+  hidden.url==null
+  callback.recordVisible==false
+ },
+})
+feature('P3 tags use the same authorized product filter and taxonomy writes require the editor grant',{
+ when(){return asCatalog('catalog.reader',()=>{
+  const products=call(CATALOG+'find#Products',{tagIds:['BOSS_PRD_TAG']}).productList
+  let denied=false
+  try{call('ironstone.products.CategoryServices.store#Category',{productCategoryId:'BOSS_PRD_CAT',categoryName:'Denied'});denied=ec.message.hasError()}catch(e){denied=true}finally{ec.message.clearErrors()}
+  return {products,denied}
+ },false)},then({products,denied}){products.map(row=>row.productId)==['BOSS_PRD_OWN'];denied==true},
+})

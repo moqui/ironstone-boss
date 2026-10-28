@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identifiers" default-menu-index="5">
+    <transition name="storeIdentifiersRows">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.store#CategoryRow" in-map="Object.assign({},context,{rowKind:'identifier'})"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <parameter name="suggestedSlug"/>
+    <transition name="previewSlug" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.preview#CategorySlug" in-map="context" out-map="slug"/>
+            <set field="suggestedSlug" from="slug.outUrlSlug"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productCategoryId"/>
+            <parameter name="suggestedSlug"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Available" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Identifiers"/>
+                    <box-body>
+                        <section name="GenerateSlug" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="GenerateCategoryIdentifier" button-text="Suggest URL slug" title="Preview category slug" width="640">
+                                    <form-single name="GenerateCategoryIdentifier" transition="previewSlug">
+                                        <field name="productCategoryId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="categoryName" from="master.categoryName">
+                                            <default-field title="Name">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Preview">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <label text="Suggested slug: ${suggestedSlug}" type="p" condition="suggestedSlug"/>
+                            </widgets>
+                        </section>
+                        <form-list name="IdentifiersRowsList" list="detail.identifiers" skip-form="true" paginate="false">
+                            <field name="identTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="idValue">
+                                <header-field title="Value"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productStoreId">
+                                <header-field title="Store"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="marketSegmentId">
+                                <header-field title="Market segment"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="IdentifiersRowsEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddIdentifiersRows" button-text="Add" title="IdentifiersRows" width="640">
+                                    <form-single name="AddIdentifiersRows" transition="storeIdentifiersRows">
+                                        <field name="productCategoryId">
+                                            <default-field title="Category">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productCategoryIdentId">
+                                            <default-field title="Identifier ID">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="identTypeEnumId">
+                                            <default-field title="Type">
+                                                <drop-down allow-empty="true">
+                                                    <option key="PcitUrlSlug" text="URL slug"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="idValue" from="suggestedSlug">
+                                            <default-field title="Value">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productStoreId">
+                                            <default-field title="Store">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.stores" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="marketSegmentId">
+                                            <default-field title="Market segment">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="IdentifiersRowsRows" list="detail.identifiers" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditIdentifiersRows_${entry_index}" button-text="Edit ${entry.identTypeEnumId}" title="IdentifiersRows" width="640">
+                                            <form-single name="EditIdentifiersRows" transition="storeIdentifiersRows" map="entry">
+                                                <field name="productCategoryId">
+                                                    <default-field title="Category">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productCategoryIdentId">
+                                                    <default-field title="Identifier ID">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="identTypeEnumId">
+                                                    <default-field title="Type">
+                                                        <drop-down allow-empty="true">
+                                                            <option key="PcitUrlSlug" text="URL slug"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="idValue">
+                                                    <default-field title="Value">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productStoreId">
+                                                    <default-field title="Store">
+                                                        <drop-down allow-empty="true">
+                                                            <list-options list="options.stores" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="marketSegmentId">
+                                                    <default-field title="Market segment">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

@@ -54,7 +54,7 @@
             const access = ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogAccess').call() || {}
             capabilities = access.capabilities || {}
             const keys = {'mantle.product.Product': 'productId', 'mantle.product.category.ProductCategory': 'productCategoryId',
-                'mantle.product.feature.ProductFeature': 'productFeatureId'}
+                'mantle.product.feature.ProductFeature': 'productFeatureId', 'mantle.product.feature.ProductFeatureGroup': 'productFeatureGroupId'}
             const key = Object.prototype.hasOwnProperty.call(keys,recordEntityName) ? keys[recordEntityName] : null
             // The entity allowlist is security-critical: this is never a general-purpose entity reader.
             const validNeed = ['read', 'catalogEdit', 'catalogAdmin', 'priceRead', 'priceEdit', 'supplierPriceRead',
@@ -62,12 +62,13 @@
                 'methodRead', 'methodEdit', 'methodApprove', 'methodAdmin', 'glPost'].includes(need)
             if (key && validNeed && capabilities.read) {
                 const row = ec.entity.find(recordEntityName).condition(key, recordId).disableAuthz().one()
-                if (row && (capabilities.systemAdmin || Array.from(access.ownerPartyIds || []).includes(row.ownerPartyId))) {
+                const rowOwner = row?.ownerPartyId || (recordEntityName === 'mantle.product.feature.ProductFeatureGroup' ? '_NA_' : null)
+                if (row && (capabilities.systemAdmin || Array.from(access.ownerPartyIds || []).includes(rowOwner))) {
                     canRead = true
                     canWrite = !!capabilities[need === 'read' ? 'catalogEdit' : need] && !String(need).endsWith('Read')
-                        && (row.ownerPartyId !== '_NA_' || capabilities.systemAdmin)
+                        && (rowOwner !== '_NA_' || capabilities.systemAdmin)
                     const allowed = need === 'read' || String(need).endsWith('Read') ? !!capabilities[need] : canWrite
-                    if (allowed) record = row.getMap()
+                    if (allowed) record = Object.assign({},row.getMap(),{ownerPartyId:rowOwner})
                 }
             }
             if (!checkOnly && !record) ec.message.addError('Catalog record is not available for this action')
@@ -75,7 +76,7 @@
     </service>
 
     <service verb="find" noun="Products">
-        <in-parameters><parameter name="text"/><parameter name="keyword"/><parameter name="ownerPartyId"/><parameter name="productTypeEnumId"/><parameter name="productClassEnumId"/><parameter name="statusId"/><parameter name="categoryIds" type="List"/><parameter name="categoryOperator"/><parameter name="productFeatureId"/><parameter name="idValue"/><parameter name="partyItemId"/><parameter name="salesAllowed"/><parameter name="purchaseAllowed"/><parameter name="list"/><parameter name="pageIndex" type="Integer"/><parameter name="pageSize" type="Integer"/><parameter name="orderByField"/></in-parameters>
+        <in-parameters><parameter name="text"/><parameter name="keyword"/><parameter name="ownerPartyId"/><parameter name="productTypeEnumId"/><parameter name="productClassEnumId"/><parameter name="statusId"/><parameter name="categoryIds" type="List"/><parameter name="tagIds" type="List"/><parameter name="categoryOperator"/><parameter name="productFeatureId"/><parameter name="idValue"/><parameter name="partyItemId"/><parameter name="salesAllowed"/><parameter name="purchaseAllowed"/><parameter name="list"/><parameter name="pageIndex" type="Integer"/><parameter name="pageSize" type="Integer"/><parameter name="orderByField"/></in-parameters>
         <out-parameters><parameter name="productList" type="List"/><parameter name="productListCount" type="Long"/><parameter name="pageIndex" type="Integer"/><parameter name="pageSize" type="Integer"/><parameter name="searchUnavailable" type="Boolean"/><parameter name="searchMessage"/></out-parameters>
         <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('findProducts', context))</script></actions>
     </service>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Categories" default-menu-index="3">
+    <transition name="storeCategoriesRows">
+        <actions>
+            <service-call name="ironstone.products.FeatureServices.store#FeatureRow" in-map="Object.assign({},context,{rowKind:'categoryGroup'})"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Available" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Categories"/>
+                    <box-body>
+                        <form-list name="CategoriesRowsList" list="detail.categories" skip-form="true" paginate="false">
+                            <field name="productCategoryId">
+                                <header-field title="Category"/>
+                                <default-field>
+                                    <link url="//Products/Categories/CategoryDetail" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor"/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="applTypeEnumId">
+                                <header-field title="Application"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="CategoriesRowsEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddCategoriesRows" button-text="Add" title="CategoriesRows" width="640">
+                                    <form-single name="AddCategoriesRows" transition="storeCategoriesRows">
+                                        <field name="productFeatureGroupId">
+                                            <default-field title="Group">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productCategoryId">
+                                            <default-field title="Category">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.categories" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="From">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="applTypeEnumId">
+                                            <default-field title="Application">
+                                                <drop-down allow-empty="true">
+                                                    <option key="PfatStandard" text="Standard"/>
+                                                    <option key="PfatSelectable" text="Selectable"/>
+                                                    <option key="PfatDistinguishing" text="Distinguishing"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="CategoriesRowsRows" list="detail.categories" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditCategoriesRows_${entry_index}" button-text="Edit ${entry.productCategoryId}" title="CategoriesRows" width="640">
+                                            <form-single name="EditCategoriesRows" transition="storeCategoriesRows" map="entry">
+                                                <field name="productFeatureGroupId">
+                                                    <default-field title="Group">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productCategoryId">
+                                                    <default-field title="Category">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field title="From">
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="thruDate">
+                                                    <default-field title="Through">
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="applTypeEnumId">
+                                                    <default-field title="Application">
+                                                        <drop-down allow-empty="true">
+                                                            <option key="PfatStandard" text="Standard"/>
+                                                            <option key="PfatSelectable" text="Selectable"/>
+                                                            <option key="PfatDistinguishing" text="Distinguishing"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

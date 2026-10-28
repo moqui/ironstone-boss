@@ -87,6 +87,7 @@ function storeProduct(p) {
 }
 function transition(p) {
     const product = record(p.productId, 'catalogEdit')
+    find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one()
     find(P + 'Product', {productId: p.productId}).forUpdate(true).one()
     const fresh = one(P + 'Product', {productId: p.productId}), before = fresh.statusId || (ms(fresh.salesDiscontinuationDate) != null && ms(fresh.salesDiscontinuationDate) <= ms(ec.user.nowTimestamp) ? 'PrdDiscontinued' : 'PrdActive')
     if (p.expectedStatusId && p.expectedStatusId !== before) throw new Error('Product status changed; reload before moving it')
@@ -125,6 +126,7 @@ function storeRow(p) {
     }
     if (p.kind === 'category') record(data.productCategoryId, 'read', P+'category.ProductCategory')
     if (p.kind === 'feature') {
+        find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one()
         const lockedProduct=find(P+'Product',{productId:p.productId}).forUpdate(true).one()
         record(data.productFeatureId, 'read', P+'feature.ProductFeature')
         const old = one(spec.entity, {productId:p.productId, productFeatureId:data.productFeatureId, fromDate:data.fromDate})
@@ -171,6 +173,7 @@ function detail(p) {
             .filter(row => kind !== 'party' || (partyReadable(row.partyId,a) && (row.roleTypeId!=='Supplier' || a.capabilities.supplierPriceRead))).map(withDates)
     }
     result.incomingRows = list(P+'ProductAssoc',{toProductId:p.productId}).filter(row=>['PatEquivalent','PatReplacement'].includes(row.productAssocTypeEnumId) && visible(row.productId)).map(withDates)
+    result.tagRows = result.categoryRows.filter(current).filter(row=>record(row.productCategoryId,'read',P+'category.ProductCategory').productCategoryTypeEnumId==='PctTag').map(row=>({productCategoryId:row.productCategoryId,categoryName:record(row.productCategoryId,'read',P+'category.ProductCategory').categoryName}))
     result.identifierRows = list(P+'ProductIdentification', {productId:p.productId}).map(withDates)
     result.otherIdentifierRows = list(P+'ProductOtherIdentification', {productId:p.productId}).map(withDates)
     result.legacyDimensionRows = list(P+'ProductDimension', {productId:p.productId}).map(withDates)
@@ -327,7 +330,10 @@ function findProducts(p) {
         }
     }
     let productRows=Array.from(ec.entity.find(P+'Product').condition(cf.makeCondition(conditions,'and')).disableAuthz().orderBy('productName,productId').list())
-    const categoryIds=Array.isArray(p.categoryIds)?p.categoryIds:String(p.categoryIds || '').split(',').filter(Boolean)
+    const categoryIds=(Array.isArray(p.categoryIds)?p.categoryIds:[p.categoryIds || '']).flatMap(value=>String(value).split(',')).map(value=>value.trim()).filter(Boolean)
+    const tagIds=(Array.isArray(p.tagIds)?p.tagIds:[p.tagIds || '']).flatMap(value=>String(value).split(',')).map(value=>value.trim()).filter(Boolean)
+    for(const id of tagIds) if(record(id,'read',P+'category.ProductCategory').productCategoryTypeEnumId!=='PctTag') throw new Error('Choose a tag category')
+    const tagSets=tagIds.map(id=>new Set(list(P+'category.ProductCategoryMember',{productCategoryId:id}).filter(current).map(row=>row.productId)))
     for(const id of categoryIds) record(id,'read',P+'category.ProductCategory')
     const categorySets=categoryIds.map(id=>new Set(list(P+'category.ProductCategoryMember',{productCategoryId:id}).filter(current).map(row=>row.productId)))
     const featureIds=p.productFeatureId?new Set(list(P+'feature.ProductFeatureAppl',{productFeatureId:p.productFeatureId}).filter(current).map(row=>row.productId)):null
@@ -345,6 +351,7 @@ function findProducts(p) {
         if(p.partyItemId && !partyIds.has(row.productId)) return false
         if(identified && !identified.has(row.productId)) return false
         if(featureIds && !featureIds.has(row.productId)) return false
+        if(tagSets.length && !tagSets.every(set=>set.has(row.productId))) return false
         if(categorySets.length && !(p.categoryOperator==='OR'?categorySets.some(set=>set.has(row.productId)):categorySets.every(set=>set.has(row.productId)))) return false
         if(p.list==='activeSkus' && (status!=='PrdActive' || row.productTypeEnumId==='PtVirtual')) return false
         if(p.list==='virtual' && row.productTypeEnumId!=='PtVirtual') return false
@@ -395,6 +402,7 @@ function options() {
         productTypes:choices('moqui.basic.Enumeration','enumId','description',row=>row.enumTypeId==='ProductType'),
         idTypes:choices('moqui.basic.Enumeration','enumId','description',row=>row.enumTypeId==='ProductIdentificationType'),
         parties:choices('mantle.party.Party','partyId','pseudoId',row=>(!row.privateOwnerUserId || row.privateOwnerUserId===ec.user.userId) && (a.capabilities.systemAdmin || a.ownerPartyIds.includes(row.ownerPartyId) || a.organizationPartyIds.includes(row.partyId))),
+        featureTypes:choices('moqui.basic.Enumeration','enumId','description',row=>row.enumTypeId==='ProductFeatureType'),
         assetTypes:choices('moqui.basic.Enumeration','enumId','description',row=>row.enumTypeId==='AssetType'),
         maintenanceTypes:choices('moqui.basic.Enumeration','enumId','description',row=>row.enumTypeId==='MaintenanceType'),
         drives:Array.from(call('org.moqui.impl.FileServices.get#UserDrives').driveList || []).map(row=>({value:row.driveId,label:row.driveName || row.driveId})),

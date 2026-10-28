@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="New category" default-menu-include="false">
+    <transition name="create">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.store#Category" in-map="Object.assign({},context,{createOnly:true})" out-map="created"/>
+            <if condition="!ec.message.hasError()">
+                <set field="productCategoryId" from="created.productCategoryId"/>
+            </if>
+        </actions>
+        <default-response url="../CategoryDetail">
+            <parameter name="productCategoryId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CategoryServices.get#CategoryOptions" out-map="context"/>
+        <set field="newMaster" from="{productCategoryTypeEnumId:'PctCatalog',ownerPartyId:access.activeOrganizationPartyId || access.organizationPartyIds[0]}"/>
+    </actions>
+    <widgets>
+        <section name="Editor" condition="access.capabilities.catalogEdit">
+            <widgets>
+                <container-box>
+                    <box-header title="Create category"/>
+                    <box-body>
+                        <form-single name="NewCategory" transition="create" map="newMaster">
+                            <field name="productCategoryId">
+                                <default-field title="ID (empty: generated)">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="categoryName">
+                                <default-field title="Name">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="productCategoryTypeEnumId">
+                                <default-field title="Type">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.categoryTypes" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="ownerPartyId">
+                                <default-field title="Owner">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.owners" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <text-area rows="3"/>
+                                </default-field>
+                            </field>
+                            <field name="parentProductCategoryId">
+                                <default-field title="Optional parent">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.categories" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Create">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

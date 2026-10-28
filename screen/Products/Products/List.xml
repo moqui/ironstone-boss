@@ -9,7 +9,7 @@
     <parameter name="productTypeEnumId"/>
     <parameter name="productClassEnumId"/>
     <parameter name="statusId"/>
-    <parameter name="categoryIds"/>
+    <parameter name="categoryIds"/><parameter name="tagIds"/>
     <parameter name="categoryOperator"/>
     <parameter name="productFeatureId"/>
     <parameter name="idValue"/>
@@ -27,7 +27,7 @@
     </transition>
     <actions>
         <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
-        <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+        <service-call name="ironstone.products.CategoryServices.get#CategoryOptions" out-map="context"/>
         <service-call name="ironstone.products.CatalogServices.find#Products" in-map="context" out-map="context"/>
         <set field="bulkResults" from="ec.user.context.productsBulkResults || []"/>
         <set field="productListPageIndex" from="pageIndex"/>
@@ -204,7 +204,8 @@
                             <ignored/>
                         </default-field>
                     </field>
-                    <field name="categoryIds">
+                    <field name="tagIds"><header-field title="Tags"><drop-down allow-empty="true" allow-multiple="true"><list-options list="options.tags" key="${value}" text="${label}"/></drop-down></header-field><default-field><ignored/></default-field></field>
+            <field name="categoryIds">
                         <header-field title="Category IDs (comma separated)">
                             <text-line/>
                         </header-field>

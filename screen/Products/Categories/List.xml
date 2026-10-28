@@ -1,4 +1,118 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Categories" default-menu-include="false">
-    <widgets><label text="Placeholder: Product categories." type="p"/></widgets>
+    <parameter name="text"/>
+    <parameter name="productCategoryTypeEnumId"/>
+    <parameter name="ownerPartyId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="parentOccurrenceId"/>
+    <transition name="children" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.find#Categories" in-map="context" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="ancestors" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.get#CategoryAncestors" in-map="context" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="move">
+        <actions>
+            <service-call name="ironstone.products.CategoryServices.move#CategoryParent" in-map="context" out-map="moved"/>
+            <script>ec.web.sendJsonResponse(ec.message.hasError() ? {} : {moved:true})</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CategoryServices.get#CategoryOptions" out-map="context"/>
+        <service-call name="ironstone.products.CategoryServices.find#Categories" in-map="context" out-map="context"/>
+        <set field="categoryRowsCount" from="categoryRows.length"/><set field="canMoveCategories" from="access.capabilities.catalogEdit"/>
+    </actions>
+    <widgets>
+        <context title="Categories"/>
+        <link url="../NewCategory" text="Create category" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+        <label text="${categoryCount} categories · ${categoryRows.length} placements" type="p"/>
+        <label text="A category may appear under several parents. Move changes the selected dated edge; Add parent keeps the existing edges." type="p"/>
+        <form-list name="Categories" list="categoryRows" views="tree,list" skip-form="true" paginate="false" header-dialog="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true">
+            <view-tree parent-field="parentOccurrenceId" key-fields="occurrenceId,productCategoryId,originalParentProductCategoryId,fromDate" child-count-field="childCount" children-transition="children" ancestor-transition="ancestors" transition="move" confirm-move="true" move-condition="canMoveCategories"/>
+            <field name="occurrenceId">
+                <default-field>
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="parentOccurrenceId">
+                <default-field>
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="originalParentProductCategoryId">
+                <default-field>
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="fromDate">
+                <default-field>
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="text">
+                <header-field title="ID or name">
+                    <text-line/>
+                </header-field>
+                <default-field>
+                    <ignored/>
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <header-field title="As of">
+                    <date-time/>
+                </header-field>
+                <default-field>
+                    <ignored/>
+                </default-field>
+            </field>
+            <field name="categoryName">
+                <header-field title="Category"/>
+                <default-field>
+                    <link url="../CategoryDetail" text="${categoryName}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="productCategoryId">
+                <header-field title="ID"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="productCategoryTypeEnumId">
+                <header-field title="Type">
+                    <drop-down allow-empty="true">
+                        <list-options list="options.categoryTypes" key="${value}" text="${label}"/>
+                    </drop-down>
+                </header-field>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Owner">
+                    <drop-down allow-empty="true">
+                        <list-options list="options.owners" key="${value}" text="${label}"/>
+                    </drop-down>
+                </header-field>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+            <field name="branchProductCount">
+                <header-field title="Products in branch"/>
+                <default-field>
+                    <display/>
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
 </screen>

@@ -322,34 +322,34 @@ that parity.
 | Category/Content/ContentList | NewLocationForm | Products/Categories/CategoryDetail/Content |  |
 | Category/Content/ContentList | NewTextForm | Products/Categories/CategoryDetail/Content |  |
 | Category/Content/ContentList | ContentList | Products/Categories/CategoryDetail/Content |  |
-| EditCategory | EditCategoryForm | Products/Categories/CategoryDetail |  |
-| EditCategory | AddChild | Products/Categories/CategoryDetail |  |
-| EditCategory | ChildCategoriesForm | Products/Categories/CategoryDetail |  |
-| EditCategory | GenerateCategoryIdent | Products/Categories/CategoryDetail |  |
-| EditCategory | AddCategoryIdentForm | Products/Categories/CategoryDetail |  |
-| EditCategory | CategoryIdentForm | Products/Categories/CategoryDetail |  |
-| EditCategory | ParentCategoriesForm | Products/Categories/CategoryDetail |  |
-| EditCategory | AddFeatureGroupForm | Products/Categories/CategoryDetail |  |
-| EditCategory | FeatureGroupsForm | Products/Categories/CategoryDetail |  |
-| EditProducts | AddProductForm | Products/Categories/CategoryDetail |  |
-| EditProducts | ProductsForm | Products/Categories/CategoryDetail |  |
-| FindCategory | NewCategoryForm | Products/Categories |  |
-| FindCategory | CategoriesForm | Products/Categories |  |
-| EditFeature | NewFeatureForm | Products/Features |  |
-| EditFeature | EditFeatureForm | Products/Features/FeatureDetail |  |
-| EditFeature | AddFeatureGroupForm | Products/Features/FeatureDetail |  |
-| EditFeature | FeatureGroupsForm | Products/Features/FeatureDetail |  |
-| EditFeature | AddProductForm | Products/Features/FeatureDetail |  |
-| EditFeature | ProductsForm | Products/Features/FeatureDetail |  |
-| FindFeature | NewFeatureForm | Products/Features |  |
-| FindFeature | FeaturesForm | Products/Features |  |
-| EditFeatureGroup | EditFeatureGroupForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
-| EditFeatureGroup | AddCategoryForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
-| EditFeatureGroup | CategoriesForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
-| EditFeatureGroup | AddFeatureForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
-| EditFeatureGroup | FeaturesForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
-| FindFeatureGroup | NewFeatureGroupForm | Products/Features/FeatureGroups |  |
-| FindFeatureGroup | FeatureGroupsForm | Products/Features/FeatureGroups |  |
+| EditCategory | EditCategoryForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Summary |
+| EditCategory | AddChild | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Parents |
+| EditCategory | ChildCategoriesForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Parents |
+| EditCategory | GenerateCategoryIdent | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Identifiers |
+| EditCategory | AddCategoryIdentForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Identifiers |
+| EditCategory | CategoryIdentForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Identifiers |
+| EditCategory | ParentCategoriesForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Parents |
+| EditCategory | AddFeatureGroupForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/FeatureDefaults |
+| EditCategory | FeatureGroupsForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/FeatureDefaults |
+| EditProducts | AddProductForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Products |
+| EditProducts | ProductsForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Products |
+| FindCategory | NewCategoryForm | Products/Categories | Products/Categories/NewCategory |
+| FindCategory | CategoriesForm | Products/Categories | Products/Categories/List (occurrences and guarded one-edge moves) |
+| EditFeature | NewFeatureForm | Products/Features | Products/Features/NewFeature; Shared/Product360/Features (atomic create/apply) |
+| EditFeature | EditFeatureForm | Products/Features/FeatureDetail | Products/Features/FeatureDetail/Summary |
+| EditFeature | AddFeatureGroupForm | Products/Features/FeatureDetail | Products/Features/FeatureDetail/Groups |
+| EditFeature | FeatureGroupsForm | Products/Features/FeatureDetail | Products/Features/FeatureDetail/Groups |
+| EditFeature | AddProductForm | Products/Features/FeatureDetail | Products/Features/FeatureDetail/Products |
+| EditFeature | ProductsForm | Products/Features/FeatureDetail | Products/Features/FeatureDetail/Products |
+| FindFeature | NewFeatureForm | Products/Features | Products/Features/NewFeature |
+| FindFeature | FeaturesForm | Products/Features | Products/Features/List |
+| EditFeatureGroup | EditFeatureGroupForm | Products/Features/FeatureGroups/FeatureGroupDetail | Products/Features/FeatureGroups/FeatureGroupDetail/Summary |
+| EditFeatureGroup | AddCategoryForm | Products/Features/FeatureGroups/FeatureGroupDetail | Products/Features/FeatureGroups/FeatureGroupDetail/Categories |
+| EditFeatureGroup | CategoriesForm | Products/Features/FeatureGroups/FeatureGroupDetail | Products/Features/FeatureGroups/FeatureGroupDetail/Categories |
+| EditFeatureGroup | AddFeatureForm | Products/Features/FeatureGroups/FeatureGroupDetail | Products/Features/FeatureGroups/FeatureGroupDetail/Features |
+| EditFeatureGroup | FeaturesForm | Products/Features/FeatureGroups/FeatureGroupDetail | Products/Features/FeatureGroups/FeatureGroupDetail/Features |
+| FindFeatureGroup | NewFeatureGroupForm | Products/Features/FeatureGroups | Products/Features/FeatureGroups/NewGroup |
+| FindFeatureGroup | FeatureGroupsForm | Products/Features/FeatureGroups | Products/Features/FeatureGroups/List |
 | Product/Content/ContentDetail | UpdateContentForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents (guarded existing content service) |
 | Product/Content/ContentDetail | UpdateTextForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents (guarded existing content service) |
 | Product/Content/ContentList | NewContentForm | Products/Documents; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents |
@@ -372,7 +372,7 @@ that parity.
 | EditProduct | GenerateOtherIdentification | Products/Products/Product360; Shared/Product360 |  |
 | EditProduct | AddOtherIdentificationForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | OtherIdentificationsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
-| EditProduct | NewFeatureForm | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | NewFeatureForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (atomic create/apply) |
 | EditProduct | AddFeatureForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (existing feature applications) |
 | EditProduct | FeaturesForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (existing feature applications) |
 | EditProduct | AddDimensionForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |

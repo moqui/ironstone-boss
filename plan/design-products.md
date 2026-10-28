@@ -606,8 +606,10 @@ renaming its localized description does not rewrite product identity. **Source.*
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | FeatureGroupFind | find | Find sets | ID, description, category | category lookup | none | Catalog `FindFeatureGroup` |
-| FeatureGroups | list | Open sets | group, description, features, category uses | count links | entity | Catalog `FindFeatureGroup` `FeatureGroupsForm` |
-| NewFeatureGroup | dialog | Create a set | ID, description | default fields | entity `ProductFeatureGroup` | same `NewFeatureGroupForm` |
+| FeatureGroups | list | Open sets | group, description, owner, features, category uses | count links | entity | Catalog `FindFeatureGroup` `FeatureGroupsForm` |
+| NewFeatureGroup | dialog | Create a set | ID, description, owner | default fields | guarded `ProductFeatureGroup` | same `NewFeatureGroupForm` |
+
+Feature groups carry `ownerPartyId`; legacy null and `_NA_` groups are shared. Group reads and writes follow the catalog owner/capability boundary, and shared master writes require framework ADMIN.
 
 **Actions.** Create and open; delete only when unused. **Source.** Research §4, §13; Catalog
 `FeatureGroup/FindFeatureGroup.xml`. **Needs.** PRD-ACCESS.
@@ -616,7 +618,7 @@ renaming its localized description does not rewrite product identity. **Source.*
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| FeatureGroup | single | Edit the group | ID, description | default fields | entity | Catalog `EditFeatureGroup` `EditFeatureGroupForm` |
+| FeatureGroup | single | Edit the group | ID, description, owner | default fields | guarded entity | Catalog `EditFeatureGroup` `EditFeatureGroupForm` |
 | AddGroupCategory | dialog | Apply group to category | category, application type, dates | category lookup | entity `ProductCategoryFeatGrpAppl` | same `AddCategoryForm` |
 | GroupCategories | list, editable rows | Maintain category uses | category, type, dates | row edit | entity | same `CategoriesForm` |
 | AddGroupFeature | dialog | Add a value | feature, dates, sequence | feature lookup | entity `ProductFeatureGroupAppl` | same `AddFeatureForm` |

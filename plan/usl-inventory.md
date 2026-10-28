@@ -639,7 +639,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | --- | --- | --- | --- |
 | CommunicationServices | get#ClientRecordVisibility |  | Projects/Home; Projects/Projects/MilestoneDetail; Projects/Requests/RequestDetail |
 
-## Product (108 services, 5 added)
+## Product (108 services, 7 added)
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
@@ -736,7 +736,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | StoreServices | create#StoreShippingOption |  |  |
 | StoreServices | get#StoreShippingOptions |  |  |
 | StoreServices | clone#ProductStore |  |  |
-| StoreServices | format#UrlSlug |  |  |
+| StoreServices | format#UrlSlug | PRD-TAXONOMY | Products/Categories/CategoryDetail/Identifiers (guarded preview before store) |
 | StoreServices | generate#UrlSlugFromProductName | Products/Products/Product360; Shared/Product360 |  |
 | StoreServices | generate#UrlSlugFromCategoryName | Products/Categories/CategoryDetail |  |
 | SubscriptionServices | init#SubscriptionResource |  |  |
@@ -761,8 +761,10 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ProductServices | check#OrderProductUsable | PRD-LIFECYCLE | Both order entry paths; explicit sale/purchase direction |
 | ProductServices | store#ProductIdentifier | PRD-IDENTIFIERS | Shared/Product360/Identifiers; internal/scoped clone IDs |
 | ProductServices | store#KitComponent | PRD-KITS | Shared/Product360/KitComponents |
+| ProductServices | store#FeatureInteraction | PRD-VARIANTS | Products/Features/FeatureInteractions (guarded pair/scope/conflict store) |
+| ProductServices | preview#FeatureInteractions | PRD-VARIANTS | Products/Features/FeatureInteractions; FeatureDetail/Interactions |
 
-### BOSS catalog application services (P1/P2)
+### BOSS catalog application services (P1–P3)
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
@@ -784,6 +786,31 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ironstone.products.CatalogServices | search#CatalogChoices | PRD-ACCESS; P2 | Catalog server-search lookups |
 | ironstone.products.SettingsServices | get#CatalogSettings | PRD-SETTINGS | Products/Settings |
 | ironstone.products.SettingsServices | store#CatalogSettings | PRD-SETTINGS | Products/Settings |
+
+| ironstone.products.CategoryServices | find#Categories | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/List |
+| ironstone.products.CategoryServices | get#CategoryAncestors | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/List tree ancestors |
+| ironstone.products.CategoryServices | store#Category | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/NewCategory; CategoryDetail/Summary |
+| ironstone.products.CategoryServices | store#CategoryParent | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail/Parents |
+| ironstone.products.CategoryServices | move#CategoryParent | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/List; CategoryDetail/Parents |
+| ironstone.products.CategoryServices | expire#CategoryParent | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail/Parents |
+| ironstone.products.CategoryServices | get#CategoryDetail | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail tabs |
+| ironstone.products.CategoryServices | store#CategoryRow | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail relationships/identifiers |
+| ironstone.products.CategoryServices | delete#UnusedCategory | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail guarded deletion |
+| ironstone.products.CategoryServices | preview#CategorySlug | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/CategoryDetail/Identifiers |
+| ironstone.products.CategoryServices | get#CategoryOptions | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Category/tag form options |
+| ironstone.products.FeatureServices | find#Features | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Features/List |
+| ironstone.products.FeatureServices | store#Feature | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Features/NewFeature; FeatureDetail/Summary; Product360 atomic create/apply |
+| ironstone.products.FeatureServices | get#FeatureDetail | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureDetail tabs |
+| ironstone.products.FeatureServices | delete#UnusedFeature | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureDetail guarded deletion |
+| ironstone.products.FeatureServices | find#FeatureGroups | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Features/FeatureGroups/List |
+| ironstone.products.FeatureServices | store#FeatureGroup | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureGroups/NewGroup; FeatureGroupDetail/Summary |
+| ironstone.products.FeatureServices | get#FeatureGroupDetail | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureGroupDetail tabs |
+| ironstone.products.FeatureServices | delete#UnusedFeatureGroup | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureGroupDetail guarded deletion |
+| ironstone.products.FeatureServices | store#FeatureRow | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureDetail and FeatureGroupDetail relationships |
+| ironstone.products.FeatureServices | find#FeatureInteractions | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureInteractions |
+| ironstone.products.FeatureServices | store#FeatureInteraction | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureInteractions guarded writer |
+| ironstone.products.FeatureServices | preview#FeatureInteractions | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/FeatureInteractions preview |
+| ironstone.products.FeatureServices | get#FeatureOptions | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Feature/group form options |
 
 ## Request (12 services, 3 added)
 

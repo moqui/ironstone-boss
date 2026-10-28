@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — implementation in progress; P0, P1 and P2 built; P3 next
+Oct 28, 2026 — implementation in progress; P0–P3 built; P4 next
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -10,7 +10,7 @@ open questions, findings against the code, and what is deferred.
 
 At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
 Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed services, entities, fields or
-status items existed in Mantle or BOSS. P1 and P2 are now built below; P3–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
+status items existed in Mantle or BOSS. P1–P3 are now built below; P4–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
 Accounting and Purchasing are placeholders too.
 
 **Inputs.**
@@ -124,7 +124,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
 | P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui f9641cda, Mantle 6d548a3e; BOSS f1c2a37 |
 | P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | built Oct 28; Mantle 54e6619a; BOSS 0a06b7d |
-| P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
+| P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | built Oct 28; commit references below |
 | P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
 | P5 Prices and price lists | Mantle, BOSS | Prices, PriceHistory, PriceLists, PriceListDetail, PriceExplain, PricingSettings | — |
 | P6 Supplier prices | Mantle, BOSS | SupplierPrices, Supplier360 | — |
@@ -285,8 +285,9 @@ P2 validation evidence:
 
 ### P3 — Categories and features
 
-- **Framework:** `view-tree` occurrence keys, so one record can sit under several parents and a move names the parent
-  edge. In qvt, html and tui, with the gallery's Views (F9).
+- **Framework:** verify `view-tree` occurrence keys through its existing `key-fields` protocol: the occurrence first,
+  followed by the record and original dated-edge keys. In qvt, html and tui. Add optional `confirm-move` to qvt, shown
+  in the gallery's Views, with explicit Move/Add-parent forms for terminal parity (F38).
 - **PRD-TAXONOMY.**
   - The guarded category-rollup service and `ironstone.products.CategoryServices.move#CategoryParent`: cycles are
     refused across effective dates, and branch counts are deduplicated.
@@ -300,6 +301,48 @@ P2 validation evidence:
   - a category is placed under two parents, one dated parent edge moves, a cycle is refused, and branch counts count
     each product once (§12.3 #2);
   - a product-scoped interaction for a pair already ruled elsewhere is refused, naming that rule.
+
+**Built Oct 28 (P3).** Guarded category, feature and feature-group masters and relationship services; category
+list/outline, record tabs, feature and group lists/details, interaction editing and preview; Category/Feature shell quick
+create; scoped record links; Product360 tags and ProductFind tag filtering. Category identifiers use preview then an explicit
+unique store. Category content stays P10.
+
+The category outline uses a path occurrence ID alongside the real category ID and original parent/from-date edge key.
+A move closes only that dated edge and creates its replacement; another parent stays. A catalog-wide graph lock protects
+concurrent graph changes; cycle checks intersect effective intervals, overlapping duplicate parent edges are refused, and
+branch membership counts use sets. Current edges can be ended; never-effective future edges can be removed. The selected
+Move dialog provides terminal write parity. Browser drag/keyboard moves can opt into `confirm-move`, showing item and both
+parents before posting; declining posts nothing. Existing trees keep their previous behavior.
+
+Feature groups now have an audited owner, with existing null owners treated as shared alongside `_NA_`; the org filters,
+record callbacks and links cover them. Shared master writes remain framework ADMIN only. Relationships are guarded by
+the record they change: a parent edge belongs to its child category, a group membership to its group, a category default
+to its category, and a feature application to its product. Referenced records must be readable. Distinguishing feature
+meaning cannot change on active/used variants, but descriptions may be renamed. Feature meaning changes, applications and
+activation share a lock. Create-and-apply uses one transaction and independently checks the product.
+
+Private Mantle feature-interaction writers retain the pair key: a rule cannot be moved to another product scope, and a
+reverse duplicate is refused. New dependencies are checked against applicable global/product-specific incompatible rules
+through the dependency chain. Preview reports missing requirements and incompatible selections; inaccessible feature
+references are omitted from the caller's result. Expiration and preview are included in the external client's deny pattern.
+
+P3 validation evidence:
+- BOSS final full suite: **764/764** features (78 specs); commit IDs are recorded below. New taxonomy service tests cover two parents, one-edge
+  moves, effective-date cycles, deduplicated counts, owner isolation, shared/null-owner groups, feature meaning and atomic
+  create/apply. AppStructure and TuiRender explicitly render every new detail tab with demo IDs.
+- Mantle full suite: **695 passed, 2 baseline failures, 9 skipped** (706 features, 80 specs), including the two new
+  feature-policy cases. InboxThreads and MantleSearch remain the same P1/P2 baseline failures.
+- Core: **2,111 passed, 2 baseline locale failures, 3 ignored** with `--test-threads=1`. The parallel run additionally hit
+  an existing shared temporary-service XML fixture race; that scheduler test passes alone and in the serial suite.
+  The two missing `mr-l10n` catalogs remain outside this phase. All 38 server-static tests, both view renderer checks,
+  the precompiled-component check and 21 offline list-view client cases pass. The two view goldens change only by adding
+  the opt-in confirmation setting.
+- Debug binary rebuilt successfully; source XML checks and screen lint checked. The new tree setting is documented in the
+  XSD and webroot JS guide and demonstrated in Gallery/Views. HTML and TUI outlines preserve both occurrences.
+- Browser: **126/126** final captures, light/dark at 390, 1280 and 1440 px, `/tmp/products-p3-browser-final`;
+  **1/1** real editor walk, `/tmp/products-p3-walk-final2`, including an edge move that preserves another parent, cancellation
+  at a keyboard-move confirmation, feature creation and group membership. Phone category outline/new-feature and desktop
+  records inspected. The list count is placements, with the distinct-category count stated separately.
 
 ### P4 — Variants
 
@@ -553,7 +596,7 @@ is written there too.
 | F6 | P0: `create#VariantProducts` makes every combination of the selectable features, answers nothing and reads no `ProductFeatureIactn`. `create#VariantProduct`'s existing-variant check ignores dates and application type. `get#VariantProductsInfo` is a stub (TODO). `find#ProductFeatureGroups` reads an undeclared `productFeatureGroupIdSet` and does not deduplicate | P4 |
 | F7 | P0: `find#ProductByIdValue` answers no product when several identifiers match, and searches no party item codes and no `ProductOtherIdentification` | The palette's text find (P2) and `resolve#ScannedProduct` (P11) |
 | F8 | P0: the `MantleProduct` document has no status, product parties or party item codes, and indexes the old `ProductDimension`. Scripts can ask `ec.search.isAvailable()`, but nothing reports index lag | P2 extends the document; staleness is a §5 question |
-| F9 | P0: `view-tree` keys a row by its first key field and shows it under one parent only | P3's framework occurrence keys |
+| F9 | P0: `view-tree` keys a row by its first key field and shows that key under one parent | P3 verifies separate path occurrence IDs through existing key-fields; record/dated-edge keys follow the occurrence (F38) |
 | F10 | P0: the `Product` status type has no items. Only `Product.ownerPartyId` and `ProductPrice.price` are audit-logged. `update#OrderItem`'s re-price and `recalc#OrderItemAmount` leave `productPriceId` as it was | P2 (status, Product audit), P5a (ProductPrice audit), P5b (provenance kept on a re-price) |
 | F11 | P0: there is no ProductStandardCost, not even commented out (the commented block is CostComponent and ProductAverageCost). `AssetStandardCost` is active and unused | P9's new records. The design's "refine commented concepts" reads as new records |
 | F12 | P0: `ProductAssoc` has no `quantityUomId`, and nothing reads `PatPackagingFor` | P11 |
@@ -582,6 +625,8 @@ is written there too.
 | F35 | P2: the existing add-to-cart service updates a matching line without calling create#OrderItem; guarding the create path alone leaves an obsolete-product bypass | Guard add#OrderProductQuantity before price resolution and either create/update path; keep explicit zero-quantity removal ahead of the guard |
 | F36 | P2: get#AvailableInventory requires a facility/store scope, and its kit minimum used zero as an uninitialized sentinel | Product360 totals only authorized facilities; keep an explicit first-component flag so later stock cannot overwrite a zero minimum |
 | F37 | P2: ProductOtherIdentification and ProductUomDimension are outside the legacy delete/clone coverage; equipment maintenance refers to meter IDs | Clean modern children before guarded unused-draft deletion, copy scoped identities safely, and remap cloned maintenance meters |
+| F38 | P3: view-tree already accepts an occurrence as the first key field, with record/edge fields following it | Use the existing qvt/html/tui identity protocol, prove two placements and a one-edge move, and add only optional browser move confirmation |
+| F39 | P3: ProductFeatureGroup had no owner, though groups must obey the catalog owner boundary | Add audited ownerPartyId, retain null/_NA_ legacy groups as shared, extend org filters and record callbacks, and keep shared writes ADMIN-only |
 
 ## 7. Later
 

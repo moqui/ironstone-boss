@@ -9,6 +9,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 - **Designed in** for [design-projects.md](design-projects.md) was filled on Oct 21, 2026 from that design's §13.1 and the **Derived from** cells of its form summaries, each screen by the path the design gives it: a project's tab is a subscreen of `Projects/Projects/ProjectDetail`, and a screen the design mounts in a tab with the project fixed (WorkItems, Requests, TimeEntries) is listed by its own path. Paths are added after what an earlier design wrote. The rows of the git forms added to SimpleScreens on Oct 20 came with it: `Project/EditRepositories`, `ProjectSummary`'s `ViewGitRepositoryList` and `ViewGitTagList`, `Task/EditSource` and `MyAccount/User/GitAccess` (`Project/GitCommit` has no forms); their **Implemented in** is blank. The My Account expense forms other than the worker invoice stay blank for design-people.
 - **Implemented in** for [design-projects.md](design-projects.md) was filled on Oct 22, 2026 at the end of the Projects build (impl-projects.md P11), by the path of the built screen that carries each form of its Projects **Designed in** paths, after what Commons wrote: a section designed as one screen is its default subscreen (`Projects/Projects/List`, `Projects/WorkItems/List`, `Projects/Requests/List`), the project form of QuickCreate is `Projects/QuickProject` (impl-projects.md F8), a tab mounted from another screen keeps the tab's path (`Projects/Projects/ProjectDetail/Time`, `…/Docs`), and the shared screens keep their Projects mount (`Projects/WorkItems/WorkItemDetail`, `Projects/Requests/RequestDetail`). Twelve rows stay blank for the parts impl-projects.md §7 leaves for later: the worker and contractor invoices (My Account's `WorkerInvoice` and Unbilled's worker forms), a manager's clock-in for another person (`PartyTimeEntries` `ClockInForm`), request items (`EditRequestItems`), and wiki pages linked to a work item or a request (`EditWikiPages` on WorkItemDetail and RequestDetail; the Docs tab links pages to a project).
 - **Designed in** for the six core app drafts and [design-crosscut.md](design-crosscut.md) was extended on Oct 27, 2026 from their form/service coverage review. New mappings are additive to Commons and Projects; **Implemented in** is unchanged. Proposed services and definitions inside XML comments are not counted as active existing services.
+- **Designed in** for the six core designs and [design-crosscut.md](design-crosscut.md) was updated on Oct 28, 2026 after their review ([review-core-apps.md](review-core-apps.md)). Paths of renamed or moved screens are replaced in place (for example `Manufacturing/Boms/BomDetail` → `Manufacturing/BillsOfMaterials/BillOfMaterialsDetail`, `CustomerService/Reports/CsatResults` → `CustomerService/Reports/SatisfactionResults`, `Accounting/GeneralLedger/GlAccountDetail` → `Accounting/GeneralLedger/AccountDetail`, `Accounting/FixedAssets/InventoryValuation` → `Accounting/Inventory/InventoryValuation`). Entries were added where the reviewed designs now carry a form (the Products stock tab, the Accounting cost repair dialogs, BankAccountDetail reconciliation, the Manufacturing notes tab, the handheld pick face). Facility box-type assignment is FacilityDetail only (R-WH-16). The ProductStore and Gateway forms stay blank; Products and Accounting Decided name the apps they are handed to. **Implemented in** is unchanged.
 
 - **PASS design follow-up (Oct 27, 2026):** [design-forum.md](../../mr-pass/plan/design-forum.md) designs new public Forum screens over existing Mailbox services; there are no SimpleScreens Forum forms to map. WikiBlogs/EditWikiBlog remain future Blog/Publishing baselines, with full screen design deferred. Their Designed in and Implemented in cells remain unchanged; shared content ownership is described in Forum §13.3.
 
@@ -85,9 +86,9 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | FindFinancialAccount | FinancialAccountList | Accounting/Banking/FinancialAccounts |  |
 | FindJournal | CreateGlJournal | Accounting/GeneralLedger/JournalBatches |  |
 | FindJournal | TransactionList | Accounting/GeneralLedger/JournalBatches |  |
-| EditGlAccount | EditGlAccountForm | Accounting/GeneralLedger/GlAccountDetail |  |
-| EditGlAccount | NewGlAccountOrgForm | Accounting/GeneralLedger/GlAccountDetail |  |
-| EditGlAccount | GlAccountOrgList | Accounting/GeneralLedger/GlAccountDetail |  |
+| EditGlAccount | EditGlAccountForm | Accounting/GeneralLedger/AccountDetail |  |
+| EditGlAccount | NewGlAccountOrgForm | Accounting/GeneralLedger/AccountDetail |  |
+| EditGlAccount | GlAccountOrgList | Accounting/GeneralLedger/AccountDetail |  |
 | FindGlAccount | NewGlAccountForm | Accounting/GeneralLedger/ChartOfAccounts |  |
 | FindGlAccount | GlAccountListForm | Accounting/GeneralLedger/ChartOfAccounts |  |
 | Aging | ReportOptions | Accounting/Reports/Aging |  |
@@ -184,7 +185,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | AssetReceiptTransaction | AssetReceiptTxList | Warehouse/Reports/OperationsHistory; Accounting/Reports/StockTransactions |  |
 | AssetStatusByReceipt | FieldDescriptions | Warehouse/Reports/OperationsHistory; Accounting/Reports/StockTransactions |  |
 | AssetStatusByReceipt | AssetOnHandSummary | Warehouse/Reports/OperationsHistory; Accounting/Reports/StockTransactions |  |
-| AssetValuation | AssetValuationSummary | Accounting/FixedAssets/InventoryValuation; Shared/InventoryValuation; Warehouse/Reports/InventoryValuation |  |
+| AssetValuation | AssetValuationSummary | Accounting/Inventory/InventoryValuation; Shared/InventoryValuation; Warehouse/Reports/InventoryValuation |  |
 | InvoiceAgingDetail | ReportOptions | Accounting/Reports/Aging |  |
 | InvoiceAgingDetail | InvoiceAgingList | Accounting/Reports/Aging |  |
 | InvoiceItemSummary | InvoiceItemSummary | Accounting/Reports/SalesAnalysis |  |
@@ -242,7 +243,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | Screen XML | Form | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | AssetCalendar | NewEventForm | Commons/Calendar/Schedules | Commons/Calendar/Schedules |
-| AssetDetail | UpdateAssetAcquireCost |  |  |
+| AssetDetail | UpdateAssetAcquireCost | Accounting/FixedAssets/EquipmentDetail |  |
 | AssetDetail | AuditLogList | Warehouse/Inventory/AssetDetail |  |
 | AssetDetail | EditAsset | Warehouse/Inventory/AssetDetail |  |
 | AssetDetail | ReservationsListForm | Warehouse/Inventory/AssetDetail |  |
@@ -262,7 +263,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | AssetRegistrations | NewRegistrationForm |  |  |
 | AssetRegistrations | RegistrationsForm |  |  |
 | DetailHistory | AssetDetailList | Warehouse/Inventory/Movements; Warehouse/Inventory/AssetDetail |  |
-| FindAsset | UpdateProductCost |  |  |
+| FindAsset | UpdateProductCost | Accounting/Inventory/InventoryValuation |  |
 | FindAsset | CreateEquipment |  |  |
 | FindAsset | ListAssets | Warehouse/Inventory/Assets |  |
 | FindSummary | ReceiveAssetForm | Warehouse/Receiving/Receive; Warehouse/Inventory/MaterialIssueReceipt |  |
@@ -351,15 +352,15 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | Product/Content/ContentList | NewLocationForm | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
 | Product/Content/ContentList | NewTextForm | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
 | Product/Content/ContentList | ContentList | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
-| EditAssocs | AddAssocToForm | Products/Products/Product360; Manufacturing/Boms/BomDetail; Shared/Product360 |  |
-| EditAssocs | AssocToListForm | Products/Products/Product360; Manufacturing/Boms/BomDetail; Shared/Product360 |  |
-| EditAssocs | AssocFromListForm | Products/Products/Product360; Manufacturing/Boms/WhereUsed; Shared/Product360 |  |
+| EditAssocs | AddAssocToForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 |  |
+| EditAssocs | AssocToListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 |  |
+| EditAssocs | AssocFromListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/WhereUsed; Shared/Product360 |  |
 | EditAssocs | CreateVariantsForm | Products/Products/VariantBuilder; Shared/Product360 |  |
 | EditAssocs | AllSelectableFeaturesForm | Products/Products/VariantBuilder; Shared/Product360 |  |
 | EditCategories | AddCategoryForm | Products/Products/Product360; Shared/Product360 |  |
 | EditCategories | CategoriesForm | Products/Products/Product360; Shared/Product360 |  |
-| EditPrices | NewPriceForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
-| EditPrices | PricesForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
+| EditPrices | NewPriceForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
+| EditPrices | PricesForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
 | EditProduct | CloneProductForm | Products/Products/Product360; Shared/Product360 |  |
 | EditProduct | EditProductForm | Products/Products/Product360; Shared/Product360 |  |
 | EditProduct | AddIdentificationForm | Products/Products/Product360; Shared/Product360 |  |
@@ -416,14 +417,14 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | EditFacility | ChildListForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacility | NewNoteForm | Warehouse/Locations/FacilityDetail; Shared/Chatter; Shared/FacilityDetail |  |
 | EditFacility | UpdateNoteForm | Warehouse/Locations/FacilityDetail; Shared/Chatter; Shared/FacilityDetail |  |
-| EditFacility | AddBoxTypeForm | Warehouse/Locations/FacilityDetail; Warehouse/Locations/BoxTypes; Shared/FacilityDetail |  |
-| EditFacility | BoxTypesForm | Warehouse/Locations/FacilityDetail; Warehouse/Locations/BoxTypes; Shared/FacilityDetail |  |
+| EditFacility | AddBoxTypeForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
+| EditFacility | BoxTypesForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacility | AddLocationTypeForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacility | LocationTypesForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacilityLocations | NewLocationForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacilityLocations | LocationsForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
-| EditFacilityProducts | AddProductForm | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail |  |
-| EditFacilityProducts | ProductList | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail |  |
+| EditFacilityProducts | AddProductForm | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability |  |
+| EditFacilityProducts | ProductList | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability |  |
 | FindFacility | NewFacilityForm | Warehouse/Locations/Facilities |  |
 | FindFacility | FacilityListForm | Warehouse/Locations/Facilities |  |
 
@@ -450,28 +451,28 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | Screen XML | Form | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | EditRun | UpdateRun | Manufacturing/WorkOrders/WorkOrderDetail; Manufacturing/WorkOrders/WorkOrderDetail/Overview |  |
-| EditRun | NewNoteForm | Shared/Chatter; Manufacturing/WorkOrders/WorkOrderDetail/Chatter |  |
-| EditRun | UpdateNoteForm | Shared/Chatter; Manufacturing/WorkOrders/WorkOrderDetail/Chatter |  |
+| EditRun | NewNoteForm | Shared/Chatter; Manufacturing/Chatter; Manufacturing/WorkOrders/WorkOrderDetail |  |
+| EditRun | UpdateNoteForm | Shared/Chatter; Manufacturing/Chatter; Manufacturing/WorkOrders/WorkOrderDetail |  |
 | EditRun | AddEquipment | Manufacturing/WorkOrders/WorkOrderDetail/Overview; Manufacturing/WorkCenters/Equipment |  |
 | EditRun | EquipmentList | Manufacturing/WorkOrders/WorkOrderDetail/Overview; Manufacturing/WorkCenters/Equipment |  |
 | EditRun | AddPartyAssignForm | Manufacturing/WorkOrders/WorkOrderDetail/Overview |  |
 | EditRun | UpdateAssignForm | Manufacturing/WorkOrders/WorkOrderDetail/Overview |  |
 | FindRun | NewRunForm | Manufacturing/WorkOrders/NewWorkOrder |  |
 | FindRun | RunList | Manufacturing/WorkOrders; Manufacturing/Home |  |
-| RunConsumed | IssueAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| RunConsumed | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| RunConsumed | IssuedAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| RunProduced | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| RunProduced | ReceivedAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
+| RunConsumed | IssueAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| RunConsumed | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| RunConsumed | IssuedAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| RunProduced | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| RunProduced | ReceivedAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
 | RunProducts | AddProduceForm | Manufacturing/WorkOrders/WorkOrderDetail/Quantities |  |
-| RunProducts | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
+| RunProducts | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
 | RunProducts | ProduceList | Manufacturing/WorkOrders/WorkOrderDetail/Quantities |  |
 | RunProducts | AddConsumeForm | Manufacturing/WorkOrders/WorkOrderDetail/Components |  |
-| RunProducts | IssueAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
+| RunProducts | IssueAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
 | RunProducts | ConsumeList | Manufacturing/WorkOrders/WorkOrderDetail/Components |  |
-| ConsumeAsset | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| ConsumeProduct | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
-| ProduceAsset | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/Materials |  |
+| ConsumeAsset | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| ConsumeProduct | ConsumeAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| ProduceAsset | ReceiveAssetForm | Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
 
 ## Order (43 forms)
 
@@ -481,7 +482,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | FindOrder | ApproveOrdersForm | Purchasing/Orders/PurchaseOrders |  |
 | FindOrder | CloseOrdersForm | Purchasing/Orders/PurchaseOrders |  |
 | FindOrder | CreatePurchaseOrder | Purchasing/Orders/PurchaseOrders |  |
-| FindOrder | OrderList | Purchasing/Orders/PurchaseOrders; CustomerService/Orders |  |
+| FindOrder | OrderList | Purchasing/Orders/PurchaseOrders; CustomerService/Orders/Orders |  |
 | OrderDetail | CloseOrderPartItems | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderDetail | AddPartForm | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderDetail | RecurOptions | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
@@ -626,9 +627,9 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | PaymentMethodTrans | AddTransForm | Accounting/Banking/BankAccountDetail; Accounting/Banking/ReconciliationDetail |  |
 | PaymentMethodTrans | UploadOfxV1Form | Accounting/Banking/StatementImport |  |
 | PaymentMethodTrans | UploadBaiV2Form | Accounting/Banking/StatementImport |  |
-| PaymentMethodTrans | AutoMatchReconcileForm | Accounting/Banking/ReconciliationDetail |  |
+| PaymentMethodTrans | AutoMatchReconcileForm | Accounting/Banking/ReconciliationDetail; Accounting/Banking/BankAccountDetail |  |
 | PaymentMethodTrans | TransList | Accounting/Banking/BankAccountDetail; Accounting/Banking/ReconciliationDetail |  |
-| PaymentMethodTrans | ManRecForm | Accounting/Banking/ReconciliationDetail |  |
+| PaymentMethodTrans | ManRecForm | Accounting/Banking/ReconciliationDetail; Accounting/Banking/BankAccountDetail |  |
 | CreatePayment | CreatePaymentForm | Accounting/Payments/Payments |  |
 
 ## ProductStore (34 forms)
@@ -726,7 +727,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | EditWikiPages | AddWprForm | Commons/Knowledge; Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Knowledge | Commons/Knowledge |
 | EditWikiPages | DeleteWprForm | Commons/Knowledge; Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Knowledge | Commons/Knowledge |
 | FindRequest | NewRequestForm | Projects/Requests; Purchasing/Requests; CustomerService/Cases/NewCase | Projects/Requests/List |
-| FindRequest | ListRequests | Commons/Requests; Projects/Requests; Purchasing/Requests; CustomerService/Cases; CustomerService/Home | Commons/Requests/List; Projects/Requests/List |
+| FindRequest | ListRequests | Commons/Requests; Projects/Requests; Purchasing/Requests; CustomerService/Cases/Cases; CustomerService/Home | Commons/Requests/List; Projects/Requests/List |
 
 ## Return (8 forms)
 
@@ -739,7 +740,7 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | EditReturnItems | ReturnItemList | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; Shared/ReturnDetail |  |
 | FindReturn | CreateReturn | Warehouse/Returns/Returns; CustomerService/Returns/NewReturn |  |
 | FindReturn | CreateSupplierReturn | Warehouse/Returns/Returns; Purchasing/Returns |  |
-| FindReturn | ReturnHeaderList | Warehouse/Returns/Returns; Purchasing/Returns; CustomerService/Returns; ServicePortal/MyReturns |  |
+| FindReturn | ReturnHeaderList | Warehouse/Returns/Returns; Purchasing/Returns; CustomerService/Returns/Returns; ServicePortal/MyReturns |  |
 
 ## Shipment (46 forms)
 
@@ -869,9 +870,9 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | FindSurvey | NewSurveyForm | CustomerService/Settings/FeedbackForms |  |
 | FindSurvey | SurveyList | CustomerService/Settings/FeedbackForms |  |
 | ResponseDetails | ResponseDetailsForm | CustomerService/Reports/ResponseDetail |  |
-| ResponseStats | TextDbFormFieldResponseCountList | CustomerService/Reports/CsatResults |  |
-| ResponseStats | FieldOptionForm | CustomerService/Reports/CsatResults |  |
-| Responses | ResponseListForm | CustomerService/Reports/CsatResults |  |
+| ResponseStats | TextDbFormFieldResponseCountList | CustomerService/Reports/SatisfactionResults |  |
+| ResponseStats | FieldOptionForm | CustomerService/Reports/SatisfactionResults |  |
+| Responses | ResponseListForm | CustomerService/Reports/SatisfactionResults |  |
 
 ## Task (32 forms)
 
@@ -963,8 +964,8 @@ Per-form inventory of the mr-marble component, for tracking form-level feature p
 | SelectAsset | ProductNoLocAssetList | Warehouse/Handheld/Move |  |
 | SelectAsset | RecentMoveForm | Warehouse/Handheld/Move |  |
 | SelectAsset | RecentContainerMoveForm | Warehouse/Handheld/Move |  |
-| PickLocationMoves | ActiveFacilityForm | Warehouse/Picking/PickLocationMoves |  |
-| PickLocationMoves | PickMoveList | Warehouse/Picking/PickLocationMoves |  |
+| PickLocationMoves | ActiveFacilityForm | Warehouse/Picking/PickLocationMoves; Warehouse/Handheld/PickFace |  |
+| PickLocationMoves | PickMoveList | Warehouse/Picking/PickLocationMoves; Warehouse/Handheld/PickFace |  |
 | dashboard | ActiveFacilityForm | Warehouse/Handheld/Home |  |
 | dashboard | ScanAssetForm | Warehouse/Handheld/Home |  |
 | dashboard | PackShipmentForm | Warehouse/Handheld/Home |  |

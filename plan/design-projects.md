@@ -1298,6 +1298,20 @@ exist and are reused. The proposed service-only CaseServiceFacts, CaseSlaAction,
 CaseReplyAction and CaseServiceLinks panels are specified once in that crosscut extension;
 they do not change Projects' default tabs or grant service/financial authority.
 
+Oct 28, 2026: a Service-category Request created or closed from Projects keeps the Customer
+Service case rules, because Request create and status ECA rules give it its CaseProfile, queue
+and SLA ([design-crosscut §3.11](design-crosscut.md#311-requestdetail), D23).
+
+Oct 28, 2026: the RequestItems *Create purchase order* action opens Purchasing RequestSourcing,
+shown only to a buyer, and refuses quantity that is already sourced; no context calls
+`create#PurchaseRequestOrder` directly ([design-crosscut §3.11](design-crosscut.md#311-requestdetail), R-PUR-01).
+
+Oct 28, 2026: on a service case this RequestDetail hides Complete and Cancel, so the case is resolved
+only through Customer Service's case transitions. The external Customer Service row for
+ServicePortal/CustomerCase (customer contacts: status label, conversation as outward messages,
+approved files and customer-visible links; reply, add files, reopen, cancel own) is in
+[design-crosscut §3.11](design-crosscut.md#311-requestdetail) (R-XC-13, D23).
+
 ### RequestIntake
 
 - **Layout:** task archetype as `.qvue` in the public shell at `/r/<token>` (a `token-route` named `r` in BOSS's
@@ -1913,6 +1927,19 @@ The core-app definition is now [design-crosscut §3.16](design-crosscut.md#316-i
 Its Accounting/source/period guards extend the common screen while retaining the Projects
 time/milestone forms and client restrictions described below. The following built behavior is
 the compatibility baseline; proposed extensions do not imply it has already changed.
+
+Oct 28, 2026: Projects `ironstone.projects.BillingServices.update#InvoiceStatus` calls
+`ironstone.accounting.InvoiceServices.change#InvoiceState`, the one invoice state guard, and the
+Projects UI is unchanged ([design-crosscut §3.16](design-crosscut.md#316-invoicedetail), D6).
+
+Oct 28, 2026: Projects `BillingServices.send#Invoice` sends through Accounting's proposed
+`ironstone.accounting.InvoiceServices.send#Invoice`, which renders the version, issues the
+InvoicePay link and records each recipient's outcome ([design-crosscut §3.16](design-crosscut.md#316-invoicedetail), R-SB-15).
+
+Oct 28, 2026: ledger lines gain proposed facility and cost-centre dimensions in the first release
+(Accounting AC-22, [design-crosscut §8](design-crosscut.md#8-decided)). Projects invoices and time
+postings pass the cost centre a project names, when it has one; nothing in the Projects UI changes
+until a project carries a cost centre.
 
 The Invoice detail, a research-crosscut §3 reused screen added at this file's review (Accounting, Projects, Sales,
 Purchasing, Customer Service), designed in design-crosscut with Accounting's version first; Projects mounts it at

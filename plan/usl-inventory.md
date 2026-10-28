@@ -12,6 +12,7 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 - **Designed in** for [design-projects.md](design-projects.md) was filled on Oct 21, 2026 from the Mantle services its screen sections name (the form summaries, the actions and the Context passed blocks), each screen by the path the design gives it, after what an earlier design wrote; the `Projects` root calls `setup#UserOrganizationInfo` as the Commons and Comms roots do. Services the design names as new are not rows until Mantle has them. The 17 services of `work/GitServices.xml`, added to Mantle on Oct 20, joined the Work table (no BOSS screen calls them yet), and `link#RequestRecord` and `unlink#RequestRecord`, added after the drawers-commons save point, joined Request's Added table with the Commons screens that call them.
 - **Implemented in** for [design-projects.md](design-projects.md) was filled on Oct 22, 2026 at the end of the Projects build (impl-projects.md P11), as the drawers-commons pass was: each Projects screen whose transitions, actions or forms call the service, directly or through the `ironstone.*` services (followed from one to the next, not into Mantle's own calls), after what Commons wrote. A `.qvue` screen and its terminal twin go by the `.xml` path (`Projects/Time/MyTime` for MyTimeTui too); the shared screens by their Projects mount (`Projects/WorkItems/WorkItemDetail`, `Projects/Requests/RequestDetail`, `Projects/Billing/InvoiceDetail`, `Projects/Billing/OrderDetail`); Commons' Knowledge and KnowledgeTui by the Docs tab (`Projects/Projects/ProjectDetail/Docs`); the root's always-actions as `Projects`; the public request form as `RequestIntake`. A service reached from more than twelve Projects screens (the visibility and settings reads behind the access and find services) is written as a count. 68 rows filled; the **Added in the Projects build** tables at the end of Account, Party, Request and Work hold the 112 services Mantle gained in P1–P10 that a built screen calls (their **Designed in** is blank: the design names them as new, §15).
 - **Designed in** for the six core app drafts and [design-crosscut.md](design-crosscut.md) was extended on Oct 27, 2026 from their form/service coverage review. New mappings are additive to Commons and Projects; **Implemented in** is unchanged. Proposed services and definitions inside XML comments are not counted as active existing services.
+- **Designed in** for the six core designs and [design-crosscut.md](design-crosscut.md) was updated on Oct 28, 2026 after their review ([review-core-apps.md](review-core-apps.md)). Paths of renamed or moved screens are replaced in place. Entries were added for existing services the reviewed designs now call from a screen (the Manufacturing MaterialIssueReceipt mount, Downtime and NewWorkOrder; Warehouse SupplierReturnShipment and Ship; Accounting InventoryValuation and SalesAnalysis; the OrderDetail approve guard's `check#OrderPreApprove`; Products VariantBuilder). `modify#ProductPrice` no longer lists SupplierPrices: it is the price resolver's modifier interface, and writes go through the proposed `store#ProductPrice` (R-PUR-04). Services that only rules or other services call (`create#PurchaseShipmentInvoices`, `create#ProductionRun`, `reserve#IncreasedAsset`, `post#AssetReceipt`, and similar) stay blank. **Implemented in** is unchanged.
 
 - **PASS design follow-up (Oct 27, 2026):** [design-forum.md](../../mr-pass/plan/design-forum.md) adds `PASS:`-prefixed contexts for existing Mailbox/Communication services used through the proposed public facade and shared-policy extensions. Implemented in is unchanged. Proposed PASS services and future Commerce/Publishing screens are not inventory claims.
 
@@ -295,7 +296,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | LedgerServices | init#PartyAccountingConfiguration | Accounting/Settings/Setup |  |
 | LedgerServices | find#PartyAcctgPreference | Accounting/Settings/Settings |  |
 | LedgerServices | find#RootGlAccountClassEnum |  |  |
-| LedgerServices | set#GlAccountFlags | Accounting/GeneralLedger/GlAccountDetail |  |
+| LedgerServices | set#GlAccountFlags | Accounting/GeneralLedger/AccountDetail |  |
 | LedgerServices | set#MissingGlAccountFlags |  |  |
 | LedgerServices | expand#ParentOrganizationList |  |  |
 | LedgerServices | expand#ChildOrganizationList |  |  |
@@ -368,7 +369,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | OrderInfoServices | get#OrderPartBillingAddress |  |  |
 | OrderInfoServices | validate#Order |  |  |
 | OrderInfoServices | validate#OrderRequireManual |  |  |
-| OrderInfoServices | check#OrderPreApprove |  |  |
+| OrderInfoServices | check#OrderPreApprove | Shared/OrderDetail; Accounting/Records/OrderDetail; CustomerService/Orders/OrderDetail; Purchasing/Orders/OrderDetail |  |
 | OrderInfoServices | send#OrderStoreEmail | Purchasing/Orders/OrderDetail; Shared/OrderDetail |  |
 | OrderInfoServices | notify#OrderHighPriority |  |  |
 | OrderServices | create#Order | Purchasing/Orders/PurchaseOrders |  |
@@ -423,7 +424,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | OrderServices | update#OrderContent | Shared/OrderDetail |  |
 | OrderServices | save#OrderContentFile | Shared/RecordFiles |  |
 | OrderServices | create#PurchaseRequestOrder | Projects/Requests/RequestDetail; Purchasing/Requests/RequestSourcing |  |
-| ReturnServices | get#ReturnDisplayInfo | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; CustomerService/Returns; Shared/Customer360; Shared/ReturnDetail |  |
+| ReturnServices | get#ReturnDisplayInfo | Warehouse/Returns/ReturnDetail; Purchasing/Returns/ReturnDetail; CustomerService/Returns/ReturnDetail; CustomerService/Returns/Returns; Shared/Customer360; Shared/ReturnDetail |  |
 | ReturnServices | create#Return | Warehouse/Returns/Returns; Purchasing/Returns/ReturnDetail |  |
 | ReturnServices | create#ReturnFromOrder | Warehouse/Returns/Returns; Purchasing/Returns; CustomerService/Returns/NewReturn; ServicePortal/RequestReturn; Shared/ReturnDetail |  |
 | ReturnServices | find#OrderOpenReturns | CustomerService/Returns/NewReturn; ServicePortal/RequestReturn |  |
@@ -528,7 +529,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | PartyServices | search#Party | Commons/Contacts; Comms/Panel/Chat; Comms/Inbox |  |
 | PartyServices | search#Person |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/QuickCreate; Projects/Projects/ProjectDetail/Plan/Calendar |
 | PartyServices | get#UserNoticeCounts |  |  |
-| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects; Products; Warehouse; Purchasing; CustomerService; Accounting | Commons; Comms; Projects |
+| PartyServices | setup#UserOrganizationInfo | Commons; Comms; Projects; Products; Warehouse; Purchasing; CustomerService; Accounting; Manufacturing | Commons; Comms; Projects |
 | PartyServices | get#PartyOrganizationInfo |  |  |
 | PartyServices | create#Account |  |  |
 | PartyServices | update#Account |  | Commons/Settings/Account |
@@ -577,7 +578,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | CommunicationServices | close#ListThread | PASS: Forum/Topics/TopicDetail | Comms/Inbox/Compose; Comms/Inbox/Mail |
 | CommunicationServices | find#InboxThreads |  | Comms; Comms/Home; Comms/Inbox/Mail |
 | CommunicationServices | get#InboxUnreadCounts |  | Comms/Home; Comms/Inbox/Mail |
-| CommunicationServices | get#RecordLinkInfo |  | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Files; Commons/Knowledge; Commons/Notes; Commons/QuickCreate; Commons/Requests/List; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Comms/Chat; Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter; Shared/RecordFiles; Projects: 19 screens (through the ironstone.* access and find services) |
+| CommunicationServices | get#RecordLinkInfo | Shared/Chatter; Shared/RecordFiles | Commons/Calendar; Commons/Calendar/EventDetail; Commons/Files; Commons/Knowledge; Commons/Notes; Commons/QuickCreate; Commons/Requests/List; Commons/Requests/RequestDetail; Commons/Tasks/List; Commons/Tasks/TaskDetail; Comms/Chat; Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter; Shared/RecordFiles; Projects: 19 screens (through the ironstone.* access and find services) |
 | CommunicationServices | findOrCreate#EmailCommunicationEvent |  | Comms/Inbox/Mail |
 | CommunicationServices | link#CommunicationEventRecord |  | Comms/Chat; Comms/Inbox/Compose; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter |
 | CommunicationServices | unlink#CommunicationEventRecord |  | Comms/Inbox/Mail; Shared/Chatter |
@@ -643,12 +644,12 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | AssetServices | get#AssetDisplayInfo | Warehouse/Inventory/Adjustments; Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
-| AssetServices | get#AvailableInventory | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/InventoryAvailability; CustomerService/InventoryAvailability; Shared/Product360; Shared/InventoryAvailability |  |
+| AssetServices | get#AvailableInventory | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/InventoryAvailability; CustomerService/Availability/InventoryAvailability; Shared/Product360; Shared/InventoryAvailability; Manufacturing/WorkOrders/NewWorkOrder; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail/BillOfMaterialsExplosion |  |
 | AssetServices | get#AvailableForOrder | Warehouse/Inventory/Availability; Shared/InventoryAvailability |  |
-| AssetServices | get#AvailableInventoryMulti | Warehouse/Inventory/Availability; Warehouse/Picking/PickLocationMoves; Purchasing/Replenishment/InventoryAvailability; CustomerService/InventoryAvailability; Shared/InventoryAvailability |  |
+| AssetServices | get#AvailableInventoryMulti | Warehouse/Inventory/Availability; Warehouse/Picking/PickLocationMoves; Purchasing/Replenishment/InventoryAvailability; CustomerService/Availability/InventoryAvailability; Shared/InventoryAvailability |  |
 | AssetServices | update#Asset | Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
 | AssetServices | update#AssetAcquireCost | Shared/EquipmentDetail |  |
-| AssetServices | update#ProductAcquireCost |  |  |
+| AssetServices | update#ProductAcquireCost | Accounting/Inventory/InventoryValuation |  |
 | AssetServices | update#AssetFromDetail |  |  |
 | AssetServices | recalculate#AllAssetTotals |  |  |
 | AssetServices | get#AssetPools | Warehouse/Settings/AssetPools |  |
@@ -670,13 +671,13 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | AssetServices | checkReserve#ProductAssets |  |  |
 | AssetServices | issue#AssetReservation |  |  |
 | AssetServices | issue#Asset |  |  |
-| AssetServices | issue#AssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
-| AssetServices | issue#AnyAssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
-| AssetServices | issue#AnyAssetForShipmentItemSource |  |  |
+| AssetServices | issue#AssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| AssetServices | issue#AnyAssetToWorkEffort | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
+| AssetServices | issue#AnyAssetForShipmentItemSource | Warehouse/Returns/SupplierReturnShipment |  |
 | AssetServices | move#IssuancesToNewShipment |  |  |
 | AssetServices | cancel#AssetIssuance | Warehouse/Inventory/MaterialIssueReceipt; Shared/MaterialIssueReceipt |  |
 | AssetServices | update#AssetIssuedDate |  |  |
-| AssetServices | receive#Asset | Warehouse/Handheld/Receive; Warehouse/Inventory/MaterialIssueReceipt; Warehouse/Receiving/Receive; Shared/MaterialIssueReceipt |  |
+| AssetServices | receive#Asset | Warehouse/Handheld/Receive; Warehouse/Inventory/MaterialIssueReceipt; Warehouse/Receiving/Receive; Shared/MaterialIssueReceipt; Manufacturing/WorkOrders/WorkOrderDetail/MaterialIssueReceipt |  |
 | AssetServices | update#AssetAndReceipt |  |  |
 | AssetServices | replace#AssetPartyAssignment |  |  |
 | AssetServices | move#Product | Warehouse/Handheld/Move; Warehouse/Transfers/Move |  |
@@ -689,13 +690,13 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | AssetServices | update#PhysicalInventoryDate | Warehouse/Counts/CountDetail |  |
 | EquipmentServices | create#Equipment |  |  |
 | EquipmentServices | get#AssetMaintenanceNeeded |  |  |
-| EquipmentServices | create#AssetMaintenance |  |  |
+| EquipmentServices | create#AssetMaintenance | Manufacturing/Quality/Downtime |  |
 | EquipmentServices | create#AssetMaintenanceContent | Shared/RecordFiles | Shared/RecordFiles |
 | EquipmentServices | update#AssetMaintenanceContent |  |  |
 | EquipmentServices | save#AssetMaintenanceContentFile | Shared/RecordFiles |  |
-| InventoryReportServices | get#InventoryProjectedInfo | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/SupplyPlanning; CustomerService/InventoryAvailability; Shared/InventoryAvailability; Shared/SupplyPlanning |  |
+| InventoryReportServices | get#InventoryProjectedInfo | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/SupplyPlanning; CustomerService/Availability/InventoryAvailability; Shared/InventoryAvailability; Shared/SupplyPlanning |  |
 | InventoryReportServices | get#PriceHistoryInfo | Products/Pricing/PriceHistory |  |
-| PriceServices | modify#ProductPrice | Purchasing/Suppliers/SupplierPrices |  |
+| PriceServices | modify#ProductPrice | |  |
 | PriceServices | get#ProductPriceByType |  |  |
 | PriceServices | get#ProductPrice | Products/Pricing/PriceLists/PriceListDetail; Products/Pricing/PriceExplain; Purchasing/Suppliers/PriceExplain; Purchasing/Suppliers/SupplierPrices |  |
 | PriceServices | get#OrderProductPrice |  |  |
@@ -711,7 +712,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ProductServices | find#VariantProduct |  |  |
 | ProductServices | get#VariantProductsInfo | Products/Products/VariantBuilder |  |
 | ProductServices | create#VariantProducts | Products/Products/VariantBuilder; Shared/Product360 |  |
-| ProductServices | create#VariantProduct |  |  |
+| ProductServices | create#VariantProduct | Products/Products/VariantBuilder |  |
 | ProductServices | delete#VariantProducts |  |  |
 | ProductServices | delete#Product | Products/Products |  |
 | ProductServices | add#ProductsToCategory | Products/Products |  |
@@ -755,7 +756,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| RequestServices | create#Request | Commons/QuickCreate; Commons/Requests; Comms/Inbox; Comms/Chat; Projects/Requests; Warehouse/Transfers/StockRequests; Purchasing/Requests; Purchasing/Requests/RequestDetail; CustomerService/Cases/NewCase | Commons/QuickCreate; Commons/Requests/List; Commons/Tasks/TaskDetail; Projects/Requests/List; Projects/WorkItems/WorkItemDetail |
+| RequestServices | create#Request | Commons/QuickCreate; Commons/Requests; Comms/Inbox; Comms/Chat; Projects/Requests; Warehouse/Transfers/StockRequests; Purchasing/Requests; Purchasing/Requests/RequestDetail; CustomerService/Cases/NewCase; Manufacturing/Quality/Downtime | Commons/QuickCreate; Commons/Requests/List; Commons/Tasks/TaskDetail; Projects/Requests/List; Projects/WorkItems/WorkItemDetail |
 | RequestServices | update#Request | Commons/Requests/RequestDetail; Projects/Requests; Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/List; Projects/Requests/RequestDetail |
 | RequestServices | create#ContactRequest | Projects/Requests/Intake |  |
 | RequestServices | create#ContactRequestReCaptcha | Projects/Requests/Intake |  |
@@ -773,7 +774,7 @@ Added in the drawers-commons build (Oct 18–19, 2026), called by built screens:
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | RequestServices | get#UserTodayRequests |  | Commons |
-| RequestServices | link#RequestRecord | Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Cases/NewCase; CustomerService/Returns/WarrantyAssessment; Shared/RequestDetail | Commons/QuickCreate; Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
+| RequestServices | link#RequestRecord | Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; CustomerService/Cases/NewCase; CustomerService/Returns/WarrantyAssessment; Shared/RequestDetail; Manufacturing/Quality/Downtime | Commons/QuickCreate; Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
 | RequestServices | unlink#RequestRecord | Projects/Requests/RequestDetail; Purchasing/Requests/RequestDetail; CustomerService/Cases/CaseDetail; Shared/RequestDetail | Commons/Requests/RequestDetail; Projects/Requests/RequestDetail |
 
 Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), called by built screens:
@@ -795,7 +796,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | AccountServices | create#Contact |  |  |
 | AccountServices | add#Contact |  |  |
 | AccountServices | delete#Contact |  |  |
-| SalesReportServices | get#SalesOrderSummary |  |  |
+| SalesReportServices | get#SalesOrderSummary | Accounting/Reports/SalesAnalysis |  |
 | SalesReportServices | get#SalesInvoiceSummary |  |  |
 | SalesReportServices | get#SalesTopProduct |  |  |
 | SalesReportServices | get#InvoicesByCustomerClass |  |  |
@@ -833,7 +834,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | CarrierServices | remove#ShipmentReturnLabelInfo |  |  |
 | CarrierServices | get#ShipmentPackageRequiresInsurance |  |  |
 | CarrierServices | get#GeneralPackageRequiresInsurance |  |  |
-| CarrierServices | get#OrderShippingRateLocal |  |  |
+| CarrierServices | get#OrderShippingRateLocal | Warehouse/Shipping/Ship |  |
 | ShipmentInfoServices | get#ShipmentDisplayInfo | Warehouse/Handheld/Receive; Warehouse/Receiving/ReceiptDetail; Warehouse/Receiving/Receive; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
 | ShipmentInfoServices | get#ShipmentContactInfo | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/Ship; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail; Shared/ShipmentDetail |  |
 | ShipmentInfoServices | get#ShipmentShippingOptions | Warehouse/Receiving/ReceiptDetail; Warehouse/Returns/ReturnReceipt; Warehouse/Returns/SupplierReturnShipment; Warehouse/Shipping/ShipmentDetail; Warehouse/Transfers/TransferShipmentDetail |  |
@@ -917,7 +918,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ManufacturingServices | get#ConsumedAssetRemaining | Manufacturing/WorkOrders/Disassembly |  |
 | ManufacturingServices | get#ProducedProductComplete | Manufacturing/WorkOrders/WorkOrderDetail/Quantities; Manufacturing/WorkOrders/Disassembly |  |
 | ManufacturingServices | get#ProductionRunProduceConsumeDetail | Manufacturing/WorkOrders/WorkOrderDetail/Components; Manufacturing/WorkOrders/WorkOrderDetail/Quantities; Shared/MaterialIssueReceipt |  |
-| ManufacturingServices | get#ProductBomDetail | Manufacturing/Boms/BomDetail/BomExplosion |  |
+| ManufacturingServices | get#ProductBomDetail | Manufacturing/BillsOfMaterials/BillOfMaterialsDetail/BillOfMaterialsExplosion |  |
 | ManufacturingServices | get#ProductionRunPickInfo | Manufacturing/WorkOrders/WorkOrderDetail |  |
 | MeasurementServices | get#MeasurementUomsByMeasurementType |  |  |
 | ProjectServices | clone#Project | Projects/QuickCreate; Projects/Projects/NewProject; Projects/Projects/ProjectDetail; Projects/Projects/ProjectDetail/Settings; Projects/Settings/Templates | Projects/Projects/NewProject/Start; Projects/Projects/ProjectDetail; Projects/QuickProject; Projects/Requests/RequestDetail |

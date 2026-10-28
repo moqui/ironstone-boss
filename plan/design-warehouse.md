@@ -1,6 +1,6 @@
 # IronStone BOSS — Warehouse design
 
-Oct 27, 2026 — draft
+Oct 28, 2026 — draft; reviewed against research-warehouse.md, the reference apps and the other core designs ([review-core-apps.md](review-core-apps.md)); the existing invoice and return SECAs are named and decided (§15.2), return receipt moves to the proposed `receive#ReturnItems`, and subcontract dispatch, repack, scrap, lot generation and stock at date are added
 
 IronStone Warehouse serves receiving clerks, pickers, packers, inventory controllers and warehouse
 managers. Receiving, Inspection, Inventory, Counts, Transfers and requests, Picking, Packing and
@@ -18,6 +18,7 @@ shared records and authorized actions it mounts locally.
 except `BasicHandheld/…`, which is under `runtime/component/mr-marble/screen/`. Mantle paths are
 relative to `runtime/component/mr-mantle/`. Third-party paths resolve under `~/work/moquiwork/3p_other/`
 using the research prefix table: Odoo under `odoo/`, ERPNext under `frappe/erpnext/`, Carbon under `carbon/`.
+ridgecrest is not under `3p_other/`: its paths resolve under `~/work/moquiwork/ridgecrest/`.
 The research's old `/home` checkout prefix is not required. References describe behavior; no third-party
 source is copied. Inventory cells shorten baseline paths; §15 records their exact keys.
 
@@ -53,25 +54,55 @@ service it ultimately uses. New wrappers must not change that service's establis
 Root `screen/Warehouse.xml`, launcher title **IronStone Warehouse**, icon `sym_o_warehouse`,
 root group `BOSS_WAREHOUSE`. The root calls `mantle.party.PartyServices.setup#UserOrganizationInfo`
 and resolves authorized facilities/owners. `app` below means Warehouse access plus record visibility.
-Narrow action capabilities are proposed role grants: receive, inspect, move, count, count reviewer,
-adjust, pick, pack, ship, dispatch, warehouse manager, quality manager, facility admin and integration
-operator. A user may hold several; the server checks the capability and scope for every action.
-Read-only users can navigate and export visible operational data; they cannot post through a URL.
+Narrow action capabilities are proposed role grants: receive, inspect, issue, move, count, count reviewer,
+adjust, pick, pick supervisor, pack, ship, dispatch, shipping manager, stock planner, warehouse manager,
+quality manager, facility admin and integration operator. A user may hold several; the server checks the
+capability and scope for every action. Read-only users can navigate and export visible operational data;
+they cannot post through a URL.
+
+Each capability is one proposed user group in the crosscut §1 capability table (`BOSS_<APP>_<CAPABILITY>`).
+The Roles column of §2 uses the capability names on the left.
+
+| Capability | Proposed group | What it allows |
+| --- | --- | --- |
+| receive | `BOSS_WAREHOUSE_RECEIVE` | Receive, ReturnReceipt, AdHocReceipt and the receipt actions of ShipmentDetail mounts |
+| inspect | `BOSS_WAREHOUSE_INSPECT` | Save readings and submit inspections |
+| issue | `BOSS_WAREHOUSE_ISSUE` | Issue, return unused and receive output in MaterialIssueReceipt |
+| move | `BOSS_WAREHOUSE_MOVE` | Putaway, Move, Repack, ContainerDetail moves and PickLocationMoves |
+| count | `BOSS_WAREHOUSE_COUNT` | Create counts and enter observations |
+| count reviewer | `BOSS_WAREHOUSE_COUNT_REVIEWER` | Review count variance and resolve conflicts |
+| adjust | `BOSS_WAREHOUSE_ADJUST` | Post Adjustments, Scrap and approved count variances |
+| pick | `BOSS_WAREHOUSE_PICK` | Pick, short pick and put back |
+| pick supervisor | `BOSS_WAREHOUSE_PICK_SUPERVISOR` | Create waves and assign people and equipment to loads |
+| pack | `BOSS_WAREHOUSE_PACK` | Pack, complete pack and reopen a package |
+| ship | `BOSS_WAREHOUSE_SHIP` | Rate, label, ship and record delivery |
+| dispatch | `BOSS_WAREHOUSE_DISPATCH` | Plan and run delivery trips (later) |
+| shipping manager | `BOSS_WAREHOUSE_SHIPPING_MANAGER` | Edit Carriers and BoxTypes |
+| stock planner | `BOSS_WAREHOUSE_STOCK_PLANNER` | Start a SupplyPlanning run and convert transfer suggestions |
+| warehouse manager | `BOSS_WAREHOUSE_MANAGER` | Edit StockPolicies, ReservationPolicies, AssetPools and ProductFacility policy |
+| quality manager | `BOSS_WAREHOUSE_QUALITY_MANAGER` | Verify and dispose inspections, edit InspectionTemplates and extend expiry |
+| facility admin | `BOSS_WAREHOUSE_FACILITY_ADMIN` | Edit FacilityDetail, PutawayRules and printer bindings |
+| integration operator | `BOSS_WAREHOUSE_INTEGRATION_OPERATOR` | Review and apply ExternalStockSync batches |
+
+Financial-read is not a Warehouse grant. It is Accounting's proposed `BOSS_ACCOUNTING_READ` group
+(design-accounting §1), and every cost, value or invoice amount on a Warehouse screen checks it. Customer
+Service's W capability is receive plus inspect here, with quality manager for disposition.
 
 Menu to depth two (detail and task paths remain hidden until opened):
 
 - Home → Home.
 - Receiving → Receipts, Putaway, Supplier360 from the selected supplier.
 - Inspection → Inspections, InspectionTemplates.
-- Inventory → Availability, Assets, Lots, Containers, Movements, Traceability; Product360 from a product.
-- Counts → Counts, CountVariance.
-- Transfers → Transfers, Move, StockRequests, SupplyPlanning.
+- Inventory → Availability, Assets, Lots, Containers, Movements, Traceability (TraceabilityGraph later); Product360 from a product.
+- Counts → Counts (with a link to CountVariance under Reports).
+- Transfers → Transfers, Move, Repack, StockRequests, SupplyPlanning.
 - Picking → Picklists, CreatePicklists, PickLocationMoves.
 - Shipping → Shipments, Pack, PackageTracking, DeliveryTrips (later).
 - Returns → Returns.
 - Locations → Facilities, PutawayRules, Capacity (later), Carriers, BoxTypes, Printers.
-- Handheld → Home, Receive, Putaway, Pick, Pack, Move, Count.
-- Reports → Reports, CountVariance, OperationsHistory.
+- Handheld → HandheldHome, HandheldReceive, HandheldPutaway, HandheldPick, HandheldPack, HandheldMove,
+  HandheldCount, HandheldPickFace (menu titles Home, Receive, Putaway, Pick, Pack, Move, Count, Pick face).
+- Reports → Reports, StockAtDate, InventoryValuation, CountVariance, OperationsHistory.
 - Settings → Settings, StockPolicies, ReservationPolicies, AssetPools, ExternalStockSync (later).
 
 Home's ready/waiting/late/backorder counts open the same task lists with filters. Facility selection
@@ -82,7 +113,7 @@ not screen-local aliases, so Chatter and files do not split across mounts.
 Shell providers: palette types for shipments, returns, lots/assets, containers, counts and picklists;
 quick create for receipt, transfer, count and stock request; Today sources for assigned pick/putaway/count/
 inspection work; notifications for receipt exceptions, shortage/short pick, inspection decision, failed
-posting and due counts. Provider queries are organization/facility/owner scoped. F2 focuses scan only in
+posting and due counts. Due counts need the count schedule that §19 Open recommends. Provider queries are organization/facility/owner scoped. F2 focuses scan only in
 a handheld task; Enter resolves input, and a separate visible confirmation commits a movement. No global
 shortcut silently dispatches stock. Existing shell components are reused (WH-SHELL).
 
@@ -104,7 +135,7 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | QualityInspection | Warehouse/Inspection/QualityInspection | task | xml | Record evidence and disposition for warehouse quality gates. | Proposed inspection/readings | crosscut §3.19 | app | new | inspection identity and source |
 | InspectionTemplates | Warehouse/Inspection/InspectionTemplates | settings | xml | Maintain reusable versioned inspection templates. | Proposed inspection template/version | crosscut §3.19 | quality manager | new | template identity |
 | Availability | Warehouse/Inventory/Availability | list | xml | Inspect stock, reservations, incoming and projected supply. | Asset and existing summary views | crosscut §3.7 | app | parity | Product/facility/location/lot and asset selection |
-| MaterialIssueReceipt | Warehouse/Inventory/MaterialIssueReceipt | task | xml | Receive ad hoc stock and issue/return materials with source links. | AssetReceipt; AssetIssuance | crosscut §3.9 | receive or issue | parity | WorkEffort/source identity and asset selection |
+| MaterialIssueReceipt | Warehouse/Inventory/MaterialIssueReceipt | task | xml | Issue and return materials and receive output with source links; ad hoc receipt opens Receive. | AssetReceipt; AssetIssuance | crosscut §3.9 | receive or issue | parity | WorkEffort/source identity and asset selection |
 | Product360 | Warehouse/Inventory/Product360 | 360 | xml | Inspect product storage and inventory policy. | Product | crosscut §3.5 | app | parity | Product productId |
 | Assets | Warehouse/Inventory/Assets | list | xml | Find individual stock assets and serialized units. | Asset | own | app | parity | Asset rows; facility/lot/serial filters |
 | AssetDetail | Warehouse/Inventory/AssetDetail | detail | xml | Follow one stock asset through reservations and movement history. | Asset | own | app | parity | Asset assetId |
@@ -121,12 +152,14 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | CountReview | Warehouse/Counts/CountReview | task | xml | Resolve variance and movement conflicts before posting. | PhysicalInventoryCount; AssetDetail | own | count reviewer; adjust for post | new | PhysicalInventory physicalInventoryId; selected count lines |
 | Transfers | Warehouse/Transfers/Transfers | list | xml | Track goods moving between facilities. | Shipment (ShpTpTransfer) | own | app | parity | Shipment rows; origin/destination/status filters |
 | TransferShipmentDetail | Warehouse/Transfers/TransferShipmentDetail | detail | xml | Execute both legs of a facility transfer. | Shipment | crosscut §3.8 | app | parity | Shipment shipmentId |
+| SubcontractShipmentDetail | Warehouse/Transfers/SubcontractShipmentDetail | detail | xml | Send components to a supplier for outside processing and take back unused stock. | Shipment | crosscut §3.8 | app | new | Shipment shipmentId; run, operation and PO item |
 | Move | Warehouse/Transfers/Move | task | xml | Move stock between bins within an authorized facility. | Asset; Container | own | move | parity | asset/container and source/destination locations |
+| Repack | Warehouse/Transfers/Repack | task | xml | Unpack or repack separately stocked packs with lot and cost carried over. | Asset; WorkEffort (WepAssembling) | own | move | new | source Asset assetId; target product |
 | StockRequests | Warehouse/Transfers/StockRequests | list | xml | Request internal materials and track their supply. | Request (RqtInventory) | own | app | new | Request rows; requesting/destination facility filters |
 | RequestDetail | Warehouse/Transfers/RequestDetail | detail | xml | Approve and fulfill an internal inventory request. | Request | crosscut §3.11; design-projects §6 | app | new | Request requestId |
-| SupplyPlanning | Warehouse/Transfers/SupplyPlanning | split | xml | Review transfer and pick-face shortage suggestions. | Requirement; proposed planning run | crosscut §3.20 | app | new | planning run; Requirement selection |
+| SupplyPlanning | Warehouse/Transfers/SupplyPlanning | split | xml | Review and convert transfer suggestions of the shared plan. | Requirement; proposed planning run | crosscut §3.20 | app; stock planner converts | new | planning run; Requirement selection |
 | Picklists | Warehouse/Picking/Picklists | list | xml | Find and assign shipment loads and waves. | WorkEffort (WepShipmentShip) | own | pick | parity | WorkEffort rows; facility/date/assignee filters |
-| PicklistDetail | Warehouse/Picking/PicklistDetail | detail | xml | Manage one load, its shipments, people and equipment. | WorkEffort; Shipment | own | pick; supervisor for assignment | parity | WorkEffort workEffortId |
+| PicklistDetail | Warehouse/Picking/PicklistDetail | detail | xml | Manage one load, its shipments, people and equipment. | WorkEffort; Shipment | own | pick; pick supervisor for assignment | parity | WorkEffort workEffortId |
 | CreatePicklists | Warehouse/Picking/CreatePicklists | wizard | xml | Preview and create waves from eligible approved orders. | OrderPart; WorkEffort | own | pick supervisor | parity | selected OrderPart rows; grouping filters |
 | Pick | Warehouse/Picking/Pick | task | xml | Pick an assigned shipment load with visible shortfalls. | ShipmentItemSource | own | pick | parity | WorkEffort workEffortId; ShipmentItemSource identity |
 | PickLocationMoves | Warehouse/Picking/PickLocationMoves | task | xml | Move allocated stock from bulk locations to the pick face. | AssetReservation; ProductFacilityLocation | own | move | parity | reserved asset rows; facility filter |
@@ -149,17 +182,19 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | PutawayRules | Warehouse/Locations/PutawayRules | settings | xml | Resolve storage destinations and explain their selection. | ProductFacilityLocation; proposed putaway rule | own | facility admin | new | rule selection; facility filters |
 | Capacity | Warehouse/Locations/Capacity | report | xml | See storage occupancy and constrained destinations. | FacilityLocation; Asset summaries | own | app | later | facility/location/storage-type filters |
 | Carriers | Warehouse/Locations/Carriers | settings | xml | Maintain carrier methods and operational gateway bindings. | CarrierShipmentMethod; ShippingGatewayConfig | own | shipping manager | parity | carrier/method identity |
-| BoxTypes | Warehouse/Locations/BoxTypes | settings | xml | Maintain parcel sizes and their facility/carrier use. | ShipmentBoxType; FacilityBoxType; CarrierShipmentBoxType | own | shipping manager | parity | box type and facility/carrier filters |
-| Printers | Warehouse/Locations/Printers | settings | xml | Bind facility print purposes to available printers. | FacilityPrinter | own | facility admin | new | Facility facilityId; printer purpose |
+| BoxTypes | Warehouse/Locations/BoxTypes | settings | xml | Maintain parcel sizes and their carrier codes. | ShipmentBoxType; CarrierShipmentBoxType | own | shipping manager | parity | box type and carrier filters |
+| Printers | Warehouse/Locations/Printers | list | xml | Find printer bindings across facilities and open each facility's Printers tab. | FacilityPrinter | own | app; facility admin tests | new | Facility facilityId; printer purpose |
 | HandheldHome | Warehouse/Handheld/Home | task | xml | Start scanning work with an explicit facility and operator. | active facility and work selection | own | app | parity | facilityId; current assignment |
 | HandheldReceive | Warehouse/Handheld/Receive | task | xml | Run receive with handheld controls. | Shipment | this file: Receive | receive | parity | same canonical record as Receiving/Receive |
 | HandheldPutaway | Warehouse/Handheld/Putaway | task | xml | Run putaway with handheld controls. | Asset | this file: Putaway | move | new | same canonical record as Receiving/Putaway |
 | HandheldPick | Warehouse/Handheld/Pick | task | xml | Run pick with handheld controls. | ShipmentItemSource | this file: Pick | pick | parity | same canonical record as Picking/Pick |
 | HandheldPack | Warehouse/Handheld/Pack | task | xml | Run pack with handheld controls. | ShipmentPackage | this file: Pack | pack | parity | same canonical record as Shipping/Pack |
 | HandheldMove | Warehouse/Handheld/Move | task | xml | Run move with handheld controls. | Asset | this file: Move | move | parity | same canonical record as Transfers/Move |
-| Count | Warehouse/Handheld/Count | task | xml | Run count with handheld controls. | PhysicalInventoryCount | this file: CountEntry | count | new | same canonical record as Counts/CountEntry |
+| HandheldCount | Warehouse/Handheld/Count | task | xml | Run count with handheld controls. | PhysicalInventoryCount | this file: CountEntry | count | new | same canonical record as Counts/CountEntry |
+| HandheldPickFace | Warehouse/Handheld/PickFace | task | xml | Run pick-face moves with handheld controls. | AssetReservation; ProductFacilityLocation | this file: PickLocationMoves | move | parity | same canonical record as Picking/PickLocationMoves |
 | Reports | Warehouse/Reports | landing | xml | Open operational reports with a common facility/date scope. | authorized report providers | own | app | new | facility/date filters |
-| InventoryValuation | Warehouse/Reports/InventoryValuation | report | xml | Explain permitted stock value and ledger reconciliation. | cost/stock/ledger evidence | Accounting §10; crosscut §3.25 | financial reader; revaluation by finance capability | parity | organization/facility/product/as-of |
+| StockAtDate | Warehouse/Reports/StockAtDate | report | xml | Explain the stock on hand at a past date. | proposed `mantle.product.InventoryReportServices.get#InventoryAtDate` over AssetDetail | own | app | new | product/facility/location/lot/owner and as-of filters |
+| InventoryValuation | Warehouse/Reports/InventoryValuation | report | xml | Explain permitted stock value and ledger reconciliation. | Asset; AssetValuationSummary view | Accounting §10; crosscut §3.25 | financial-read; revaluation by finance capability | parity | organization/facility/product/as-of |
 | CountVariance | Warehouse/Reports/CountVariance | report | xml | Analyze reviewed count variances and their posted corrections. | PhysicalInventoryCount; AssetDetail | own | count reviewer | new | count/facility/date/reason filters |
 | OperationsHistory | Warehouse/Reports/OperationsHistory | report | xml | Analyze receiving, shipping, delivery and rejection history. | Shipment; AssetReceipt; AssetIssuance | own | app | parity | date/facility/operation/party filters |
 | Settings | Warehouse/Settings | settings | xml | Find policy sections with their effective scope. | warehouse configuration | own | app; managers edit | new | organization/facility scope |
@@ -183,9 +218,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | MyWork | list, read | Resume assigned work | document, step, due, assignee, exception | status display | entity | Carbon MES picking queue |
 | ScanOrPack | single | Open a known shipment, asset or location | facility, scanned code | scan-input (proposed) | `mantle.facility.FacilityServices.get#ScannedIdGeneral` | Shipping/dashboard PackShipmentForm; BasicHandheld/dashboard ScanAssetForm |
 
-**Actions.** Open queue is primary on each card. Quick create offers receipt, transfer, count and stock request only when the underlying create permission is present. No stock mutation occurs from a KPI.
+**Actions.** Open queue is primary on each card. Quick create offers receipt, transfer, count and stock request only when the underlying create permission is present. No stock mutation occurs from a KPI. The queues leave out drop shipments (ShpTpDrop), which no Warehouse task handles. Cards carry counts only; trend charts are an Insights item for later.
 
-**Devices.** phone; scan entry uses the handheld layout when mounted at Handheld/Home.
+**Devices.** phone. HandheldHome is the separate handheld screen.
 
 **Source.** research-warehouse §1, §12; Odoo `odoo/addons/stock/views/stock_picking_type_views.xml`; baseline Shipping/dashboard.
 
@@ -201,9 +236,11 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | ReceiptFind | find | Find expected and incomplete receipts | supplier, facility, source type, date, status, overdue | saved finds | — | Shipment/FindShipment ShipmentList |
 | ReceiptList | list, read | Inspect due quantities and receipt progress | shipment, source, supplier, expected, received, rejected, due | status and related-record links | entity | Shipment/FindShipment ShipmentList |
-| NewReceipt | dialog | Create from a PO, transfer or return; allow authorized ad hoc receipt | source type, source ID, facility, expected date, external reference | server lookup | `mantle.shipment.ShipmentServices.create#Shipment`, `mantle.shipment.ShipmentServices.create#OrderPartShipment` | Shipment/FindShipment NewIncomingShipment; Carbon ReceiptForm |
+| NewReceipt | dialog | Open or create the expected receipt for a PO part; open the existing receipt of a transfer or return; allow authorized ad hoc receipt | source type, source ID, facility, expected date, external reference | server lookup | proposed `mantle.shipment.WarehouseTaskServices.ensure#PurchaseReceipt` (over `mantle.shipment.ShipmentServices.create#OrderPartShipment`); `mantle.shipment.ShipmentServices.create#Shipment` for an authorized standalone incoming shipment | Shipment/FindShipment NewIncomingShipment; Carbon ReceiptForm |
 
 **Actions.** Create opens ReceiptDetail. Receive selected opens a review of each independent shipment; it never silently assumes every expected line arrived.
+
+For a PO part, NewReceipt calls proposed `ensure#PurchaseReceipt` (orderId, orderPartSeqId, facilityId, items and quantities, expected date, operationId). It returns the open ShpTpPurchase shipment of that part in Input or Scheduled status, or creates one, so a part has one open receipt. Purchasing's "Expected receipt (ASN)" action calls the same service. For a customer return, NewReceipt opens the return shipment that the `ReturnApprovedProcess` SECA created at approval; it never creates a second one. A transfer receipt is the destination leg of its TransferShipmentDetail.
 
 **Navigation.** Supplier360 and Warehouse Orders/OrderDetail retain Warehouse context.
 
@@ -219,7 +256,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Overview, Items and sources, Receipts, Tracking, Inspection, Files, Chatter | incoming to an authorized facility; purchase/transfer/sales-return type | receive, inspect, backorder/close remainder, print; edit draft header/parties; cancel unposted only | accepted/rejected quantities, source quantity remaining and lot/serial identity |
+| Overview, Items and sources, Receipts, Tracking, Inspection, Files, Chatter | incoming to an authorized facility; purchase/transfer/sales-return type | receive, inspect, backorder or close remainder (proposed `close#ReceiptRemainder`), print; edit draft header/parties; cancel unposted only | accepted, rejected and held quantities, source quantity remaining and lot/serial identity |
+
+The close-remainder action is not yet in crosscut §3.8; §19 Open lists it. Subcontract dispatch and its return use SubcontractShipmentDetail, not this mount.
 
 ### Receive
 
@@ -228,15 +267,28 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | ReceiveSource | display | Fix the document and remaining quantity | shipment, source line, product, remaining, UOM | read-only context header | `mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo` | Shipment/ShipmentDetail ItemLimitForm |
-| ReceiveLine | single | Record accepted and rejected quantities without losing source links | accepted, rejected, reason, lot, serial, expiry, destination, owner | scan-input; tracked-quantity breakdown | `mantle.shipment.ShipmentServices.receive#ShipmentProduct` through WH-POST guard | Shipment/ShipmentDetail/ReceiveItem ReceiveForm |
+| ReceiveLine | single | Record accepted and rejected quantities without losing source links | entered quantity and unit, accepted, rejected, reason, lot, serial, expiry, destination, owner | scan-input; tracked-quantity breakdown | `mantle.shipment.ShipmentServices.receive#ShipmentProduct` through WH-POST guard; pack scans through Products' proposed `mantle.product.ProductServices.resolve#ScannedProduct` | Shipment/ShipmentDetail/ReceiveItem ReceiveForm |
+| GenerateTracking | dialog | Create serial or lot identities for many units in one step | first serial or lot (or the TrackingPolicy pattern), count, quantity per lot, expiry, uniqueness preview | preview list with duplicate flags | proposed `mantle.shipment.WarehouseTaskServices.generate#TrackingIdentities`, then the guarded `receive#ShipmentProduct` loop under one operation identity | Odoo `odoo/addons/stock/models/stock_move.py` serial generation; ERPNext Item serial_no_series |
 | AdHocReceipt | single | Receive stock without an order when explicitly authorized | product, quantity, UOM, owner, lot/serial, facility/location, reason, cost reference | scan-input; tracking breakdown | `mantle.product.AssetServices.receive#Asset` through WH-POST guard | Asset/Asset/FindSummary ReceiveAssetForm; BasicHandheld/ReceiveAsset ReceiveAssetForm |
-| ReceiveRemaining | dialog | Review complete receipt or explicit short receipt | remaining source lines, actual quantities, close or backorder choice | summary and exception list | `mantle.shipment.ShipmentServices.receive#EntireShipment` only after per-line validation; proposed guarded close/backorder action | Odoo backorder confirmation; Carbon ReceiptPostModal |
+| ReceiveRemaining | dialog | Finish a complete receipt or an explicit short receipt | remaining source lines, actual quantities, close or backorder choice, reason | summary and exception list | proposed `mantle.shipment.WarehouseTaskServices.close#ReceiptRemainder`; `mantle.shipment.ShipmentServices.receive#EntireShipment` only as "Receive all as expected" with explicit confirmation | Odoo backorder confirmation; Carbon ReceiptPostModal |
 
 **Actions.** Receive line posts one validated line atomically, then advances. Inspect opens the shared inspection with the source fixed. Finish offers Leave open, Create remaining receipt or Close remainder with authorized reason; only the quantities actually received are posted. Serial-tracked quantities require unique serials and a matching count.
 
-**Navigation.** ReceiptDetail → Receive → Putaway; returned stock opens the same task with return eligibility fixed.
+AdHocReceipt is the one ad hoc receipt form in BOSS. Crosscut §3.9 links to it, and MaterialIssueReceipt opens it with its purpose fixed instead of defining its own.
 
-**States.** A duplicate/uncertain submission retrieves its operation result before another receipt. Failed rows remain editable; successful rows remain locked with receipt IDs. A rejected quantity does not become usable stock.
+Generate tracking fills the serial or lot of many units from a first value or the TrackingPolicy pattern (StockPolicies). The preview names every duplicate, and nothing posts until the user confirms. Each generated Asset then posts through the same guarded `receive#ShipmentProduct` call as a typed line. Manufacturing's ReceiveOutput uses the same proposed `generate#TrackingIdentities` service.
+
+When the effective TrackingPolicy or a published InspectionTemplate applicability requires inspection, Receive posts the accepted quantity with statusId AstQuarantine into an FltQuarantine (or receiving) location. It calls the proposed `create#Inspection` in the same operation. Held quantity is the open-inspection quantity. Match-eligible quantity is AssetReceipt.quantityAccepted minus the held quantity. A dock rejection is AssetReceipt.quantityRejected, with no stock. The proposed shared read `mantle.product.QualityServices.get#SourceInspectionStatus` (crosscut §3.19) gives matching and planning the held quantity, and bill matching leaves it out.
+
+Receive keeps the unit the receiver entered. It writes the proposed AssetReceipt fields enteredQuantity, enteredQuantityUomId and appliedConversionFactor (crosscut CX-POSTING). A PO line in OrderItem.quantityUomId converts to the stock unit at receipt. A scanned pack product either converts to its base product through the proposed `resolve#ScannedProduct` or is stocked as the pack; Repack splits it later.
+
+Finish never uses `receive#EntireShipment` for a short receipt, because that service accepts every unit not yet handled, including units that never arrived. Close remainder and Create remaining receipt call proposed `close#ReceiptRemainder` (shipmentId, choice close or backorder, reason, operationId). For close it calls Purchasing's `ironstone.purchasing.OrderServices.close#PurchaseRemainders` for the ShpTpPurchase sources. For backorder it calls `ensure#PurchaseReceipt` for the remainder and `mantle.shipment.ShipmentServices.update#ShipmentItem` on this shipment. Only then does it call `mantle.shipment.ShipmentServices.deliver#Shipment`.
+
+Delivery sets ShipDelivered, which runs the `ShipmentIncomingDeliveredCreateInvoices` SECA. Under the bill policy of crosscut §4.4 that SECA is off by default. It creates a bill only for a supplier marked self-billing, for the accepted quantity only. Otherwise Accounting takes in the supplier's bill (proposed `ironstone.accounting.InvoiceServices.import#Bill`). Each posted receipt or correction queues Accounting's proposed `ironstone.accounting.MatchServices.queue#MatchReevaluation` through an EECA on AssetReceipt.
+
+**Navigation.** ReceiptDetail → Receive → Putaway; returned stock opens the same task with return eligibility fixed, and its lines post through proposed `receive#ReturnItems` (ReturnReceipt).
+
+**States.** A duplicate/uncertain submission retrieves its operation result before another receipt. Failed rows remain editable; successful rows remain locked with receipt IDs. A rejected quantity does not become usable stock. A PO revision changes the open receipt through proposed `WarehouseTaskServices.adjust#ExpectedReceipt`, called by Purchasing in the same transaction. It sets each open ShpTpPurchase source to the new remaining quantity and never below the received quantity. While a receive operation holds the source it returns ReceiptInProgress, and the revision waits.
 
 **Devices.** handheld and phone; one product, scan, quantities, destination and confirmation, with 48 px controls and persistent focus. Keyboard entry is equivalent in terminal.
 
@@ -269,7 +321,7 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Contact, Purchase orders, Receipts, Rejections, Files, Chatter | supplier role; authorized organizations/facilities | contact changes with party-write; open receipt/inspection; purchasing and AP actions require corresponding rights | inbound quantities, lateness and rejection reasons |
+| Contact, Orders, Receipts, Returns, quality evidence (rejections), Files, Chatter | supplier role; authorized organizations/facilities | contact changes with party-write; open receipt/inspection; purchasing and AP actions require corresponding rights | inbound quantities, lateness and rejection reasons |
 
 ## 5. Inspection
 
@@ -296,7 +348,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Source, Template/readings, Samples, Evidence, Disposition, History | incoming/outgoing/returns for authorized facilities | save readings; submit; verify/accept/reject under separate roles; quarantine/release through stock guard | sample evidence and quantity by disposition |
+| Header, Readings, Result, Disposition, History (with samples and evidence) | incoming/outgoing/returns for authorized facilities | save readings; submit; verify/accept/reject under separate roles; release, quarantine, return or scrap through the stock guard | sample evidence and quantity by disposition |
+
+Release sets AstAvailable, which runs the existing `AssetStatusAvailableReservations` SECA (`mantle.product.AssetServices.reserve#IncreasedAsset`). That SECA gives the lot to waiting reservations by reservation priority. So the proposed `mantle.product.QualityServices.dispose#Inspection` first reserves stock that has customer demand provenance (RequirementSupply or OrderItemWorkEffort) to that order item through `mantle.product.AssetServices.reserve#AssetForOrderItem`, in the same disposition transaction. A disposition also queues Accounting's proposed `queue#MatchReevaluation`.
 
 ### InspectionTemplates (Context passed)
 
@@ -314,7 +368,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Quantities, Reservations, Incoming, Projected, Movements | authorized facility, owner and pool; current stock status visible | open Move, Adjustments, CountDetail, MaterialIssueReceipt and source documents under action permissions | on-hand distinct from reserved/available; holds and transit separated |
+| Summary, Locations/lots, Reservations, Projection (incoming and projected), Policy | authorized facility, owner and pool; current stock status visible | open Move, Adjustments, CountDetail, MaterialIssueReceipt and source documents under action permissions; Policy edits through proposed `mantle.facility.FacilityServices.store#ProductFacilityPolicy`; bulk Relocate on selected rows | on-hand distinct from reserved/available; holds and transit separated |
+
+The Policy pane also edits the product's TrackingPolicy exception (StockPolicies ProductTrackingExceptions). A Movements tab and a later Age column are proposed additions to crosscut §3.7, listed in §19 Open; until crosscut adds them, the Movements screen serves. Bulk Relocate takes a destination and a reason for the selected rows and returns a result per row through WH-POST; CSV mass moves are later.
 
 ### MaterialIssueReceipt (Context passed)
 
@@ -323,7 +379,16 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Source, Material lines, Tracking, Posted issues/receipts, Unused returns, Files | authorized facility; work effort, shipment assembly or explicit ad hoc receipt purpose | issue/receive/return with stock authority; pick-assembly produce/consume using existing ManufacturingServices with its source fixed | physical quantity, lot/serial, stock UOM and source identity; financial postings follow Accounting policy |
+| Source, Material lines, Tracking, Posted issues/receipts, Unused returns, Files | authorized facility; work effort or shipment assembly | issue/receive/return with stock authority; ad hoc receipt opens Receive AdHocReceipt with its purpose fixed; pick-assembly produce/consume using existing ManufacturingServices with its source fixed | physical quantity, lot/serial, stock UOM and source identity; financial postings follow Accounting policy |
+
+Manufacturing owns the production services this mount runs; Warehouse executes them.
+
+- Issue goes through Manufacturing's proposed `mantle.work.ProductionServices.issue#ProductionMaterial`, over `mantle.product.AssetServices.issue#AssetToWorkEffort`. Each issue creates a new AssetIssuance per operation and material line and never merges into an earlier one. The guard checks the asset's statusId, so quarantined stock is not issued. It refuses an asset whose owner is not the run's owner (WorkEffort.ownerPartyId, the organization).
+- Stock movements carry the run's workEffortId, never an operation child's. The snapshot line goes in the proposed fields AssetIssuance.productionMaterialLineId and AssetReceipt.productionOutputLineId, with a proposed operationWorkEffortId on both.
+- Return unused goes through proposed `ProductionServices.return#UnusedMaterial`. It posts a new receipt fact through `mantle.product.AssetServices.receive#Asset` (workEffortId of the run, the original acquireCost, proposed AssetReceipt.sourceAssetIssuanceId). It never calls `mantle.product.AssetServices.cancel#AssetIssuance`, and nothing updates a posted production issuance. An update would run the `AssetIssuanceGlRePost` SECA, which unposts and deletes the posted entry.
+- Receive output goes through proposed `ProductionServices.receive#ProductionOutput`, with acquireCost from the run's snapshot standard cost; GenerateTracking (Receive) creates its lots or serials.
+- Subcontract output is received here through proposed `ProductionServices.receive#SubcontractOutput` (see SubcontractShipmentDetail).
+- Pick-assembly kits use the Kit components that Products maintains (proposed `ProductServices.store#KitComponent`, PtPickAssembly only). The WH-POST guard over `mantle.work.ManufacturingServices.produce#AvailableAssemblies` passes acquireCost = the sum of issued component cost ÷ kit quantity on the kit receipt. The `AssetReceiptGlPost` SECA then relieves WIP, and issuing the kit to the shipment posts its cost of goods sold.
 
 ### Product360 (Context passed)
 
@@ -331,7 +396,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Summary, Identifications, Stock, Locations, Replenishment, Documents | stockable products; selected facility optional | edit ProductFacility and ProductFacilityLocation with facility-policy role; master edits require product-write | quantities, stock UOM, default pick locations and reorder levels |
+| Summary, Identifiers, Dimensions/units, Stock/locations, Documents, History | stockable products; selected facility optional | edit ProductFacility and ProductFacilityLocation through proposed `store#ProductFacilityPolicy` with warehouse-manager authority; product TrackingPolicy exception on Stock/locations; master read-only by default | quantities, stock UOM, default pick locations and reorder levels |
+
+A Replenishment tab is a proposed crosscut §3.5 addition, listed in §19 Open.
 
 ### Assets
 
@@ -341,8 +408,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | AssetFind | find | Find physical inventory identity | product, asset, serial, lot, owner, pool, facility, status | server lookup | — | Asset/Asset/FindAsset ListAssets |
 | AssetList | list, read | Show one asset and its quantity/location | asset, product, serial, lot, status, quantity, location | status; link to AssetDetail | entity | Asset/Asset/FindAsset ListAssets |
+| Relocate | list, bulk | Move the selected assets to one destination | selected assets, destination location, reason, operation identity | per-row result list | `mantle.product.AssetServices.move#Asset` through WH-POST guard, one result per row | Odoo `odoo/addons/stock/wizard/stock_quant_relocate.xml`; Dolibarr `htdocs/product/stock/massstockmove.php` |
 
-**Actions.** Open AssetDetail; row Move and Count route to guarded tasks. Equipment opens EquipmentDetail when its type is equipment.
+**Actions.** Open AssetDetail; row Move and Count route to guarded tasks. Equipment opens EquipmentDetail when its type is equipment. Relocate moves each selected asset on its own; one failed row names the asset and the others go on. CSV mass moves are later.
 
 **Views.** list; group by product, lot, location or owner.
 
@@ -359,13 +427,15 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | AssetLedger | list, read | Show quantity changes and correction links | effective date, source, delta, resulting quantity, user | source links | entity | Asset/Asset/AssetDetail AssetDetailList; DetailHistory AssetDetailList |
 | AssetAudit | list, read | Show metadata changes | field, prior, new, user, time | audit display | entity | Asset/Asset/AssetDetail AuditLogList |
 
-**Actions.** Move and Record adjustment lead to tasks. No direct edit of quantity, physical location, hold release, owner transfer or acquisition cost; each uses its guarded business action. Serial/lot changes after posting require a documented correction, not relabeling history.
+**Actions.** Move, Record adjustment and Scrap lead to tasks; Scrap opens the Adjustments Scrap dialog with this asset fixed. No direct edit of quantity, physical location, hold release, owner transfer or acquisition cost; each uses its guarded business action. Serial/lot changes after posting require a documented correction, not relabeling history. Acquisition-cost changes are Accounting's (§18 Decided).
 
 **Navigation.** Traceability retains the same asset/lot. Accounting valuation and EquipmentDetail links require their permissions.
 
+**States.** Files and Chatter on an asset need the proposed AssetContent host (WH-RECORD-HOSTS); until it exists the screen shows no Files tab.
+
 **Source.** research-warehouse §5, §10, §13; Asset/Asset/AssetDetail and DetailHistory.
 
-**Needs.** WH-POST, WH-TRACE
+**Needs.** WH-POST, WH-TRACE, WH-RECORD-HOSTS
 
 ### Movements
 
@@ -392,14 +462,17 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | AdjustmentScope | find | Select an exact stock bucket | product, facility, location, lot, owner, pool, status, asset/serial | explicit None versus Any selectors | `mantle.product.AssetServices.get#AssetDisplayInfo` when asset fixed | Asset/Asset/FindSummary PhysicalManualChange; PhysicalQuantity RecordQuantity |
 | Adjustment | single | Enter a delta or absolute count and review its effect | mode, quantity, reason, date, comment, original movement | before/after summary; decimal UOM | `mantle.product.AssetServices.record#PhysicalInventoryQuantity`, `mantle.product.AssetServices.record#PhysicalInventoryChange` through WH-POST guard | PhysicalQuantity RecordQuantity; PhysicalChange RecordChange; Carbon correction modal |
+| Scrap | dialog | Remove expired, damaged or morgue stock with a scrap reason | asset/lot, quantity/UOM, reason (scrap, expired, damaged), optional FltMorgue location, comment, operation identity | before/after summary | proposed `mantle.shipment.WarehouseTaskServices.scrap#Asset` over `mantle.product.AssetServices.move#Asset` and `record#PhysicalInventoryChange` | Odoo `odoo/addons/stock/views/stock_scrap_reason_tag_views.xml`; Carbon `apps/mes/app/routes/x+/scrap.tsx` |
 
 **Actions.** Preview then confirm Post. Exact scope is required; blank location/lot means None unless the user explicitly chooses an aggregate authorized scope. Zero is a count, blank is no entry. Closed-period changes fail; negative changes respect facility policy and reservations. Backdated adjustments recalculate the historical scope and show the posting effect.
+
+Scrap is the one path for free stock that leaves as waste; AssetDetail, Move and the Lots expiry list open it with the stock fixed. It may first move the stock to an FltMorgue location, then calls `record#PhysicalInventoryChange` with the proposed reasons InVrScrap or InVrExpired (or the existing InVrDamaged). The PhysicalInventory it creates carries the proposed scrapIndicator, so Counts and CountVariance leave it out. The variance posting maps by sign only, so scrap posts like a count shrinkage until Accounting adds a scrap account (proposed AssetTypeGlAccount.scrapGlAccountId, design-accounting AC-07). Scrap of components issued to a run, or of held output in a run, is Manufacturing's `record#ProductionLoss`, not this dialog.
 
 **States.** Concurrent movements invalidate the preview and require a fresh review; duplicate operation returns the original adjustment.
 
 **Source.** research-warehouse §6; AssetServices existing immediate adjustment methods; baseline Asset/Asset/FindSummary.
 
-**Needs.** WH-POST, WH-POLICY
+**Needs.** WH-POST, WH-POLICY, WH-SCRAP
 
 ### Lots
 
@@ -408,10 +481,10 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | LotList | list, read | Find batches and near-expiry stock | lot number, manufacturer, manufactured, expires, quantity | split peek; expiry indicator | entity | Asset/EditLots LotList |
-| LotMetadata | single | Create a lot or correct its metadata with history | manufacturer, lot number, manufactured date, expiration date, reason | date and audit display | entity for create; proposed audited lot-correction action for posted lots | Asset/EditLots CreateLot and LotList; Carbon EditExpiryModal |
+| LotMetadata | single | Create a lot or correct its metadata with history | manufacturer, lot number, manufactured date, expiration date, reason | date and audit display | entity for create; proposed `mantle.shipment.WarehouseTaskServices.correct#LotMetadata` for posted lots | Asset/EditLots CreateLot and LotList; Carbon EditExpiryModal |
 | LotStock | list, read | Locate the lot and its holds | facility, location, asset, status, quantity | InventoryAvailability link | entity | Asset/Asset/FindAsset ListAssets |
 
-**Actions.** Create, correct metadata and print label; expiry shortening immediately affects validation. Extending expiry requires a reason and quality-manager permission; it does not itself release quarantine.
+**Actions.** Create, correct metadata and print label; expiry shortening immediately affects validation. Expired and near-expiry rows offer Scrap (Adjustments). Extending expiry requires a reason and quality-manager permission; it does not itself release quarantine.
 
 **Navigation.** Traceability opens the lot; Product360 comes from the selected asset product because Lot itself has no productId.
 
@@ -442,8 +515,8 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | ContainerHeader | single | Edit descriptive metadata | container ID, type, serial, description | location read-only | entity | Asset/Container/EditContainer UpdateContainerForm |
 | ContainerContents | list, read | Inspect included stock | asset, product, lot/serial, owner, status, quantity | stock and trace links | entity | Asset/Container/EditContainer AssetListForm; MoveContainer AssetListForm |
-| AddOrRemoveAsset | dialog | Attach/detach compatible stock without moving it | container, asset, quantity, current location | scan-input | proposed validated content action; `mantle.shipment.ShipmentServices.pickMove#ProductToContainer` for a pick movement | Asset/Container/EditContainer AddAssetForm and PickScanForm |
-| MoveContainer | dialog | Move all contents together | container, source, target facility/location, reason | scan-input; contents preview | proposed container-move wrapper over `mantle.product.AssetServices.move#Asset` | Asset/Container/MoveContainer ScanMoveContainerForm and EnterMoveContainerForm |
+| AddOrRemoveAsset | dialog | Attach/detach compatible stock without moving it | container, asset, quantity, current location | scan-input | proposed `mantle.shipment.WarehouseTaskServices.attach#AssetToContainer` and `detach#AssetFromContainer`; `mantle.shipment.ShipmentServices.pickMove#ProductToContainer` for a pick movement | Asset/Container/EditContainer AddAssetForm and PickScanForm |
+| MoveContainer | dialog | Move all contents together | container, source, target facility/location, reason | scan-input; contents preview | proposed `mantle.shipment.WarehouseTaskServices.move#Container` over `mantle.product.AssetServices.move#Asset` | Asset/Container/MoveContainer ScanMoveContainerForm and EnterMoveContainerForm |
 
 **Actions.** Move validates every content line then commits the whole container move atomically. Incompatible owners/statuses/capacity reject the move; independently selected containers return separate results. Container attachment never silently changes physical location. Outbound boxes remain ShipmentPackage records.
 
@@ -513,7 +586,7 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| CountHeader | single | Manage scope and assignments before counting | facility, scope, mode, blind, assignee, planned date, comments | status-bar | proposed InventoryCountServices update/start actions; existing `mantle.product.AssetServices.update#PhysicalInventoryDate` restricted to authorized legacy corrections | EditPhysicalInventory UpdateMasterEntityValue; Carbon InventoryCount |
+| CountHeader | single | Manage scope and assignments before counting | facility, scope, mode, blind, assignee, planned date, comments | status-bar | proposed `InventoryCountServices.update#Count` and `start#Count`; existing `mantle.product.AssetServices.update#PhysicalInventoryDate` restricted to authorized legacy corrections | EditPhysicalInventory UpdateMasterEntityValue; Carbon InventoryCount |
 | CountProgress | list, read | Show line completion without leaking blind quantities | location, product, lot/serial, counter, counted state, result | role-filtered columns | entity through proposed count read service | Carbon InventoryCountLines |
 | PostedAdjustments | list, read | Show exactly what this count posted | line, variance, reason, posting result, AssetDetail link | result and retry links | entity | EditPhysicalInventory AssetDetailList |
 
@@ -550,10 +623,12 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | VarianceReview | list, read | Compare snapshot, count-time balance and current stock | snapshot, observed, counted at, intervening delta, approved variance, reason, result | conflict badges; source movements | proposed `mantle.product.InventoryCountServices.review#Count` | Odoo stock_inventory_conflict; Carbon InventoryCountConfirmModal |
-| ResolveConflict | dialog | Choose how to reconcile stock movement during counting | line, reviewed movements, recount/carry variance, reason, reviewer | movement detail with quantity/UOM | proposed InventoryCountServices resolve action | Odoo stock_inventory_conflict |
+| ResolveConflict | dialog | Choose how to reconcile stock movement during counting | line, reviewed movements, recount/carry variance, reason, reviewer | movement detail with quantity/UOM | proposed `InventoryCountServices.resolve#CountConflict` | Odoo stock_inventory_conflict |
 | PostCount | list, bulk | Apply approved independent line variances | line IDs, reason, effective date, operation ID, reviewed version | posting preview and named result list | proposed `mantle.product.InventoryCountServices.post#Count` | Carbon InventoryCount post; existing immediate variance service behind the guard |
 
 **Actions.** Default conflict action is Recount. A reviewer may carry the observed variance forward after examining all intervening movements; never overwrite current quantity with a stale absolute count. Post requires confirmation and rechecks each reviewed version under lock. Each disjoint stock bucket commits atomically; failed lines name the identity and continue with other independent buckets. Retry skips the recorded successes.
+
+Proposed `post#Count` follows the posting rules of the existing `AssetDetailPhysicalVarianceGlPost` SECA, which it keeps. It passes the count's own physicalInventoryId and an open-period effective date. It adds the approved deltas up per exact asset first, because the SECA posts one transaction per asset per PhysicalInventory and silently skips a second delta. The variance is valued at the asset's acquireCost, a positive delta goes to the oldest asset by receivedDate, and the account follows the sign of the delta, not the reason. The PostCount preview shows that valuation basis. Scrap and expiry use Adjustments Scrap, not count variance.
 
 **States.** Blank lines stay uncounted. Conflicts and financial-period errors block their affected line. Different count lines targeting the same stock bucket are reconciled as one dependent group to prevent double adjustment.
 
@@ -569,14 +644,17 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
+| TransferFind | find | Find transfers and subcontract dispatches | origin, destination, status, due, custody at supplier, run or PO item | saved finds | — | Shipment/FindShipment ShipmentList |
 | TransferList | list, read | See outstanding ship and receipt steps | shipment, origin, destination, shipped, received, due, status | two-leg progress | entity | Shipment/FindShipment ShipmentList |
 | NewTransfer | dialog | Create the facility transfer and source lines | origin, destination, products, quantities, dates, reference | authorized facility selectors | `mantle.shipment.ShipmentServices.create#Shipment` with ShpTpTransfer | Shipment/FindShipment NewTransferShipment |
 
-**Actions.** Create → TransferShipmentDetail. Shipment and receipt are separate physical events; in-transit quantity is not counted as usable at the destination.
+**Actions.** Create → TransferShipmentDetail. Shipment and receipt are separate physical events; in-transit quantity is not counted as usable at the destination. A row whose destination is a vendor-custody facility opens SubcontractShipmentDetail; the "custody at supplier" filter lists the company stock now held by suppliers.
+
+A transfer keeps the stock's value. The ShpTpTransfer issue posts to `AssetTypeGlAccount.transferGlAccountId`, and Setup readiness requires that account, because without it the issue posts to cost of goods sold. The receipt at the destination does not copy acquireCost by itself, so the WH-POST guard copies the source issuance's acquireCost and owner into the destination receipt.
 
 **Source.** research-warehouse §3; Carbon WarehouseTransferHeader; baseline Shipment/FindShipment.
 
-**Needs.** WH-POST
+**Needs.** WH-POST, WH-SUBCONTRACT
 
 ### TransferShipmentDetail (Context passed)
 
@@ -585,6 +663,24 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
 | Overview, Items, Origin pick/ship, Transit, Destination receive, Files, Chatter | ShpTpTransfer; explicit origin and destination facilities | reserve/pick/ship at origin; receive/inspect/putaway at destination; cancel only remaining unposted quantity | in-transit quantities and partial receipts |
+
+The Transit pane is a proposed crosscut §3.8 addition, listed in §19 Open.
+
+### SubcontractShipmentDetail (Context passed)
+
+**Context passed.** Mount `Shared/ShipmentDetail` at `Warehouse/Transfers/SubcontractShipmentDetail`; `appRoot=Warehouse`. crosscut §3.8.
+
+| Tabs or panes shown | Filters fixed | Action set | Emphasis |
+| --- | --- | --- | --- |
+| Overview, Items and sources, Origin pick/ship, Custody at supplier, Returned components, Output receipt, Files, Chatter | dispatch to an organization-owned vendor-custody facility; run, operation and service PO item keys fixed | pick and ship components; take back unused components; receive output through MaterialIssueReceipt; cancel unposted quantity only | company-owned stock in a supplier's custody |
+
+Owners of the subcontract steps: Manufacturing creates the requirement (proposed `ProductionServices.request#SubcontractService`) and owns SubcontractDetail. Purchasing places the service PO and records service acceptance (proposed `ironstone.purchasing.ReceiptServices.accept#ServiceItem`). Warehouse dispatches the components and takes back what returns. Accounting allocates the supplier's charge.
+
+- The vendor-custody facility has Facility.ownerPartyId = the organization. The supplier is a FacilityParty with the proposed role Custodian. A supplier-owned facility is never used, because `receive#Asset` takes the owner from the facility and would make the supplier the owner.
+- Asset.ownerPartyId never changes on dispatch.
+- With no in-transit step, dispatch is `mantle.product.AssetServices.move#Asset` to the vendor facility, which keeps acquireCost and owner and posts nothing. With an in-transit step, dispatch is a ShpTpTransfer shipment, and WH-POST carries cost and owner as for any transfer (Transfers).
+- Output comes back through Manufacturing's proposed `ProductionServices.receive#SubcontractOutput`, which Warehouse runs from this screen or from MaterialIssueReceipt. In one transaction it issues the snapshot components from the vendor-custody facility to the run, receives the output with the run's workEffortId and no transfer shipmentId (AstQuarantine when an inspection applies, acquireCost from the run's cost basis), calls the proposed `accept#ServiceItem` with the receipt and inspection evidence, and writes the cost events.
+- The output is never received on the service PO line, and service lines get no bill from the receipt SECA. A logistics document for the inbound leg, if wanted, is a ShpTpIncoming shipment.
 
 ### Move
 
@@ -599,11 +695,30 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 **Actions.** Confirm move; product-level moves show the selected asset allocation first. Cross-facility movement opens Transfers rather than changing location in place. Moving reserved stock preserves reservation links or rejects the move.
 
+Move also stages components for a production run in the first release. Manufacturing's Components "Stage" action opens Move with the run and its products fixed, and the move posts through the same WH-POST guard over `move#Asset`. Issue then posts from wherever the stock is. Staging is a Warehouse move; WIP is a ledger and status idea, not a location.
+
 **Devices.** handheld and phone; the same task is mounted under Handheld/Move.
 
 **Source.** research-warehouse §3 and §12; baseline Asset/Asset/SelectAsset and MoveAsset.
 
 **Needs.** WH-POST, WH-SCAN, WH-PUTAWAY
+
+### Repack
+
+**Forms.**
+
+| Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
+| --- | --- | --- | --- | --- | --- | --- |
+| RepackSource | single | Choose the stock to convert and its target | direction (unpack or repack), source asset/lot, source product, quantity, target product, contained quantity/UOM, derived target quantity | scan-input; conversion preview | `mantle.product.ProductServices.resolve#ScannedProduct` (proposed, Products) for the scan; entity ProductAssoc (PatPackagingFor) read | ERPNext `erpnext/stock/doctype/stock_entry/stock_entry.json` (purpose Repack) |
+| RepackConfirm | single | Post the issue and the receipt together | source, target, quantities, lot carried, destination location, unit cost carried, reason, operation identity | before/after summary | proposed `mantle.shipment.WarehouseTaskServices.repack#Asset` through WH-POST guard | ERPNext stock entry Repack |
+
+**Actions.** Unpack turns a pack asset into its contained base units; repack turns base units into packs. The pack direction is Products': ProductAssoc.productId is the pack product, toProductId is the contained base product, and quantity is the contained base quantity (design-products §10). Proposed `repack#Asset` runs inside an organization-owned WepAssembling WorkEffort. It issues the source to that effort, which posts to WIP, and receives the target with acquireCost = issued cost ÷ target quantity, which relieves WIP. The two postings net to zero through the existing `AssetIssuanceGlPost` and `AssetReceiptGlPost` SECAs. The lot carries over, and the receipt links back to the source issuance. Either both movements post or neither does.
+
+**Devices.** handheld and phone.
+
+**Source.** research-warehouse §3; ERPNext stock entry Repack; Products owns pack definitions (design-products §10).
+
+**Needs.** WH-POST, WH-SCAN
 
 ### StockRequests
 
@@ -615,7 +730,7 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | StockRequestList | list, read | Show requested, approved and supplied quantities | request, requester, destination, due, fulfillment progress | linked supply documents | entity | Projects Requests; ERPNext Material Request |
 | NewStockRequest | dialog | Create an internal stock request | requester, destination facility, required date, description | request item editor in RequestDetail | `mantle.request.RequestServices.create#Request`; proposed stock-context validation | Projects RequestIntake; ERPNext Material Request |
 
-**Actions.** Create opens RequestDetail. Approval creates or links a Requirement with provenance; it does not duplicate a purchase request or directly move stock.
+**Actions.** Create opens RequestDetail. Approval creates or links a Requirement with provenance (RequirementRequestItem plus the proposed RequirementSupply of crosscut §3.20); it does not duplicate a purchase request or directly move stock.
 
 **Source.** research-warehouse §15 and §17; implemented Shared/RequestDetail and RequestRecord.
 
@@ -629,6 +744,8 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- |
 | Overview, Items, Supply, Conversation, Work, Files | RqtInventory; requester and destination facilities | edit/submit; approve under stock authority; allocate/transfer; create linked buy/make requirement; cancel unfulfilled remainder | requested versus supplied quantities without duplicate demand |
 
+The Supply tab and its actions need an InventoryRequestProgress panel that crosscut §3.11 does not have yet (§19 Open). It reads proposed `mantle.request.RequestServices.get#InventoryRequestProgress` (request item; requested, approved, allocated, transferred and received quantity; Requirement and RequirementSupply links). Allocate calls proposed `mantle.shipment.WarehouseTaskServices.allocate#InventoryRequest`, which creates a ShpTpTransfer through `create#Shipment` or a guarded `move#Asset` within one facility. `complete#RequestFromWork` does nothing for RqtInventory; its progress comes from these movement facts. The design-projects §6 Warehouse row is narrower (no Work or Files, no requirement creation) and should match this row.
+
 ### SupplyPlanning (Context passed)
 
 **Context passed.** Mount `Shared/SupplyPlanning` at `Warehouse/Transfers/SupplyPlanning`; `appRoot=Warehouse`. crosscut §3.20.
@@ -636,6 +753,8 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
 | Demand, Available/open supply, Suggestions, Conversion results | authorized facility; transfer and inventory-request demand emphasized | recalculate; convert authorized transfer suggestions; route buys/makes through the same requirement | one net-needs result shared with Purchasing and Manufacturing |
+
+There is one current PlanningRun per organization and facility set. Any planner starts it from the Purchasing, Manufacturing or Warehouse mount through proposed `mantle.product.SupplyPlanningServices.run#SupplyPlan`, or the scheduled job runs it; the schedule is the shared proposed `store#PlanSchedule`. A new run supersedes unconverted suggestions. Purchasing converts buy suggestions, Manufacturing make and Warehouse transfer. Warehouse users see transfer and internal-stock needs; converting them needs the stock planner capability. Suggestion quantities are in the stock unit. The plan works at facility level, so pick-face shortages are PickLocationMoves' Below minimum mode, not suggestions here. Held quantity under open inspection is not supply in the plan today; whether it counts as pending supply is in §19 Open.
 
 ## 9. Picking
 
@@ -683,7 +802,7 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | LoadSelection | wizard step | Find ready order parts | facility, carrier, method, due, priority, shipment status | saved find with availability | `mantle.work.ShipmentWorkServices.make#ShipmentLoadOrderConditions` | Shipping/Picklist/BulkPicklist CreatePicklistsForm and AddOrderList |
-| LoadPreview | wizard step | Review grouping and exclusions | group, orders, items, planned bins, shortfall, assignee | proposed read-only plan preview | proposed preview action over existing selection/grouping logic | Odoo batch transfer wizard |
+| LoadPreview | wizard step | Review grouping and exclusions | group, orders, items, planned bins, shortfall, assignee | proposed read-only plan preview | proposed `mantle.work.ShipmentWorkServices.preview#ShipmentLoadsForOrders` over the existing selection and grouping logic | Odoo batch transfer wizard |
 | LoadCreate | wizard step | Create independent load groups and report results | selected groups, parameters, operation identity | result collection | `mantle.work.ShipmentWorkServices.create#ShipmentLoadsForOrders` extended to per-group results and retry identity | Shipping/Picklist/BulkPicklist CreatePicklistsForm |
 
 **Actions.** Preview → Create; each group names successes/failures and continues when independent. Revalidate order eligibility and reservations before creation. Automatic recurring wave rules remain later under WH-WAVE.
@@ -700,10 +819,15 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | PickLines | list, read | Order pick work by location and bin | product, source location, destination bin/container, to pick, picked, short, lot | progress; exact reservation identity | `mantle.shipment.ShipmentInfoServices.get#ShipmentLoadPickInfo` | Shipping/Picklist/ShipmentLoadPick; Carbon PickingListLines |
 | PickScan | single | Validate location and product/lot then move picked stock | scan, source location, shipment source, quantity, container, lot/serial | scan-input; tracked selector | `mantle.shipment.ShipmentServices.get#ShipmentProductByScan`, `mantle.shipment.ShipmentServices.pickMove#ShipmentProduct` through WH-POST guard | Shipment/ShipmentDetail PickScanForm |
-| ShortPick | dialog | Record a short pick without inventing a stock correction | source line, missing quantity, reason, disposition, recount request | reason selector | proposed `mantle.shipment.WarehouseTaskServices.record#ShortPick` | Carbon ShortPickModal |
-| FinishPick | dialog | Acknowledge incomplete material and release the next step | remaining sources, shortages, backorder decision, comments | quantity reconciliation | proposed guarded finish action around ShipmentWorkServices completion | Carbon PickingListHeader |
+| ShortPick | dialog | Record a short pick without inventing a stock correction | source line, asset and location, missing quantity and unit, reason, resolution, recount request | reason selector | proposed `mantle.shipment.WarehouseTaskServices.record#ShortPick`, which writes a proposed `mantle.shipment.ShipmentPickException` | Carbon ShortPickModal |
+| FinishPick | dialog | Acknowledge incomplete material and release the next step | remaining sources, shortages, backorder decision, comments | quantity reconciliation | proposed `mantle.shipment.WarehouseTaskServices.finish#Pick` around ShipmentWorkServices completion | Carbon PickingListHeader |
+| PutBack | dialog | Return picked stock of a reduced source line to its location | source line, reduced quantity, asset/lot, original location, operation identity | flagged-line list; confirm before any stock change | proposed `mantle.shipment.WarehouseTaskServices.reverse#Pick` | Carbon PickingListLines unpick |
 
 **Actions.** Pick is primary; Unpick reverses only unshipped pick movement and restores the same allocation. Short does not decrement on-hand: it creates an exception/recount. Reallocation or a separately reviewed adjustment resolves the mismatch. Substitution requires an authorized source-order change; scanner input cannot change the product.
+
+A short pick writes a ShipmentPickException (exceptionId, shipmentItemSourceId, assetId and locationSeqId, quantityShort and its unit, reasonEnumId, resolutionEnumId, physicalInventoryId of a recount, operationId, actor and time). ShipmentItemSource.quantityNotHandled stays what Mantle means by it, the quantity still to handle, so the exception record is what shows a line as Short.
+
+Customer Service decides order changes; Pick carries them out. A substitution on a short pick is approved and applied by Customer Service through proposed `ironstone.customerservice.OrderChangeServices.apply#OrderChange` (substitution kind), with candidates from the product's PatEquivalent and PatReplacement associations. Pick then picks the changed source line. A cancelled balance (cancel kind, through `cancel#OrderItem` and `mantle.product.AssetServices.reduce#AssetReservation`) flags the affected ShipmentItemSource. Pick shows those lines in Put back, which reverses the pick to the original location; nothing changes in stock until the picker confirms. Lines already packed are put back from Pack.
 
 **Devices.** handheld and phone; no desktop table required, one line with Pick/Short/Next and persistent quantity remaining.
 
@@ -719,10 +843,13 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | PickFaceNeeds | list, read | Show reservations outside pick locations | product, reservation, source, destination, current pick stock, move quantity | shortage and target location | entity; `mantle.product.AssetServices.get#AvailableInventoryMulti` | Shipping/PickLocationMoves PickMoveList |
 | QuickPickMove | single | Move selected reserved stock to a valid pick location | reservation, asset, quantity, source, destination scan | scan-input | `mantle.product.AssetServices.move#ReservationsFromNonPickLocations`; `mantle.product.AssetServices.check#ScanLocation` | Shipping/PickLocationMoves/QuickMove ScanMoveAssetForm |
+| BelowMinimum | list, read | Show pick faces below their minimum that have bulk stock | product, pick location, minimum stock, current quantity, bulk source, suggested move quantity | mode toggle beside PickFaceNeeds | proposed `mantle.shipment.WarehouseTaskServices.find#PickFaceReplenishment` | Dolibarr `htdocs/product/stock/replenish.php`; Carbon Kanbans (Transfer) |
 
 **Actions.** Preview allocations then Move; manual per-line moves use the same stock guard. The original reservation survives the move and capacity/expiry checks still apply.
 
-**Devices.** handheld and phone.
+Below minimum is the min/max mode for pick faces. Proposed `find#PickFaceReplenishment` lists ProductFacilityLocation rows below minimumStock that have stock in bulk locations, with moveQuantity as the suggested quantity. No Mantle service reads those two fields today. Each move goes through the same stock guard.
+
+**Devices.** handheld and phone; the same task is mounted under Handheld/PickFace.
 
 **Source.** research-warehouse §7; Shipping/PickLocationMoves and QuickMove.
 
@@ -736,11 +863,11 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| ShipmentFind | find | Find ready, late and incomplete shipments | facility, customer/supplier, carrier, date, status, backorder | saved finds | — | Shipment/FindShipment ShipmentList |
+| ShipmentFind | find | Find ready, late and incomplete shipments | facility, customer/supplier, carrier, date, status, backorder, shipment type (drop shipments read-only) | saved finds | — | Shipment/FindShipment ShipmentList |
 | ShipmentList | list, read | Show fulfillment readiness | shipment, source, party, scheduled, picked, packed, shipped, exception | status and progress | entity | Shipment/FindShipment ShipmentList |
 | NewOutgoing | dialog | Create from an order part or authorized standalone source | source, origin facility, destination, method, date | source-document lookup | `mantle.shipment.ShipmentServices.create#OrderPartShipment`, `mantle.shipment.ShipmentServices.create#Shipment` | Shipment/FindShipment NewOutgoingShipment |
 
-**Actions.** Open ShipmentDetail; Pack and Ship route to their task after eligibility checks. Bulk actions return per-shipment results.
+**Actions.** Open ShipmentDetail; Pack and Ship route to their task after eligibility checks. Bulk actions return per-shipment results. Drop shipments (ShpTpDrop) show only under the shipment-type filter and are read-only here; Purchasing and Sales own them.
 
 **Views.** list, board by status, calendar by estimated ship date.
 
@@ -756,6 +883,8 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- |
 | Overview, Items/sources, Reservations, Packages, Routes/tracking, Returns, Files, Chatter | outgoing shipment from authorized facility | reserve, pick, pack, ship, deliver, return, labels and print; metadata/parties before posting; quantities under guards | physical progress and source eligibility; payments only with financial-read |
 
+Crosscut §3.8 has one Warehouse row, but Warehouse mounts ShipmentDetail six times: ReceiptDetail, TransferShipmentDetail, SubcontractShipmentDetail, ShipmentDetail, ReturnReceipt and SupplierReturnShipment. §19 Open asks crosscut for a row per mount.
+
 ### Pack
 
 **Forms.**
@@ -766,10 +895,17 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | PackageEditor | single | Set dimensions, weight and box type | package sequence, box type, weight, UOM, route segment | scale/manual weight input | `mantle.shipment.ShipmentServices.create#ShipmentPackage`, `mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg`, `mantle.shipment.ShipmentServices.get#ShipmentPackageWeight` | ShipmentPackages UpdatePackageForm; PackSummary ClosePackageForm |
 | PackageContents | list, editable rows | Review and correct unshipped contents | product, lot/serial, source, quantity, package | unpack confirmation | `mantle.shipment.ShipmentServices.add#ItemToPackage`, `mantle.shipment.ShipmentServices.update#ShipmentPackageContent`, `mantle.shipment.ShipmentServices.unpack#ShipmentItemIssuance` | ShipmentItems AddItemToPackageForm; ShipmentPackages ShipmentPackageContentList |
 | PackOptions | dialog | Create package suggestions or reset an unshipped package | box rules, source lines, remaining quantity, package | preview before changing contents | `mantle.shipment.ShipmentServices.create#ShipmentAutoPackages`, `mantle.shipment.ShipmentServices.reset#ShipmentPackage`, `mantle.shipment.ShipmentServices.delete#ShipmentPackage` | ShipmentPackages PackageOptionsForm; Shipping/PackShipment/PackItems ItemsOptionsForm |
-| PackAssembly | dialog | Pack a pick assembly and reconcile unused components | shipment source, assembly product, output quantity, component quantities, unused disposition | component reconciliation | `mantle.shipment.ShipmentServices.pack#ShipmentAssemblyComponent`; `mantle.work.ManufacturingServices.produce#AvailableAssemblies` through shared MaterialIssueReceipt | ShipmentDetail ProduceAssembliesForm; ShipmentItems PackComponentsForm, PaComponentPackForm and AssemblyPackUnusedComponents |
-| CompletePack | dialog | Check packed quantities and release shipment to shipping | picked, packed, remaining, packages, shortfall decision | reconciliation summary | `mantle.shipment.ShipmentServices.complete#ShipmentPack` | Shipping/PackShipment/PackSummary/PackCompleted PackCompletedForm |
+| PackAssembly | dialog | Pack a pick assembly and reconcile unused components | shipment source, assembly product, output quantity, component quantities, unused disposition | component reconciliation | `mantle.shipment.ShipmentServices.pack#ShipmentAssemblyComponent`; `mantle.work.ManufacturingServices.produce#AvailableAssemblies` through shared MaterialIssueReceipt, with the kit cost passed by the WH-POST guard | ShipmentDetail ProduceAssembliesForm; ShipmentItems PackComponentsForm, PaComponentPackForm and AssemblyPackUnusedComponents |
+| CompletePack | dialog | Check packed quantities and release shipment to shipping | picked, packed, remaining, packages, shortfall decision | reconciliation summary | `mantle.shipment.ShipmentServices.complete#ShipmentPack` with getLabels=false and getReturnLabels=false | Shipping/PackShipment/PackSummary/PackCompleted PackCompletedForm |
+| ReopenPackage | dialog | Reopen a completed package, or put back stock of a reduced line, before shipment | shipment, package, source lines, reason, operation identity, pack invoice state | invoice-state warning; confirm before any change | proposed `ironstone.accounting.InvoiceServices.release#ShipmentDraftInvoice`, then `mantle.shipment.ShipmentServices.unpack#ShipmentItemIssuance` | ShipmentPackages ShipmentPackageContentList unpack; Odoo unpack |
 
 **Actions.** Pack scan is primary during packing; Close package then Complete pack. A completed package can be reopened before shipment with audit. Pick assemblies preserve their component/output links through shared MaterialIssueReceipt; unused components are returned or packed by the existing assembly action, not discarded. ShipmentPackage does not become a nested storage Container.
+
+Complete pack creates the sales invoice. `complete#ShipmentPack` calls `pack#Shipment`, and ShipPacked runs the `ShipmentOutgoingPackedCreateInvoices` SECA, which BOSS keeps. It creates the sales invoice through `mantle.account.InvoiceServices.create#SalesShipmentInvoices` in its own transaction and captures card payments. Complete pack never requests or prints carrier labels; label purchase happens only in Ship Labels, so the provider request keeps its durable identity.
+
+After pack, Mantle refuses to unpack an issuance whose source has an invoice. Reopen package therefore first calls Accounting's proposed `release#ShipmentDraftInvoice` (shipmentId, reason, operationId), which checks the Accounting permission inside. For a pack invoice still in InvoiceInProcess it removes the shipment's lines and OrderItemBilling and clears ShipmentItemSource.invoiceId. A captured payment returns to unapplied, or Accounting refunds it through proposed `ironstone.accounting.SettlementServices.refund#OrderPayment` when the change reduces the order. Then `unpack#ShipmentItemIssuance` returns the stock. A finalized invoice cannot be released this way; it needs Accounting's InvoiceCorrection, and the package stays closed. The same steps put back packed stock of a line that Customer Service reduced.
+
+Kit components come from Products' Kit components editor (proposed `ProductServices.store#KitComponent` over PatMfgBom, PtPickAssembly only). The kit receipt carries acquireCost = the sum of issued component cost ÷ kit quantity (MaterialIssueReceipt), so a shipped kit posts its cost of goods sold and leaves no WIP.
 
 **Devices.** handheld and phone; scan, active package and quantity panel; desktop adds the contents grid.
 
@@ -784,11 +920,14 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | ShipmentAddress | display | Confirm source/destination and carrier-ready address | addresses, contacts, incoterm, method, requested date | validation result | `mantle.shipment.CarrierServices.validate#PostalAddress`; `mantle.shipment.ShipmentInfoServices.get#ShipmentContactInfo` | ShipmentDetail EditShipment; Odoo carrier integration |
-| RateOptions | list, read | Compare permitted methods and estimates | carrier, method, service, rate, currency, ETA | selectable rate list | proposed `mantle.shipment.WarehouseTaskServices.get#ShipmentRates`, `mantle.shipment.CarrierServices.get#ShippingRate` | Odoo delivery carrier; existing CarrierServices |
+| RateOptions | list, read | Compare permitted methods and estimates | carrier, method, service, rate, currency, ETA, rate source (gateway or local rules) | selectable rate list | proposed `mantle.shipment.WarehouseTaskServices.get#ShipmentRates`, which calls the configured implementation of the `get#ShippingRate` interface, or the local-rules provider | Odoo delivery carrier; existing CarrierServices |
 | Labels | list, bulk | Request, print, track or refund package labels | package, gateway state, tracking, label, charge, result | per-package status and preview | `mantle.shipment.CarrierServices.request#ShipmentLabels`, `mantle.shipment.CarrierServices.track#ShipmentLabels`, `mantle.shipment.CarrierServices.refund#ShipmentLabels`, `mantle.shipment.ShipmentServices.print#ShipmentLabels` | ShipmentPackages PrintAllShipmentLabels, RequestRetLabel and PrintShipmentLabel |
-| ShipConfirm | single | Post dispatch only after final stock and tracking checks | packages, quantities, actual ship time, carrier, operation identity | final validation summary | `mantle.shipment.ShipmentServices.ship#Shipment` through WH-POST guard | ShipmentPackages SetShippedForm; PackSummary SetShippedForm |
+| ManualCarrier | dialog | Record tracking and cost when the method has no gateway | package, route segment, carrier, tracking code, actual cost, currency | shown only for a method with no gateway | `mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg` (ShipmentPackageRouteSeg.trackingCode, ShipmentRouteSegment.actualCost) | ShipmentPackages UpdatePackageForm (trackingCode) |
+| ShipConfirm | single | Post dispatch only after final stock and tracking checks | packages, quantities, actual ship time, carrier, manual tracking code, operation identity | final validation summary | `mantle.shipment.ShipmentServices.ship#Shipment` through WH-POST guard | ShipmentPackages SetShippedForm; PackSummary SetShippedForm |
 
 **Actions.** Get rates, choose method, request labels, then Ship; requesting a label does not imply shipment. Provider calls run with durable request identity outside the stock transaction; timeout queries provider state before purchase retry. A per-package label failure does not duplicate successful labels, and blocks dispatch where required. Refund label does not reverse physical shipment. Dispatch requires tracking totals, inspection release and unexpired eligible lots.
+
+A small business without a carrier API can still ship. RateOptions includes a local-rules provider, an adapter over the logic of the existing `mantle.shipment.CarrierServices.get#OrderShippingRateLocal`. For a method with no gateway, ManualCarrier records the tracking code and the actual cost, and ShipConfirm accepts that manual tracking code in place of a label. ShipShipped runs the existing `ShipmentShippedSendEmail` SECA, which BOSS keeps; it sends the store email only when the shipment has a store.
 
 **Navigation.** ShipmentDetail and PackageTracking; planned trip through DeliveryTripDetail.
 
@@ -806,9 +945,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 | --- | --- | --- | --- | --- | --- | --- |
 | TrackingFind | find | Find due and exceptional packages | facility, carrier, tracking code, ETA, shipment, status | saved finds | — | Shipment/PackageTracking EtaPackageList |
 | TrackingList | list, read | Show tracking events and label state | shipment, package, tracking, ETA, latest event, delivered | external tracking link | entity; `mantle.shipment.CarrierServices.track#ShipmentLabels` for explicit refresh | Shipment/PackageTracking EtaPackageList |
-| RecordDelivery | dialog | Record permitted manual proof when no carrier event exists | shipment, package, delivered time, recipient, evidence, reason | evidence/file link | `mantle.shipment.ShipmentServices.deliver#Shipment`; proposed per-package proof action | ShipmentItems SetDeliveredForm; ERPNext Delivery Trip |
+| RecordDelivery | dialog | Record permitted manual proof when no carrier event exists | shipment, package, delivered time, recipient, evidence, reason | evidence/file link | `mantle.shipment.ShipmentServices.deliver#Shipment`; proposed `mantle.shipment.WarehouseTaskServices.record#PackageDelivery` per package | ShipmentItems SetDeliveredForm; ERPNext Delivery Trip |
 
-**Actions.** Refresh selected packages with per-shipment results; record delivery requires ship role and evidence. Tracking reads never silently invoke re-shipment.
+**Actions.** Refresh selected packages with per-shipment results; record delivery requires ship role and evidence. Tracking reads never silently invoke re-shipment. A package marked delivered runs the existing `ShipmentPackageDeliveredCheckShipment` SECA, which sets the shipment delivered once every package is; `ShipmentDeliveredSentEmail` then sends the store email. BOSS keeps both. PackageTracking handles outgoing shipments only; incoming and return deliveries go through Receive and ReturnReceipt.
 
 **Source.** research-warehouse §8 and §13; Shipment/PackageTracking.
 
@@ -837,11 +976,11 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| TripHeader | single | Maintain vehicle/run information | vehicle, driver, origin, start/end time, mileage, fuel | availability lookup | entity Delivery; proposed trip services | ERPNext Delivery Trip |
+| TripHeader | single | Maintain vehicle/run information | vehicle, driver (proposed Delivery.driverPartyId), status (proposed Delivery.statusId), origin, start/end time, mileage, fuel | availability lookup | entity Delivery; proposed trip services | ERPNext Delivery Trip |
 | TripStops | list, editable rows | Sequence shipments with load and proof state | sequence, shipment, address, quantity, estimated/actual arrival, evidence | reorder; shipment link | proposed `mantle.shipment.DeliveryServices.update#TripStop` | ERPNext delivery_stop |
 | TripFinish | dialog | Reconcile delivered and undelivered stops | delivered, refused, return-to-depot, final mileage, comments | exception summary | proposed `mantle.shipment.DeliveryServices.complete#DeliveryTrip` | ERPNext Delivery Trip actions |
 
-**Actions.** Release plan, start trip, record stop, finish. Each delivery updates its own shipment atomically; one refused stop does not roll back other completed stops. Route optimization and customer ETA messages are later optional actions on the same stop list.
+**Actions.** Release plan, start trip, record stop, finish. These move the proposed Delivery.statusId through the proposed statuses DlvPlanned, DlvReleased, DlvInTransit and DlvCompleted (or DlvCancelled); Delivery has no status or driver today. Each delivery updates its own shipment atomically; one refused stop does not roll back other completed stops. Route optimization and customer ETA messages are later optional actions on the same stop list.
 
 **Devices.** phone for stop proof; terminal list retains all state and actions.
 
@@ -855,7 +994,9 @@ fully designed for a subsequent build. Shared section numbers refer to design-cr
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Overview, Items, Availability, Shipments, Returns, Files, Chatter | eligible sales/purchase parts involving authorized facilities | reserve; create/add shipment; pick/pack/ship through tasks; open existing returns; commercial edits require order role | source-line outstanding and shipment progress |
+| Header, Items, Fulfillment (availability, shipments, returns), History, Files, Chatter; money only with financial-read | eligible sales/purchase parts involving authorized facilities | reserve; create/add shipment; pick/pack/ship/receive through tasks; open existing returns; commercial edits require order role | source-line outstanding and shipment progress |
+
+An order on hold (OrderHold, with the proposed OrderHoldReason Credit, Change or Purchase) gets no new shipments, because Mantle already blocks shipment creation by status; Warehouse queues need no extra filter, and a Warehouse user cannot release a hold. Reservations made when the order was placed stay while it is held.
 
 ### InvoiceDetail (Context passed)
 
@@ -881,9 +1022,11 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 
 **Actions.** Create opens ReturnDetail; authorization remains a separate permission. Receive only approved eligible lines; unexpected or unapproved goods may be physically quarantined through an authorized ad hoc receipt linked to a Request case, never falsely treated as authorized return receipt.
 
+Customer Service authorizes a customer return through its proposed `mantle.order.ReturnPolicyServices.authorize#Return`, which settles nothing. The `ReturnApprovedProcess` SECA then only creates the return shipment (`mantle.order.ReturnServices.create#ReturnShipment`); Customer Service removes its `process#ReturnItemResponses` call. Warehouse receives the goods (ReturnReceipt), and Accounting settles after inspection through proposed `ironstone.accounting.ReturnSettlementServices.settle#Return`.
+
 **Source.** research-warehouse §9; Return/FindReturn.
 
-**Needs.** WH-RETURN, WH-QUALITY, WH-POST
+**Needs.** WH-RETURN, WH-QUALITY, WH-POST, WH-RECORD-HOSTS
 
 ### ReturnDetail (Context passed)
 
@@ -891,7 +1034,9 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Overview, Eligible items, Shipments/receipts, Inspection/disposition, Financial progress, Files, Chatter | customer or supplier return; authorized organization | create return shipment; receive/dispose or pick/ship supplier return; authorization/credit require their separate rights | actual arrived/shipped stock and reasons; financial values permission-filtered |
+| Overview, Eligible items, Shipments/receipts, Inspection/disposition, Settlement (read), Files, Chatter | customer or supplier return; authorized organization | create return shipment; receive/dispose or pick/ship supplier return; authorization/credit require their separate rights | actual arrived/shipped stock and reasons; financial values permission-filtered |
+
+The Settlement tab shows Accounting's proposed `preview#Return` and `settle#Return` results read-only; Warehouse never settles. `mantle.order.ReturnServices.receive#ReturnWithoutShipment` is not offered: a physical receipt without a carrier uses ReturnReceipt against the return shipment that already exists, and a receiptless credit is Accounting's `settle#Return` with receiptless=true. Files on a return need the proposed ReturnContent host (WH-RECORD-HOSTS).
 
 ### ReturnReceipt (Context passed)
 
@@ -899,7 +1044,11 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
-| Overview, Return items, Tracking, Receipts, Inspection/disposition, Files | ShpTpSalesReturn; ReturnItem source fixed | receive actual serials/lots; quarantine; inspect and release; link credit status read-only | eligible returned quantity and provenance |
+| Overview, Return items, Tracking, Receipts, Inspection/disposition, Files | ShpTpSalesReturn; ReturnItem source fixed | receive actual serials/lots through proposed `receive#ReturnItems`; quarantine; inspect and release; link credit status read-only | eligible returned quantity and provenance |
+
+Return receipt settles nothing. It calls proposed `mantle.shipment.WarehouseTaskServices.receive#ReturnItems`, which replaces the `ShipmentDeliveredReturnReceive` and `ReturnReceivedProcess` SECAs on this path. For each line it records the quantity that physically arrived, accepted and rejected (quarantined) alike, and sets ReturnItem.receivedQuantity. It does not change returnQuantity and does not process item responses, so a second box or units rejected at the dock can still be received and credited against the RMA. An item becomes ReturnReceived when its received quantity equals the authorized quantity, or when a return authorizer closes the remainder. The ReturnHeader reaches ReturnReceived when every authorized item is physically handled, and ReturnCompleted only when every item's response is complete (`mantle.order.ReturnServices.complete#ReturnItem`), which Accounting's `settle#Return` sets. Settlement progress is read from ReturnItemBilling, not a new status. Settlement happens only after inspection and disposition.
+
+The return label: Customer Service's "Issue return label" action calls proposed `mantle.shipment.WarehouseTaskServices.request#ReturnLabel` (returnId). It finds the return shipment, adds its package and route segment, and requests the label through WH-LABEL with an operation identity. Whether each gateway accepts a label from the customer's address is unverified.
 
 ### SupplierReturnShipment (Context passed)
 
@@ -908,6 +1057,8 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
 | Overview, Return items, Pick/pack, Carrier/tracking, Files | ShpTpPurchaseReturn; authorized ReturnItem source fixed | pick eligible return stock, pack, ship, labels; financial debit handled in Accounting context | outbound supplier-return chain |
+
+Rejected or quarantined stock, the usual supplier-return case, cannot be reserved, because reservation selects AstAvailable assets only. So under disposition authority this mount issues the specific asset linked to the ReturnItem's AssetReceipt and lot from its quarantine location through `mantle.product.AssetServices.issue#AnyAssetForShipmentItemSource`. The keys are returnId and returnItemSeqId, assetReceiptId and assetId; Purchasing's proposed `ironstone.purchasing.ReturnServices.find#ReturnableReceipts` gives the returnable receipts and lots. When the ShpTpPurchaseReturn ships, proposed `mantle.shipment.WarehouseTaskServices.ship#SupplierReturn` moves the ReturnItems to ReturnShipped. Accounting's `settle#Return` then creates the supplier credit or debit note for the billed portion and sets ReturnCompleted.
 
 ## 12. Locations and facilities
 
@@ -934,6 +1085,8 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | --- | --- | --- | --- |
 | Overview/contact, Children, Locations/types, Products, Box types, Printers, Policies, Schedules, Files, Chatter | authorized warehouse/facility | edit locations/capacity/pick sequence, ProductFacility/Location policies, box/printer assignments under facility-admin; operational users read | storage identity and capacity; no machine-throughput reuse |
 
+Facility box-type assignment (crosscut FacilityPackaging) and printer binding (crosscut FacilityPrinters) live only here; BoxTypes and Printers link to them instead of defining their own forms. ProductFacility and ProductFacilityLocation rows are written through proposed `store#ProductFacilityPolicy` (StockPolicies).
+
 ### EquipmentDetail (Context passed)
 
 **Context passed.** Mount `Shared/EquipmentDetail` at `Warehouse/Locations/EquipmentDetail`; `appRoot=Warehouse`. crosscut §3.10.
@@ -941,6 +1094,8 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
 | Identity, Assignments, Availability, Maintenance summary, Files | equipment visible at an authorized facility | assign to load with equipment authority; maintenance execution follows Maintenance definition; financial book read requires financial role | cart/forklift availability and assignments |
+
+Crosscut §3.10 has no Warehouse EquipmentDetail row yet (§19 Open). Files need the proposed AssetContent host (WH-RECORD-HOSTS).
 
 ### PutawayRules
 
@@ -964,7 +1119,7 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | CapacityFind | find | Choose storage scope and unit | facility, location type, product/category, capacity UOM | unit selector | — | ERPNext Warehouse Capacity Summary |
-| CapacityList | list, read | Compare occupied, reserved incoming and remaining capacity | location, capacity, occupied, inbound commitment, remaining, unit | progress and overflow warnings | proposed PutawayServices capacity query | ERPNext Warehouse Capacity Summary |
+| CapacityList | list, read | Compare occupied, reserved incoming and remaining capacity | location, capacity, occupied, inbound commitment, remaining, unit | progress and overflow warnings | proposed `mantle.facility.PutawayServices.get#Capacity` | ERPNext Warehouse Capacity Summary |
 
 **Actions.** Open Location in FacilityDetail or Putaway queue. Unit-incompatible stock shows Unmeasured with its identity and prevents claiming spare capacity.
 
@@ -982,7 +1137,7 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | GatewayBindings | list, read | Inspect permitted rate/label provider settings | provider, methods, boxes, supported actions, test/live | masked credential references | entity | Odoo delivery carrier; current ShippingGateway records |
 | CarrierTest | dialog | Validate addresses/rates against a test shipment | shipment, provider, method, test mode | explicit test indicator | `mantle.shipment.CarrierServices.validate#PostalAddress`, proposed `mantle.shipment.WarehouseTaskServices.get#ShipmentRates` | Odoo carrier configuration |
 
-**Actions.** Save method/binding, test rate/address; credentials are edited only through Admin authority. Commerce may mount these same records while separately binding ProductStoreShipOption; a store grant is not required for carrier setup.
+**Actions.** Save method/binding, test rate/address; credentials are edited only through Admin authority. Carriers is the one editor of CarrierShipmentMethod and the ShippingGatewayConfig bindings (crosscut §5). Commerce mounts the same records read-only and binds ProductStoreShipOption itself; a store grant is not required for carrier setup. A method with no gateway uses the local-rules rate and the manual carrier path of Ship.
 
 **Source.** research-warehouse §8, §11, §14; Facility/CarrierShipMethods; existing CarrierServices.
 
@@ -995,9 +1150,9 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | BoxTypeList | list, editable rows | Maintain available parcels | type, description, dimensions/UOM, max weight, packaging product, active | UOM lookups | entity | Facility/BoxTypes BoxTypeList and CreateBoxType |
-| BoxAssignments | list, editable rows | Bind parcel types to facilities and carrier codes | box type, facility, carrier, gateway code, preferred | lookup | entity FacilityBoxType and CarrierShipmentBoxType | Facility/EditFacility AddBoxTypeForm and BoxTypesForm |
+| CarrierBoxCodes | list, editable rows | Bind parcel types to carrier package codes | box type, carrier, gateway code, preferred | lookup | entity CarrierShipmentBoxType | existing CarrierShipmentBoxType records; Odoo `odoo/addons/stock_delivery/models/stock_package_type.py` (carrier code) |
 
-**Actions.** Save and print a dimensional reference. A used type is retired, not removed from historic packages. Product packaging conversion remains Products-owned.
+**Actions.** Save and print a dimensional reference. A used type is retired, not removed from historic packages. Which box types a facility uses is set in FacilityDetail (FacilityPackaging), and each row links there. Product pack definitions remain Products-owned; the physical unpack and repack of stocked packs is Transfers/Repack.
 
 **Source.** research-warehouse §8 and §11; Facility/BoxTypes and PrintBoxTypes.
 
@@ -1009,10 +1164,12 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| PrinterAssignments | list, editable rows | Choose destinations for labels and documents | facility, purpose, printer, format, copies, enabled | printer lookup; PDF/ZPL capability | entity FacilityPrinter; proposed print capability query | Carbon StorageUnitsTable printer modal |
-| PrinterTest | dialog | Send a marked sample to the selected destination | assignment, sample type, format, copies | preview then confirm | proposed print dispatch; existing `mantle.shipment.ShipmentServices.print#ShipmentLabels` for shipment labels | Carbon printing PrintButton |
+| PrinterIndex | list, read | Find printer bindings across facilities | facility, purpose, printer, format and copies (proposed fields), printer capability | link to FacilityDetail Printers; PDF/ZPL capability | entity FacilityPrinter; proposed `mantle.facility.PrintServices.get#PrinterCapabilities` | Carbon StorageUnitsTable printer modal |
+| PrinterTest | dialog | Send a marked sample to the selected destination | assignment, sample type, format, copies | preview then confirm | proposed `mantle.facility.PrintServices.dispatch#Document` over the framework's `org.moqui.impl.PrintServices.print#Document`; existing `mantle.shipment.ShipmentServices.print#ShipmentLabels` for shipment labels | Carbon printing PrintButton |
 
-**Actions.** Save/test; a print failure leaves the already posted stock result intact and offers reprint of the same document, never repost.
+**Actions.** Test only; each row opens FacilityDetail's Printers tab, where facility admins edit the binding. A print failure leaves the already posted stock result intact and offers reprint of the same document, never repost.
+
+FacilityPrinter has only facilityId, printerPurposeEnumId and networkPrinterId today. Format, copies and dates are proposed fields in WH-LABEL. The seeded purposes cover container and package labels and picking, packing and shipment documents; lot labels, location labels and count sheets need proposed purposes. Printer capability comes from the `moqui.basic.print.NetworkPrinter` record, with QZ Tray for label printers (style-guide §8.2).
 
 **Source.** research-warehouse §11–§12; FacilityPrinter in FacilityEntities; Carbon printing package.
 
@@ -1031,13 +1188,13 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | TaskQueue | list, read | Resume assigned or available tasks | type, document, due, current step, progress | large action rows | entity | Carbon MES picking queue |
 | PackShipment | single | Open the pack station for a known shipment | shipment scan | scan-input | entity lookup | BasicHandheld/dashboard PackShipmentForm |
 
-**Actions.** Receive, Put away, Pick, Pack, Move and Count open the contextual mounts below. Session change clears task inputs but preserves accepted server operations. Switching facility is blocked until pending input is saved or discarded.
+**Actions.** Receive, Put away, Pick, Pack, Move, Count and Pick face open the contextual mounts below. Session change clears task inputs but preserves accepted server operations. Switching facility is blocked until pending input is saved or discarded.
 
-**Devices.** handheld and phone; no drawer, 48 px controls and 18 px text. USB/Bluetooth keyboard wedge and manual input are the required baseline; camera capture is optional later.
+**Devices.** handheld and phone; no drawer, 48 px controls and 18 px text, set by the proposed `density="handheld"` attribute on the Warehouse/Handheld screens (style-guide §8.2). USB/Bluetooth keyboard wedge and manual input are the required baseline; camera capture is optional later.
 
 **Source.** research-warehouse §12; BasicHandheld/Warehouse/dashboard; Carbon MES shell.
 
-**Needs.** WH-SCAN, WH-SHELL
+**Needs.** WH-SCAN, WH-SHELL, WH-HANDHELD
 
 ### HandheldReceive (Context passed)
 
@@ -1079,13 +1236,21 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | --- | --- | --- | --- |
 | current task, scan, quantity, result | active authorized facility; handheld=true | move using the same transition and posting identity | one task and persistent scan focus |
 
-### Count (Context passed)
+### HandheldCount (Context passed)
 
 **Context passed.** Mount `Warehouse/Counts/CountEntry` at `Warehouse/Handheld/Count`; `appRoot=Warehouse`. this file: CountEntry.
 
 | Tabs or panes shown | Filters fixed | Action set | Emphasis |
 | --- | --- | --- | --- |
 | current task, scan, quantity, result | active authorized facility; handheld=true | count using the same transition and posting identity | one task and persistent scan focus |
+
+### HandheldPickFace (Context passed)
+
+**Context passed.** Mount `Warehouse/Picking/PickLocationMoves` at `Warehouse/Handheld/PickFace`; `appRoot=Warehouse`. this file: PickLocationMoves.
+
+| Tabs or panes shown | Filters fixed | Action set | Emphasis |
+| --- | --- | --- | --- |
+| current task, scan, quantity, result | active authorized facility; handheld=true | move reserved stock or below-minimum stock to the pick face using the same transition and posting identity | one task and persistent scan focus |
 
 ## 14. Reports and settings
 
@@ -1097,9 +1262,30 @@ Warehouse user need not open the Accounting app just to inspect the linked docum
 | --- | --- | --- | --- | --- | --- | --- |
 | ReportIndex | list, read | List saved operational views and monetary links | report, purpose, date basis, latest run | descriptive links | entity/saved finds | ERPNext Stock workspace report cards |
 
-**Actions.** Stock by location → InventoryAvailability; movements → Movements; availability/forecast → InventoryAvailability Projected; traceability → Traceability; count variance → CountVariance; history → OperationsHistory. Valuation opens the Accounting-owned InventoryValuation in this app with financial-read capability; opening the Accounting app is optional. Quantity reports remain complete without financial access.
+**Actions.** Stock by location → InventoryAvailability; stock at date → StockAtDate; movements → Movements; availability/forecast → InventoryAvailability Projected; traceability → Traceability; count variance → CountVariance; history → OperationsHistory. Valuation opens the Accounting-owned InventoryValuation in this app with financial-read capability; opening the Accounting app is optional. Quantity reports remain complete without financial access.
 
 **Source.** research-warehouse §13; ERPNext Stock workspace.
+
+**Needs.** WH-REPORT
+
+### StockAtDate
+
+**Layout.** report; the stock on hand at a past cut-off, kept apart from today's available quantity and from future promises. Warehouse owns this report, physically `Shared/StockAtDate.xml` as registered in [crosscut §3.26](design-crosscut.md#326-stock-at-date); Customer Service mounts it at its own path with its context.
+
+**Forms.**
+
+| Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
+| --- | --- | --- | --- | --- | --- | --- |
+| StockDateFind | find | Choose the historical cut-off and scope | product/variant, facility, location, lot/serial, owner, effective timestamp and time zone, unit | date/time selector | — | Dolibarr `htdocs/product/stock/stockatdate.php` |
+| StockHistory | list, read | Explain the quantity at the cut-off | opening, receipts, issues, adjustments, effective and recorded dates, closing, source link, completeness | tabular timeline; incomplete-history flag | proposed `mantle.product.InventoryReportServices.get#InventoryAtDate` | Dolibarr stockatdate.php; ERPNext `erpnext/stock/report/stock_balance/` (date range) |
+
+**Actions.** Export and open source. No quantity change, cost display or promise action. History from before migration is labeled incomplete, not shown as zero.
+
+Proposed `get#InventoryAtDate` reads the AssetDetail ledger by effective date, with facility, location, lot and owner scope. It is owner-aware now, so later owner storage-fee billing can read dated owner snapshots from it. It is the one service for stock at date; Customer Service's StockAtDate mount calls it through this screen.
+
+**Devices.** Terminal uses the same rows and cut-off.
+
+**Source.** research-warehouse §13; design-customer-service StockAtDate; Dolibarr stockatdate.php.
 
 **Needs.** WH-REPORT
 
@@ -1112,6 +1298,12 @@ revaluation controls require separate financial mutation authority. The report u
 same forms and services, with no Accounting launcher grant required. Unauthorized users receive
 quantity-only operational reports without monetary values or hidden financial payloads.
 
+| Tabs or panes shown | Filters fixed | Action set | Emphasis |
+| --- | --- | --- | --- |
+| Same authorized report with facility/product drill-down | operational facility/product/as-of within financial visibility | report/export with financial-read; mutation only with separate finance capability | physical-to-value evidence |
+
+Accounting's proposed `ironstone.accounting.ReportServices.run#InventoryValuation` also lists the stock movements whose posting result is AtrNoAcquireCost or AtrNoAcctgPreference, and WIP by production run, so Warehouse can find the receipts that carried no cost. Revaluation and the baseline bulk cost correction post through Accounting's proposed `ironstone.accounting.AssetBookServices.post#Revaluation`, never from a Warehouse screen.
+
 ### CountVariance
 
 **Forms.**
@@ -1119,7 +1311,7 @@ quantity-only operational reports without monetary values or hidden financial pa
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | VarianceFind | find | Choose reviewed counts | facility, count date, counter, product, variance reason | date-period | — | Carbon InventoryCountHistory |
-| VarianceReport | list, read | Compare observed and adjusted quantities | count, product, snapshot, observed, approved delta, posted delta, reason | drill-down; export | proposed InventoryCountServices review query; entity posted history | EditPhysicalInventory AssetDetailList; Carbon InventoryCountHistory |
+| VarianceReport | list, read | Compare observed and adjusted quantities | count, product, snapshot, observed, approved delta, posted delta, reason | drill-down; export | proposed `InventoryCountServices.review#Count`; entity posted history | EditPhysicalInventory AssetDetailList; Carbon InventoryCountHistory |
 
 **Actions.** Open CountReview; export excludes values hidden from the role. No quantities from active blind counts are returned to counters.
 
@@ -1167,10 +1359,23 @@ quantity-only operational reports without monetary values or hidden financial pa
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | OperationPolicy | single | Configure receipt, dispatch and count controls | receipt/delivery steps, default locations, over-receipt/ship tolerance, backorder choice, blind count, auto-print | scope inheritance and source | proposed `mantle.facility.WarehousePolicyServices.store#OperationPolicy` | Odoo operation type settings; ERPNext Stock Settings |
-| TrackingPolicy | single | Set tracking and expiry requirements | lot creation, serial required, near-expiry days, expiry block, minimum shelf life | effective-source display | proposed WarehousePolicyServices tracking policy action | Carbon inventory settings; ERPNext Stock Settings |
-| PolicyPreview | display | Explain effective policy for a source document | organization, facility, store override, product exceptions, permission limits | read-only resolution trace | proposed WarehousePolicyServices resolve action | Odoo per-operation defaults |
+| TrackingPolicy | single | Set tracking and expiry requirements | lot creation, serial required, serial/lot pattern, near-expiry days, expiry block, minimum shelf life | effective-source display | proposed `mantle.facility.WarehousePolicyServices.store#TrackingPolicy` | Carbon inventory settings; ERPNext Stock Settings |
+| ProductTrackingExceptions | list, editable rows | Set product-level tracking and shelf-life exceptions | product, facility (optional), lot required, serial required, serial/lot pattern, shelf-life days, near-expiry days, minimum remaining shelf life | product lookup; effective-source display | proposed `store#TrackingPolicy` with product scope | ERPNext Item (has_batch_no, has_serial_no, shelf_life_in_days); Carbon item tracking |
+| PolicyPreview | display | Explain effective policy for a source document | organization, facility, store override, product exceptions, permission limits | read-only resolution trace | proposed `mantle.facility.WarehousePolicyServices.resolve#WarehousePolicy` | Odoo per-operation defaults |
 
 **Actions.** Save new effective version with audit. Over-receipt and over-shipment tolerances default to zero; an approved exception never exceeds the source contract without the corresponding authorized source change. Expired stock blocks sale/production issue; move to quarantine, return to supplier and disposal remain possible under explicit disposition authority. Near-expiry warnings show dates. An override cannot bypass quality hold, statutory/organization prohibition or financial-period locks. Policy changes apply at posting revalidation and never rewrite history.
+
+Receipt and delivery steps choose default locations and the Home queues that show; there is no route engine.
+
+| Steps | Receipt | Delivery |
+| --- | --- | --- |
+| 1 | Receive posts to the resolved putaway destination | Ship issues from stock; pack is optional |
+| 2 | Receive posts to an FltReceiving location, and Putaway queues it | Pick to an FltStaging location, then Ship |
+| 3 | Receive posts to FltQuarantine, then inspection, then Putaway | Pick, Pack, Ship |
+
+TrackingPolicy has organization, facility and product scope. The product exceptions are the same records that Products and the Availability Policy pane show at Product360/Stock; Warehouse owns the form and `store#TrackingPolicy`, and no Product fields are added. The serial/lot pattern feeds Receive's GenerateTracking.
+
+**Product facility policy contract.** All ProductFacility and ProductFacilityLocation writes go through one proposed `mantle.facility.FacilityServices.store#ProductFacilityPolicy`, whose contract Warehouse owns. Purchasing ReorderRules, Products' stock policy, FacilityDetail and the Availability Policy pane call it instead of writing the entities. It takes productId and facilityId with minimumStock, reorderQuantity and daysToShip on ProductFacility (plus the proposed maximumStock and reorderMethodEnumId if Purchasing's min/max item is accepted), and locationSeqId with minimumStock and moveQuantity on ProductFacilityLocation. It checks warehouse-manager or stock-planner authority for the facility, refuses a location of another facility and a negative level, and records who changed what. The planning schedule is not here; it is the shared SupplyPlanning setting `store#PlanSchedule`.
 
 **Source.** research-warehouse §14; Carbon `apps/erp/app/routes/x+/settings+/inventory.tsx`; active facility policy fields.
 
@@ -1182,7 +1387,7 @@ quantity-only operational reports without monetary values or hidden financial pa
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| FacilityReservation | single | Provide defaults without requiring a store | facility, reservation order, automatic timing, partial allocation, require stock | effective-source badge | proposed WarehousePolicyServices reservation action | ProductStore reservation fields; Odoo operation reservation method |
+| FacilityReservation | single | Provide defaults without requiring a store | facility, reservation order, automatic timing, partial allocation, require stock | effective-source badge | proposed `mantle.facility.WarehousePolicyServices.store#ReservationPolicy` | ProductStore reservation fields; Odoo operation reservation method |
 | StoreReservation | single | Edit a permitted store override over the same records Commerce uses | store, inventory facility, reservationOrderEnumId, reservationAutoEnumId, requireInventory | store lookup scoped to organization | entity ProductStore through field-scoped service | existing ProductStore configuration |
 | ReservationCheck | dialog | Review and repair eligible reservation discrepancies | facility, product scope, affected orders, preview results | named result list | `mantle.product.AssetServices.check#FacilityReservations` guarded and previewed | existing AssetServices reservation checks |
 
@@ -1265,7 +1470,7 @@ Warehouse context and the corresponding shared form, not a copied implementation
 | Facility | CarrierShipMethods | `CreateCarrierShipmentMethod`, `CarrierShipmentMethodList` | Warehouse/Locations/Carriers |
 | Facility | EditFacility | `EditFacilityForm`, `ChildListForm`, `AddLocationTypeForm`, `LocationTypesForm` | Warehouse/Locations/FacilityDetail |
 | Facility | EditFacility | `NewNoteForm`, `UpdateNoteForm` | Warehouse/Locations/FacilityDetail; Shared/Chatter |
-| Facility | EditFacility | `AddBoxTypeForm`, `BoxTypesForm` | Warehouse/Locations/FacilityDetail; Warehouse/Locations/BoxTypes |
+| Facility | EditFacility | `AddBoxTypeForm`, `BoxTypesForm` | Warehouse/Locations/FacilityDetail |
 | Facility | EditFacilityLocations | `NewLocationForm`, `LocationsForm` | Warehouse/Locations/FacilityDetail |
 | Facility | EditFacilityProducts | `AddProductForm`, `ProductList` | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360 |
 | Facility | FindFacility | `NewFacilityForm`, `FacilityListForm` | Warehouse/Locations/Facilities |
@@ -1306,7 +1511,7 @@ Warehouse context and the corresponding shared form, not a copied implementation
 | Shipping | dashboard | `FacilitySummary` | Warehouse/Home |
 | BasicHandheld (Warehouse handheld) | ReceiveAsset | `ScanAssetForm`, `ActiveFacilityForm`, `ReceiveAssetForm` | Warehouse/Handheld/Receive |
 | BasicHandheld (Warehouse handheld) | SelectAsset | `ScanAssetForm`, `ActiveFacilityForm`, `ScanMoveAssetForm`, `ContainerAssetList`, `LocationAssetList`, `ProductNoLocAssetList`, `RecentMoveForm`, `RecentContainerMoveForm` | Warehouse/Handheld/Move |
-| BasicHandheld (Warehouse handheld) | PickLocationMoves | `ActiveFacilityForm`, `PickMoveList` | Warehouse/Picking/PickLocationMoves |
+| BasicHandheld (Warehouse handheld) | PickLocationMoves | `ActiveFacilityForm`, `PickMoveList` | Warehouse/Picking/PickLocationMoves; Warehouse/Handheld/PickFace |
 | BasicHandheld (Warehouse handheld) | dashboard | `ActiveFacilityForm`, `ScanAssetForm`, `PackShipmentForm` | Warehouse/Handheld/Home |
 
 Asset maintenance plans/history, meters, registrations and custodian management remain for Maintenance;
@@ -1314,7 +1519,9 @@ this app shows their authorized summary on EquipmentDetail. Asset acquisition-co
 and product-cost edits belong to Accounting/Products. `AssetCalendar/NewEventForm` remains on the existing
 Commons schedules definition. No such unowned baseline form is falsely marked complete here. Equipment
 creation is covered by the shared facility/equipment design and its owning specialist contexts, rather
-than a stock-adjustment form.
+than a stock-adjustment form. §18 Decided names the owner of each of these handed-off forms
+(FindAsset `UpdateProductCost` and `CreateEquipment`, AssetDetail `UpdateAssetAcquireCost`, and the
+maintenance, meter, registration and custodian forms).
 
 ### 15.2 Services and source validation
 
@@ -1323,8 +1530,31 @@ Shared ShipmentDetail additionally preserves `update#ShipmentAndRouteSegment`, `
 `update#ShipmentItem`, `cancel#Shipment`, `send#ShipmentStoreEmail`, and the ShipmentInfoServices display/
 shipping-option queries; source reservation actions use `reserve#AssetsForOrder`, `reserve#AssetForOrderItem`
 and `reduce#AssetReservation`. Shared ReturnDetail uses the existing ReturnServices creation, returnable-item,
-update, authorization and shipment/receipt methods under its action permissions. Their exact per-mount
+update and shipment methods under its action permissions. Authorization goes through Customer Service's
+proposed `authorize#Return`, receipt through proposed `receive#ReturnItems`, and settlement through
+Accounting's proposed `settle#Return`; `receive#ReturnWithoutShipment` is not exposed. Their exact per-mount
 coverage is carried into usl-inventory, without marking internal helper calls as screen APIs.
+
+**Existing financial triggers.** These Mantle SECAs run on Warehouse's designed paths today. Each one is
+kept, conditioned or replaced as below; the crosscut §1.3 register lists them all.
+
+| SECA | Runs when | Warehouse path | Decision |
+| --- | --- | --- | --- |
+| `ShipmentOutgoingPackedCreateInvoices` | An outgoing shipment becomes ShipPacked | Pack CompletePack | Kept. It creates the sales invoice (`create#SalesShipmentInvoices`) and captures card payment at pack. Reopen package first calls Accounting's `release#ShipmentDraftInvoice`. |
+| `ShipmentIncomingDeliveredCreateInvoices` | An incoming shipment becomes ShipDelivered | Receive ReceiveRemaining; `close#ReceiptRemainder` | Conditioned (crosscut §4.4): runs only for a supplier marked self-billing, and bills accepted quantity only. Service-line and subcontract output receipts get no bill from it. |
+| `ShipmentDeliveredReturnReceive` | A sales-return shipment becomes ShipDelivered | ReturnReceipt | Replaced by proposed `receive#ReturnItems`, which records receipt without processing responses. |
+| `ReturnReceivedProcess` | A return becomes ReturnReceived | ReturnReceipt | Replaced on this path: receipt never runs `process#ReturnItemResponses`; Accounting's `settle#Return` settles after inspection. |
+| `ReturnApprovedProcess` | A return becomes ReturnApproved | NewReceipt for a return | Conditioned by Customer Service: it keeps only `create#ReturnShipment`, and NewReceipt opens that shipment. |
+| `AssetStatusAvailableReservations` | An asset becomes AstAvailable | QualityInspection release | Kept; the proposed `dispose#Inspection` reserves stock with customer demand provenance first. |
+| `OrderPlacedReserveAssets`, `OrderApprovedReserveAssets`, `OrderItemCreateCheckReserve`, `OrderItemUpdateCheckReserve` | An order is placed or approved, or an item changes | ShipmentDetail reservations; ReservationPolicies | Kept; reservations made at Placed stay while an order is held. |
+| `AssetReceiptGlPost`, `AssetIssuanceGlPost` | A receipt or issuance is created | every receipt and issue | Kept; WH-POST passes acquireCost (transfers, kits, repack, returned material) so these post the right value. |
+| `AssetIssuanceGlRePost` | An issuance is updated | MaterialIssueReceipt | Replaced (crosscut §1.3): Accounting AC-06 changes the repost to a dated reversal. Warehouse never triggers it, because BOSS never updates a posted production issuance. |
+| `AssetDetailPhysicalVarianceGlPost` | A variance AssetDetail is created | CountReview PostCount; Adjustments; Scrap | Kept; `post#Count` follows its per-asset rule. |
+| `ShipmentShippedSendEmail`, `ShipmentDeliveredSentEmail`, `ShipmentPackageDeliveredCheckShipment` | A shipment ships or is delivered; a package is delivered | Ship; PackageTracking | Kept. |
+
+Return shipments create no invoice, because their sources have no orderId. Count posting needs no
+Accounting screen: `AssetDetailPhysicalVarianceGlPost` posts each approved variance, and Accounting reads
+the result in its ledger.
 
 Source checks on Oct 27 distinguish active services from comments/interfaces. `CarrierServices.get#ShipmentRates`
 is commented out and is not a working service. The new shipment-rate adapter calls configured providers
@@ -1341,8 +1571,9 @@ remains an immediate posting service. All new count methods are separately speci
 | Putaway and transfer sheet | html-print/PDF | Putaway, TransferShipmentDetail | ShipmentPick and source/destination move data |
 | Picklist and combined pick/pack sheets | html-print/PDF | PicklistDetail | Shipping/Picklist/ShipmentLoadPick and ShipmentLoadPickAndPack; `ShipmentInfoServices.get#ShipmentLoadPickInfo` |
 | Packing slip, package contents and inserts | html-print/PDF | Pack, ShipmentDetail | ShipmentPack, ShipmentByPackage, ShipmentInsert; `ShipmentInfoServices.get#ShipmentPickPackInfo` |
-| Carrier labels, return labels and manifests | provider file/PDF/ZPL; html-print manifest | Ship, DeliveryTripDetail | ShipmentServices.print#ShipmentLabels; carrier gateway label result; ERPNext Delivery Trip |
-| Location, lot/serial, container and box labels | PDF/ZPL | FacilityDetail, Lots, Containers, BoxTypes | Facility/PrintBoxTypes; Carbon and Odoo label layouts |
+| Carrier labels, return labels and manifests | provider file/PDF/ZPL; html-print manifest | Ship, ReturnReceipt (customer return label through proposed `request#ReturnLabel`), DeliveryTripDetail | ShipmentServices.print#ShipmentLabels; carrier gateway label result; ERPNext Delivery Trip |
+| Location, lot/serial, container and box labels | PDF/ZPL | FacilityDetail, Lots, Containers, BoxTypes | Facility/PrintBoxTypes; Carbon and Odoo label layouts; lot and location labels need the proposed printer purposes of WH-LABEL |
+| Stock at date export | CSV/XLSX | StockAtDate | Same `get#InventoryAtDate` rows and cut-off; incomplete history flagged |
 | Blind count sheet and reviewed variance sheet | html-print/PDF | CountDetail, CountReview | Odoo stockinventory; Carbon count review; server omits blind quantities |
 | Inspection evidence and disposition certificate | html-print/PDF | QualityInspection | Shared quality template/version/readings |
 | RMA receiving and supplier-return slip | html-print/PDF | ReturnDetail, ReturnReceipt | Return source items and Shipment display data; Odoo return slip |
@@ -1362,27 +1593,31 @@ only the stated extensions are new. Every proposed data write is a service-autho
 | Need | Kind | Proposed as | Used by | Stub spec |
 | --- | --- | --- | --- | --- |
 | WH-SHELL — Warehouse providers | shell item | Warehouse quick-create, palette, Today and notification providers using existing shell contracts | Home, HandheldHome and all record screens | Authorized facility/owner queries; record identity and task context; no new shell widget. |
-| WH-POST — Guarded stock operations | service type | Proposed `mantle.shipment.WarehouseTaskServices` entry points around existing shipment/asset services, shared with crosscut stock-operation contract | Receive, Putaway, Move, Adjustments, Pick, Pack, Ship, returns | Operation ID, exact source identity, version, quantities/UOM, posted-result lookup; atomic dependent stock/document writes and reversals; independent batch result collection; recheck permission, source capacity, quality, expiry and posting period. Label purchase has a durable provider request and recovery state. |
-| WH-SCAN — Scan and tracking input | XML Form element | Proposed `scan-input` using existing facility/asset/shipment resolvers; optional camera adapter later | Handheld mounts and all task screens | Keyboard-wedge/manual input first; context-specific allowed identity types, ambiguity chooser, explicit quantity confirmation, deduplicated scan intent; GS1 parser and barcode nomenclature configuration added as a shared framework service, not regexes in screens. HTML/tui fallback is text input with the same resolver. |
+| WH-POST — Guarded stock operations | service type | Proposed `mantle.shipment.WarehouseTaskServices` entry points around existing shipment/asset services, shared with crosscut stock-operation contract | Receive, Putaway, Move, Repack, Adjustments, Assets, ContainerDetail, Pick, Pack, Ship, PackageTracking, Transfers, returns | Operation ID, exact source identity, version, quantities/UOM, posted-result lookup; atomic dependent stock/document writes and reversals; independent batch result collection; recheck permission, source capacity, quality, expiry and posting period. Label purchase has a durable provider request and recovery state. Proposed receipt entry points: `ensure#PurchaseReceipt`, `adjust#ExpectedReceipt`, `close#ReceiptRemainder`, `generate#TrackingIdentities`. Proposed movement entry points: `attach#AssetToContainer`, `detach#AssetFromContainer`, `move#Container`, `repack#Asset`, `scrap#Asset`. Proposed shipping entry point: `record#PackageDelivery`. Every named-asset issue or reserve checks Asset.statusId, so quarantined stock is neither issued nor reserved. Receipts, issuances and ShipmentItemSource rows carry the proposed enteredQuantity, enteredQuantityUomId and appliedConversionFactor (CX-POSTING). Transfers copy the source issuance's acquireCost and owner into the destination receipt, and Setup readiness requires AssetTypeGlAccount.transferGlAccountId. Kit receipts carry acquireCost = issued component cost ÷ kit quantity. Repack runs inside an organization-owned WepAssembling WorkEffort and nets to zero. Posted receipts and corrections queue Accounting's `queue#MatchReevaluation` through an EECA on AssetReceipt. |
+| WH-SCAN — Scan and tracking input | XML Form element | Proposed `scan-input` using existing facility/asset/shipment resolvers; optional camera adapter later | Handheld mounts and all task screens | Keyboard-wedge/manual input first; context-specific allowed identity types, ambiguity chooser, explicit quantity confirmation, deduplicated scan intent; GS1 parser and barcode nomenclature configuration added as a shared framework service, not regexes in screens. HTML/tui fallback is text input with the same resolver. A pack barcode resolves through Products' proposed `resolve#ScannedProduct` (code → product, pack product, contained quantity and unit, ambiguity list), the one resolver that receiving, packing and repack call. |
 | WH-COUNT — Count snapshots and review/post | data model | Extend active PhysicalInventory/PhysicalInventoryCount; proposed `mantle.product.InventoryCountServices` | Counts, CountDetail, CountEntry, CountReview, CountVariance | Header adds mode, scope, blind flag, assignees, started/reviewed timestamps and scope version. Line adds exact owner/pool/status/container/asset-or-serial identity where applicable, stock UOM, snapshot quantity/time/version, observed quantity/time, entry state, review reason/reviewer, approved delta and posting operation/result/AssetDetail links. Existing quantityOnHand carries the observation. Preserve PI status IDs. |
-| WH-COUNT services | service type | Proposed `create#Count`, `update#Count`, `start#Count`, `record#CountLine`, `submit#Count`, `review#Count`, `resolve#CountConflict`, `recount#Count`, `post#Count` in InventoryCountServices | Counts family | Start freezes scope; record only saves observation; server enforces blind read restrictions; review reconciles post-snapshot movements; post locks disjoint stock buckets, revalidates reviewed versions, records per-line outcomes and calls immediate variance services only for approved deltas. Import uses the same line validation and named partial errors. |
+| WH-COUNT services | service type | Proposed `create#Count`, `update#Count`, `start#Count`, `record#CountLine`, `submit#Count`, `review#Count`, `resolve#CountConflict`, `recount#Count`, `post#Count` in InventoryCountServices | Counts family | Start freezes scope; record only saves observation; server enforces blind read restrictions; review reconciles post-snapshot movements; post locks disjoint stock buckets, revalidates reviewed versions, records per-line outcomes and calls immediate variance services only for approved deltas. Import uses the same line validation and named partial errors. `post#Count` passes the count's physicalInventoryId and an open-period effective date, adds approved deltas up per exact asset (the variance SECA posts one transaction per asset per PhysicalInventory), values at the asset's acquireCost and shows that basis in the preview. Counts and CountVariance leave out scrap PhysicalInventory records (WH-SCRAP). |
 | WH-PUTAWAY — Storage destinations and capacity | data model | Proposed `mantle.facility.PutawayRule` and storage-type applicability; `mantle.facility.PutawayServices` | Putaway, Move, PutawayRules, Capacity, ContainerDetail | Existing ProductFacilityLocation remains product default. Rule fields: ruleId, owner organization, facility, input location/type, product/category/storage type, target location/type, priority, from/thru, active and capacity constraints. `store#PutawayRule`, `resolve#Destination`, `get#Capacity` explain chosen/rejected destinations and use compatible units with incoming reservations; never repurpose Facility people capacity. |
-| WH-QUALITY — Shared inspections | data model | Crosscut §3.19 `mantle.product.quality.InspectionTemplate`, InspectionTemplateItem, QualityInspection, InspectionReading and `mantle.product.QualityServices` | Inspection, Receive, Putaway, Ship, returns | Warehouse contributes source receipt/item, accepted/rejected/held quantities and disposition destinations; published template version and immutable verification evidence; use shared `store#InspectionTemplate`, `create#Inspection`, `save#InspectionReading`, `submit#Inspection`, `verify#Inspection`, `dispose#Inspection`. NCR/CAPA/gauges are later extensions, not a duplicate Warehouse model. |
-| WH-EXPIRY — Eligibility and expiry history | service type | Extend shared stock eligibility with effective warehouse expiry policy and audited lot corrections | Lots, Receive, Pick, Ship, Move | Current FEFO/newer-inventory selection does not provide the whole posting gate. Check expiry/remaining shelf life at allocation and issue; track corrections with old/new/reason/actor. Block expired allocation/issue; explicit quarantine/return/disposal actions still work. |
-| WH-PICK — Load and short-pick workflow | service type | Extend ShipmentWorkServices plus proposed WarehouseTaskServices `record#ShortPick`, `finish#Pick`, `reverse#Pick` and bulk preview | Picklists, PicklistDetail, CreatePicklists, Pick | Retain WepShipmentShip, Shipment.shipWorkEffortId, binLocationNumber and ShipmentItemSource.quantityPicked/quantityNotHandled. Add audited reason/resolution and operation IDs; expose line states derived from quantities. A short pick creates an exception/recount, never an automatic stock decrement. |
+| WH-QUALITY — Shared inspections | data model | Crosscut §3.19 `mantle.product.quality.InspectionTemplate`, InspectionTemplateItem, QualityInspection, InspectionReading and `mantle.product.QualityServices` | Inspection, Receive, Putaway, Ship, returns | Warehouse contributes source receipt/item, accepted/rejected/held quantities and disposition destinations; published template version and immutable verification evidence; use shared `store#InspectionTemplate`, `create#Inspection`, `save#InspectionReading`, `submit#Inspection`, `verify#Inspection`, `dispose#Inspection`. NCR/CAPA/gauges are later extensions, not a duplicate Warehouse model. Held is a status: Receive posts inspected receipts as AstQuarantine into an FltQuarantine or receiving location and calls `create#Inspection` in the same operation. Keys: held quantity = open-inspection quantity; match-eligible = AssetReceipt.quantityAccepted minus held; dock rejection = AssetReceipt.quantityRejected with no stock. Proposed `get#SourceInspectionStatus` returns them to matching and planning. `dispose#Inspection` reserves stock with customer demand provenance before the AstAvailable auto-reserve runs. |
+| WH-EXPIRY — Eligibility and expiry history | service type | Extend shared stock eligibility with effective warehouse expiry policy and audited lot corrections | Lots, Receive, Pick, Ship, Move | Current FEFO/newer-inventory selection does not provide the whole posting gate. Check expiry/remaining shelf life at allocation and issue; track corrections with old/new/reason/actor through proposed `WarehouseTaskServices.correct#LotMetadata`. Block expired allocation/issue; explicit quarantine/return/disposal actions still work. |
+| WH-PICK — Load and short-pick workflow | service type | Extend ShipmentWorkServices plus proposed WarehouseTaskServices `record#ShortPick`, `finish#Pick`, `reverse#Pick`, `find#PickFaceReplenishment` and proposed `ShipmentWorkServices.preview#ShipmentLoadsForOrders`; proposed `mantle.shipment.ShipmentPickException` | Picklists, PicklistDetail, CreatePicklists, Pick, PickLocationMoves | Retain WepShipmentShip, Shipment.shipWorkEffortId, binLocationNumber and ShipmentItemSource.quantityPicked/quantityNotHandled; quantityNotHandled is the quantity still to handle, not a shortfall. A short pick creates a ShipmentPickException (exceptionId, shipmentItemSourceId, assetId/locationSeqId, quantityShort and its UOM, reasonEnumId, resolutionEnumId, physicalInventoryId of a recount, operationId, actor and time) and a recount, never an automatic stock decrement; line states derive from the quantities plus the open exceptions. `reverse#Pick` puts back picked stock of a reduced source line. `find#PickFaceReplenishment` reads ProductFacilityLocation minimumStock and moveQuantity. |
 | WH-WAVE — Automatic batching | service type | Later wave-policy fields in operation policy and preview/scheduled generation over ShipmentWorkServices | CreatePicklists, StockPolicies | Group by facility/carrier/destination/date with limits, assignees and pick path. Preview exclusions and reserve before release; one independent load result per group. Manual load/bulk creation remains first release. |
 | WH-TRACE — Traceability queries | service type | Proposed `mantle.product.TraceabilityServices.get#Traceability` | Traceability, AssetDetail, Lots, Movements | Bounded cycle-safe traversal of AssetReceipt/Issuance/Detail and production source/output links; paginated nodes/edges, quantity/UOM, event time, source URL, provenance gaps and permission-filtered fields. No new stock balance or ledger table. |
 | WH-GRAPH — Lineage visualization | Vue component | Later TraceabilityGraph.qvue and terminal twin | TraceabilityGraph | Graph/selection details over WH-TRACE; terminal renders tree/table and the same node actions; accessible keyboard selection. |
-| WH-LABEL — Rating, labels and printing | tool | Proposed shipment-rate adapter and durable provider-operation results; shared PDF/ZPL label generation/dispatch | Ship, Pack, PackageTracking, Carriers, BoxTypes, Printers, Lots, Containers | `WarehouseTaskServices.get#ShipmentRates` assembles shipment/package data and dispatches configured active rate interfaces; `CarrierServices.get#ShipmentRates` remains commented. Reuse existing label request/track/refund/print APIs. Printer capability and delivery result are distinct from stock success; provider failures permit safe reprint/status lookup. |
-| WH-POLICY — Effective operational policy | data model | Proposed `mantle.facility.WarehousePolicy` and `mantle.facility.WarehousePolicyServices` | StockPolicies, ReservationPolicies, AssetPools, FacilityDetail | Organization/facility defaults plus explicit ProductStore reservation overrides; version/effective dates and resolver explanation. `store#OperationPolicy`, `store#TrackingPolicy`, `store#ReservationPolicy`, `resolve#WarehousePolicy`; existing Facility flags and ProductFacility policy remain authoritative for their fields. Add shipping-dock location enum; map autoStatusId consistently. |
-| WH-REQUEST — Internal stock context | service type | Extend existing RequestDetail and RequestServices stock-request actions | StockRequests, RequestDetail | RqtInventory item destination/UOM/required date and supplied quantities; approve/cancel with audit; link Requirement and fulfillment documents via current request joins/RequestRecord. Never clone the request just to show it in Purchasing. |
-| WH-PLAN — Common supply planning | service type | Crosscut §3.20 PlanningRun, PlanningSuggestion, RequirementSupply and `mantle.product.SupplyPlanningServices` | SupplyPlanning, StockRequests | Transfer context of the same `run#SupplyPlan`, `get#SupplyPlan`, `convert#PlanningSuggestions`; provenance and idempotent conversion. Freshness/as-of and unavailable projection are visible, with transactional revalidation at conversion. |
-| WH-RETURN — Return eligibility and disposition | service type | Crosscut §3.18 guards over existing ReturnServices and ShipmentServices | Returns, ReturnDetail, ReturnReceipt, SupplierReturnShipment | Preserve source order/return/shipment/serial links, lock cumulative eligibility, separate authorized/physical/financial progress; disposition through shared quality. No parallel RMA table. |
-| WH-TRIP — Delivery stops | data model | Later `mantle.shipment.DeliveryStop` linked to existing Delivery and ShipmentRouteSegment; proposed DeliveryServices | DeliveryTrips, DeliveryTripDetail | Stop ID/sequence, shipment/route, address, planned/actual arrival, result, recipient/evidence, return-to-depot link; create/update/complete trip methods, driver assignment through existing party/work links. Stops complete independently, each source shipment atomically. |
-| WH-REPORT — Operational aggregates | service type | Authorized operational queries over current entities; later pivot/graph list view dependency | Reports, Movements, CountVariance, OperationsHistory | Same filters and organization/owner permissions as detail; explicit date basis and compatible-UOM totals; no materialized truth tables. Reuse existing views; proposed framework pivot/graph support follows style-guide §8 if needed. |
+| WH-LABEL — Rating, labels and printing | tool | Proposed shipment-rate adapter and durable provider-operation results; shared PDF/ZPL label generation/dispatch | Ship, Pack, PackageTracking, Carriers, BoxTypes, Printers, Lots, Containers | `WarehouseTaskServices.get#ShipmentRates` assembles shipment/package data and dispatches configured active rate interfaces; `CarrierServices.get#ShipmentRates` remains commented. A local-rules provider adapts the `get#OrderShippingRateLocal` logic for methods with no gateway. Reuse existing label request/track/refund/print APIs. Printer capability and delivery result are distinct from stock success; provider failures permit safe reprint/status lookup. Extend FacilityPrinter with proposed labelFormatEnumId (PDF or ZPL), copies, fromDate and thruDate; seed the proposed purposes PtpLotLabel, PtpLocationLabel and PtpCountDocuments. Proposed `mantle.facility.PrintServices.dispatch#Document` and `get#PrinterCapabilities` sit over the framework print services and the NetworkPrinter record. Proposed `WarehouseTaskServices.request#ReturnLabel` (returnId) adds the package and route segment to the existing return shipment and requests the return label with an operation identity. |
+| WH-POLICY — Effective operational policy | data model | Proposed `mantle.facility.WarehousePolicy` and `mantle.facility.WarehousePolicyServices` | StockPolicies, ReservationPolicies, AssetPools, FacilityDetail | Organization/facility defaults plus explicit ProductStore reservation overrides; version/effective dates and resolver explanation. `store#OperationPolicy`, `store#TrackingPolicy`, `store#ReservationPolicy`, `resolve#WarehousePolicy`; existing Facility flags and ProductFacility policy remain authoritative for their fields. Add shipping-dock location enum; map autoStatusId consistently. TrackingPolicy has organization, facility and product scope and holds the serial/lot pattern. Receipt and delivery steps 1–3 choose default locations and visible queues only. All ProductFacility and ProductFacilityLocation writes go through proposed `mantle.facility.FacilityServices.store#ProductFacilityPolicy`, a Warehouse-owned contract that Purchasing, Products and the shared screens call (CX-FACILITY-POLICY). |
+| WH-REQUEST — Internal stock context | service type | Extend existing RequestDetail and RequestServices stock-request actions | StockRequests, RequestDetail | RqtInventory item destination/UOM/required date and supplied quantities; approve/cancel with audit; link Requirement and fulfillment documents via current request joins/RequestRecord. Never clone the request just to show it in Purchasing. Proposed `RequestServices.get#InventoryRequestProgress` (requested, approved, allocated, transferred and received quantity with Requirement and RequirementSupply links) and proposed `WarehouseTaskServices.allocate#InventoryRequest` (a ShpTpTransfer through `create#Shipment`, or a guarded `move#Asset` within one facility). `complete#RequestFromWork` does nothing for RqtInventory. |
+| WH-PLAN — Common supply planning | service type | Crosscut §3.20 PlanningRun, PlanningSuggestion, RequirementSupply and `mantle.product.SupplyPlanningServices` | SupplyPlanning, StockRequests | Transfer context of the same `run#SupplyPlan`, `get#SupplyPlan`, `convert#PlanningSuggestions`; provenance and idempotent conversion. Freshness/as-of and unavailable projection are visible, with transactional revalidation at conversion. One current PlanningRun per organization and facility set, started from any planner mount or by the shared `store#PlanSchedule` job. Warehouse converts transfer suggestions with the stock planner capability; quantities are in the stock unit. |
+| WH-RETURN — Return eligibility and disposition | service type | Crosscut §3.18 guards over existing ReturnServices and ShipmentServices | Returns, ReturnDetail, ReturnReceipt, SupplierReturnShipment | Preserve source order/return/shipment/serial links, lock cumulative eligibility, separate authorized/physical/financial progress; disposition through shared quality. No parallel RMA table. Proposed `WarehouseTaskServices.receive#ReturnItems` replaces the `ShipmentDeliveredReturnReceive` and `ReturnReceivedProcess` SECAs on the receipt path: it sets ReturnItem.receivedQuantity for accepted and rejected units, never changes returnQuantity and never processes responses. Proposed `WarehouseTaskServices.ship#SupplierReturn` sets ReturnShipped when the ShpTpPurchaseReturn ships. Supplier-return keys: returnId/returnItemSeqId, assetReceiptId, assetId; the quarantined asset is issued through `issue#AnyAssetForShipmentItemSource`. Settlement is Accounting's `settle#Return` only. |
+| WH-TRIP — Delivery stops | data model | Later `mantle.shipment.carrier.DeliveryStop` linked to existing Delivery and ShipmentRouteSegment; proposed DeliveryServices | DeliveryTrips, DeliveryTripDetail | Stop ID/sequence, shipment/route, address, planned/actual arrival, result, recipient/evidence, return-to-depot link; create/update/complete trip methods. Delivery has no status or driver today: add proposed Delivery.statusId with the proposed statuses DlvPlanned → DlvReleased → DlvInTransit → DlvCompleted or DlvCancelled, and a proposed Delivery.driverPartyId. Stops complete independently, each source shipment atomically. |
+| WH-REPORT — Operational aggregates | service type | Authorized operational queries over current entities; later pivot/graph list view dependency | Reports, StockAtDate, Movements, CountVariance, OperationsHistory | Same filters and organization/owner permissions as detail; explicit date basis and compatible-UOM totals; no materialized truth tables. Reuse existing views; proposed framework pivot/graph support follows style-guide §8 if needed. Proposed `mantle.product.InventoryReportServices.get#InventoryAtDate` reads the AssetDetail ledger by effective date with facility, location, lot and owner scope and an incomplete-history flag; Customer Service's StockAtDate mount uses it too. Later: an Age column and an age-bucket saved find over Asset.receivedDate (quantity only). |
 | WH-SYNC — External stock snapshots | data model | Later `mantle.product.asset.ExternalStockBatch`/ExternalStockRow and ExternalStockServices | ExternalStockSync | Provider/batch/row idempotency, source as-of, mapping, owner/facility/UOM, raw quantity, reviewed delta, conflict/error, operation/result link; import/map/review/apply methods. Admin owns credentials/protocol jobs, Warehouse owns review; independent failures continue and issued-stock ownership is explicit per feed. |
+| WH-HANDHELD — Handheld density | XML Screen element | Proposed `density="handheld"` screen attribute (style-guide §8.2), shared with Manufacturing | HandheldHome and every Warehouse/Handheld mount | Set on Warehouse/Handheld: 48 px controls, 18 px text, no drawer, header reduced to title and account. The html and tui renders keep the same fields and order. |
+| WH-RECORD-HOSTS — Files and Chatter hosts | data model | Proposed `mantle.product.asset.AssetContent` and `mantle.order.return.ReturnContent`, registered in `get#RecordLinkInfo` (crosscut CX-RECORD-HOSTS) | AssetDetail, EquipmentDetail, ReturnDetail, Returns | Each host has a single-field key and its own content entity. Shipment, Facility, Request, Order and WorkEffort hosts already have one. Warehouse records with no Files tab: PhysicalInventory (counts), PutawayRule, WarehousePolicy, ShipmentPickException, DeliveryStop and the ExternalStockSync batch. |
+| WH-SCRAP — Scrap and disposal | data model | Proposed `WarehouseTaskServices.scrap#Asset`; proposed `PhysicalInventory.scrapIndicator`; proposed seed reasons InVrScrap and InVrExpired | Adjustments, AssetDetail, Lots, Move | Optional move to an FltMorgue location, then `record#PhysicalInventoryChange` with a scrap reason on a PhysicalInventory marked scrap, so Counts lists leave it out. The variance posting maps by sign only; a scrap expense account is Accounting's proposed AssetTypeGlAccount.scrapGlAccountId (AC-07). Scrap inside a production run is Manufacturing's `record#ProductionLoss`. |
+| WH-SUBCONTRACT — Vendor custody | seed data | Proposed FacilityParty role Custodian for the supplier at an organization-owned vendor-custody facility; Manufacturing's proposed `ProductionServices.receive#SubcontractOutput` run from Warehouse | Transfers, SubcontractShipmentDetail, MaterialIssueReceipt | Facility.ownerPartyId is the organization, so `receive#Asset` never makes the supplier the owner. Dispatch is `move#Asset` with no in-transit step, or a ShpTpTransfer with cost and owner carried through WH-POST. The output receipt carries the run's workEffortId, no transfer shipmentId and no service PO line, and calls Purchasing's proposed `accept#ServiceItem`. |
 
-For new records without baseline fields (PutawayRule, WarehousePolicy, DeliveryStop, ExternalStockBatch/Row),
+For new records without baseline fields (PutawayRule, WarehousePolicy, DeliveryStop, ExternalStockBatch/Row, ShipmentPickException),
 the stub's field list plus identifiers, organization scope and create/update audit metadata is the complete
 minimum field set for the forms in this design. Implementation derives normal validation from each field's
 record/UOM/source relationships; it must not infer additional business authority from a caller parameter.
@@ -1399,31 +1634,71 @@ record/UOM/source relationships; it must not infer additional business authority
 | Reservation defaults work without a store | Research setting-ownership question resolved: Warehouse/Commerce edit the same permitted ProductStore reservation fields; Warehouse also supplies facility defaults. An explicit store override wins for its orders and its source is visible. Existing facility negative-issue/owner rules still apply. |
 | Internal requests are the existing shared RequestDetail | Research request question resolved: RqtInventory context with items/destination and approval; one Requirement links buy/make/transfer supply. Purchasing may fulfill a buy requirement without creating a duplicate request. |
 | External fulfillment sync has two responsibilities | Research 3PL question resolved: Warehouse's later ExternalStockSync owns mapping/conflicts/results; Admin owns provider credentials/jobs. Both access the same integration/batch state. No direct unreviewed absolute overwrite of local stock. |
-| Short picks are exceptions, not automatic corrections | QuantityNotHandled records a physical shortfall; recount or an authorized independent adjustment resolves stock truth. Partial/backorder decisions preserve outstanding order demand. |
-| Task screens have explicit handheld mounts | Receive/Putaway/Pick/Pack/Move/Count are the same records, services and operation IDs with handheld presentation. Online-first; keyboard wedge/manual input baseline; camera optional. No offline posting queue is implied. |
+| Short picks are exceptions, not automatic corrections | A short pick creates a ShipmentPickException; quantityNotHandled remains the unhandled remainder, as Mantle defines it. Recount or an authorized independent adjustment resolves stock truth. Partial/backorder decisions preserve outstanding order demand. (R-WH-02) |
+| Task screens have explicit handheld mounts | Receive/Putaway/Pick/Pack/Move/Count and the pick-face moves are the same records, services and operation IDs with handheld presentation. Online-first; keyboard wedge/manual input baseline; camera optional. No offline posting queue is implied. |
 | Shipping and receiving gates share stock eligibility | Tracking totals, expiry, quality hold, source quantity, UOM, permissions and period rules are enforced at posting. Existing FEFO/newer-lot lookup is retained, not mistaken for a complete gate. |
-| Physical completion and financial completion remain distinct | Warehouse receives/ships/disposes; Accounting values/posts/credits/refunds. Standalone mounts expose only actions the user is authorized to perform, with no requirement for an unrelated launcher grant. |
+| Physical completion and financial completion remain distinct | Warehouse receives/ships/disposes; Accounting values/posts/credits/refunds. Standalone mounts expose only actions the user is authorized to perform, with no requirement for an unrelated launcher grant. The existing SECAs that join the two are named in §15.2 with their decision (D1). |
+| Existing invoice SECAs on Warehouse paths | The sales invoice at pack (`ShipmentOutgoingPackedCreateInvoices`) is kept, and CompletePack says so; Reopen package and put-back call Accounting's proposed `release#ShipmentDraftInvoice` first, with `refund#OrderPayment` when the order shrinks (D3, R-WH-01b, R-WH-26). The receipt bill (`ShipmentIncomingDeliveredCreateInvoices`) runs only for self-billing suppliers, for accepted quantity (crosscut §4.4; R-WH-01c, R-SB-01). |
+| Returns are received, not settled, by Warehouse | Proposed `receive#ReturnItems` replaces `ShipmentDeliveredReturnReceive` and `ReturnReceivedProcess` on the receipt path; settlement is Accounting's `settle#Return` after inspection and disposition, never at receipt. Customer Service's `authorize#Return` settles nothing at approval, and `ReturnApprovedProcess` only creates the return shipment, which NewReceipt opens. `receive#ReturnWithoutShipment` is not exposed. Supplier returns ship through the proposed `ship#SupplierReturn` (D11; R-WH-01a, R-WH-01d, R-SB-02 to R-SB-05). |
+| Customer Service order changes reach Pick and Pack | Customer Service applies a substitution on a short pick and a cancelled balance through the proposed `apply#OrderChange`; Pick executes the substitution, and Pick or Pack puts back stock of a reduced line (D9; R-WH-26). Other change kinds are not Warehouse actions. |
+| Material issues and returns are new facts | Production issues never merge into an earlier issuance, and unused material returns through `return#UnusedMaterial` as a new receipt, never `cancel#AssetIssuance`. Movements carry the run's workEffortId and the snapshot line ID (D13; R-SA-02, R-SA-07). |
+| Subcontract material stays company stock | Warehouse dispatches and takes back components at SubcontractShipmentDetail from an organization-owned vendor-custody facility; Manufacturing owns the requirement and the proposed `receive#SubcontractOutput`, Purchasing the service PO and the proposed `accept#ServiceItem`, Accounting the charge (D14; R-WH-08, R-SA-08, R-SA-13). |
+| Kits are pick assemblies; Warehouse costs them | Kit components come from Products' Kit components (PtPickAssembly only); the kit receipt carries the issued component cost, so no WIP remains (D15; R-SA-04). |
+| Packs and units | Product-specific packs are pack products with PatPackagingFor (Products states the direction); dimensional units use the global UomConversion. Receive converts a pack to its base product through `resolve#ScannedProduct` or stocks the pack; Repack converts stocked packs, value-neutral through a WepAssembling WorkEffort. Transactions keep the entered quantity, unit and factor (D16; R-WH-07, R-SA-06, R-SA-14). |
+| Product facility policy has one writer | Warehouse owns the `store#ProductFacilityPolicy` contract (StockPolicies); Purchasing ReorderRules, Products and the shared screens call it. The planning schedule is the shared `store#PlanSchedule`, and Warehouse converts transfer suggestions (D20; R-XC-09, R-XC-20, R-XC-39). |
+| Quality hold is a status | Receive posts inspected receipts as AstQuarantine and creates the inspection; `get#SourceInspectionStatus` feeds matching and planning, and held quantity is excluded from bill matching. Whether planning counts it as conditional supply is in §19 Open (D21; R-WH-03, R-SA-10). |
+| Capability groups | §1 maps each Warehouse capability to one proposed `BOSS_WAREHOUSE_*` group; financial-read is Accounting's group (D22; R-WH-17). |
+| Stock at date is a Warehouse report | StockAtDate over proposed `get#InventoryAtDate`, owner-aware; Customer Service mounts it (D24; R-WH-06). |
+| Files hosts | Asset and return Files need the proposed AssetContent and ReturnContent; the Warehouse records listed in WH-RECORD-HOSTS have no Files tab (D25). |
+| Handheld count name | The handheld count mount is HandheldCount, like its siblings; its path stays Warehouse/Handheld/Count (D27; R-WH-31). |
+| One definition for ad hoc receipt, box and printer assignment | Receive AdHocReceipt is the one ad hoc receipt form; MaterialIssueReceipt and crosscut §3.9 link to it (R-XC-21). Facility box-type and printer assignment live only in FacilityDetail; BoxTypes keeps box and carrier codes, and Printers is a cross-facility index (R-WH-16). |
+| Production staging is a move in the first release | Manufacturing's Components "Stage" opens Move with the run fixed; a production pick mode is later (§19 Open). |
+| Handed-off baseline forms | FindAsset `UpdateProductCost` → Accounting valuation (proposed `AssetBookServices.post#Revaluation`). AssetDetail `UpdateAssetAcquireCost` → Accounting EquipmentBook (crosscut §3.10). FindAsset `CreateEquipment` → Maintenance, with crosscut §3.10 EquipmentDetail to gain a NewEquipment dialog. Maintenance, meter, registration and custodian forms → Maintenance (R-WH-23). |
+| Moves, landed cost, cross-dock and trends | Moves are immediate guarded tasks; there is no planned stock-transfer document. Landed-cost allocation is Accounting's (Payables LandedCosts on receipt lines); Warehouse reads it. Cross-dock is declined with route engines. Home cards carry counts only; trend charts are Insights later (R-WH-24). |
+| Drop shipments | ShpTpDrop shipments are left out of Warehouse queues and shown read-only in Shipments under a type filter; Purchasing and Sales own them. Drop-ship invoicing is Accounting's proposed `create#InvoiceFromSource`, called by Purchasing's proposed `confirm#DropShipDelivery` (R-WH-29, R-SB-20). |
+| Transfers carry value | A ShpTpTransfer issue needs AssetTypeGlAccount.transferGlAccountId, and WH-POST copies acquireCost and owner into the destination receipt (R-SA-08). |
 | Advanced features stay designed as later | TraceabilityGraph, Capacity workbench, automatic wave rules, DeliveryTrips/DeliveryTripDetail, ExternalStockSync and pivot/graph reporting follow first-release operational parity. First release still has ledger/tree traceability, destination capacity enforcement, manual waves and shared core quality. |
-| Reference-only extras are bounded | 3PL storage-fee subscriptions/customer stock portal, arbitrary push/pull route engines and carrier route optimization are not separate first-release Warehouse screens; owner stock is already visible by owner, fee/portal work remains Commerce/Accounting, multi-step receipts/deliveries are explicit policy-driven queues, and later trips accept manually ordered stops. |
+| Reference-only extras are bounded | 3PL storage-fee subscriptions/customer stock portal, arbitrary push/pull route engines and carrier route optimization are not separate first-release Warehouse screens; owner stock is already visible by owner, fee/portal work remains Commerce/Accounting, multi-step receipts/deliveries are explicit policy-driven queues (the 1–3 step table in StockPolicies), and later trips accept manually ordered stops. |
 | Posted data is corrected, not erased | Existing baseline direct status/quantity editing is replaced by named guarded actions. Label refunds, document reprints and tracking refresh never imply stock reversal. Independent batch failures name the item and continue; dependent movements remain atomic. |
 | Research and inventory staleness is explicit | Current capability notes above correct the expiry and commented shipment-rate claims. A stale inventory row does not make a service callable; proposed API work is clearly labeled. |
+| Shared-screen rows (D28; R-WH-15, R-WH-25) | Settled in crosscut §3 on Oct 28, 2026: §3.7 InventoryAvailability has the Movements tab, the later Age column and bulk Relocate; §3.5 Product360 has the Replenishment tab; §3.8 ShipmentDetail has the Transit pane, `close#ReceiptRemainder` and a Warehouse row per mount; §3.10 has a Warehouse EquipmentDetail row; and §3.11 RequestDetail has the InventoryRequestProgress panel over proposed `get#InventoryRequestProgress` and `allocate#InventoryRequest` (WH-REQUEST). |
 
 ## 19. Open
 
-No unresolved cross-app choice is required to implement the core screen structure. Review these deployment
-choices against the first adopter; defaults below are the design until changed explicitly:
+The existing financial SECAs are decided (§15.2, §18). The items below are still open, and several need a
+crosscut decision; those are marked "(also in crosscut §9)". Review the deployment choices against the first
+adopter; defaults below are the design until changed explicitly:
 
 - **Barcode devices and printers.** Recommend keyboard-wedge scanning and PDF labels first, with ZPL for an
   explicitly configured printer. Camera scanning is later; both use the same resolver/confirmation contract.
+  ZPL needs the printer format and capability data that FacilityPrinter lacks today, and the lot, location
+  and count-sheet printer purposes are not seeded (WH-LABEL). The handheld screens depend on the proposed
+  `density="handheld"` attribute (WH-HANDHELD).
 - **Automatic wave policy thresholds.** Recommend manual reviewed groups in the first release and no
   scheduled automatic release. Later limits/grouping are tenant policy, previewed by CreatePicklists.
-- **Owner-stock services beyond inventory.** Recommend a separate later Commerce/Accounting design for
-  customer stock portals and storage-fee billing; preserve owner identity and movement provenance now.
+- **Owner-stock services beyond inventory (also in crosscut §9).** Recommend a separate later
+  Commerce/Accounting design for customer stock portals and storage-fee billing; preserve owner identity and
+  movement provenance now. Storage-fee billing needs dated owner snapshots, so `get#InventoryAtDate` is
+  owner-aware from the first release (StockAtDate).
+- **Production picking (also in crosscut §9).** Recommend later: Picking gains a production pick mode over
+  released-run material snapshot lines. It moves stock to an FltStaging location for the run, and
+  MaterialIssueReceipt issues from staging. Production reservation needs a
+  proposed `AssetReservation.workEffortId` plus the material line ID (CX-PRODUCTION). The first release
+  stages through Move.
+- **Held quantity in planning (also in crosscut §9).** Today the projection reads AstAvailable stock only,
+  so held receipts and output are neither on hand nor incoming, and a planner may buy again. Recommend
+  showing held quantity with an open inspection as a "pending release" supply line, left out of netting by
+  default, with an organization policy option to include it.
+- **Cycle-count schedule.** Recommend proposed FacilityLocation fields countFrequencyDays, lastCountDate and
+  nextCountDate (WH-COUNT), with proposed `InventoryCountServices.find#DueCounts` feeding the Home "due
+  counts" provider and a Counts "Due" saved find; NewCount accepts the due scope. The other option is a
+  WarehousePolicy count-schedule row by facility, location type or product category.
 
-Acceptance review covers purchase receipt → partial inspection → putaway; reservation → shortage → recount;
-pick/pack → multiple packages → label timeout/retry → ship; customer and supplier returns with partial
-physical/financial completion; transfer in transit; blind count with concurrent receipt/issue and failed
-independent lines; lot expiry change; invalid serial/UOM; mixed owners/pools; unauthorized financial fields;
-closed-period correction; and standalone Warehouse operation without a ProductStore or other app grant.
+Acceptance review covers purchase receipt → partial inspection → putaway; short receipt closed or
+backordered before delivery; reservation → shortage → recount; pick/pack → multiple packages → label
+timeout/retry → ship; reopen a package after pack; customer and supplier returns with partial
+physical/financial completion, including a return in two boxes; subcontract dispatch and output receipt;
+repack; transfer in transit; blind count with concurrent receipt/issue and failed independent lines; lot
+expiry change; invalid serial/UOM; mixed owners/pools; unauthorized financial fields; closed-period correction; and standalone Warehouse operation without a ProductStore or other app grant.
 All Markdown/source checks are documentation checks; this pass does not build application screens or run
 runtime tests.

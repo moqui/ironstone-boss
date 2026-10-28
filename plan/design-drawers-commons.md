@@ -543,6 +543,12 @@ Both the tray and app surface call the same revision-bound source action; a noti
 another document state machine. The six core designs reuse the existing shell, context, Chatter,
 files, record links and calendar services instead of reopening their implementation.
 
+Oct 28, 2026: the NotificationTopic seed gains the purchase approval topics
+`PurchaseRequestApproval`, `PurchaseAwardApproval` and `PurchaseOrderApproval`, approved and
+refused by `ironstone.purchasing.ApprovalServices.approve#PurchaseSource` and `refuse#PurchaseSource`,
+and the other core apps' approval topics that crosscut §3.15 lists
+([design-crosscut §3.15](design-crosscut.md#315-approvals-waiting), D8).
+
 ### LiveCall
 
 - **Layout:** panel as `.qvue` in the framework's `q-page-sticky` slot, 320 × 180, draggable;
@@ -923,6 +929,10 @@ Baseline forms covered: `MyAccount` `EditRequest` `EditRequest`, `UpdatePartyFor
 `AddCommentForm`, `NewNoteForm`, `UpdateNoteForm`, `NewContentForm`, `UpdateContentForm`,
 `RequestTaskList`.
 
+Oct 28, 2026: on a service case (a Service-category Request) this mount hides Complete and Cancel,
+so the case is resolved only through Customer Service's case transitions and keeps its SLA rules
+([design-crosscut §3.11](design-crosscut.md#311-requestdetail), R-XC-13, D23).
+
 ## 9. Files
 
 Files is Google Drive and Nextcloud Files over the framework's resource locations, in
@@ -1105,6 +1115,10 @@ as a bare repository (`export#GitRepository`).
   the host screen's authorization decides who may upload and remove.
 - **Source:** research §12 and §16 "Files on records"; crosscut §3 `*Content` joins.
 - **Needs:** `record-files`; File services.
+
+Oct 28, 2026: each record that hosts Files has its own `*Content` entity registered in
+`get#RecordLinkInfo`; `ReturnContent` and `AssetContent` are added for returns and equipment
+([design-crosscut §3.14](design-crosscut.md#314-chatter-and-recordfiles), D25).
 
 ## 10. Notes and knowledge
 
@@ -1729,6 +1743,11 @@ including screen fixes the defaults:
 | People | Log note (visible to HR roles) | — | Send message for non-HR roles |
 | Commons, Comms | as the record: contacts default to Send message, files and pages to Log note | — | — |
 
+Oct 28, 2026: each Chatter host has its own `*Content` entity, with `ReturnContent` and
+`AssetContent` added, and Accounting shows activities on Customer360, Supplier360 and Collections,
+hiding them only on InvoiceDetail and the ledger mounts
+([design-crosscut §3.14](design-crosscut.md#314-chatter-and-recordfiles), D25).
+
 ## 16. Consent and unsubscribe
 
 Consent lives on the data Mantle already has, with a history record added: whether a contact
@@ -2047,6 +2066,7 @@ bare `entity-find`.
 | The anonymous pages (`/s/`, `/u/`, `/call/`) run in a public shell without the header, drawers or session | A qvt or `.qvue` screen runs only inside `m-qapps-root` today (§19 "Anonymous token routes") |
 | Files ships without WebDAV; WebDAV and SFTP over drives come with Sync | Sync and the DAV servers are `later` (§9, §11) |
 | Mail accounts connect with a password first (a Gmail app password included), OAuth after | A personal Gmail account on an unverified OAuth app gets short-lived refresh tokens (§21) |
+| A survey builder in Commons (Oct 28, 2026; crosscut §8) | Commons owns one survey builder over framework DbForm and FormResponse, which Customer Service, Marketing and People mount. This reverses the earlier Open recommendation that surveys stay in Marketing. Its screens are designed in a later Commons pass; until then Customer Service's FeedbackForms and FeedbackFormDetail ([design-customer-service §9](design-customer-service.md#9-settings)) carry the form summaries. |
 
 ## 21. Open
 
@@ -2080,8 +2100,6 @@ Each with the answer the author would give.
 - **Chat federation.** Matrix-style is internal persistence, not the Matrix protocol.
   Recommended: no federation in the first release; keep the event model close enough to Matrix
   that a bridge is possible.
-- **A form builder in Commons** (crosscut §8). Recommended: no; surveys and forms stay in
-  Marketing with Customer Service and People including them.
 - **Phone installation.** A PWA manifest and web push are framework work. Recommended: in the
   release that ships Chat, since chat without a phone notification is half a chat.
 - **Where the Office app (WOPI) opens from.** The Files preview and New menu assume it.

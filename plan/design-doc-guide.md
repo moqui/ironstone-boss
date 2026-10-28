@@ -72,6 +72,10 @@ they exist; future publishing baselines are not marked implemented or fully desi
 - **Verified names.** Mantle entity, service and status names are verified against
   `mr-mantle` as the research files did. Reference apps are named as in
   research-crosscut §6.
+- **Existing automation.** A Mantle service ECA (SECA) or entity ECA that already runs on a
+  designed path is named where the path is designed, with whether the design keeps it, runs it
+  only under a condition, or replaces it. The register is crosscut §1.3. A design that ignores
+  one changes nothing: the rule still runs.
 
 ## 3. Design file skeleton
 
@@ -100,7 +104,7 @@ One row per screen. Columns:
 | --- | --- |
 | **Screen** | The screen's name, unique within the design file and used for its section heading; the file name is the last segment of **Path** (§10), and the two differ only when the path segment alone would repeat (`TodayPanel` at `Commons/Panel/Today`) |
 | **Path** | Its path under the app, `Sales/Orders/OrderDetail`; a reused screen gives the app path it is mounted at |
-| **Archetype** | One of the archetypes of style-guide §3: landing, list, detail, 360, task, board, calendar, split, settings, wizard, dialog, report, editor, panel |
+| **Archetype** | One of the archetypes of style-guide §3: landing, list, detail, 360, task, board, calendar, split, settings, wizard, dialog, report, editor, panel, tree list |
 | **Impl** | `xml` (screen and form XML widgets) or `qvue` (a Vue component file served as a screen, style-guide §4.8). Decided per screen, because it fixes the widget set the screen may use; `qvue` only when the interaction does not fit the XML widgets (a mail client, a chat room, a calendar grid, a files browser, a co-editing editor, a board until `view-board` exists) |
 | **Purpose** | One sentence |
 | **Main record** | The Mantle entity the screen is about, or the service for a report |
@@ -244,7 +248,10 @@ and the baseline forms it replaces are in ss-inventory's.
   the noun plus `Detail` (`OrderDetail`, `CaseDetail`); a 360 is the noun plus `360`
   (`Customer360`); settings live under `<App>/Settings/`; reports under `<App>/Reports/`. `Find`
   and `Edit` prefixes from SimpleScreens are not used for list and detail screens. The screen
-  path is the URL, so names are full words, stable and never abbreviated.
+  path is the URL, so names are full words, stable and never abbreviated. That includes
+  industry acronyms: `BillsOfMaterials`, `QuoteRequests`, `ServiceLevelPolicies`,
+  `SatisfactionResults`. Menu titles, labels and Mantle names keep the acronym where users say
+  it ("BOMs", "RFQs", "SLA policies").
 - **Menu titles** use the BOSS terms of research-crosscut §6 (Case, Work item, Activity, Today
   panel, Landing page, Maintenance work order, Production run).
 - **Design file names** are `design-<app>.md` in kebab case without dates; dates go in the status
@@ -271,6 +278,8 @@ others. The crosscut roll-up of needs is updated as each file lands.
 7. Every open question of the research file is answered in **Decided** or carried into **Open**
    with a recommendation.
 8. The screens' **Context** cells are filled, so the shell work in style-guide §8 has its inputs.
+9. Every Mantle SECA or entity ECA on a designed path is named, kept, conditioned or replaced,
+   and listed in the crosscut §1.3 register (§2).
 
 **Done.** The design pass is complete when the 16 files exist and pass this checklist, the
 crosscut roll-up is reviewed as the framework and data work list, and the archetype gallery

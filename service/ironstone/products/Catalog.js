@@ -213,7 +213,7 @@ function detail(p) {
     result.kitAvailable = null
     if(product.productTypeEnumId==='PtPickAssembly') {
         const facilities=list('mantle.facility.Facility').filter(row=>a.capabilities.systemAdmin || a.organizationPartyIds.includes(row.ownerPartyId))
-        result.kitAvailable=facilities.reduce((total,row)=>total.add(call('mantle.product.AssetServices.get#AvailableInventory',{productId:p.productId,facilityId:row.facilityId},true).availableToPromiseTotal || 0),toDecimal(0))
+        result.kitAvailable=facilities.reduce((total,row)=>total.add(call('mantle.product.AssetServices.get#AvailableInventory',{productId:p.productId,facilityId:row.facilityId,ownerPartyIdList:[row.ownerPartyId]},true).availableToPromiseTotal || 0),toDecimal(0))
     }
     result.connectionRows = connections(p.productId)
     return {detail:result}

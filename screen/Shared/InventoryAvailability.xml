@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Stock" default-menu-include="false">
+    
+
+    <parameter name="productId" required="true"/>
+    <parameter name="facilityId"/>
+    <parameter name="organizationPartyId"/>
+    
+
+    <always-actions>
+        <service-call name="ironstone.products.InventoryServices.get#InventoryContext" in-map="context" out-map="context"/>
+    </always-actions>
+    
+
+    <subscreens default-item="Summary"/>
+    
+
+    <widgets>
+        <label text="Stock · ${product.productName}" type="h5"/>
+        <form-single name="InventoryScope" transition=".">
+            <field name="productId">
+                <default-field title="">
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="facilityId">
+                <default-field title="Facility">
+                    <drop-down allow-empty="true">
+                        <list-options list="facilityOptions" key="${value}" text="${label}"/>
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Show stock">
+                    <submit/>
+                </default-field>
+            </field>
+        </form-single>
+        <subscreens-menu id="InventoryTabs" type="tab"/>
+        <subscreens-active/>
+    </widgets>
+</screen>

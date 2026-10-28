@@ -1,0 +1,372 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Policy" default-menu-index="3">
+    <parameter name="trackingScope"/>
+    
+
+    <transition name="stockPolicy">
+        <actions>
+            <service-call name="ironstone.products.InventoryServices.store#FacilityPolicy" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="facilityId"/>
+            <parameter name="trackingScope"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="trackingPolicy">
+        <actions>
+            <service-call name="ironstone.products.InventoryServices.store#TrackingPolicy" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="facilityId"/>
+            <parameter name="trackingScope"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.InventoryServices.get#InventoryPolicy" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <label text="${policyMessage}" type="p"/>
+        
+
+        <container-box>
+            <box-header title="Facility stock policy"/>
+            <box-body>
+                <section name="StockPlanner" condition="canPlan &amp;&amp; stockable &amp;&amp; facilityId">
+                    <widgets>
+                        <form-single name="FacilityStockPolicy" transition="stockPolicy" map="facilityPolicy">
+                            <field name="productId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="facilityId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="expectedLastUpdatedStamp" from="facilityPolicy.lastUpdatedStamp">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="minimumStock">
+                                <default-field title="Minimum stock">
+                                    <text-line input-type="number"/>
+                                </default-field>
+                            </field>
+                            <field name="maximumStock">
+                                <default-field title="Maximum stock">
+                                    <text-line input-type="number"/>
+                                </default-field>
+                            </field>
+                            <field name="reorderQuantity">
+                                <default-field title="Reorder quantity">
+                                    <text-line input-type="number"/>
+                                </default-field>
+                            </field>
+                            <field name="daysToShip">
+                                <default-field title="Days to ship">
+                                    <text-line input-type="number"/>
+                                </default-field>
+                            </field>
+                            <field name="reorderMethodEnumId">
+                                <default-field title="Replenishment method">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="reorderOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="abcClassEnumId">
+                                <default-field title="Manual ABC class">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="abcOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Save stock policy">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                        <container-dialog id="LocationPolicyDialog" button-text="Set location levels" title="Location stock policy">
+                            <form-single name="LocationStockPolicy" transition="stockPolicy">
+                                <field name="productId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="facilityId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="locationSeqId">
+                                    <default-field title="Location">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="locationOptions" key="${value}" text="${label}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="minimumStock">
+                                    <default-field title="Minimum stock">
+                                        <text-line input-type="number"/>
+                                    </default-field>
+                                </field>
+                                <field name="moveQuantity">
+                                    <default-field title="Move quantity">
+                                        <text-line input-type="number"/>
+                                    </default-field>
+                                </field>
+                                <field name="changeReason">
+                                    <default-field title="Reason">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Save location levels">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets>
+                </section>
+                <form-list name="FacilityPolicyRead" list="facilityPolicy ? [facilityPolicy] : []" skip-form="true" paginate="false">
+                    <field name="minimumStock">
+                        <default-field title="Minimum">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="maximumStock">
+                        <default-field title="Maximum">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="reorderQuantity">
+                        <default-field title="Reorder quantity">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="daysToShip">
+                        <default-field title="Ship days">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="reorderMethodText">
+                        <default-field title="Replenishment">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="abcClassText">
+                        <default-field title="ABC">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+                <form-list name="LocationPolicies" list="locationPolicies" skip-form="true" paginate="false">
+                    <field name="locationSeqId">
+                        <default-field title="Location">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="minimumStock">
+                        <default-field title="Minimum">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="moveQuantity">
+                        <default-field title="Move quantity">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <container-box>
+            <box-header title="Product tracking policy"/>
+            <box-body>
+                <form-single name="TrackingScope" transition=".">
+                    <field name="productId">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="facilityId">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="trackingScope">
+                        <default-field title="Exception scope">
+                            <drop-down>
+                                <option key="facility" text="This product at this facility"/>
+                                <option key="organization" text="This product at every facility in the organization"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Show tracking policy">
+                            <submit/>
+                        </default-field>
+                    </field>
+                </form-single>
+                <section name="TrackingPlanner" condition="canPlan &amp;&amp; stockable &amp;&amp; facilityId">
+                    <widgets>
+                        <form-single name="ProductTrackingPolicy" transition="trackingPolicy" map="trackingSettings">
+                            <field name="productId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="facilityId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="trackingScope">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="expectedFromDate">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="effectiveFromDate">
+                                <default-field title="Effective from (empty: now)">
+                                    <date-time/>
+                                </default-field>
+                            </field>
+                            <field name="lotRequired">
+                                <default-field title="Lot required">
+                                    <drop-down allow-empty="true">
+                                        <option key="Y" text="Yes"/>
+                                        <option key="N" text="No"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="serialRequired">
+                                <default-field title="Serial required">
+                                    <drop-down allow-empty="true">
+                                        <option key="Y" text="Yes"/>
+                                        <option key="N" text="No"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="expiryBlock">
+                                <default-field title="Block expired stock">
+                                    <drop-down allow-empty="true">
+                                        <option key="Y" text="Yes"/>
+                                        <option key="N" text="No"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="serialPattern">
+                                <default-field title="Serial pattern">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="lotPattern">
+                                <default-field title="Lot pattern">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="shelfLifeDays">
+                                <default-field title="Shelf life days">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="nearExpiryDays">
+                                <default-field title="Near-expiry warning days">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="minimumRemainingShelfLifeDays">
+                                <default-field title="Minimum remaining shelf life days">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Save dated tracking policy">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <label text="Effective sources at this facility" type="h6"/>
+                <form-list name="TrackingSources" list="trackingSources" skip-form="true" paginate="false">
+                    <field name="fieldLabel">
+                        <default-field title="Setting">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="valueText">
+                        <default-field title="Effective value">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="sourceText">
+                        <default-field title="Source">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="fromDateText">
+                        <default-field title="Effective from">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+                <label text="History of the selected exception scope" type="h6"/>
+                <form-list name="TrackingHistory" list="trackingHistory" skip-form="true" paginate="false">
+                    <field name="fromDateText">
+                        <default-field title="From">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="thruDateText">
+                        <default-field title="Through">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="lotText">
+                        <default-field title="Lot">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="serialText">
+                        <default-field title="Serial">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Reason">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
+</screen>

@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Projection" default-menu-index="2">
+    <actions>
+        <service-call name="ironstone.products.InventoryServices.get#InventoryProjection" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Inventory projection"/>
+            <box-body>
+                <label text="${projectionMessage}" type="p"/>
+                <form-list name="InventoryProjection" list="projectionRows" skip-form="true" paginate="false">
+                    <field name="horizonText">
+                        <default-field title="Through date">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="demand">
+                        <default-field title="Unreserved sales demand">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="consume">
+                        <default-field title="Production consumption">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="produce">
+                        <default-field title="Run supply">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="incoming">
+                        <default-field title="Planned production supply">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="projected">
+                        <default-field title="Projected available">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="freshness">
+                        <default-field title="Stock check">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
+</screen>

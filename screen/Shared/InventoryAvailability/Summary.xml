@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
+    <actions>
+        <service-call name="ironstone.products.InventoryServices.get#InventorySummary" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Current inventory"/>
+            <box-body>
+                <label text="${summaryMessage}" type="p"/>
+                <section name="StockTotals" condition="totals"><widgets><dashboard>
+                    <number-card title="On hand" value="${totals.onHand}"/>
+                    <number-card title="Available to promise" value="${totals.available}"/>
+                    <number-card title="Reserved" value="${totals.reserved}"/>
+                    <number-card title="Held" value="${totals.held}"/>
+                </dashboard></widgets></section>
+                <form-list name="InventorySummary" list="stockRows" skip-form="true" paginate="false">
+                    <field name="facilityName">
+                        <default-field title="Facility">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="ownerPartyId">
+                        <default-field title="Stock owner">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="quantityUomText">
+                        <default-field title="Stock unit">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="onHand">
+                        <default-field title="On hand">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="reserved">
+                        <default-field title="Reserved">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="available">
+                        <default-field title="Available to promise">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="held">
+                        <default-field title="Held">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
+</screen>

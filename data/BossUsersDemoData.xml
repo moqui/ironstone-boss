@@ -92,4 +92,10 @@ along with this software (see the LICENSE.md file). If not, see
             currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_ADMIN" fromDate="0"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_ADMIN" userId="BOSS_PRD_ADMIN" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_STOCK_PLAN" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_STOCK_PLAN" firstName="Catalog" lastName="Stock planner"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_STOCK_PLAN_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_STOCK_PLAN" toPartyId="ORG_ZIZI_SERVICES" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_STOCK_PLAN" username="catalog.stock.plan" userFullName="Catalog Stock planner" partyId="BOSS_PRD_STOCK_PLAN" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_STOCK_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" userId="BOSS_PRD_STOCK_PLAN" fromDate="0"/>
 </entity-facade-xml>

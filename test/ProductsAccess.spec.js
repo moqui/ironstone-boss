@@ -194,3 +194,7 @@ feature('P5a price projections and writes retain their direction boundary inside
 feature('P6 supplier services and shared mounts refuse sales-only editors even through internal callbacks',{
  when(){return asCatalog('catalog.price.edit',()=>{const failures=[];for(const [name,args] of [['find#SupplierPrices',{}],['get#SupplierDetail',{vendorPartyId:'BOSS_PRD_SUPPLIER'}],['store#SupplierPrice',{productId:'BOSS_PRD_OWN',vendorPartyId:'BOSS_PRD_SUPPLIER',price:1,priceUomId:'USD'}]]){let refused=false;try{call('ironstone.products.SupplierServices.'+name,args);refused=ec.message.hasError()}catch(e){refused=true}finally{ec.message.clearErrors()}if(!refused)failures.push(name)}return{failures}},false)},then({failures}){failures.length==0},
 })
+
+feature('P7 stock policy remains Warehouse-controlled through Products shared callbacks',{
+ when(){return asCatalog('catalog.catalog.edit',()=>{const refused=[];for(const name of ['store#FacilityPolicy','store#TrackingPolicy']){try{call('ironstone.products.InventoryServices.'+name,{productId:'BOSS_PRD_OWN',facilityId:'BOSS_PRD_WH',minimumStock:1,lotRequired:'Y',changeReason:'Refused'});refused.push(ec.message.hasError())}catch(e){refused.push(true)}finally{ec.message.clearErrors()}}return{refused}},false)},then({refused}){refused==[true,true]},
+})

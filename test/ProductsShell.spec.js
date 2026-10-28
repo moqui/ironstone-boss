@@ -77,3 +77,7 @@ feature('owned and shared product routes render for the reader and another owner
         other.output.includes('Product not available')
     },
 })
+
+feature('the stock planner works in Products without a Warehouse launcher',{
+ when(){return asProductUser('catalog.stock.plan',()=>json('shellData'))},then({status,data}){status==200;data.apps.some(app=>app.name==='Products');!data.apps.some(app=>app.name==='Warehouse')},
+})

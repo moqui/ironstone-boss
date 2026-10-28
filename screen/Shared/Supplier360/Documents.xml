@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Documents" default-menu-index="3">
+    <widgets>
+        <label text="Supplier documents" type="h6"/>
+        <record-files id="SupplierFiles" record-entity="mantle.party.Party" record-id="${vendorPartyId}"/>
+    </widgets>
+</screen>

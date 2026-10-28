@@ -1,0 +1,182 @@
+<?xml version="1.0" ?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    
+
+    <service verb="find" noun="SupplierPrices" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="partyId"/>
+            <parameter name="productId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="supplierItemCode"/>
+            <parameter name="preferredOrderEnumId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="includeHistory" type="Boolean"/>
+            <parameter name="groupBy"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="offerRows" type="List"/>
+            <parameter name="offerRowsCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="canSupplierPriceEdit" type="Boolean"/>
+            <parameter name="priceOptions" type="Map"/>
+            <parameter name="pricingDefaults" type="Map"/>
+            <parameter name="defaultOrganizationPartyId"/>
+            <parameter name="preferenceOptions" type="List"/>
+            <parameter name="ratingOptions" type="List"/>
+            <parameter name="supplier" type="Map"/>
+            <parameter name="contactRows" type="List"/>
+            <parameter name="addressRows" type="List"/>
+            <parameter name="roleRows" type="List"/>
+            <parameter name="relatedContacts" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('offers',context))</script>
+        </actions>
+    </service>
+    
+
+    <service verb="get" noun="SupplierOptions" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="partyId"/>
+            <parameter name="productId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="supplierItemCode"/>
+            <parameter name="preferredOrderEnumId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="includeHistory" type="Boolean"/>
+            <parameter name="groupBy"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="offerRows" type="List"/>
+            <parameter name="offerRowsCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="canSupplierPriceEdit" type="Boolean"/>
+            <parameter name="priceOptions" type="Map"/>
+            <parameter name="pricingDefaults" type="Map"/>
+            <parameter name="defaultOrganizationPartyId"/>
+            <parameter name="preferenceOptions" type="List"/>
+            <parameter name="ratingOptions" type="List"/>
+            <parameter name="supplier" type="Map"/>
+            <parameter name="contactRows" type="List"/>
+            <parameter name="addressRows" type="List"/>
+            <parameter name="roleRows" type="List"/>
+            <parameter name="relatedContacts" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('options',context))</script>
+        </actions>
+    </service>
+    
+
+    <service verb="get" noun="SupplierDetail" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="partyId"/>
+            <parameter name="productId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="supplierItemCode"/>
+            <parameter name="preferredOrderEnumId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="includeHistory" type="Boolean"/>
+            <parameter name="groupBy"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="offerRows" type="List"/>
+            <parameter name="offerRowsCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="canSupplierPriceEdit" type="Boolean"/>
+            <parameter name="priceOptions" type="Map"/>
+            <parameter name="pricingDefaults" type="Map"/>
+            <parameter name="defaultOrganizationPartyId"/>
+            <parameter name="preferenceOptions" type="List"/>
+            <parameter name="ratingOptions" type="List"/>
+            <parameter name="supplier" type="Map"/>
+            <parameter name="contactRows" type="List"/>
+            <parameter name="addressRows" type="List"/>
+            <parameter name="roleRows" type="List"/>
+            <parameter name="relatedContacts" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('detail',context))</script>
+        </actions>
+    </service>
+    
+
+    <service verb="store" noun="SupplierPrice" allow-remote="false">
+        <in-parameters>
+            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('store',context))</script>
+        </actions>
+    </service>
+    
+
+    <service verb="replace" noun="SupplierPrice" allow-remote="false">
+        <in-parameters>
+            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('replace',context))</script>
+        </actions>
+    </service>
+    
+
+    <service verb="expire" noun="SupplierPrice" allow-remote="false">
+        <in-parameters>
+            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('expire',context))</script>
+        </actions>
+    </service>
+    
+
+</services>

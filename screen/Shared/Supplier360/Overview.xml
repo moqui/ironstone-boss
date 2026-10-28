@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Overview &amp; contacts" default-menu-index="1">
+    <widgets>
+        <container-box>
+            <box-header title="Supplier overview"/>
+            <box-body>
+                <label text="${supplier.supplierName}" type="h6"/>
+                <label text="${vendorPartyId} · ${supplier.ownerPartyId}" type="p"/>
+                <link url="//Commons/Contacts/ContactDetail" text="Maintain contact" condition="supplier.canEditContact" parameter-map="{partyId:vendorPartyId}"/>
+                <form-list name="SupplierContacts" list="contactRows" skip-form="true" paginate="false">
+                    <field name="kindLabel">
+                        <default-field title="Kind">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="value">
+                        <default-field title="Contact">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="purposeText">
+                        <default-field title="Purpose">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                </form-list>
+                <form-list name="SupplierAddresses" list="addressRows" skip-form="true" paginate="false">
+                    <field name="address1">
+                        <default-field title="Address">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="city">
+                        <default-field title="City">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="postalCode">
+                        <default-field title="Postal code">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                </form-list>
+                <form-list name="SupplierRoles" list="roleRows" skip-form="true" paginate="false">
+                    <field name="roleTypeId">
+                        <default-field title="Party role">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
+</screen>

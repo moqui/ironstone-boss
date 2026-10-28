@@ -46,6 +46,10 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/SupplierPrices/": {parameters:{organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Supplier offers"},
+    "Shared/Supplier360/": {parameters:{vendorPartyId:"BOSS_PRD_SUPPLIER",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Services Supply"},
+    "Products/SupplierPrices": {text:"Supplier offers"},
+    "Products/Suppliers": {text:"Supplier offers"},
     "Shared/PriceLists/": {text:"Find price lists"},
     "Shared/PriceListDetail/": {parameters:{priceListId:"BOSS_PRICE_LIST"},text:"Services catalog policy"},
     "Shared/PriceExplain/": {parameters:{productId:"BOSS_PRD_OWN",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Resolved price"},
@@ -385,8 +389,8 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
     then({ failures }) {
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
-        // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings)
-        placeholders.length >= 91
+        // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings; P6 replaces SupplierPrices)
+        placeholders.length >= 90
         failures.join("\n") == ""
     },
 })

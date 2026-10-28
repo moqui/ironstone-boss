@@ -1,0 +1,937 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Supplier prices" default-menu-index="1">
+    
+
+    <parameter name="appRoot"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="vendorPartyId"/>
+    <parameter name="productId"/>
+    <parameter name="priceUomId"/>
+    <parameter name="supplierItemCode"/>
+    <parameter name="preferredOrderEnumId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="includeHistory"/>
+    <parameter name="groupBy"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    
+
+    <transition name="store">
+        <actions>
+            <service-call name="ironstone.products.SupplierServices.store#SupplierPrice" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    
+
+    <transition name="replace">
+        <actions>
+            <service-call name="ironstone.products.SupplierServices.replace#SupplierPrice" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    
+
+    <transition name="expire">
+        <actions>
+            <service-call name="ironstone.products.SupplierServices.expire#SupplierPrice" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    
+
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:'products',term:term}" out-map="choices"/>
+            <script><![CDATA[if(selectedProductId&&!choices.rows.some(r=>r.value===selectedProductId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:selectedProductId,checkOnly:true}).call();if(got.record)choices.rows.unshift({value:selectedProductId,label:got.record.productName||selectedProductId})}ec.web.sendJsonResponse(choices.rows)]]></script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    
+
+    <transition name="bulk">
+        <default-response url="//Products/Products/BulkPrice">
+            <parameter name="direction" value="purchase"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="productPriceIds"/>
+        </default-response>
+    </transition>
+    
+
+    <actions>
+        <service-call name="ironstone.products.SupplierServices.get#SupplierOptions" in-map="context" out-map="context"/>
+        <service-call name="ironstone.products.SupplierServices.find#SupplierPrices" in-map="context" out-map="context"/>
+        
+
+        <script>offerRowsPageIndex=pageIndex;offerRowsPageSize=pageSize;offerRowsPageMaxIndex=Math.max(0,Math.ceil(offerRowsCount/pageSize)-1);offerRowsPageRangeLow=offerRows.length?pageIndex*pageSize+1:0;offerRowsPageRangeHigh=pageIndex*pageSize+offerRows.length;newOffer={organizationPartyId:organizationPartyId,productId:productId||null,vendorPartyId:vendorPartyId||null,customerPartyId:organizationPartyId,priceTypeEnumId:'PptCurrent',pricePurposeEnumId:'PppPurchase',priceUomId:pricingDefaults.defaultCurrencyUomId||'USD',quantityUomId:'OTH_ea',minQuantity:'0'}</script>
+    </actions>
+    
+
+    <widgets>
+        <container-box>
+            <box-header title="Supplier offers"/>
+            <box-body>
+                <label text="Supplier is the vendor; the internal buying organization is the customer. A case or pallet offer prices the pack product." type="p"/>
+                
+
+                <form-single name="SupplierPriceFind" transition=".">
+                    
+
+                    <field name="organizationPartyId">
+                        <default-field title="Buying organization">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.organizations" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="vendorPartyId">
+                        <default-field title="Supplier">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.suppliers" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="productId">
+                        <default-field title="Product or base product">
+                            <drop-down allow-empty="true">
+                                <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="supplierItemCode">
+                        <default-field title="Supplier item code">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="priceUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <list-options list="priceOptions.currencies" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="preferredOrderEnumId">
+                        <default-field title="Preference">
+                            <drop-down allow-empty="true">
+                                <list-options list="preferenceOptions" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="asOfDate">
+                        <default-field title="Offer date">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="includeHistory">
+                        <default-field title="Show ended and scheduled offers">
+                            <drop-down allow-empty="true">
+                                <option key="true" text="Yes"/>
+                                <option key="false" text="No"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="groupBy">
+                        <default-field title="Group order">
+                            <drop-down>
+                                <option key="supplier" text="Supplier"/>
+                                <option key="product" text="Product"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="submitButton">
+                        <default-field title="Find offers">
+                            <submit/>
+                        </default-field>
+                    </field>
+                    
+
+                </form-single>
+            </box-body>
+        </container-box>
+        
+
+        <section name="NewOfferAllowed" condition="canSupplierPriceEdit">
+            <widgets>
+                <container-dialog id="NewSupplierOfferDialog" button-text="New supplier offer" title="New supplier offer" width="960">
+                    <form-single name="NewSupplierOffer" transition="store" map="newOffer">
+                        <field name="organizationPartyId">
+                            <default-field title="">
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="productId">
+                            <default-field title="Product or pack product">
+                                <drop-down allow-empty="false">
+                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="vendorPartyId">
+                            <default-field title="Supplier">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.suppliers" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="customerPartyId">
+                            <default-field title="Buying organization">
+                                <display also-hidden="true"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="priceTypeEnumId">
+                            <default-field title="Price type">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.types" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="pricePurposeEnumId">
+                            <default-field title="Purpose">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.purposes" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="otherPartyItemId">
+                            <default-field title="Supplier item code">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="otherPartyItemName">
+                            <default-field title="Supplier item name">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="price">
+                            <default-field title="Unit price">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="priceUomId">
+                            <default-field title="Currency">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.currencies" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="minQuantity">
+                            <default-field title="Minimum quantity">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="quantityIncrement">
+                            <default-field title="Order increment">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="quantityUomId">
+                            <default-field title="Quantity unit">
+                                <drop-down allow-empty="true">
+                                    <list-options list="priceOptions.units" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="quantityIncluded">
+                            <default-field title="Offer included quantity">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="standardLeadTimeDays">
+                            <default-field title="Lead time (days)">
+                                <text-line input-type="number"/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="preferredOrderEnumId">
+                            <default-field title="Preference">
+                                <drop-down allow-empty="true">
+                                    <list-options list="preferenceOptions" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="supplierRatingTypeEnumId">
+                            <default-field title="Recorded supplier rating">
+                                <drop-down allow-empty="true">
+                                    <list-options list="ratingOptions" key="${value}" text="${label}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="canDropShip">
+                            <default-field title="Dropship">
+                                <drop-down allow-empty="true">
+                                    <option key="Y" text="Yes"/>
+                                    <option key="N" text="No"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="agreementId">
+                            <default-field title="Agreement">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="agreementItemSeqId">
+                            <default-field title="Agreement item">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="fromDate">
+                            <default-field title="Effective from (empty: now)">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        
+
+                        <field name="submitButton">
+                            <default-field title="Create offer">
+                                <submit/>
+                            </default-field>
+                        </field>
+                        
+
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        
+
+        <container-box>
+            <box-header title="Comparable supplier prices"/>
+            <box-body>
+                <form-list name="SupplierOffers" list="offerRows" paginate="true" skip-form="true">
+                    <row-selection id-field="productPriceId" parameter="productPriceIds" list-mode="true" condition="canSupplierPriceEdit">
+                        <action>
+                            <form-single name="SupplierBulkSelection" transition="bulk">
+                                <field name="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                
+
+                                <field name="vendorPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                
+
+                                <field name="submitButton">
+                                    <default-field title="Review supplier price changes">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                                
+
+                            </form-single>
+                        </action>
+                    </row-selection>
+                    <field name="productId">
+                        <default-field title="Priced product">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="productName">
+                        <default-field title="Product">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="supplierName">
+                        <default-field title="Supplier">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="vendorPartyId">
+                        <default-field title="Vendor role">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="buyerName">
+                        <default-field title="Buyer">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="customerPartyId">
+                        <default-field title="Customer role">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="otherPartyItemId">
+                        <default-field title="Supplier item code">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="otherPartyItemName">
+                        <default-field title="Supplier item name">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="price">
+                        <default-field title="Unit price">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="priceUomId">
+                        <default-field title="Currency">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="minQuantity">
+                        <default-field title="Minimum">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="quantityIncrement">
+                        <default-field title="Increment">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="quantityUomId">
+                        <default-field title="Quantity unit">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="packSize">
+                        <default-field title="Contained quantity">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="packQuantityUomId"><default-field title="Contained quantity unit"><display/></default-field></field>
+                    <field name="baseProductId">
+                        <default-field title="Contained product">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="standardLeadTimeDays">
+                        <default-field title="Lead days">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="preferredOrderEnumId">
+                        <default-field title="Preference">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="supplierRatingTypeEnumId">
+                        <default-field title="Recorded rating">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="canDropShip">
+                        <default-field title="Dropship">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="agreementId">
+                        <default-field title="Agreement">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="agreementItemSeqId">
+                        <default-field title="Agreement item">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="fromDateText">
+                        <default-field title="From">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="thruDateText">
+                        <default-field title="Through">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="state">
+                        <default-field title="State">
+                            <display/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="openSupplier">
+                        <default-field title="Supplier record">
+                            <link url="//Products/Suppliers/Supplier360" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
+                        </default-field>
+                    </field>
+                    
+
+                    <field name="openProduct">
+                        <default-field title="Product record">
+                            <link url="//Products/Products/Product360" text="Product360" parameter-map="{productId:productId}"/>
+                        </default-field>
+                    </field>
+                    
+
+                </form-list>
+            </box-body>
+        </container-box>
+        
+
+        <section-iterate name="OfferActions" list="offerRows" entry="offer">
+            <widgets>
+                <section name="EditableOffer" condition="offer.canEdit">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${offer.productPriceId} · ${offer.otherPartyItemId || offer.productId}"/>
+                            <box-body>
+                                <container-dialog id="Offer_store_${offer.productPriceId}" button-text="Correct offer ${offer.productPriceId}" title="Correct offer" condition="offer.canCorrect" width="800">
+                                    <form-single name="Offerstore_${offer.productPriceId}" transition="store" map="offer">
+                                        <field name="productPriceId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="productId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="vendorPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="customerPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="expectedLastUpdatedStamp" from="lastUpdatedStamp">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="otherPartyItemId">
+                                            <default-field title="Supplier item code">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="otherPartyItemName">
+                                            <default-field title="Supplier item name">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="price">
+                                            <default-field title="Unit price">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="minQuantity">
+                                            <default-field title="Minimum quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="quantityIncrement">
+                                            <default-field title="Order increment">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="quantityIncluded">
+                                            <default-field title="Offer included quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="standardLeadTimeDays">
+                                            <default-field title="Lead time (days)">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="preferredOrderEnumId">
+                                            <default-field title="Preference">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="preferenceOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="supplierRatingTypeEnumId">
+                                            <default-field title="Recorded supplier rating">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="ratingOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="canDropShip">
+                                            <default-field title="Dropship">
+                                                <drop-down allow-empty="true">
+                                                    <option key="Y" text="Yes"/>
+                                                    <option key="N" text="No"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="submitButton">
+                                            <default-field title="Save offer">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="Offer_replace_${offer.productPriceId}" button-text="Schedule successor ${offer.productPriceId}" title="Schedule successor" condition="true" width="800">
+                                    <form-single name="Offerreplace_${offer.productPriceId}" transition="replace" map="offer">
+                                        <field name="productPriceId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="productId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="vendorPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="customerPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="expectedLastUpdatedStamp" from="lastUpdatedStamp">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="otherPartyItemId">
+                                            <default-field title="Supplier item code">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="otherPartyItemName">
+                                            <default-field title="Supplier item name">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="price">
+                                            <default-field title="Unit price">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="minQuantity">
+                                            <default-field title="Minimum quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="quantityIncrement">
+                                            <default-field title="Order increment">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="quantityIncluded">
+                                            <default-field title="Offer included quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="standardLeadTimeDays">
+                                            <default-field title="Lead time (days)">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="preferredOrderEnumId">
+                                            <default-field title="Preference">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="preferenceOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="supplierRatingTypeEnumId">
+                                            <default-field title="Recorded supplier rating">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="ratingOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="canDropShip">
+                                            <default-field title="Dropship">
+                                                <drop-down allow-empty="true">
+                                                    <option key="Y" text="Yes"/>
+                                                    <option key="N" text="No"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="effectiveDate">
+                                            <default-field title="Successor effective from">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                        <field name="submitButton">
+                                            <default-field title="Schedule offer">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                        
+
+                                    </form-single>
+                                </container-dialog>
+                                <form-single name="EndOffer_${offer.productPriceId}" transition="expire" map="offer">
+                                    <field name="productPriceId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    
+
+                                    <field name="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    
+
+                                    <field name="thruDate">
+                                        <default-field title="End at (empty: now)">
+                                            <date-time/>
+                                        </default-field>
+                                    </field>
+                                    
+
+                                    <field name="changeReason">
+                                        <default-field title="Reason">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    
+
+                                    <field name="submitButton">
+                                        <default-field title="End offer">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                    
+
+                                </form-single>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+            </widgets>
+        </section-iterate>
+        
+
+    </widgets>
+</screen>

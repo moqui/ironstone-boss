@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Supplier" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <parameter name="vendorPartyId"/>
+    <parameter name="organizationPartyId"/>
+    <always-actions>
+        <service-call name="ironstone.products.SupplierServices.get#SupplierDetail" in-map="context" out-map="context"/>
+    </always-actions>
+    <subscreens default-item="Overview">
+        <subscreens-item name="Prices" menu-index="2" location="component://mr-boss/screen/Shared/SupplierPrices.xml" menu-title="Products &amp; prices"/>
+    </subscreens>
+    <widgets>
+        <context record-entity="mantle.party.Party" record-id="${vendorPartyId}" title="${supplier.supplierName}"/>
+        <label text="${supplier.supplierName}" type="h5"/>
+        <label text="Supplier ${vendorPartyId} · Buyer ${organizationPartyId}" type="p"/>
+        <subscreens-menu id="SupplierTabs" type="tab"/>
+        <subscreens-active/>
+    </widgets>
+</screen>

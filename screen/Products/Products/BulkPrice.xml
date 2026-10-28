@@ -3,6 +3,7 @@
     <parameter name="productIds"/>
     <parameter name="productPriceIds"/>
     <parameter name="organizationPartyId"/>
+    <parameter name="vendorPartyId"/>
     <parameter name="direction"/>
     <parameter name="priceTypeEnumId"/>
     <parameter name="pricePurposeEnumId"/>
@@ -56,6 +57,7 @@
             <box-body>
                 <label text="Preview fixes the selected rows, their current stamps and the proposed amounts. Applying returns a result per row and keeps completed rows on retry." type="p"/>
                 <form-single name="BulkPriceSetup" transition="preview">
+                    <field name="vendorPartyId"><default-field><hidden/></default-field></field>
                     <field name="productIds">
                         <default-field title="Product IDs (comma separated)">
                             <text-line/>

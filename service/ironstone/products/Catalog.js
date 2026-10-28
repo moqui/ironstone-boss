@@ -353,7 +353,9 @@ function findProducts(p) {
         for(const row of ec.entity.find(P+'ProductParty').condition(pcf).disableAuthz().list()) if(current(row) && partyReadable(row.partyId,a) && (row.roleTypeId!=='Supplier' || a.capabilities.supplierPriceRead)) partyIds.add(row.productId)
         // Supplier item-code discovery requires supplier-price read; no offer values leave this service.
         if(a.capabilities.supplierPriceRead) for(const row of ec.entity.find(P+'ProductPrice').condition(cf.makeCondition('otherPartyItemId','like','%'+partyNeedle+'%').ignoreCase()).disableAuthz().list()) {
-            if(current(row) && row.vendorPartyId && !one('mantle.party.PartyRole',{partyId:row.vendorPartyId,roleTypeId:'OrgInternal'}) && one('mantle.party.PartyRole',{partyId:row.customerPartyId,roleTypeId:'OrgInternal'}) && (a.capabilities.systemAdmin || a.organizationPartyIds.includes(row.customerPartyId))) partyIds.add(row.productId)
+            if(current(row) && row.vendorPartyId && !one('mantle.party.PartyRole',{partyId:row.vendorPartyId,roleTypeId:'OrgInternal'}) && one('mantle.party.PartyRole',{partyId:row.customerPartyId,roleTypeId:'OrgInternal'}) && (a.capabilities.systemAdmin || a.organizationPartyIds.includes(row.customerPartyId))) {
+                try {ec.resource.script('component://mr-mantle/service/mantle/product/PricePolicy.js').execute('access',row);partyIds.add(row.productId)} catch(e) { /* Private offer codes are not discovery keys. */ }
+            }
         }
     }
     let productRows=Array.from(ec.entity.find(P+'Product').condition(cf.makeCondition(conditions,'and')).disableAuthz().orderBy('productName,productId').list())

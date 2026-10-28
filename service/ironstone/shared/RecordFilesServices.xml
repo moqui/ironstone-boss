@@ -66,6 +66,11 @@ along with this software (see the LICENSE.md file). If not, see
                     .disableAuthz().call() : null
                 contentType.catalogCanChange = !!access?.record
             }
+            if (info.recordEntityName === 'mantle.party.Party') {
+                const access = ec.service.sync().name('ironstone.commons.ContactServices.check#ContactAccess')
+                    .parameters({partyId:info.recordId}).disableAuthz().call()
+                contentType.catalogCanChange = !!access?.canEdit
+            }
         ]]></script></actions>
     </service>
 

@@ -11,7 +11,7 @@
             <set field="canEdit" from="detail.canEdit"/>
         </if>
     </always-actions>
-    <subscreens default-item="Summary"><subscreens-item name="Prices" location="component://mr-boss/screen/Shared/Prices.xml"/></subscreens>
+    <subscreens default-item="Summary"><subscreens-item name="Suppliers" location="component://mr-boss/screen/Shared/SupplierPrices.xml"/><subscreens-item name="Prices" location="component://mr-boss/screen/Shared/Prices.xml"/></subscreens>
     <transition name="choices" read-only="true">
         <actions>
             <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>

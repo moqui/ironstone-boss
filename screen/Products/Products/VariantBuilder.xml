@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Build variants" default-menu-include="false" render-modes="vue,qvue,tui" server-static="vue,qvue">
+    <parameter name="productId"/>
+    <transition name="preview" method="get" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.VariantServices.preview#VariantProducts" in-map="context" out-map="answer"/>
+            <script>answer.errors=ec.message.getErrorsString(); ec.web.sendJsonResponse(answer)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="generate" method="post">
+        <actions>
+            <service-call name="ironstone.products.VariantServices.create#VariantProducts" in-map="context" out-map="answer"/>
+            <script>answer.errors=ec.message.getErrorsString(); ec.web.sendJsonResponse(answer)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="queue" method="post">
+        <actions>
+            <service-call name="ironstone.products.VariantServices.start#VariantBatch" in-map="context" out-map="answer"/>
+            <script>answer.errors=ec.message.getErrorsString(); ec.web.sendJsonResponse(answer)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="batch" method="get" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.VariantServices.get#VariantBatch" in-map="context" out-map="answer"/>
+            <script>answer.errors=ec.message.getErrorsString(); ec.web.sendJsonResponse(answer)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="run" method="post">
+        <actions>
+            <service-call name="ironstone.products.VariantServices.run#VariantBatch" in-map="context" out-map="answer"/>
+            <script>answer.errors=ec.message.getErrorsString(); ec.web.sendJsonResponse(answer)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="choices" read-only="true">
+        <actions>
+            <script><![CDATA[
+        const out=ec.service.sync().name('ironstone.products.CatalogServices.find#Products').parameters({text:term,list:'virtual',pageSize:40}).call()||{}, options=(out.productList||[]).map(p=>({value:p.productId,label:p.productName+' ('+p.productId+')'}))
+        if(productId&&!options.some(p=>p.value===productId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:productId,checkOnly:true}).call();if(got.record?.productTypeEnumId==='PtVirtual')options.unshift({value:productId,label:got.record.productName+' ('+productId+')'})}
+        ec.web.sendJsonResponse(options)
+    ]]></script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <widgets>
+        <render-mode>
+            <text type="qvue" location="component://mr-boss/screen/Products/Products/VariantBuilder.qvue" template="false"/>
+            <text type="tui"><![CDATA[${JSON.stringify([{t:'dynamicContainer',id:'VariantBuilderTui',url:sri.buildUrl('../VariantBuilderTui').addParameters({productId:productId||null}).getUrlWithParams()}])}]]></text>
+            <text type="html,qvt"><![CDATA[<p><a href="VariantBuilderTui?productId=${productId||''}">Open variant setup and combination list</a></p>]]></text>
+        </render-mode>
+    </widgets>
+</screen>

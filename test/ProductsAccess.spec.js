@@ -180,3 +180,10 @@ feature('P3 tags use the same authorized product filter and taxonomy writes requ
   return {products,denied}
  },false)},then({products,denied}){products.map(row=>row.productId)==['BOSS_PRD_OWN'];denied==true},
 })
+feature('P4 variant service and screen entry points refuse readers and other owners',{
+ when(){return asCatalog('catalog.reader',()=>{
+  const failures=[]
+  for(const name of ['preview#VariantProducts','create#VariantProducts','start#VariantBatch']){let denied=false;try{call('ironstone.products.VariantServices.'+name,{productId:'BOSS_PRD_VIRT',selectedFeatureSets:[]});denied=ec.message.hasError()}catch(e){denied=true}finally{ec.message.clearErrors()}if(!denied)failures.push(name)}
+  return {failures}
+ },false)},then({failures}){failures.length==0},
+})

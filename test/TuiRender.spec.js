@@ -22,6 +22,9 @@ function findScreenFiles(appList) {
 
 // the id parameters of the screens that open on one demo record (AppStructure's demoRecords)
 const demoParameters = {
+    "Products/Products/VariantBuilder": {productId: "BOSS_PRD_VIRT"},
+    "Products/Products/VariantBuilderTui": {productId: "BOSS_PRD_VIRT"},
+    "Products/Settings/VariantSettings": {organizationPartyId: "ORG_ZIZI_SERVICES"},
     "Product360": {productId: "BOSS_PRD_OWN"},
     "Products/Categories/CategoryDetail": {productCategoryId: "BOSS_PRD_CAT"},
     "Insights/Dashboard": {definitionId: "mantle-sales", from: "now-1y", thru: "now"},

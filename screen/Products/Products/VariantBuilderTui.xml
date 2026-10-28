@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Variant combination list" default-menu-include="false">
+    <parameter name="productId"/>
+    <parameter name="productTypeEnumId"/>
+    <parameter name="productFeatureGroupIds"/>
+    <parameter name="copyFieldsJson"/>
+    <parameter name="copyCategoryMembers"/>
+    <parameter name="filterFeatureIdsJson"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <parameter name="selectedFeatureSetsJson"/>
+    <parameter name="operationKey"/>
+    <transition name="generate">
+        <actions>
+            <script>operationKey=ec.user.randomString(32)</script>
+            <script>if(selectedKeys) selectedFeatureSetsJson=JSON.stringify(String(selectedKeys).split(',').map(k=&gt;JSON.parse(decodeURIComponent(k))))</script>
+            <service-call name="ironstone.products.VariantServices.create#VariantProducts" in-map="context" out-map="answer"/>
+            <script>if(answer.operationKey) operationKey=answer.operationKey</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="pageIndex"/>
+            <parameter name="pageSize"/>
+            <parameter name="selectedFeatureSetsJson"/>
+            <parameter name="operationKey"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="queue">
+        <actions>
+            <script>if(selectedKeys) selectedFeatureSetsJson=JSON.stringify(String(selectedKeys).split(',').map(k=&gt;JSON.parse(decodeURIComponent(k))))</script>
+            <service-call name="ironstone.products.VariantServices.start#VariantBatch" in-map="context" out-map="answer"/>
+            <script>if(answer.operationKey) operationKey=answer.operationKey</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="pageIndex"/>
+            <parameter name="pageSize"/>
+            <parameter name="selectedFeatureSetsJson"/>
+            <parameter name="operationKey"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="run">
+        <actions>
+            <script>if(selectedKeys) selectedFeatureSetsJson=JSON.stringify(String(selectedKeys).split(',').map(k=&gt;JSON.parse(decodeURIComponent(k))))</script>
+            <service-call name="ironstone.products.VariantServices.run#VariantBatch" in-map="context" out-map="answer"/>
+            <script>if(answer.operationKey) operationKey=answer.operationKey</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="pageIndex"/>
+            <parameter name="pageSize"/>
+            <parameter name="selectedFeatureSetsJson"/>
+            <parameter name="operationKey"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+        <set field="rows" from="[]"/>
+        <set field="results" from="[]"/>
+        <if condition="productId">
+            <service-call name="ironstone.products.VariantServices.preview#VariantProducts" in-map="context" out-map="context"/>
+            <script>for(const r of rows)r.selectionKey=encodeURIComponent(r.featureKey); rowsCount=totalCount; rowsPageIndex=pageIndex; rowsPageSize=pageSize; rowsPageMaxIndex=Math.max(0,Math.ceil(totalCount/pageSize)-1); rowsPageRangeLow=rows.length?pageIndex*pageSize+1:0; rowsPageRangeHigh=pageIndex*pageSize+rows.length; </script>
+        </if>
+        <if condition="operationKey">
+            <service-call name="ironstone.products.VariantServices.get#VariantBatch" in-map="context" out-map="batch"/>
+            <set field="results" from="batch.results"/>
+        </if>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Variant setup"/>
+            <box-body>
+                <form-single name="VariantSetup" transition=".">
+                    <field name="productId">
+                        <default-field title="Virtual product">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="productTypeEnumId">
+                        <default-field title="Variant type">
+                            <drop-down allow-empty="false">
+                                <list-options list="options.productTypes" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="productFeatureGroupIds">
+                        <default-field title="Feature groups (JSON array; empty: all)">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="filterFeatureIdsJson">
+                        <default-field title="Feature filters (JSON array)">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="copyFieldsJson">
+                        <default-field title="Copy fields (JSON array; empty: policy defaults)">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="copyCategoryMembers">
+                        <default-field title="Copy categories">
+                            <drop-down allow-empty="true">
+                                <option key="true" text="Yes"/>
+                                <option key="false" text="No"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Preview combinations">
+                            <submit/>
+                        </default-field>
+                    </field>
+                </form-single>
+            </box-body>
+        </container-box>
+        <section name="PreviewReady" condition="productId &amp;&amp; previewRevision">
+            <widgets>
+                <container-box>
+                    <box-header title="Combinations"/>
+                    <box-body>
+                        <label text="${totalCount} combinations · interactive limit ${batchLimit}" type="p"/>
+                        <form-list name="VariantCombinations" list="rows" skip-form="true" paginate="true">
+                            <row-selection id-field="selectionKey" parameter="selectedKeys" list-mode="true">
+                                <action>
+                                    <dialog button-text="Generate selected" title="Generate selected combinations"/>
+                                    <form-single name="GeneratePageSelection" transition="generate">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productTypeEnumId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productFeatureGroupIds">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyFieldsJson">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyCategoryMembers">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="filterFeatureIdsJson">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="pageIndex">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="pageSize">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="previewRevision">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Generate selected">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </action>
+                                <action>
+                                    <dialog button-text="Queue selected" title="Submit durable operation"/>
+                                    <form-single name="QueuePageSelection" transition="queue">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productTypeEnumId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productFeatureGroupIds">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyFieldsJson">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyCategoryMembers">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="filterFeatureIdsJson">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="pageIndex">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="pageSize">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="previewRevision">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="operationKey">
+                                            <default-field title="Unique operation key">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Queue selected">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </action>
+                            </row-selection>
+                            <field name="combination">
+                                <default-field title="Features">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="proposedProductId">
+                                <default-field title="Proposed SKU">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="existingProductId">
+                                <default-field title="Existing product">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="allowed">
+                                <default-field title="Allowed">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="featureKey">
+                                <default-field title="Full combination key">
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Selected combinations"/>
+                    <box-body>
+                        <label text="Paste complete feature-ID arrays to generate a selection spanning pages. An empty selection creates nothing." type="p"/>
+                        <form-single name="GenerateSelection" transition="generate">
+                            <field name="productId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="productTypeEnumId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="productFeatureGroupIds">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="copyFieldsJson">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="copyCategoryMembers">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="filterFeatureIdsJson">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="pageIndex">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="pageSize">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewRevision">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="selectedFeatureSetsJson">
+                                <default-field title="Selected feature sets (JSON)">
+                                    <text-area/>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Generate feature sets">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                        <form-single name="QueueSelection" transition="queue">
+                            <field name="productId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="productTypeEnumId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="productFeatureGroupIds">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="copyFieldsJson">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="copyCategoryMembers">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="filterFeatureIdsJson">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="pageIndex">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="pageSize">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewRevision">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="selectedFeatureSetsJson">
+                                <default-field title="Selected feature sets (JSON)">
+                                    <text-area/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey">
+                                <default-field title="Unique operation key">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Queue feature sets">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <container-box>
+            <box-header title="Operation results"/>
+            <box-body>
+                <form-single name="ResumeOperation" transition="run">
+                    <field name="productId">
+                        <default-field>
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="operationKey">
+                        <default-field title="Operation key">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="limit">
+                        <default-field title="Combinations to process (1–100)">
+                            <text-line input-type="number"/>
+                        </default-field>
+                    </field>
+                    <field name="retryFailed">
+                        <default-field title="Retry failed">
+                            <drop-down>
+                                <option key="false" text="No"/>
+                                <option key="true" text="Yes"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Process next batch">
+                            <submit/>
+                        </default-field>
+                    </field>
+                </form-single>
+                <form-list name="VariantResults" list="results" skip-form="true" paginate="false">
+                    <field name="featureKey">
+                        <default-field title="Feature key">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="productId">
+                        <default-field title="Product">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="result">
+                        <default-field title="Result">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="error">
+                        <default-field title="Reason">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
+</screen>

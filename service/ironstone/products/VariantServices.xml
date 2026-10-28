@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="preview" noun="VariantProducts" allow-remote="false">
+        <in-parameters>
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="productFeatureGroupIdSet" type="List"/>
+            <parameter name="copyFields" type="List"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers" type="Boolean"/>
+            <parameter name="filterFeatureIds" type="List"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="previewRevision"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+            <parameter name="totalCount" type="Long"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="previewRevision"/>
+            <parameter name="featureTypeInfoList" type="List"/>
+            <parameter name="product" type="Map"/>
+            <parameter name="groupOptions" type="List"/>
+            <parameter name="batchLimit" type="Integer"/>
+            <parameter name="copyFields" type="List"/>
+            <parameter name="copyCategoryMembers" type="Boolean"/>
+            <parameter name="categoryCopyAllowed" type="Boolean"/>
+            <parameter name="copyFieldOptions" type="List"/>
+            <parameter name="variantTypes" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('preview',context))</script>
+        </actions>
+    </service>
+    <service verb="create" noun="VariantProducts" allow-remote="false">
+        <in-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="productFeatureGroupIdSet" type="List"/>
+            <parameter name="copyFields" type="List"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers" type="Boolean"/>
+            <parameter name="filterFeatureIds" type="List"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="previewRevision"/>
+            <parameter name="selectedFeatureSets" type="List"/>
+            <parameter name="selectedFeatureSetsJson"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="pendingCount" type="Integer"/>
+            <parameter name="totalCount" type="Long"/>
+            <parameter name="results" type="List"/>
+            <parameter name="createdCount" type="Integer"/>
+            <parameter name="existingCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('generate',context))</script>
+        </actions>
+    </service>
+    <service verb="start" noun="VariantBatch" allow-remote="false">
+        <in-parameters>
+            <parameter name="productId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productFeatureGroupIds"/>
+            <parameter name="productFeatureGroupIdSet" type="List"/>
+            <parameter name="copyFields" type="List"/>
+            <parameter name="copyFieldsJson"/>
+            <parameter name="copyCategoryMembers" type="Boolean"/>
+            <parameter name="filterFeatureIds" type="List"/>
+            <parameter name="filterFeatureIdsJson"/>
+            <parameter name="previewRevision"/>
+            <parameter name="operationKey"/>
+            <parameter name="selectedFeatureSets" type="List"/>
+            <parameter name="selectedFeatureSetsJson"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="productId"/>
+            <parameter name="totalCount" type="Long"/>
+            <parameter name="pendingCount" type="Integer"/>
+            <parameter name="createdCount" type="Integer"/>
+            <parameter name="existingCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="results" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('startBatch',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="VariantBatch" allow-remote="false">
+        <in-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="pageIndex" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="productId"/>
+            <parameter name="totalCount" type="Long"/>
+            <parameter name="pendingCount" type="Integer"/>
+            <parameter name="createdCount" type="Integer"/>
+            <parameter name="existingCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="results" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('getBatch',context))</script>
+        </actions>
+    </service>
+    <service verb="run" noun="VariantBatch" allow-remote="false">
+        <in-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="limit" type="Integer"/>
+            <parameter name="retryFailed" type="Boolean"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="productId"/>
+            <parameter name="totalCount" type="Long"/>
+            <parameter name="pendingCount" type="Integer"/>
+            <parameter name="createdCount" type="Integer"/>
+            <parameter name="existingCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="results" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('runBatch',context))</script>
+        </actions>
+    </service>
+    <service verb="run" noun="VariantItem" allow-remote="false">
+        <in-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="itemSeqId" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="result"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('runItem',context))</script>
+        </actions>
+    </service>
+    <service verb="fail" noun="VariantItem" allow-remote="false">
+        <in-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="itemSeqId" type="Integer"/>
+            <parameter name="errorMessage"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="result"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('failItem',context))</script>
+        </actions>
+    </service>
+</services>

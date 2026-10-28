@@ -1,0 +1,83 @@
+<template><div class="q-pa-sm">
+    <m-container-box title="Build variants">
+        <p>Preview the selectable features, choose complete combinations, then generate their SKUs. Existing combinations keep their product and overrides.</p>
+        <div class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6"><m-drop-down v-model="form.productId" name="virtualProduct" label="Virtual product" :options="sourceOptions" :options-url="screenPath + '/choices'" :options-parameters="{productId:form.productId}" server-search :allow-empty="true" @update:model-value="sourceChanged"></m-drop-down></div>
+            <div class="col-12 col-md-3"><m-drop-down v-model="form.productTypeEnumId" name="variantType" label="Variant type" :options="variantTypes" @update:model-value="invalidate"></m-drop-down></div>
+            <div class="col-12 col-md-3"><m-check v-model="form.copyCategoryMembers" name="copyCategories" true-value="Y" false-value="N" single-label="Copy categories" :disable="!categoryCopyAllowed" @update:model-value="invalidate"></m-check></div>
+        </div>
+        <m-check v-if="groupOptions.length" v-model="form.groups" name="featureGroups" label="Category feature groups (none selected: all)" :options="groupOptions" @update:model-value="invalidate"></m-check>
+        <m-check v-if="copyFieldOptions.length" v-model="form.copyFields" name="copyFields" label="Copy fields" :options="copyFieldOptions" @update:model-value="invalidate"></m-check>
+        <div v-if="axes.length > 2" class="row q-col-gutter-sm">
+            <div v-for="axis in extraAxes" :key="axis.enumId" class="col-12 col-md-4"><m-drop-down v-model="filters[axis.enumId]" :name="'filter-'+axis.enumId" :label="axis.description" :options="axisOptions(axis)" :allow-empty="true" @update:model-value="invalidate"></m-drop-down></div>
+        </div>
+        <div class="row items-center q-gutter-sm q-mt-sm"><q-btn label="Preview combinations" color="primary" no-caps unelevated :loading="busy" :disable="!form.productId" @click="load(0)"></q-btn><q-btn label="Combination list / terminal setup" flat no-caps @click="openTwin"></q-btn></div>
+        <p v-if="error" role="alert" class="text-negative q-mt-sm">{{error}}</p>
+    </m-container-box>
+
+    <m-container-box v-if="revision" :title="'Choose combinations · ' + totalCount">
+        <div class="row q-col-gutter-sm items-center q-mb-sm">
+            <div class="col-12 col-md-3" v-if="axes.length > 1"><m-drop-down v-model="axisX" name="columnAxis" label="Columns" :options="axisChoices" @update:model-value="axisChanged('x')"></m-drop-down></div>
+            <div class="col-12 col-md-3" v-if="axes.length > 1"><m-drop-down v-model="axisY" name="rowAxis" label="Rows" :options="axisChoices" @update:model-value="axisChanged('y')"></m-drop-down></div>
+            <div class="col-auto"><q-btn :label="listView ? 'Show matrix' : 'Show list'" flat no-caps @click="listView = !listView" v-if="!phone && axes.length > 1"></q-btn></div>
+            <div class="col-auto"><q-btn label="Select allowed on page" flat no-caps @click="selectPage"></q-btn><q-btn label="Clear selection" flat no-caps @click="selected = []"></q-btn></div>
+        </div>
+        <p class="text-caption">{{selected.length}} selected · {{existingOnPage}} existing on page · interactive limit {{batchLimit}}. Full feature keys identify combinations in both views.</p>
+        <div v-if="!phone && !listView && axes.length > 1" class="scroll" data-variant-matrix>
+            <table class="q-table"><thead><tr><th scope="col">{{axisLabel(axisY)}} / {{axisLabel(axisX)}}</th><th v-for="x in pageFeatures(axisX)" :key="x.productFeatureId" scope="col">{{x.description}}</th></tr></thead>
+                <tbody><tr v-for="y in pageFeatures(axisY)" :key="y.productFeatureId"><th scope="row">{{y.description}}</th><td v-for="x in pageFeatures(axisX)" :key="x.productFeatureId">
+                    <div v-for="row in cell(x.productFeatureId,y.productFeatureId)" :key="row.featureKey" class="q-py-xs" :data-feature-key="row.featureKey">
+                        <m-check v-model="selected" :name="'matrix-'+row.proposedProductId" :options="[{value:row.featureKey,label:row.proposedProductId,disable:!row.allowed}]" no-wrapper></m-check>
+                        <div class="text-caption">{{row.existingProductId ? 'Existing: '+row.existingProductId : row.reason || row.combination}}</div><div v-if="row.featureExtra != null" class="text-caption">Feature extra {{row.featureExtra}}</div><q-tooltip>{{row.featureKey}}</q-tooltip>
+                    </div>
+                </td></tr></tbody>
+            </table>
+        </div>
+        <div v-else data-variant-list>
+            <q-card v-for="row in rows" :key="row.featureKey" flat bordered class="q-mb-sm" :data-feature-key="row.featureKey"><q-card-section class="q-pa-sm">
+                <m-check v-model="selected" :name="'list-'+row.proposedProductId" :options="[{value:row.featureKey,label:row.combination,disable:!row.allowed}]" no-wrapper></m-check>
+                <div class="text-body2">{{row.existingProductId ? 'Existing: '+row.existingProductId : 'Proposed: '+row.proposedProductId}}</div>
+                <div v-if="row.reason" class="text-negative">{{row.reason}}</div><div v-if="row.featureExtra != null" class="text-caption">Feature extra {{row.featureExtra}}</div><div class="text-caption text-mono">{{row.featureKey}}</div>
+            </q-card-section></q-card>
+        </div>
+        <p v-if="!rows.length">No selectable combinations. Apply selectable features to the virtual product or its category feature groups.</p>
+        <div class="row q-gutter-sm items-center q-mt-sm"><q-btn label="Previous" flat no-caps :disable="busy || pageIndex === 0" @click="load(pageIndex-1,true)"></q-btn><span>Page {{pageIndex+1}} of {{Math.max(1,Math.ceil(totalCount/pageSize))}}</span><q-btn label="Next" flat no-caps :disable="busy || (pageIndex+1)*pageSize >= totalCount" @click="load(pageIndex+1,true)"></q-btn></div>
+        <div class="row q-gutter-sm q-mt-sm"><q-btn label="Generate selected" color="primary" unelevated no-caps :loading="busy" :disable="!selected.length || selected.length > batchLimit" @click="generate"></q-btn><q-btn label="Queue selected" class="m-btn-tonal" unelevated no-caps :disable="busy || !selected.length" @click="queue"></q-btn></div>
+    </m-container-box>
+
+    <m-container-box title="Results and durable operations">
+        <p v-if="summary" role="status">{{summary}}</p>
+        <div class="row q-col-gutter-sm items-center"><div class="col-12 col-md-5"><m-text-line v-model="operationKey" name="operationKey" label="Operation key"></m-text-line></div><div class="col-auto"><q-btn label="Load operation" flat no-caps :disable="busy || !operationKey" @click="readBatch(0)"></q-btn><q-btn label="Process next batch" no-caps class="m-btn-tonal" unelevated :loading="busy" :disable="!operationKey" @click="runBatch(false)"></q-btn><q-btn label="Retry failed batch items" flat no-caps :disable="busy || !operationKey" @click="runBatch(true)"></q-btn></div></div>
+        <p v-if="pendingCount">{{pendingCount}} pending. Each click processes up to 100 combinations; the saved operation can be resumed later.</p>
+        <q-card v-for="(row,index) in results" :key="row.featureKey+'-'+index" flat bordered class="q-mt-sm"><q-card-section class="q-pa-sm">
+            <div class="row items-center"><span class="text-weight-medium">{{row.result}}</span><q-btn v-if="row.productId" flat no-caps :label="row.productId" @click="openProduct(row.productId)"></q-btn><q-btn v-if="row.result === 'failed' && revision" flat no-caps label="Retry combination" :disable="busy" @click="retry(row)"></q-btn></div><div class="text-caption text-mono">{{row.featureKey}}</div><div v-if="row.error" class="text-negative">{{row.error}}</div>
+        </q-card-section></q-card>
+        <div v-if="operationTotal > 50" class="row items-center q-gutter-sm q-mt-sm"><q-btn label="Previous results" flat no-caps :disable="resultPage === 0" @click="readBatch(resultPage-1)"></q-btn><span>Results page {{resultPage+1}}</span><q-btn label="Next results" flat no-caps :disable="(resultPage+1)*50 >= operationTotal" @click="readBatch(resultPage+1)"></q-btn></div>
+    </m-container-box>
+</div></template>
+<script>
+module.exports = {
+    data(){return {form:{productId:'',productTypeEnumId:'PtAsset',groups:[],copyFields:null,copyCategoryMembers:'N'},sourceOptions:[],groupOptions:[],copyFieldOptions:[],variantTypes:[{value:'PtAsset',label:'Asset'}],categoryCopyAllowed:false,filters:{},axes:[],axisX:'',axisY:'',rows:[],selected:[],revision:'',totalCount:0,pageIndex:0,pageSize:50,batchLimit:1000,busy:false,error:'',listView:false,results:[],summary:'',operationKey:'',pendingCount:0,operationTotal:0,resultPage:0}},
+    computed:{screenPath(){return this.$root.basePath+'/'+this.$root.currentPathList.join('/')},phone(){return this.$q.screen.lt.sm},axisChoices(){return this.axes.map(a=>({value:a.enumId,label:a.description}))},extraAxes(){return this.axes.filter(a=>a.enumId!==this.axisX&&a.enumId!==this.axisY)},existingOnPage(){return this.rows.filter(r=>r.existingProductId).length}},
+    methods:{
+        async request(name,params,post){const r=await moqui.request(this.screenPath+'/'+name,{method:post?'POST':'GET',params});const out=r.json||{};if(out.errors)throw new Error(typeof out.errors==='string'?out.errors:JSON.stringify(out.errors));return out},
+        parameters(){const p={productId:this.form.productId,productTypeEnumId:this.form.productTypeEnumId,productFeatureGroupIds:JSON.stringify(this.form.groups||[]),copyCategoryMembers:this.form.copyCategoryMembers==='Y',filterFeatureIdsJson:JSON.stringify(Object.values(this.filters).filter(Boolean))};if(this.form.copyFields!==null)p.copyFieldsJson=JSON.stringify(this.form.copyFields);return p},
+        invalidate(){this.revision='';this.selected=[]},
+        sourceChanged(){this.invalidate();this.axes=[];this.groupOptions=[];this.copyFieldOptions=[];this.form.copyFields=null;this.form.groups=[];this.form.copyCategoryMembers='N';this.filters={};this.axisX='';this.axisY=''},
+        async load(page,keep){this.busy=true;this.error='';try{const old=this.revision,out=await this.request('preview',Object.assign(this.parameters(),{pageIndex:page,pageSize:this.pageSize}));if(!keep||old!==out.previewRevision)this.selected=[];this.sourceOptions=[{value:out.product.productId,label:out.product.productName+' ('+out.product.productId+')'}];this.rows=out.rows||[];this.axes=out.featureTypeInfoList||[];this.groupOptions=out.groupOptions||[];this.copyFieldOptions=out.copyFieldOptions||[];this.variantTypes=out.variantTypes||this.variantTypes;this.form.copyFields=out.copyFields||[];this.categoryCopyAllowed=out.categoryCopyAllowed;this.totalCount=out.totalCount||0;this.pageIndex=out.pageIndex||0;this.revision=out.previewRevision;this.batchLimit=out.batchLimit;this.axisX=this.axes.some(a=>a.enumId===this.axisX)?this.axisX:this.axes[0]?.enumId||'';this.axisY=this.axes.some(a=>a.enumId===this.axisY)?this.axisY:this.axes[1]?.enumId||''}catch(e){this.error=String(e.message||e);this.revision=''}finally{this.busy=false}},
+        axisOptions(axis){return axis.featureInfoList.map(f=>({value:f.productFeatureId,label:f.description}))},axisLabel(id){return this.axes.find(a=>a.enumId===id)?.description||id},axisChanged(which){if(this.axisX===this.axisY){const other=this.axes.find(a=>a.enumId!==(which==='x'?this.axisX:this.axisY))?.enumId||'';if(which==='x')this.axisY=other;else this.axisX=other}this.filters={};this.load(0,true)},
+        pageFeatures(id){const seen=new Set(this.rows.flatMap(r=>r.productFeatureIds));return this.axes.find(a=>a.enumId===id)?.featureInfoList.filter(f=>seen.has(f.productFeatureId))||[]},cell(x,y){return this.rows.filter(r=>r.productFeatureIds.includes(x)&&r.productFeatureIds.includes(y))},
+        selectPage(){this.selected=[...new Set(this.selected.concat(this.rows.filter(r=>r.allowed).map(r=>r.featureKey)))]},
+        selectedParameters(){return Object.assign(this.parameters(),{previewRevision:this.revision,selectedFeatureSetsJson:JSON.stringify(this.selected.map(k=>JSON.parse(k)))})},
+        showResults(out){this.results=out.results||[];this.summary=(out.createdCount||0)+' created · '+(out.existingCount||0)+' existing · '+(out.failedCount||0)+' failed';this.pendingCount=out.pendingCount||0;this.operationTotal=out.totalCount||0;this.resultPage=out.pageIndex||0},
+        async generate(){this.busy=true;this.error='';try{const out=await this.request('generate',this.selectedParameters(),true);this.operationKey='';this.showResults(out);await this.load(this.pageIndex,true)}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
+        async queue(){this.busy=true;this.error='';try{const operationKey='variants-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10),out=await this.request('queue',Object.assign(this.selectedParameters(),{operationKey}),true);this.operationKey=operationKey;this.showResults(out);this.summary+=' · Operation '+operationKey}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
+        async readBatch(page){this.busy=true;this.error='';try{this.showResults(await this.request('batch',{operationKey:this.operationKey,pageIndex:page}));}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
+        async runBatch(retryFailed){this.busy=true;this.error='';try{this.showResults(await this.request('run',{operationKey:this.operationKey,retryFailed},true));if(this.revision)await this.load(this.pageIndex,true)}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
+        async retry(row){await this.load(this.pageIndex,true);if(this.revision){this.selected=[row.featureKey];await this.generate()}},
+        openTwin(){this.$root.setUrl(this.$root.linkBasePath+'/'+this.$root.currentPathList.slice(0,-1).concat('VariantBuilderTui').join('/')+'?productId='+encodeURIComponent(this.form.productId||''))},
+        openProduct(id){this.$root.setUrl(this.$root.linkBasePath+'/'+this.$root.currentPathList.slice(0,-1).concat('Product360').join('/')+'?productId='+encodeURIComponent(id))},
+        fromParameters(){const id=this.$root.currentParameters?.productId||'';if(id!==this.form.productId){this.sourceChanged();this.form.productId=id;if(id)this.load(0)}}
+    },watch:{'$root.currentParameters':{deep:true,handler(){this.fromParameters()}}},mounted(){this.fromParameters()}
+};
+</script>

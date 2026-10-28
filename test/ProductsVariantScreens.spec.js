@@ -1,0 +1,8 @@
+const root='component://mr-boss/screen/Products.xml',screens=[['Products/VariantBuilderTui',{productId:'BOSS_PRD_VIRT'}],['Settings/VariantSettings',{organizationPartyId:'ORG_ZIZI_SERVICES'}],['Settings/Index',{}],['Products/Product360/Features',{productId:'BOSS_PRD_VIRT'}]]
+spec({setupSpec(){login('john.doe')},setup(){ec.artifactExecution.disableAuthz()},cleanup(){ec.message.clearErrors();ec.artifactExecution.enableAuthz()}})
+feature('variant #path renders directly in #mode',{
+ where:screens.flatMap(([path,parameters])=>['qvt','html','tui'].map(mode=>({path,parameters,mode}))),expect({path,parameters,mode}){const got=ec.screen.makeTest().rootScreen(root).renderMode(mode).withStaticData().render(path,Object.assign({lastStandalone:'-2'},parameters),null);if(got.errorMessages.length||/Error rendering|Exception in render/.test(got.output))log.warn(path+' '+mode+': '+got.errorMessages.join(' | ')+' '+got.output.substring(0,1800));got.status==200;got.errorMessages.length==0;got.output.length>100;!/Error rendering|Exception in render/.test(got.output)},
+})
+feature('the builder serves the component and routes the terminal to its full XML twin',{
+ when(){const component=ec.screen.makeTest().rootScreen(root).renderMode('qvue').render('Products/VariantBuilder',{productId:'BOSS_PRD_VIRT'},null),tui=ec.screen.makeTest().rootScreen(root).renderMode('tui').render('Products/VariantBuilder',{productId:'BOSS_PRD_VIRT'},null);return{component,tui}},then({component,tui}){component.status==200;component.output.includes('module.exports');tui.errorMessages.length==0;tui.output.includes('VariantBuilderTui');tui.output.includes('BOSS_PRD_VIRT')},
+})

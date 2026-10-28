@@ -22,4 +22,13 @@
 <mantle.product.feature.ProductFeatureGroup productFeatureGroupId="BOSS_PRD_GROUP" description="Services finishes" ownerPartyId="ORG_ZIZI_SERVICES"/>
 <mantle.product.feature.ProductFeatureGroupAppl productFeatureGroupId="BOSS_PRD_GROUP" productFeatureId="BOSS_PRD_FEATURE" fromDate="2026-01-01 00:00:00" sequenceNum="1"/>
 <mantle.product.feature.ProductCategoryFeatGrpAppl productCategoryId="BOSS_PRD_CAT" productFeatureGroupId="BOSS_PRD_GROUP" fromDate="2026-01-01 00:00:00" applTypeEnumId="PfatSelectable"/>
+<mantle.product.Product productId="BOSS_PRD_VIRT" productName="Services work shirt" productTypeEnumId="PtVirtual" ownerPartyId="ORG_ZIZI_SERVICES" amountUomId="OTH_ea" statusId="PrdDraft" description="Work shirt with selectable color and size"/>
+<mantle.product.feature.ProductFeature productFeatureId="BOSS_VAR_BLUE" description="Ocean blue" productFeatureTypeEnumId="PftColor" abbrev="BL" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeature productFeatureId="BOSS_VAR_RED" description="Brick red" productFeatureTypeEnumId="PftColor" abbrev="RD" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeature productFeatureId="BOSS_VAR_SMALL" description="Small" productFeatureTypeEnumId="PftSize" abbrev="S" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeature productFeatureId="BOSS_VAR_LARGE" description="Large" productFeatureTypeEnumId="PftSize" abbrev="L" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_BLUE" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="2.00"/>
+<mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_RED" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="1.00"/>
+<mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_SMALL" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="0.00"/>
+<mantle.product.feature.ProductFeatureAppl productId="BOSS_PRD_VIRT" productFeatureId="BOSS_VAR_LARGE" applTypeEnumId="PfatSelectable" fromDate="2026-01-01 00:00:00" amount="3.00"/>
 </entity-facade-xml>

@@ -124,7 +124,7 @@ function storeRow(p) {
         const old = one(spec.entity, {[spec.id]: data[spec.id]})
         if (!old || old.productId !== p.productId) throw new Error('Row is not on this product')
     }
-    if (p.kind === 'category') record(data.productCategoryId, 'read', P+'category.ProductCategory')
+    if (p.kind === 'category') {find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one(); record(data.productCategoryId, 'read', P+'category.ProductCategory')}
     if (p.kind === 'feature') {
         find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one()
         const lockedProduct=find(P+'Product',{productId:p.productId}).forUpdate(true).one()

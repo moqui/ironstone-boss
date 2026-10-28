@@ -47,6 +47,9 @@ function findScreenFiles(appList, matches) {
 // that opens on one
 const demoRecords = {
     "Insights/Dashboard": {parameters: {definitionId: "mantle-sales", from: "now-1y", thru: "now"}},
+    "Products/Products/VariantBuilder": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Build variants"},
+    "Products/Products/VariantBuilderTui": {parameters: {productId: "BOSS_PRD_VIRT"}, text: "Variant setup"},
+    "Products/Settings/VariantSettings": {parameters: {organizationPartyId: "ORG_ZIZI_SERVICES"}, text: "Variant policy"},
     "Products/Home": {text: "Your catalog"},
     "Products/Products": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
     "Products/Products/List": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},

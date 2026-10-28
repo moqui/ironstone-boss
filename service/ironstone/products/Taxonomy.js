@@ -213,9 +213,11 @@ function storeRow(p){
         record('feature',p.productFeatureId)
         return call(C+'store#CatalogRow',Object.assign({},p,{kind:'feature'}))
     }else if(p.rowKind==='groupFeature'){
+        featureLock()
         record('group',p.productFeatureGroupId,'catalogEdit');record('feature',p.productFeatureId)
         entity='mantle.product.feature.ProductFeatureGroupAppl';keys='productFeatureGroupId,productFeatureId,fromDate';values=pick(p,keys+',thruDate,sequenceNum')
     }else if(p.rowKind==='categoryGroup'){
+        featureLock()
         record('category',p.productCategoryId,'catalogEdit');record('group',p.productFeatureGroupId)
         entity='mantle.product.feature.ProductCategoryFeatGrpAppl';keys='productCategoryId,productFeatureGroupId,fromDate';values=pick(p,keys+',thruDate,applTypeEnumId')
         if(!['PfatStandard','PfatSelectable','PfatDistinguishing'].includes(values.applTypeEnumId))throw new Error('Choose a feature application type')

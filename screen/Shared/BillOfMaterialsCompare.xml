@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Compare method dates" default-menu-include="false">
+    <parameter name="appRoot" />
+    <parameter name="productId" />
+    <parameter name="productBomId" />
+    <parameter name="organizationPartyId" />
+    <parameter name="workEffortId" />
+    <parameter name="asOfDate" />
+    <parameter name="quantity" />
+    <parameter name="quantityUomId" />
+    <parameter name="facilityId" />
+    <parameter name="leftReleaseId" />
+    <parameter name="rightReleaseId" />
+    <parameter name="leftDate" />
+    <parameter name="rightDate" />
+    <actions>
+        <service-call name="ironstone.products.MethodServices.compare#BomDates" in-map="context" out-map="context" />
+    </actions>
+    <widgets>
+        <label text="Compare method dates" type="h5" />
+        <form-single name="BillOfMaterialsCompareParameters" transition=".">
+            <field name="productId" from="productId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="productBomId" from="productBomId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="organizationPartyId" from="organizationPartyId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="leftReleaseId">
+                <default-field title="Before approval">
+                    <drop-down allow-empty="true">
+                        <list-options list="releaseOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="rightReleaseId">
+                <default-field title="After approval">
+                    <drop-down allow-empty="true">
+                        <list-options list="releaseOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="manualLeftDate">
+                <default-field title="Before date override (optional)">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="manualRightDate">
+                <default-field title="After date override (optional)">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Show report">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <label text="${reportMessage || &quot;&quot;}" type="p" />
+        <form-list name="BillOfMaterialsCompareFindings" list="findings || []" skip-form="true" paginate="false" show-csv-button="true">
+            <field name="recordId">
+                <default-field title="Record">
+                    <display />
+                </default-field>
+            </field>
+            <field name="message">
+                <default-field title="Finding">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+        <form-list name="BillOfMaterialsCompareRows" list="comparisonRows || []" skip-form="true" paginate="false" show-csv-button="true">
+            <field name="lineageId">
+                <default-field title="Line lineage">
+                    <display />
+                </default-field>
+            </field>
+            <field name="changeType">
+                <default-field title="Change">
+                    <display />
+                </default-field>
+            </field>
+            <field name="fields">
+                <default-field title="Changed fields">
+                    <display />
+                </default-field>
+            </field>
+            <field name="beforeProductId">
+                <default-field title="Before product">
+                    <display />
+                </default-field>
+            </field>
+            <field name="beforeQuantity">
+                <default-field title="Before quantity">
+                    <display />
+                </default-field>
+            </field>
+            <field name="afterProductId">
+                <default-field title="After product">
+                    <display />
+                </default-field>
+            </field>
+            <field name="afterQuantity">
+                <default-field title="After quantity">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+        <form-list name="BomHeaderChanges" list="headerChanges || []" skip-form="true" paginate="false" show-csv-button="true">
+            <field name="field">
+                <default-field title="Header field">
+                    <display />
+                </default-field>
+            </field>
+            <field name="left">
+                <default-field title="Before">
+                    <display />
+                </default-field>
+            </field>
+            <field name="right">
+                <default-field title="After">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+        <form-list name="BomOperationChanges" list="operationChanges || []" skip-form="true" paginate="false" show-csv-button="true">
+            <field name="workEffortId">
+                <default-field title="Changed operation">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+    <parameter name="manualLeftDate" />
+    <parameter name="manualRightDate" />
+</screen>

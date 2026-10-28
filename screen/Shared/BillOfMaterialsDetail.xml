@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="BOM" default-menu-include="false">
+    <parameter name="appRoot" />
+    <parameter name="productId" />
+    <parameter name="productBomId" />
+    <parameter name="organizationPartyId" />
+    <parameter name="workEffortId" />
+    <parameter name="asOfDate" />
+    <parameter name="selectedBomItemId" />
+    <always-actions>
+        <service-call name="ironstone.products.MethodServices.get#MethodContext" in-map="context" out-map="context" />
+    </always-actions>
+    <subscreens default-item="Overview">
+        <subscreens-item name="Overview" menu-title="Method" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsDetail/Overview.xml" />
+        <subscreens-item name="BillOfMaterialsExplosion" menu-title="Explosion" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsExplosion.xml" />
+        <subscreens-item name="BillOfMaterialsCompare" menu-title="Compare dates" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsCompare.xml" />
+        <subscreens-item name="WhereUsed" menu-title="Where used" menu-include="true" location="component://mr-boss/screen/Shared/WhereUsed.xml" />
+        <subscreens-item name="RoutingDetail" menu-title="Routing" menu-include="true" location="component://mr-boss/screen/Shared/RoutingDetail.xml" />
+    </subscreens>
+    <widgets>
+        <label text="Manufacturing methods" type="h5" />
+        <label text="${methodMessage}" type="p" />
+        <section name="MethodAccess" condition="methodAccess.read">
+            <widgets>
+                <form-single name="MethodSelection" transition=".">
+                    <field name="productId" from="productId || null">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="organizationPartyId" from="organizationPartyId || null">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="productBomId">
+                        <default-field title="Method">
+                            <drop-down allow-empty="true">
+                                <list-options list="bomRows" key="${productBomId}" text="${methodCode} · ${bomName}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="asOfDate">
+                        <default-field title="Review at date">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Show method">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+                <subscreens-menu id="MethodTabs" type="tab" />
+                <subscreens-active />
+            </widgets>
+        </section>
+    </widgets>
+</screen>

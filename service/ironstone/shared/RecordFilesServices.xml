@@ -37,6 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
             // the create#<X>Content services (each saves the uploaded contentFile through its save#<X>ContentFile), and the
             // enumeration type of the content type field (its relationship title in mr-mantle)
             const services = {
+                'mantle.product.bom.ProductBom': ['mantle.product.BomServices.create#ProductBomContent', 'productBomContentId', 'ProductBomContentType'],
                 'mantle.party.agreement.Agreement': ['mantle.party.AgreementServices.create#AgreementContent', 'agreementContentId', 'AgreementContentType'],
                 'mantle.product.maintenance.AssetMaintenance': ['mantle.product.EquipmentServices.create#AssetMaintenanceContent', null, 'AssetMaintContentType'],
                 'mantle.party.communication.CommunicationEvent': ['mantle.party.CommunicationServices.create#CommunicationEventContent',
@@ -65,6 +66,15 @@ along with this software (see the LICENSE.md file). If not, see
                     .parameters({recordEntityName: info.recordEntityName, recordId: info.recordId, need: 'catalogEdit', checkOnly: true})
                     .disableAuthz().call() : null
                 contentType.catalogCanChange = !!access?.record
+            }
+            if (info.recordEntityName === 'mantle.product.bom.ProductBom') {
+                contentType.catalogCanChange = !!ec.service.sync().name('mantle.product.BomServices.get#BomAccess')
+                    .parameters({productBomId:info.recordId,need:'edit'}).disableAuthz().call()?.recordVisible
+            }
+            if (info.recordEntityName === 'mantle.work.effort.WorkEffort') {
+                const row = ec.entity.find('mantle.work.effort.WorkEffort').condition('workEffortId',info.recordId).one()
+                if (row && ['WepRouting','WepRoutingTask'].includes(row.purposeEnumId)) contentType.catalogCanChange = !!ec.service.sync()
+                    .name('mantle.work.RoutingServices.get#RoutingAccess').parameters({workEffortId:info.recordId,need:'edit'}).disableAuthz().call()?.recordVisible
             }
             if (info.recordEntityName === 'mantle.party.Party') {
                 const access = ec.service.sync().name('ironstone.commons.ContactServices.check#ContactAccess')

@@ -89,6 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
             const entityName = info.recordEntityName
             const value = ec.entity.find(entityName).condition(info.recordKeyField, recordId).one()
             record = value ? value.getMap() : {}
+            if (entityName === 'mantle.work.effort.WorkEffort' && ['WepRouting','WepRoutingTask'].includes(record.purposeEnumId)) record = Object.fromEntries(['workEffortId','workEffortName','description','ownerPartyId','purposeEnumId','workEffortTypeEnumId'].map(k=>[k,record[k]]))
             const L = (text) => ec.l10n.localize(text)
             if (info.isParty) {
                 const party = ec.entity.find('mantle.party.PartyDetail').condition('partyId', recordId).one()
@@ -117,13 +118,13 @@ along with this software (see the LICENSE.md file). If not, see
                 title = '!' + record.mergeRequestNum + ' ' + (record.title || '')
                 typeLabel = L('Merge request')
             } else {
-                const nameFields = ['requestName', 'workEffortName', 'orderName', 'productName', 'categoryName', 'facilityName', 'assetName',
+                const nameFields = ['bomName', 'requestName', 'workEffortName', 'orderName', 'productName', 'categoryName', 'facilityName', 'assetName',
                     'subject', 'shipmentId', 'description']
                 const field = nameFields.find((name) => record[name])
                 title = field ? String(record[field]) : ''
                 const types = {'mantle.request.Request': 'Request', 'mantle.order.OrderHeader': 'Order', 'mantle.account.invoice.Invoice': 'Invoice',
                     'mantle.account.payment.Payment': 'Payment', 'mantle.shipment.Shipment': 'Shipment', 'mantle.product.Product': 'Product',
-                    'mantle.facility.Facility': 'Facility', 'mantle.product.asset.Asset': 'Asset',
+                    'mantle.product.bom.ProductBom': 'Bill of materials', 'mantle.facility.Facility': 'Facility', 'mantle.product.asset.Asset': 'Asset',
                     'mantle.party.communication.CommunicationEvent': 'Message', 'mantle.party.agreement.Agreement': 'Agreement'}
                 let type = types[entityName] || null
                 if (entityName === 'mantle.work.effort.WorkEffort') type = {WetEvent: 'Event', WetProject: 'Project', WetSprint: 'Sprint', WetMilestone: 'Milestone',

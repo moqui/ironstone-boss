@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Where used" default-menu-include="false">
+    <parameter name="appRoot" />
+    <parameter name="productId" />
+    <parameter name="productBomId" />
+    <parameter name="organizationPartyId" />
+    <parameter name="workEffortId" />
+    <parameter name="asOfDate" />
+    <parameter name="quantity" />
+    <parameter name="quantityUomId" />
+    <parameter name="facilityId" />
+    <parameter name="leftDate" />
+    <parameter name="rightDate" />
+    <actions>
+        <service-call name="ironstone.products.MethodServices.get#BomWhereUsed" in-map="context" out-map="context" />
+    </actions>
+    <widgets>
+        <label text="Where used" type="h5" />
+        <form-single name="WhereUsedParameters" transition=".">
+            <field name="productId" from="productId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="productBomId" from="productBomId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="organizationPartyId" from="organizationPartyId || null">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of date">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Show report">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <label text="${reportMessage || &quot;&quot;}" type="p" />
+        <form-list name="WhereUsedFindings" list="findings || []" skip-form="true" paginate="false" show-csv-button="true">
+            <field name="recordId">
+                <default-field title="Record">
+                    <display />
+                </default-field>
+            </field>
+            <field name="message">
+                <default-field title="Finding">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+        <form-list name="WhereUsedRows" list="whereUsedRows || []" skip-form="true" paginate="false" show-csv-button="true" views="tree,list">
+            <view-tree parent-field="parentPath" key-fields="path" />
+            <field name="productId">
+                <default-field title="Parent product">
+                    <display />
+                </default-field>
+            </field>
+            <field name="depth">
+                <default-field title="Level">
+                    <display />
+                </default-field>
+            </field>
+            <field name="kind">
+                <default-field title="Usage">
+                    <display />
+                </default-field>
+            </field>
+            <field name="quantity">
+                <default-field title="Quantity">
+                    <display />
+                </default-field>
+            </field>
+            <field name="quantityUomId">
+                <default-field title="Unit">
+                    <display />
+                </default-field>
+            </field>
+            <field name="productBomId">
+                <default-field title="Method">
+                    <display />
+                </default-field>
+            </field>
+            <field name="readOnly">
+                <default-field title="Read only">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

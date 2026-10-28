@@ -46,6 +46,11 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/BillOfMaterialsDetail/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Method header"},
+    "Shared/BillOfMaterialsExplosion/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"BOM explosion"},
+    "Shared/BillOfMaterialsCompare/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Compare method dates"},
+    "Shared/WhereUsed/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Where used"},
+    "Shared/RoutingDetail/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Routing standards"},
     "Shared/InventoryAvailability/": {parameters:{productId:"BOSS_PRD_OWN",facilityId:"BOSS_PRD_WH"},text:"Current inventory"},
     "Shared/SupplierPrices/": {parameters:{organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Supplier offers"},
     "Shared/Supplier360/": {parameters:{vendorPartyId:"BOSS_PRD_SUPPLIER",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Services Supply"},

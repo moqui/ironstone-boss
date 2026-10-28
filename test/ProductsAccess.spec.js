@@ -198,3 +198,7 @@ feature('P6 supplier services and shared mounts refuse sales-only editors even t
 feature('P7 stock policy remains Warehouse-controlled through Products shared callbacks',{
  when(){return asCatalog('catalog.catalog.edit',()=>{const refused=[];for(const name of ['store#FacilityPolicy','store#TrackingPolicy']){try{call('ironstone.products.InventoryServices.'+name,{productId:'BOSS_PRD_OWN',facilityId:'BOSS_PRD_WH',minimumStock:1,lotRequired:'Y',changeReason:'Refused'});refused.push(ec.message.hasError())}catch(e){refused.push(true)}finally{ec.message.clearErrors()}}return{refused}},false)},then({refused}){refused==[true,true]},
 })
+
+feature('method reads and writes require Manufacturing roles independently of all Products grants',{
+ when(){return asCatalog('catalog.admin',()=>{const failures=[];for(const name of ['store#Bom','store#BomItem','release#BomDraft','get#BomExplosion','store#Routing','store#RoutingOperation','release#RoutingDraft','store#WorkCenter','store#WorkCenterRate']){let refused=false;try{call('ironstone.products.MethodServices.'+name,{productId:'BOSS_PRD_OWN',componentProductId:'BOSS_PRD_OWN',changeReason:'Guard probe'});refused=ec.message.hasError()}catch(e){refused=true}finally{ec.message.clearErrors()}if(!refused)failures.push(name)}return{failures}},false)},then({failures}){failures.length==0},
+})

@@ -98,4 +98,40 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserAccount userId="BOSS_PRD_STOCK_PLAN" username="catalog.stock.plan" userFullName="Catalog Stock planner" partyId="BOSS_PRD_STOCK_PLAN" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_STOCK_PLAN" fromDate="0"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" userId="BOSS_PRD_STOCK_PLAN" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_METHOD" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_METHOD" firstName="Catalog" lastName="Method engineer"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_METHOD_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_METHOD" toPartyId="ORG_ZIZI_RETAIL" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_METHOD" username="catalog.method" userFullName="Catalog Method engineer" partyId="BOSS_PRD_METHOD" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_METHOD" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_METHOD" userId="BOSS_PRD_METHOD" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_METHOD_APPROVE" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_METHOD_APPROVE" firstName="Catalog" lastName="Method approver"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_METHOD_APPROVE_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_METHOD_APPROVE" toPartyId="ORG_ZIZI_RETAIL" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_METHOD_APPROVE" username="catalog.method.approve" userFullName="Catalog Method approver" partyId="BOSS_PRD_METHOD_APPROVE" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_METHOD_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" userId="BOSS_PRD_METHOD_APPROVE" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_METHOD_READ" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_METHOD_READ" firstName="Catalog" lastName="Method reader"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_METHOD_READ_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_METHOD_READ" toPartyId="ORG_ZIZI_RETAIL" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_METHOD_READ" username="catalog.method.read" userFullName="Catalog Method reader" partyId="BOSS_PRD_METHOD_READ" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_METHOD_READ" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_READ" userId="BOSS_PRD_METHOD_READ" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_METHOD_RESOURCE" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_METHOD_RESOURCE" firstName="Catalog" lastName="Method resource administrator"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_METHOD_RESOURCE_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_METHOD_RESOURCE" toPartyId="ORG_ZIZI_RETAIL" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_METHOD_RESOURCE" username="catalog.method.resource" userFullName="Catalog Method resource administrator" partyId="BOSS_PRD_METHOD_RESOURCE" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_METHOD_RESOURCE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userId="BOSS_PRD_METHOD_RESOURCE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" userId="BOSS_PRD_METHOD_RESOURCE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_APPROVE" userId="BOSS_PRD_METHOD_RESOURCE" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_PRD_METHOD_WALK" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_PRD_METHOD_WALK" firstName="Catalog" lastName="Method demonstration"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_PRD_METHOD_WALK_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_PRD_METHOD_WALK" toPartyId="ORG_ZIZI_RETAIL" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_PRD_METHOD_WALK" username="catalog.method.walk" userFullName="Catalog Method demonstration" partyId="BOSS_PRD_METHOD_WALK" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_METHOD" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_PRODUCTS_COST_APPROVE" userId="BOSS_PRD_METHOD_WALK" fromDate="0"/>
 </entity-facade-xml>

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Dashboards &amp; KPIs" default-menu-index="2" menu-image="sym_o_widgets" menu-image-type="icon">
+    <!-- The framework list's links run here, so a dashboard opens in Insights › Dashboard; edit and explore open the Dashboards app. -->
+    <transition-include name="dashboard" location="component://tools/screen/Dashboards/Home.xml"/>
+    <transition-include name="star" location="component://tools/screen/Dashboards/Home.xml"/>
+    <transition-include name="edit" location="component://tools/screen/Dashboards/Home.xml"/>
+    <transition-include name="new" location="component://tools/screen/Dashboards/Home.xml"/>
+    <transition-include name="explore" location="component://tools/screen/Dashboards/Home.xml"/>
     <widgets>
         <link url="../Dashboard" text="Sales dashboard" parameter-map="{definitionId:'mantle-sales',from:'now-1y',thru:'now'}"/>
         <include-screen location="component://tools/screen/Dashboards/Home.xml" share-scope="true"/>

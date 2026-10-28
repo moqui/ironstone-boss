@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Documents" default-menu-index="6">
+    <transition name="storeContent">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#ProductContent" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="Available" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Typed product content"/>
+                    <box-body>
+                        <form-list name="ProductContentList" list="detail.contentRows" skip-form="true" paginate="false">
+                            <field name="productContentId">
+                                <header-field title="ID"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productContentTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <header-field title="Description"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="locale">
+                                <header-field title="Locale"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="ContentEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="NewProductContent" button-text="Add document or text" title="Product content" width="640">
+                                    <form-single name="NewProductContent" transition="storeContent">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productContentTypeEnumId">
+                                            <default-field title="Content type">
+                                                <drop-down>
+                                                    <list-options list="options.contentTypes" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="description">
+                                            <default-field>
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="locale">
+                                            <default-field>
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field>
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field>
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="contentFile">
+                                            <default-field title="File">
+                                                <file/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceDriveId"><default-field title="Copy from drive"><drop-down allow-empty="true"><list-options list="options.drives" key="${value}" text="${label}"/></drop-down></default-field></field>
+                                        <field name="sourcePath"><default-field title="File path in drive"><text-line/></default-field></field>
+                                        <field name="contentText">
+                                            <default-field title="Text">
+                                                <text-area rows="6"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="EditContentRows" list="detail.contentRows" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditProductContent_${entry_index}" button-text="Edit ${entry.productContentId}" title="Product content" width="640">
+                                            <form-single name="ProductContentMetadata" transition="storeContent" map="entry">
+                                                <field name="productId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productContentId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productContentTypeEnumId">
+                                                    <default-field title="Type">
+                                                        <drop-down>
+                                                            <list-options list="options.contentTypes" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="description">
+                                                    <default-field>
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="locale">
+                                                    <default-field>
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field>
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="thruDate">
+                                                    <default-field>
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="contentText">
+                                                    <default-field title="Replace text (empty: keep current)">
+                                                        <text-area rows="6"/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="contentFile">
+                                                    <default-field title="Replace file">
+                                                        <file/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+                <record-files id="ProductFiles" record-entity="mantle.product.Product" record-id="${productId}"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

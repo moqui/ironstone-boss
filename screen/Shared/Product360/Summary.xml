@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
+    <widgets>
+        <section name="Master" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Product"/>
+                    <box-body>
+                        <section name="EditMaster" condition="canEdit">
+                            <widgets>
+                                <form-single name="Product" transition="../save" map="product">
+                                    <field name="productId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="expectedLastUpdatedStamp" from="product.lastUpdatedStamp">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productName">
+                                        <default-field title="Name">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="pseudoId">
+                                        <default-field title="Alias">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="comments">
+                                        <default-field title="Notes">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productTypeEnumId">
+                                        <default-field title="Product type">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.productTypes" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="assetTypeEnumId">
+                                        <default-field title="Asset type">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.assetTypes" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="productClassEnumId">
+                                        <default-field title="Product class">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="assetClassEnumId">
+                                        <default-field title="Asset class">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amountUomId">
+                                        <default-field title="Stock / amount unit">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="../choices" server-search="true" min-length="0" parameter-map="{choice:'units'}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="amountFixed">
+                                        <default-field title="Fixed amount">
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amountRequire">
+                                        <default-field title="Amount required">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="salesAllowed">
+                                        <default-field title="Sales allowed (empty: Yes)">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="purchaseAllowed">
+                                        <default-field title="Purchases allowed (empty: Yes)">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="salesIntroductionDate">
+                                        <default-field title="Sales introduction">
+                                            <date-time/>
+                                        </default-field>
+                                    </field>
+                                    <field name="salesDiscontinuationDate">
+                                        <default-field title="Sales discontinuation">
+                                            <date-time/>
+                                        </default-field>
+                                    </field>
+                                    <field name="supportDiscontinuationDate">
+                                        <default-field title="Support discontinuation">
+                                            <date-time/>
+                                        </default-field>
+                                    </field>
+                                    <field name="salesDiscWhenNotAvail">
+                                        <default-field title="Discontinue when unavailable">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="requireInventory">
+                                        <default-field title="Inventory required">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="chargeShipping">
+                                        <default-field title="Shipping charged">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="taxable">
+                                        <default-field title="Taxable">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="returnable">
+                                        <default-field title="Returnable">
+                                            <drop-down allow-empty="true">
+                                                <option key="Y" text="Yes"/>
+                                                <option key="N" text="No"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                    <field-layout>
+                                        <field-row>
+                                            <field-ref name="productName"/>
+                                            <field-ref name="pseudoId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="description"/>
+                                            <field-ref name="comments"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="productTypeEnumId"/>
+                                            <field-ref name="assetTypeEnumId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="productClassEnumId"/>
+                                            <field-ref name="assetClassEnumId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="amountUomId"/>
+                                            <field-ref name="amountFixed"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="amountRequire"/>
+                                            <field-ref name="requireInventory"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="salesAllowed"/>
+                                            <field-ref name="purchaseAllowed"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="salesIntroductionDate"/>
+                                            <field-ref name="salesDiscontinuationDate"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="supportDiscontinuationDate"/>
+                                            <field-ref name="salesDiscWhenNotAvail"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="chargeShipping"/>
+                                            <field-ref name="taxable"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="returnable"/>
+                                        </field-row>
+                                        <field-ref name="submitButton"/>
+                                    </field-layout>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <section name="ReadMaster" condition="!canEdit">
+                            <widgets>
+                                <label text="Name: ${product.productName || '—'}" type="p"/>
+                                <label text="Alias: ${product.pseudoId || '—'}" type="p"/>
+                                <label text="Description: ${product.description || '—'}" type="p"/>
+                                <label text="Notes: ${product.comments || '—'}" type="p"/>
+                                <label text="Product type: ${product.productTypeEnumId || '—'}" type="p"/>
+                                <label text="Asset type: ${product.assetTypeEnumId || '—'}" type="p"/>
+                                <label text="Product class: ${product.productClassEnumId || '—'}" type="p"/>
+                                <label text="Asset class: ${product.assetClassEnumId || '—'}" type="p"/>
+                                <label text="Stock / amount unit: ${product.amountUomId || '—'}" type="p"/>
+                                <label text="Fixed amount: ${product.amountFixed || '—'}" type="p"/>
+                                <label text="Amount required: ${product.amountRequire || '—'}" type="p"/>
+                                <label text="Sales allowed (empty: Yes): ${product.salesAllowed || '—'}" type="p"/>
+                                <label text="Purchases allowed (empty: Yes): ${product.purchaseAllowed || '—'}" type="p"/>
+                                <label text="Sales introduction: ${product.salesIntroductionDateText || '—'}" type="p"/>
+                                <label text="Sales discontinuation: ${product.salesDiscontinuationDateText || '—'}" type="p"/>
+                                <label text="Support discontinuation: ${product.supportDiscontinuationDateText || '—'}" type="p"/>
+                                <label text="Discontinue when unavailable: ${product.salesDiscWhenNotAvail || '—'}" type="p"/>
+                                <label text="Inventory required: ${product.requireInventory || '—'}" type="p"/>
+                                <label text="Shipping charged: ${product.chargeShipping || '—'}" type="p"/>
+                                <label text="Taxable: ${product.taxable || '—'}" type="p"/>
+                                <label text="Returnable: ${product.returnable || '—'}" type="p"/>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

@@ -79,6 +79,11 @@ spec({
     setupSpec() {
         login("john.doe")
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Products"])
+        for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
+            const path = 'Products/Product360/' + tab
+            screens.push([`${base}/Products.xml`, path])
+            demoParameters['Products/' + path] = {productId: tab === 'KitComponents' ? 'DEMO_PA' : tab === 'Equipment' ? 'EQUIP_1' : 'BOSS_PRD_OWN'}
+        }
     },
     setup() { ec.artifactExecution.disableAuthz() },
     cleanup() { ec.artifactExecution.enableAuthz() },

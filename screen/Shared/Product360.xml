@@ -1,15 +1,179 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Product" default-menu-include="false">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Product" default-menu-include="false">
     <parameter name="productId" required="true"/>
-    <actions><service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId}" out-map="catalog"/></actions>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId,checkOnly:true}" out-map="catalog"/>
+        <set field="productFound" from="!!catalog.record"/>
+        <if condition="productFound">
+            <service-call name="ironstone.products.CatalogServices.get#ProductDetail" in-map="{productId:productId}" out-map="context"/>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+            <set field="product" from="detail.product"/>
+            <set field="canEdit" from="detail.canEdit"/>
+        </if>
+    </always-actions>
+    <subscreens default-item="Summary"/>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="save">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#Product" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="status">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.transition#ProductStatus" in-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="clone">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.clone#Product" in-map="Object.assign({},context,{baseProductId:productId,productId:newProductId,productName:newProductName})" out-map="cloned"/>
+            <if condition="!ec.message.hasError()">
+                <set field="productId" from="cloned.productId"/>
+            </if>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="deleteDraft">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.delete#UnusedDraft" in-map="{productId:productId}"/>
+        </actions>
+        <default-response url="../List"/>
+        <error-response url="."/>
+    </transition>
     <widgets>
-        <section name="ProductAvailable" condition="!!catalog.record"><widgets>
-            <context record-entity="mantle.product.Product" record-id="${productId}" title="${catalog.record.productName}"/>
-            <container-box><box-header title="${catalog.record.productName}"/><box-body>
-                <label text="${productId}" type="p"/><label text="${catalog.record.description || ''}" type="p"/>
-                <section name="SharedProduct" condition="catalog.record.ownerPartyId === '_NA_'"><widgets><label text="Shared catalog record" type="p"/></widgets></section>
-            </box-body></container-box>
-        </widgets></section>
+        <section name="Available" condition="productFound">
+            <widgets>
+                <context record-entity="mantle.product.Product" record-id="${productId}" title="${product.productName}"/>
+                <container style="m-record-header">
+                    <label text="${productId}" style="text-mono"/>
+                    <label text="${product.productName}" type="h5"/>
+                    <status-bar id="ProductStatus" status-id="${detail.effectiveStatusId}" status-flow-id="Default" stages="PrdDraft,PrdActive,PrdDiscontinued,PrdObsolete" read-only="true"/>
+                    <link url="KitComponents" text="Kit components" link-type="anchor-button" condition="product.productTypeEnumId === 'PtPickAssembly'" parameter-map="{productId:productId}"/><link url="Equipment" text="Equipment templates" link-type="anchor-button" condition="product.assetTypeEnumId === 'AstTpEquipment'" parameter-map="{productId:productId}"/>
+                <label text="${product.ownerPartyId === '_NA_' ? 'Shared catalog record' : product.ownerPartyId}" type="p"/>
+                    <section name="EditorActions" condition="canEdit">
+                        <widgets>
+                            <link url="status" text="Activate" link-type="hidden-form" condition="['PrdDraft','PrdDiscontinued'].includes(detail.effectiveStatusId)" parameter-map="{productId:productId,statusId:'PrdActive',expectedStatusId:detail.effectiveStatusId}"/>
+                            <link url="status" text="Discontinue" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdActive'" confirmation="Discontinue this product?" parameter-map="{productId:productId,statusId:'PrdDiscontinued',expectedStatusId:detail.effectiveStatusId}"/>
+                            <link url="status" text="Make obsolete" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdDiscontinued'" confirmation="Make this product obsolete? New order lines will be refused." parameter-map="{productId:productId,statusId:'PrdObsolete',expectedStatusId:detail.effectiveStatusId}"/>
+                            <link url="deleteDraft" text="Delete unused draft" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdDraft'" confirmation="Delete this unused draft and its catalog rows?" parameter-map="{productId:productId}"/>
+                            <container-dialog id="CloneProductDialog" button-text="Clone" title="Clone selected sections" width="640">
+                                <form-single name="CloneProduct" transition="clone">
+                                    <field name="productId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="newProductId">
+                                        <default-field title="New ID (empty: generated)">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="newProductName">
+                                        <default-field title="New name">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="ownerPartyId">
+                                        <default-field title="Owner">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.owners" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyCategories">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Categories"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyFeatures">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Features"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyDimensions">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Dimensions"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyParties">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Parties"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyAssociations">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Substitutes"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyEquipment">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Equipment templates"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyIdentifiers">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="New internal identifiers (external codes require reassignment)"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="copyContent">
+                                        <default-field title=" ">
+                                            <check>
+                                                <option key="true" text="Documents"/>
+                                            </check>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </container-dialog>
+                        </widgets>
+                    </section>
+                </container>
+                <container style="row items-center">
+                    <container style="col">
+                        <subscreens-menu id="ProductTabs" type="tab"/>
+                    </container>
+                </container>
+                <subscreens-active/>
+            </widgets>
+        </section>
+        <section name="Unavailable" condition="!productFound">
+            <widgets>
+                <label text="Product not available" type="p"/>
+            </widgets>
+        </section>
     </widgets>
 </screen>

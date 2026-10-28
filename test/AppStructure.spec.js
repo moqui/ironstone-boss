@@ -293,6 +293,11 @@ spec({
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products"], (location) => !isPlaceholder(location))
+        for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
+            const path = 'Products/Product360/' + tab
+            screens.push([`${base}/Products.xml`, path, `${base}/Shared/Product360/${tab}.xml`])
+            demoRecords['Products/' + path] = {parameters: {productId: tab === 'KitComponents' ? 'DEMO_PA' : tab === 'Equipment' ? 'EQUIP_1' : 'BOSS_PRD_OWN'}}
+        }
         // the code screens show the demo's repositories with git hosting in the build, else that it is not
         const wasDisabled = ec.artifactExecution.disableAuthz()
         let codeHosting
@@ -352,8 +357,8 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
     then({ failures }) {
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
-        // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports)
-        placeholders.length >= 95
+        // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings)
+        placeholders.length >= 94
         failures.join("\n") == ""
     },
 })

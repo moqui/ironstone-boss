@@ -1,21 +1,119 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This software is in the public domain under CC0 1.0 Universal plus a
-Grant of Patent License.
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to the
-public domain worldwide. This software is distributed without any
-warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication
-along with this software (see the LICENSE.md file). If not, see
-<http://creativecommons.org/publicdomain/zero/1.0/>.
--->
-<!-- Placeholder for the IronStone Products settings (initial-design.md); design-products.md decides them. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Settings" default-menu-index="9" menu-image="sym_o_settings" menu-image-type="icon">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Settings" default-menu-index="9" menu-image="sym_o_settings" menu-image-type="icon">
+    <parameter name="organizationPartyId"/>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="save">
+        <actions>
+            <service-call name="ironstone.products.SettingsServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.SettingsServices.get#CatalogSettings" in-map="context" out-map="context"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+        <script>settings.requiredFields = Array.from(settings.requiredFields).join(','); for (const key of ['variantsEnabled','packagingEnabled','priceListsEnabled','allowCostSelfApproval']) settings[key]=String(settings[key])</script>
+    </actions>
     <widgets>
-        <label text="Placeholder: Products settings." type="p"/>
+        <container-box>
+            <box-header title="Catalog settings"/>
+            <box-body>
+                <label text="Organization ${organizationPartyId} · Revision ${versionSeqId}" type="p"/>
+                <section name="Administrator" condition="access.capabilities.catalogAdmin">
+                    <widgets>
+                        <form-single name="CatalogSettings" transition="save" map="settings">
+                            <field name="organizationPartyId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="expectedVersion" from="versionSeqId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="defaultProductTypeEnumId">
+                                <default-field title="Default product type">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.productTypes" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="defaultAmountUomId">
+                                <default-field title="Default amount unit">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'units'}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="defaultCurrencyUomId">
+                                <default-field title="Default currency">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="requiredFields">
+                                <default-field title="Required activation fields (comma separated)">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="idPolicy">
+                                <default-field title="ID policy">
+                                    <drop-down allow-empty="true">
+                                        <option key="internal" text="Internal generation or manual"/>
+                                        <option key="manual" text="Manual IDs required"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="variantsEnabled">
+                                <default-field title="Variants">
+                                    <drop-down allow-empty="true">
+                                        <option key="true" text="Enabled"/>
+                                        <option key="false" text="Disabled"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="packagingEnabled">
+                                <default-field title="Packaging">
+                                    <drop-down allow-empty="true">
+                                        <option key="true" text="Enabled"/>
+                                        <option key="false" text="Disabled"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="priceListsEnabled">
+                                <default-field title="Price lists">
+                                    <drop-down allow-empty="true">
+                                        <option key="true" text="Enabled"/>
+                                        <option key="false" text="Disabled"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="allowCostSelfApproval">
+                                <default-field title="Allow cost self approval (still requires approval authority)">
+                                    <drop-down allow-empty="true">
+                                        <option key="true" text="Enabled"/>
+                                        <option key="false" text="Disabled"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Save">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+            </box-body>
+        </container-box>
     </widgets>
 </screen>

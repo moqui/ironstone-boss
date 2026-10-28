@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Products" default-menu-include="false" menu-image="sym_o_inventory" menu-image-type="icon">
-    <parameter name="text"/><parameter name="ownerPartyId"/><parameter name="pageIndex"/><parameter name="pageSize"/>
-    <transition name="productDetail"><default-response url="../Product360"/></transition>
-    <actions><service-call name="ironstone.products.CatalogServices.find#Products" in-map="context" out-map="context"/>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Products" default-menu-include="false">
+    <parameter name="text"/>
+    <parameter name="keyword"/>
+    <parameter name="ownerPartyId"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <parameter name="list"/>
+    <parameter name="productTypeEnumId"/>
+    <parameter name="productClassEnumId"/>
+    <parameter name="statusId"/>
+    <parameter name="categoryIds"/>
+    <parameter name="categoryOperator"/>
+    <parameter name="productFeatureId"/>
+    <parameter name="idValue"/>
+    <parameter name="partyItemId"/>
+    <transition name="productDetail">
+        <default-response url="../Product360"/>
+    </transition>
+    <transition name="bulk">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.bulk#Products" in-map="context" out-map="bulkOut"/>
+            <script>ec.user.context.productsBulkResults = bulkOut.results</script>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+        <service-call name="ironstone.products.CatalogServices.find#Products" in-map="context" out-map="context"/>
+        <set field="bulkResults" from="ec.user.context.productsBulkResults || []"/>
         <set field="productListPageIndex" from="pageIndex"/>
         <set field="productListPageSize" from="pageSize"/>
         <set field="productListPageMaxIndex" from="Math.max(0, Math.ceil(productListCount / pageSize) - 1)"/>
@@ -12,18 +38,255 @@
     </actions>
     <widgets>
         <context title="Products" selection-form="ProductList"/>
-        <container-box><box-header title="Products"/><box-body-nopad>
-            <form-list name="ProductList" list="productList" skip-form="true" paginate="true" header-dialog="true" saved-finds="true"
-                    show-csv-button="true" show-xlsx-button="true" select-columns="true">
-                <field name="text"><header-field title="ID or name"><text-line/></header-field></field>
-                <field name="productId"><header-field title="Product ID"/><default-field>
-                    <link url="productDetail" text="${productId}" parameter-map="{productId:productId}" link-type="anchor"/>
-                </default-field></field>
-                <field name="productName"><header-field title="Name"/><default-field><display/></default-field></field>
-                <field name="productTypeEnumId"><header-field title="Type"/><default-field><display-entity entity-name="moqui.basic.Enumeration" text="${description}"/></default-field></field>
-                <field name="ownerPartyId"><header-field title="Owner"/><default-field><display/></default-field></field>
-                <field name="shared"><header-field title="Shared"/><default-field><display/></default-field></field>
-            </form-list>
-        </box-body-nopad></container-box>
+        <container style="row items-center q-gutter-sm">
+            <link url="../NewProduct" text="Create product" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+            <link url="." text="All" link-type="anchor" parameter-map="{list:''}"/>
+            <link url="." text="Virtual" link-type="anchor" parameter-map="{list:'virtual'}"/>
+            <link url="." text="Variants" link-type="anchor" parameter-map="{list:'variants'}"/>
+            <link url="." text="Services" link-type="anchor" parameter-map="{list:'services'}"/>
+            <link url="." text="Stocked" link-type="anchor" parameter-map="{list:'stocked'}"/>
+            <link url="." text="Discontinued" link-type="anchor" parameter-map="{list:'discontinued'}"/>
+            <link url="." text="Missing price" link-type="anchor" parameter-map="{list:'missingPrice'}"/>
+        </container>
+        <section name="SearchMessage" condition="searchMessage">
+            <widgets>
+                <label text="${searchMessage}" type="p"/>
+            </widgets>
+        </section>
+        <container-box>
+            <box-header title="Bulk results"/>
+            <box-body>
+                <form-list name="BulkResults" list="bulkResults" skip-form="true" paginate="false">
+                    <field name="productId">
+                        <header-field title="Product"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="status">
+                        <header-field title="Result"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="error">
+                        <header-field title="Reason"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <container-box>
+            <box-header title="Products"/>
+            <box-body-nopad>
+                <form-list name="ProductList" list="productList" skip-form="true" paginate="true" header-dialog="true" saved-finds="true" views="list,board" show-csv-button="true" show-xlsx-button="true" select-columns="true">
+                    <row-selection id-field="productId" parameter="productIds" list-mode="true" condition="access.capabilities.catalogEdit">
+                        <action>
+                            <dialog button-text="Category" title="Update selected product IDs"/>
+                            <form-single name="BulkCategory" transition="bulk">
+                                <field name="kind" from="'category'">
+                                    <default-field>
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="operation">
+                                    <default-field title="Action">
+                                        <drop-down allow-empty="true">
+                                            <option key="store" text="Apply"/>
+                                            <option key="expire" text="End existing row"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="productCategoryId">
+                                    <default-field title="Category">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="options.categories" key="${value}" text="${label}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="Existing start (required to end a row)">
+                                        <date-time/>
+                                    </default-field>
+                                </field>
+                                <field name="thruDate">
+                                    <default-field title="Through">
+                                        <date-time/>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Save">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </action>
+                        <action>
+                            <dialog button-text="Feature" title="Update selected product IDs"/>
+                            <form-single name="BulkFeature" transition="bulk">
+                                <field name="kind" from="'feature'">
+                                    <default-field>
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="operation">
+                                    <default-field title="Action">
+                                        <drop-down allow-empty="true">
+                                            <option key="store" text="Apply"/>
+                                            <option key="expire" text="End existing row"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="productFeatureId">
+                                    <default-field title="Feature">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="options.features" key="${value}" text="${label}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="applTypeEnumId">
+                                    <default-field title="Application">
+                                        <drop-down allow-empty="true">
+                                            <option key="PfatStandard" text="Standard"/>
+                                            <option key="PfatSelectable" text="Selectable"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="Existing start (required to end a row)">
+                                        <date-time/>
+                                    </default-field>
+                                </field>
+                                <field name="thruDate">
+                                    <default-field title="Through">
+                                        <date-time/>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Save">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </action>
+                    </row-selection>
+                    <field name="text">
+                        <header-field title="ID or name">
+                            <text-line/>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="keyword">
+                        <header-field title="Keyword">
+                            <text-line/>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="partyItemId">
+                        <header-field title="Party item code">
+                            <text-line/>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="idValue">
+                        <header-field title="Exact identifier">
+                            <text-line/>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="categoryIds">
+                        <header-field title="Category IDs (comma separated)">
+                            <text-line/>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="categoryOperator">
+                        <header-field title="Category match">
+                            <drop-down allow-empty="true">
+                                <option key="AND" text="All categories"/>
+                                <option key="OR" text="Any category"/>
+                            </drop-down>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="productFeatureId">
+                        <header-field title="Feature">
+                            <drop-down allow-empty="true">
+                                <list-options list="options.features" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </header-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="productId">
+                        <header-field title="Product ID"/>
+                        <default-field>
+                            <link url="productDetail" text="${productId}" parameter-map="{productId:productId}" link-type="anchor"/>
+                        </default-field>
+                    </field>
+                    <field name="productName">
+                        <header-field title="Name"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="productTypeEnumId">
+                        <header-field title="Product type">
+                            <drop-down allow-empty="true">
+                                <list-options list="options.productTypes" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </header-field>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="ownerPartyId">
+                        <header-field title="Owner">
+                            <drop-down allow-empty="true">
+                                <list-options list="options.owners" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </header-field>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="statusId">
+                        <header-field title="Lifecycle">
+                            <drop-down allow-empty="true">
+                                <option key="PrdDraft" text="Draft"/>
+                                <option key="PrdActive" text="Active"/>
+                                <option key="PrdDiscontinued" text="Discontinued"/>
+                                <option key="PrdObsolete" text="Obsolete"/>
+                            </drop-down>
+                        </header-field>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="lastUpdatedStamp">
+                        <header-field title="Modified"/>
+                        <default-field>
+                            <display text="${lastUpdatedStampText || ''}"/>
+                        </default-field>
+                    </field>
+                    <view-board group-field="statusId" group-fields="productTypeEnumId" card-title-field="productName" card-fields="productId,ownerPartyId" key-fields="productId" status-type-id="Product" status-flow-id="Default" column-order="PrdDraft,PrdActive,PrdDiscontinued,PrdObsolete"/>
+                </form-list>
+            </box-body-nopad>
+        </container-box>
     </widgets>
 </screen>

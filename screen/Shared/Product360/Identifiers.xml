@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identifiers" default-menu-index="4">
+    <transition name="storeRow">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'identifier'})"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="storeOther">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'otherIdentifier'})"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="RowsAvailable" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Identifiers"/>
+                    <box-body>
+                        <form-list name="IdentifiersRows" list="detail.identifierRows" skip-form="true" paginate="false">
+                            <field name="productIdTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="idValue">
+                                <header-field title="Value"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="IdentifiersEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddIdentifiers" button-text="Add" title="Identifiers" width="640">
+                                    <form-single name="AddIdentifiers" transition="storeRow">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="productIdTypeEnumId">
+                                            <default-field title="Type">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.idTypes" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="idValue">
+                                            <default-field title="Value">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="EditIdentifiersRows" list="detail.identifierRows" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditIdentifiers_${entry_index}" button-text="Edit ${entry.productIdTypeEnumId}" title="Edit Identifiers" width="640">
+                                            <form-single name="EditIdentifiers" transition="storeRow" map="entry">
+                                                <field name="productId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productIdTypeEnumId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="idValue">
+                                                    <default-field title="Value">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                        <container-box>
+                            <box-header title="Scoped identifiers"/>
+                            <box-body>
+                                <form-list name="OtherIdentifiers" list="detail.otherIdentifierRows" skip-form="true" paginate="false">
+                                    <field name="productIdTypeEnumId">
+                                        <header-field title="Type"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="idValue">
+                                        <header-field title="Value"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productStoreId">
+                                        <header-field title="Store"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="marketSegmentId">
+                                        <header-field title="Market segment"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                </form-list>
+                                <section name="OtherEditor" condition="canEdit">
+                                    <widgets>
+                                        <container-dialog id="AddOtherId" button-text="Add scoped ID" title="Scoped identifier" width="640">
+                                            <form-single name="AddOtherIdentification" transition="storeOther">
+                                                <field name="productId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productOtherIdentId">
+                                                    <default-field title="ID">
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productIdTypeEnumId">
+                                                    <default-field title="Type">
+                                                        <drop-down allow-empty="true">
+                                                            <list-options list="options.idTypes" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="idValue">
+                                                    <default-field title="Value">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productStoreId">
+                                                    <default-field title="Store">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="marketSegmentId">
+                                                    <default-field title="Market segment">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                        <section-iterate name="OtherRows" list="detail.otherIdentifierRows" entry="entry">
+                                            <widgets>
+                                                <container-dialog id="EditOther_${entry_index}" button-text="Edit ${entry.idValue}" title="Scoped identifier" width="640">
+                                                    <form-single name="OtherIdentifications" transition="storeOther" map="entry">
+                                                        <field name="productId">
+                                                            <default-field>
+                                                                <hidden/>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="productOtherIdentId">
+                                                            <default-field title="ID">
+                                                                <hidden/>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="productIdTypeEnumId">
+                                                            <default-field title="Type">
+                                                                <drop-down allow-empty="true">
+                                                                    <list-options list="options.idTypes" key="${value}" text="${label}"/>
+                                                                </drop-down>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="idValue">
+                                                            <default-field title="Value">
+                                                                <text-line/>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="productStoreId">
+                                                            <default-field title="Store">
+                                                                <text-line/>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="marketSegmentId">
+                                                            <default-field title="Market segment">
+                                                                <text-line/>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="submitButton">
+                                                            <default-field title="Save">
+                                                                <submit/>
+                                                            </default-field>
+                                                        </field>
+                                                    </form-single>
+                                                </container-dialog>
+                                            </widgets>
+                                        </section-iterate>
+                                    </widgets>
+                                </section>
+                            </box-body>
+                        </container-box>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

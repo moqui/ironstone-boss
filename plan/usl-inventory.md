@@ -639,7 +639,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | --- | --- | --- | --- |
 | CommunicationServices | get#ClientRecordVisibility |  | Projects/Home; Projects/Projects/MilestoneDetail; Projects/Requests/RequestDetail |
 
-## Product (108 services, 1 added)
+## Product (108 services, 5 added)
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
@@ -714,13 +714,13 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ProductServices | create#VariantProducts | Products/Products/VariantBuilder; Shared/Product360 |  |
 | ProductServices | create#VariantProduct | Products/Products/VariantBuilder |  |
 | ProductServices | delete#VariantProducts |  |  |
-| ProductServices | delete#Product | Products/Products |  |
+| ProductServices | delete#Product | Products/Products | Shared/Product360 (guarded unused-draft deletion) |
 | ProductServices | add#ProductsToCategory | Products/Products |  |
 | ProductServices | remove#ProductsFromCategory | Products/Products |  |
 | ProductServices | add#FeatureToProducts | Products/Products |  |
 | ProductServices | remove#FeatureFromProducts | Products/Products |  |
-| ProductServices | create#ProductContent | Shared/RecordFiles; Products/Products/Product360; Products/Documents; Products/Documents/Translations; Shared/Product360 | Shared/RecordFiles |
-| ProductServices | update#ProductContent | Products/Products/Product360; Products/Documents/DocumentDetail; Products/Documents/Translations; Shared/Product360 |  |
+| ProductServices | create#ProductContent | Shared/RecordFiles; Products/Products/Product360; Products/Documents; Products/Documents/Translations; Shared/Product360 | Shared/RecordFiles; Shared/Product360/Documents |
+| ProductServices | update#ProductContent | Products/Products/Product360; Products/Documents/DocumentDetail; Products/Documents/Translations; Shared/Product360 | Shared/Product360/Documents |
 | ProductServices | save#ProductContentFile | Shared/RecordFiles |  |
 | ProductServices | create#ProductCategoryContent | Shared/RecordFiles; Products/Categories/CategoryDetail/Content; Products/Documents/Translations | Shared/RecordFiles |
 | ProductServices | update#ProductCategoryContent | Products/Categories/CategoryDetail/Content; Products/Documents/Translations |  |
@@ -757,6 +757,33 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | ProductServices | get#CatalogOwnerScope | PRD-ACCESS | Products; Products/Products/List; Products/Products/Product360; Products/Categories/CategoryDetail; shared catalog record visibility |
+| ProductServices | check#ProductUsable | PRD-LIFECYCLE | OrderServices create#OrderItem and add#OrderProductQuantity (through check#OrderProductUsable) |
+| ProductServices | check#OrderProductUsable | PRD-LIFECYCLE | Both order entry paths; explicit sale/purchase direction |
+| ProductServices | store#ProductIdentifier | PRD-IDENTIFIERS | Shared/Product360/Identifiers; internal/scoped clone IDs |
+| ProductServices | store#KitComponent | PRD-KITS | Shared/Product360/KitComponents |
+
+### BOSS catalog application services (P1/P2)
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| ironstone.products.CatalogServices | get#CatalogAccess | PRD-ACCESS; P2 | Products owner/capability boundary |
+| ironstone.products.CatalogServices | get#CatalogRecord | PRD-ACCESS; P2 | All catalog record mounts |
+| ironstone.products.CatalogServices | find#Products | PRD-ACCESS; P2 | Products/Products/List |
+| ironstone.products.CatalogServices | search#ProductIds | PRD-ACCESS; P2 | Products exact-ID palette |
+| ironstone.products.CatalogServices | search#Catalog | PRD-ACCESS; P2 | Products text/party-code palette |
+| ironstone.products.CatalogServices | store#Product | PRD-ACCESS; P2 | Products/Products/NewProduct; Shared/Product360/Summary |
+| ironstone.products.CatalogServices | transition#ProductStatus | PRD-ACCESS; P2 | Shared/Product360 lifecycle actions |
+| ironstone.products.CatalogServices | get#ProductDetail | PRD-ACCESS; P2 | Shared/Product360 and its catalog tabs |
+| ironstone.products.CatalogServices | store#CatalogRow | PRD-ACCESS; P2 | Shared/Product360 catalog row editors |
+| ironstone.products.CatalogServices | store#ProductContent | PRD-ACCESS; P2 | Shared/Product360/Documents |
+| ironstone.products.CatalogServices | clone#Product | PRD-ACCESS; P2 | Shared/Product360 selected-section clone |
+| ironstone.products.CatalogServices | delete#UnusedDraft | PRD-ACCESS; P2 | Shared/Product360 guarded deletion |
+| ironstone.products.CatalogServices | bulk#Products | PRD-ACCESS; P2 | Products/Products/List fixed selection |
+| ironstone.products.CatalogServices | get#CatalogSummary | PRD-ACCESS; P2 | Products/Home |
+| ironstone.products.CatalogServices | get#CatalogOptions | PRD-ACCESS; P2 | Catalog form options |
+| ironstone.products.CatalogServices | search#CatalogChoices | PRD-ACCESS; P2 | Catalog server-search lookups |
+| ironstone.products.SettingsServices | get#CatalogSettings | PRD-SETTINGS | Products/Settings |
+| ironstone.products.SettingsServices | store#CatalogSettings | PRD-SETTINGS | Products/Settings |
 
 ## Request (12 services, 3 added)
 

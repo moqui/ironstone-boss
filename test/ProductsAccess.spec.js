@@ -4,9 +4,11 @@ function asCatalog(user, run, enabled = true) {
     login(user)
     const disabled = ec.artifactExecution.authzDisabled()
     if (enabled && disabled) ec.artifactExecution.enableAuthz()
+    if (!enabled && !disabled) ec.artifactExecution.disableAuthz()
     try { return run() } finally {
         ec.message.clearErrors()
         if (disabled) ec.artifactExecution.disableAuthz()
+        else ec.artifactExecution.enableAuthz()
         login('john.doe')
     }
 }
@@ -127,4 +129,26 @@ feature('catalog file writes require the editor grant through Products and Commo
         reader.commons.errors != '' || reader.commons.data?.errors != null
         editor.data.canUpload == true
     },
+})
+
+feature('P2 catalog projections and writers keep grants and owner checks with authorization disabled', {
+ when(){return asCatalog('catalog.reader',()=>{
+  const denied=[]
+  for(const [noun,params] of [['store#Product',{productId:'BOSS_PRD_OWN',productName:'Denied'}],['transition#ProductStatus',{productId:'BOSS_PRD_OWN',statusId:'PrdDiscontinued'}],['store#CatalogRow',{kind:'identifier',productId:'BOSS_PRD_OWN',productIdTypeEnumId:'PidtSku',idValue:'DENIED'}],['store#ProductContent',{productId:'BOSS_PRD_OWN',productContentTypeEnumId:'PcntDescription',contentText:'Denied'}],['clone#Product',{baseProductId:'BOSS_PRD_OWN',productId:'DENIED_CLONE'}],['delete#UnusedDraft',{productId:'BOSS_PRD_DRAFT'}]]) {
+   try {call(CATALOG+noun,params);denied.push(ec.message.hasError())}catch(e){denied.push(true)}finally{ec.message.clearErrors()}
+  }
+  const detail=call(CATALOG+'get#ProductDetail',{productId:'BOSS_PRD_OWN'}).detail
+  const palette=call(CATALOG+'search#Catalog',{text:'BOSS-OTHER-CODE'})
+  let hidden=false
+  try {call(CATALOG+'get#ProductDetail',{productId:'BOSS_PRD_OTHER'});hidden=ec.message.hasError()}catch(e){hidden=true}finally{ec.message.clearErrors()}
+  return {denied,detail,palette,hidden}
+ },false)},then({denied,detail,palette,hidden}){
+  denied==[true,true,true,true,true,true]
+  detail.canEdit==false
+  detail.connectionRows==[]
+  detail.priceRows==null
+  detail.costRows==null
+  palette.rows==[]
+  hidden==true
+ },
 })

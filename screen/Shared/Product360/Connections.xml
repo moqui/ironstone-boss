@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Connections" default-menu-index="10">
+    <widgets>
+        <section name="Available" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Connections"/>
+                    <box-body>
+                        <form-list name="Connections" list="detail.connectionRows" skip-form="true" paginate="false">
+                            <field name="kind">
+                                <header-field title="Record type"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="count">
+                                <header-field title="Visible records"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="recordIds">
+                                <header-field title="Record IDs"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

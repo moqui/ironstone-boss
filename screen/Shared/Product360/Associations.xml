@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Associations" default-menu-index="7">
+    <transition name="storeRow">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'association'})"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="RowsAvailable" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Associations"/>
+                    <box-body>
+                        <form-list name="AssociationsRows" list="detail.associationRows" skip-form="true" paginate="false">
+                            <field name="toProductId">
+                                <header-field title="Substitute product"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productAssocTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="quantity">
+                                <header-field title="Quantity"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <header-field title="Reason"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <section name="AssociationsEditor" condition="canEdit">
+                            <widgets>
+                                <container-dialog id="AddAssociations" button-text="Add" title="Associations" width="640">
+                                    <form-single name="AddAssociations" transition="storeRow">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="toProductId">
+                                            <default-field title="Substitute product">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.products" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="productAssocTypeEnumId">
+                                            <default-field title="Type">
+                                                <drop-down allow-empty="true">
+                                                    <option key="PatEquivalent" text="Equivalent"/>
+                                                    <option key="PatReplacement" text="Replacement"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="From">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="quantity">
+                                            <default-field title="Quantity">
+                                                <text-line input-type="number"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <section-iterate name="EditAssociationsRows" list="detail.associationRows" entry="entry">
+                                    <widgets>
+                                        <container-dialog id="EditAssociations_${entry_index}" button-text="Edit ${entry.toProductId}" title="Edit Associations" width="640">
+                                            <form-single name="EditAssociations" transition="storeRow" map="entry">
+                                                <field name="productId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="toProductId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="productAssocTypeEnumId">
+                                                    <default-field>
+                                                        <hidden/>
+                                                        <display/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="fromDate">
+                                                    <default-field>
+                                                        <hidden/>
+                                                        <display text="${fromDateText || ''}"/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="thruDate">
+                                                    <default-field title="Through">
+                                                        <date-time/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="quantity">
+                                                    <default-field title="Quantity">
+                                                        <text-line input-type="number"/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="reason">
+                                                    <default-field title="Reason">
+                                                        <text-line/>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Save">
+                                                        <submit/>
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section-iterate>
+                            </widgets>
+                        </section>
+                        <container-box>
+                            <box-header title="Incoming substitutes"/>
+                            <box-body>
+                                <form-list name="Incoming" list="detail.incomingRows" skip-form="true" paginate="false">
+                                    <field name="productId">
+                                        <header-field title="Source product"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productAssocTypeEnumId">
+                                        <header-field title="Type"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="fromDate">
+                                        <header-field title="From"/>
+                                        <default-field>
+                                            <display text="${fromDateText || ''}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="thruDate">
+                                        <header-field title="Through"/>
+                                        <default-field>
+                                            <display text="${thruDateText || ''}"/>
+                                        </default-field>
+                                    </field>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

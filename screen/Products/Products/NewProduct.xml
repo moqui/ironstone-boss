@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="New product" default-menu-include="false">
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="create">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.store#Product" in-map="Object.assign({},context,{createOnly:true})" out-map="created"/>
+            <if condition="!ec.message.hasError()">
+                <set field="productId" from="created.productId"/>
+            </if>
+        </actions>
+        <default-response url="../Product360">
+            <parameter name="productId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
+        <service-call name="ironstone.products.SettingsServices.get#CatalogSettings" out-map="cfg"/>
+        <set field="newProduct" from="{ownerPartyId:cfg.settings.defaultOwnerPartyId,productTypeEnumId:cfg.settings.defaultProductTypeEnumId,amountUomId:cfg.settings.defaultAmountUomId}"/>
+    </actions>
+    <widgets>
+        <section name="Editor" condition="access.capabilities.catalogEdit">
+            <widgets>
+                <container-box>
+                    <box-header title="Create draft product"/>
+                    <box-body>
+                        <form-single name="NewProduct" transition="create" map="newProduct">
+                            <field name="productId">
+                                <default-field title="ID (empty: generated)">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="productName">
+                                <default-field title="Name">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="productTypeEnumId">
+                                <default-field title="Product type">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.productTypes" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="assetTypeEnumId">
+                                <default-field title="Asset type">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.assetTypes" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="ownerPartyId">
+                                <default-field title="Owner">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'owners'}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="amountUomId">
+                                <default-field title="Stock / amount unit">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'units'}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Create draft">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

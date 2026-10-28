@@ -1,7 +1,9 @@
 // Browser QA of every Products foundation screen, including mobile and both themes.
+const tabs=['Summary','Features','Categories','Identifiers','Dimensions','Documents','Associations','Parties','Connections','History','KitComponents','Equipment']
+const tabPaths=tabs.map(tab=>['Tab'+tab, '/qapps/Products/Products/Product360/'+tab+'?productId='+(tab==='KitComponents'?'DEMO_PA':tab==='Equipment'?'EQUIP_1':'BOSS_PRD_OWN')])
 const rows = []
 for (const width of [390, 1280, 1440]) for (const dark of [false, true])
-    for (const [name, path] of [["Home", "/qapps/Products/Home"],
+    for (const [name, path] of [...tabPaths, ["NewProduct", "/qapps/Products/Products/NewProduct"], ["Home", "/qapps/Products/Home"],
         ["Products", "/qapps/Products/Products?text=catalog%20sample"],
         ["Product360", "/qapps/Products/Products/Product360?productId=BOSS_PRD_OWN"],
         ["CategoryDetail", "/qapps/Products/Categories/CategoryDetail?productCategoryId=BOSS_PRD_CAT"],

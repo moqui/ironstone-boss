@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="CatalogSettings">
+        <in-parameters>
+            <parameter name="organizationPartyId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId"/>
+            <parameter name="versionSeqId" type="Integer"/>
+            <parameter name="settings" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('settings', context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="CatalogSettings">
+        <in-parameters>
+            <parameter name="organizationPartyId" required="true"/>
+            <parameter name="expectedVersion" type="Integer"/>
+            <parameter name="settings" type="Map"/>
+            <parameter name="settingsJson"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId"/>
+            <parameter name="versionSeqId" type="Integer"/>
+            <parameter name="settings" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeSettings', context))</script>
+        </actions>
+    </service>
+</services>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="History" default-menu-index="11">
+    <widgets>
+        <section name="Available" condition="productFound">
+            <widgets>
+                <container-box>
+                    <box-header title="History"/>
+                    <box-body>
+                        <form-list name="History" list="detail.historyRows" skip-form="true" paginate="false">
+                            <field name="changedDate">
+                                <header-field title="When"/>
+                                <default-field>
+                                    <display text="${changedDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="changedFieldName">
+                                <header-field title="Field"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="oldValueText">
+                                <header-field title="Before"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="newValueText">
+                                <header-field title="After"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="changedByUserId">
+                                <header-field title="User"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

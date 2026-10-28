@@ -350,52 +350,52 @@ that parity.
 | EditFeatureGroup | FeaturesForm | Products/Features/FeatureGroups/FeatureGroupDetail |  |
 | FindFeatureGroup | NewFeatureGroupForm | Products/Features/FeatureGroups |  |
 | FindFeatureGroup | FeatureGroupsForm | Products/Features/FeatureGroups |  |
-| Product/Content/ContentDetail | UpdateContentForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 |  |
-| Product/Content/ContentDetail | UpdateTextForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 |  |
-| Product/Content/ContentList | NewContentForm | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
-| Product/Content/ContentList | NewLocationForm | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
-| Product/Content/ContentList | NewTextForm | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
-| Product/Content/ContentList | ContentList | Products/Documents; Products/Products/Product360; Shared/Product360 |  |
-| EditAssocs | AddAssocToForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 |  |
-| EditAssocs | AssocToListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 |  |
-| EditAssocs | AssocFromListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/WhereUsed; Shared/Product360 |  |
+| Product/Content/ContentDetail | UpdateContentForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents (guarded existing content service) |
+| Product/Content/ContentDetail | UpdateTextForm | Products/Documents/DocumentDetail; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents (guarded existing content service) |
+| Product/Content/ContentList | NewContentForm | Products/Documents; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents |
+| Product/Content/ContentList | NewLocationForm | Products/Documents; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents |
+| Product/Content/ContentList | NewTextForm | Products/Documents; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents |
+| Product/Content/ContentList | ContentList | Products/Documents; Products/Products/Product360; Shared/Product360 | Shared/Product360/Documents |
+| EditAssocs | AddAssocToForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
+| EditAssocs | AssocToListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
+| EditAssocs | AssocFromListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/WhereUsed; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
 | EditAssocs | CreateVariantsForm | Products/Products/VariantBuilder; Shared/Product360 |  |
 | EditAssocs | AllSelectableFeaturesForm | Products/Products/VariantBuilder; Shared/Product360 |  |
-| EditCategories | AddCategoryForm | Products/Products/Product360; Shared/Product360 |  |
-| EditCategories | CategoriesForm | Products/Products/Product360; Shared/Product360 |  |
+| EditCategories | AddCategoryForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Categories |
+| EditCategories | CategoriesForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Categories |
 | EditPrices | NewPriceForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
 | EditPrices | PricesForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
-| EditProduct | CloneProductForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | EditProductForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | AddIdentificationForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | IdentificationsForm | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | CloneProductForm | Products/Products/Product360; Shared/Product360 | Shared/Product360 |
+| EditProduct | EditProductForm | Products/Products/Product360; Shared/Product360 | Shared/Product360 |
+| EditProduct | AddIdentificationForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
+| EditProduct | IdentificationsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | GenerateOtherIdentification | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | AddOtherIdentificationForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | OtherIdentificationsForm | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | AddOtherIdentificationForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
+| EditProduct | OtherIdentificationsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | NewFeatureForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | AddFeatureForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | FeaturesForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | AddDimensionForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | DimensionsForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | AddUomDimensionForm | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | UomDimensionsForm | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | AddFeatureForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (existing feature applications) |
+| EditProduct | FeaturesForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (existing feature applications) |
+| EditProduct | AddDimensionForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
+| EditProduct | DimensionsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
+| EditProduct | AddUomDimensionForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
+| EditProduct | UomDimensionsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
 | EditProduct | CreateProductLocation | Products/Products/Product360; Shared/Product360 |  |
 | EditProduct | ProductLocationList | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | CreateProductMeter | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | ProductMeterList | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | CreateProductMaintenance | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | ProductMaintenanceList | Products/Products/Product360; Shared/Product360 |  |
-| FindProduct | NewProductForm | Products/Products |  |
-| FindProduct | ProductsForm | Products/Products |  |
-| Search | AddCategoryForm | Products/Products |  |
-| Search | RemoveCategoryForm | Products/Products |  |
-| Search | AddFeatureForm | Products/Products |  |
-| Search | RemoveFeatureForm | Products/Products |  |
-| Search | ProductsForm | Products/Products |  |
-| Search | AddCategoryFormSelection | Products/Products |  |
-| Search | RemoveCategoryFormSelection | Products/Products |  |
-| Search | AddFeatureFormSelection | Products/Products |  |
-| Search | RemoveFeatureFormSelection | Products/Products |  |
+| EditProduct | CreateProductMeter | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
+| EditProduct | ProductMeterList | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
+| EditProduct | CreateProductMaintenance | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
+| EditProduct | ProductMaintenanceList | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
+| FindProduct | NewProductForm | Products/Products | Products/Products/NewProduct |
+| FindProduct | ProductsForm | Products/Products | Products/Products/List |
+| Search | AddCategoryForm | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | RemoveCategoryForm | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | AddFeatureForm | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | RemoveFeatureForm | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | ProductsForm | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | AddCategoryFormSelection | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | RemoveCategoryFormSelection | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | AddFeatureFormSelection | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
+| Search | RemoveFeatureFormSelection | Products/Products | Products/Products/List (fixed-ID selection; per-product results) |
 
 ## Customer (7 forms)
 

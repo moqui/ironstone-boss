@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — implementation in progress; P0 and P1 built; P2 next
+Oct 28, 2026 — implementation in progress; P0, P1 and P2 built; P3 next
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -10,7 +10,7 @@ open questions, findings against the code, and what is deferred.
 
 At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
 Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed services, entities, fields or
-status items existed in Mantle or BOSS. P1 is now built below; P2–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
+status items existed in Mantle or BOSS. P1 and P2 are now built below; P3–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
 Accounting and Purchasing are placeholders too.
 
 **Inputs.**
@@ -123,7 +123,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
 | P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui f9641cda, Mantle 6d548a3e; BOSS f1c2a37 |
-| P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | — |
+| P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | built Oct 28; Mantle 54e6619a; BOSS commit below |
 | P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | — |
 | P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
 | P5 Prices and price lists | Mantle, BOSS | Prices, PriceHistory, PriceLists, PriceListDetail, PriceExplain, PricingSettings | — |
@@ -246,6 +246,42 @@ P1 validation evidence:
   - a bulk category change on several products reports one named failure;
   - an obsolete product's sales and purchase order lines are refused with the status named, while its open orders are
     unchanged (§12.3 #9, the order lines).
+
+**Built Oct 28 (P2).** Mantle `54e6619a`; BOSS implementation commit recorded below. Mantle product statuses/flow, audited lifecycle fields and nullable sales/purchase flags;
+private usage, identifier and dated-kit validators; checks on both order-entry paths, including increases of an existing
+cart line. Existing orders remain unchanged. Kit availability retains zero as the minimum across all components.
+Organization catalog settings are immutable structured revisions, with optimistic revision checks and an organization lock.
+
+BOSS now has the catalog home, authorized structured/text find with an explicit unavailable-index fallback, curated saved
+finds and a lifecycle/type board, draft creation and unused-draft deletion, and bulk category/feature actions over fixed IDs
+with isolated transactions and named per-product outcomes. Shared Product360 has Summary, feature applications and variant
+read, categories, primary/scoped identifiers, modern dimensions with legacy dimensions read only, typed content and record
+files, substitutes in both directions, parties, kit components, restricted connections, audit history, and equipment meters
+and maintenance. Kit/equipment navigation applies only to the corresponding product kinds. The selected-section clone
+preserves modern/scoped data, remaps maintenance meters and independently copies document resources; external identifiers
+must be reassigned. Document resource selection uses an authorized drive/path and makes an independent copy; arbitrary
+server locations are refused. Settings, text/party-code palette search, and editor-only quick create use the same guards.
+
+The later-phase cards remain unavailable rather than zero: price coverage in P5 and incomplete-catalog checks in P13.
+New feature masters arrive in P3, variant generation in P4, stock/facility policy in P7, and revision-aware content,
+translations and the document workspace in P10. P2's content editing uses the existing Mantle content services.
+The shared connections projection requires the relevant existing app capability and parent-record visibility; it grants
+no transaction access to a catalog-only user. Supplier-only item codes are omitted without supplier-price read authority and excluded from the public product search document; authorized supplier-code discovery uses a separate guarded query.
+
+P2 validation evidence:
+- Debug framework build succeeds against the pulled Dev AIDE changes; no framework source changes in this phase.
+- BOSS full suite: **696/696** features (76 specs). Final targeted checks after the content/visibility hardening cover
+  ProductsAccess, ProductsCatalog, ProductsScreens, ProductsShell, AppStructure and TuiRender; **85/85** pass (six specs), plus the 9/9 catalog service checks with the authorized drive-copy and public-index privacy cases.
+- Mantle full suite: **693 passed, 2 baseline failures, 9 skipped** (704 features, 79 specs). The same InboxThreads account-view
+  fixture and MantleSearch facet-total failures documented in P1 remain; all three new lifecycle/kit tests and the unchanged
+  order-to-cash/procure-to-pay flows pass.
+- Browser: 144/144 final screen captures, light/dark at 390, 1280 and 1440 px, in `/tmp/products-p2-browser-complete`.
+  The real editor walkthrough creates, activates, assigns an identifier/customer code and finds by that code (1/1),
+  `/tmp/products-p2-walk`. Representative phone/dark and desktop kit screenshots inspected. The final date/navigation polish adds 6/6 kit captures in `/tmp/products-p2-browser-dates` and 46/46 catalog/render checks in `/tmp/products-p2-dates`.
+- Source XML checks: 13 touched paths, zero errors or warnings. BOSS screen expression lint has zero parse failures;
+  shared tab mounts are explicitly included in AppStructure and TuiRender. Inventories updated for the actual P2 paths.
+- The current framework loader also logs and skips the pre-existing `data/demo/contacts-google.csv` input because its
+  contact-import header is not an entity/service name; it does not stop either suite.
 
 ### P3 — Categories and features
 
@@ -543,6 +579,9 @@ is written there too.
 | F32 | P0: ProductFacility/Location already own reorder/location fields, with no tracking fields; proposed BOM versions, WorkCenter/Rate and AssetBookEvent do not exist. LedgerServices.post#AcctgTrans checks fiscal periods | P7 uses WarehousePolicy tracking records; P8 uses new immutable versions beside legacy templates; P9 requires configured accounts/open periods and value-only events, never receipt rewrites |
 | F33 | P0: Commons tasks already support assigned WetTask rows and generic WorkEffortRecord links | Catalog-review activities are assigned tasks linked to catalog records; no parallel activity model |
 | F34 | P1: the full BOSS run (also on clean baseline sources) exhausts the 64 MiB script heap; a render catches allocation errors before the existing outer recovery clears compiled caches | Reclaim compiled caches under heap pressure before script entry, keep the hard limit and live values, and never retry side-effectful scripts. Add a real-allocation regression and rerun core/BOSS suites |
+| F35 | P2: the existing add-to-cart service updates a matching line without calling create#OrderItem; guarding the create path alone leaves an obsolete-product bypass | Guard add#OrderProductQuantity before price resolution and either create/update path; keep explicit zero-quantity removal ahead of the guard |
+| F36 | P2: get#AvailableInventory requires a facility/store scope, and its kit minimum used zero as an uninitialized sentinel | Product360 totals only authorized facilities; keep an explicit first-component flag so later stock cannot overwrite a zero minimum |
+| F37 | P2: ProductOtherIdentification and ProductUomDimension are outside the legacy delete/clone coverage; equipment maintenance refers to meter IDs | Clean modern children before guarded unused-draft deletion, copy scoped identities safely, and remap cloned maintenance meters |
 
 ## 7. Later
 

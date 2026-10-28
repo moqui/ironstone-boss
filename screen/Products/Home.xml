@@ -1,9 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Home" default-menu-index="1" menu-image="sym_o_dashboard" menu-image-type="icon">
-    <actions><service-call name="ironstone.products.CatalogServices.find#Products" in-map="{pageSize:5}" out-map="catalog"/></actions>
-    <widgets><container-box><box-header title="Your catalog"/><box-body>
-        <label text="${catalog.productListCount} products available" type="p"/>
-        <link url="../Products" text="Browse products" link-type="anchor-button" icon="sym_o_inventory_2"/>
-    </box-body></container-box></widgets>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Home" default-menu-index="1" menu-image="sym_o_dashboard" menu-image-type="icon">
+    <actions>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogSummary" out-map="context"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Your catalog"/>
+            <box-body>
+                <label text="As of ${summary.asOf}" type="p"/>
+                <container style="row q-col-gutter-md">
+                    <container style="col-12 col-sm-6 col-lg">
+                        <link url="../Products" text="Active SKUs: ${summary.active}" link-type="anchor" parameter-map="{list:'activeSkus'}"/>
+                    </container>
+                    <container style="col-12 col-sm-6 col-lg">
+                        <link url="../Products" text="Variants: ${summary.variants}" link-type="anchor" parameter-map="{list:'variants'}"/>
+                    </container>
+                    <container style="col-12 col-sm-6 col-lg">
+                        <link url="../Products" text="Discontinuing in 30 days: ${summary.discontinuingSoon}" link-type="anchor" parameter-map="{list:'discontinuingSoon'}"/>
+                    </container>
+                    <container style="col-12 col-sm-6 col-lg">
+                        <label text="Missing price: unavailable" type="p"/>
+                    </container>
+                    <container style="col-12 col-sm-6 col-lg">
+                        <label text="Incomplete catalog: unavailable" type="p"/>
+                    </container>
+                </container>
+            </box-body>
+        </container-box>
+        <container-box>
+            <box-header title="Shortcuts"/>
+            <box-body>
+                <container style="row q-gutter-sm">
+                    <link url="../Products/NewProduct" text="Create product" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+                    <link url="../Products" text="Products" link-type="anchor"/>
+                    <link url="../Categories" text="Categories" link-type="anchor"/>
+                    <link url="../Features" text="Features" link-type="anchor"/>
+                    <link url="../SupplierPrices" text="Supplier prices" link-type="anchor" condition="access.capabilities.supplierPriceRead"/>
+                </container>
+            </box-body>
+        </container-box>
+        <container-box>
+            <box-header title="Recently changed"/>
+            <box-body>
+                <form-list name="RecentProducts" list="recentProducts" skip-form="true" paginate="false">
+                    <field name="productId">
+                        <header-field title="Product"/>
+                        <default-field>
+                            <link url="../Products/Product360" text="${productId}" parameter-map="{productId:productId}" link-type="anchor"/>
+                        </default-field>
+                    </field>
+                    <field name="productName">
+                        <header-field title="Name"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="lastUpdatedStamp">
+                        <header-field title="Modified"/>
+                        <default-field>
+                            <display text="${lastUpdatedStampText || ''}"/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <container-box>
+            <box-header title="My catalog activities"/>
+            <box-body>
+                <form-list name="MyActivities" list="activityRows" skip-form="true" paginate="false">
+                    <field name="workEffortId">
+                        <header-field title="Task"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="workEffortName">
+                        <header-field title="Name"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="estimatedCompletionDate">
+                        <header-field title="Due"/>
+                        <default-field>
+                            <display format="yyyy-MM-dd HH:mm"/>
+                        </default-field>
+                    </field>
+                    <field name="priority">
+                        <header-field title="Priority"/>
+                        <default-field>
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+            </box-body>
+        </container-box>
+    </widgets>
 </screen>

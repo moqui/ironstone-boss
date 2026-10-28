@@ -2,9 +2,13 @@
 <entity-facade-xml type="demo">
     <!-- Existing DEMO_* products, variants, kit and supplier offers remain shared and unchanged. These owned records
          exercise catalog isolation without changing the Mantle flow fixtures. -->
-    <mantle.product.Product productId="BOSS_PRD_OWN" productName="Services catalog sample" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES"/>
+    <mantle.product.Product statusId="PrdActive" amountUomId="OTH_ea" productId="BOSS_PRD_OWN" productName="Services catalog sample" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES"/>
     <mantle.product.Product productId="BOSS_PRD_OTHER" productName="Retail catalog sample" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_RETAIL"/>
     <mantle.product.ProductIdentification productId="BOSS_PRD_OWN" productIdTypeEnumId="PidtOther" idValue="BOSS-OWN-CODE"/>
     <mantle.product.ProductIdentification productId="BOSS_PRD_OTHER" productIdTypeEnumId="PidtOther" idValue="BOSS-OTHER-CODE"/>
     <mantle.product.category.ProductCategory productCategoryId="BOSS_PRD_CAT" categoryName="Services catalog" productCategoryTypeEnumId="PctCatalog" ownerPartyId="ORG_ZIZI_SERVICES"/>
+<mantle.product.Product productId="BOSS_PRD_DRAFT" productName="New catalog draft" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES" statusId="PrdDraft" amountUomId="OTH_ea"/>
+<mantle.product.Product productId="BOSS_PRD_OBSOLETE" productName="Retired catalog product" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES" statusId="PrdObsolete" amountUomId="OTH_ea"/>
+<mantle.product.ProductParty productId="BOSS_PRD_OWN" partyId="ORG_ZIZI_SERVICES" roleTypeId="Customer" fromDate="2026-01-01 00:00:00" otherPartyItemId="SERVICES-PART-01"/>
+<mantle.product.ProductUomDimension productUomDimensionId="BOSS_PRD_HEIGHT" productId="BOSS_PRD_OWN" uomDimensionTypeId="Height" value="0.2" uomId="LEN_m"/>
 </entity-facade-xml>

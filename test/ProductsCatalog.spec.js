@@ -92,7 +92,7 @@ feature('clone copies modern dimensions without external identifiers or status a
         active.error.includes('unused drafts')
     },
 })
-feature('catalog settings are structured revisions, reject stale edits and require the administrator grant',{
+feature('catalog settings use dated optimistic tokens, reject stale edits and require the administrator grant',{
     when(){
         const admin=as('catalog.admin',()=>{
             const current=invoke(S+'get#CatalogSettings',{organizationPartyId:'ORG_ZIZI_SERVICES'})
@@ -106,7 +106,8 @@ feature('catalog settings are structured revisions, reject stale edits and requi
     },
     then({admin,editor,reader}){
         admin.next.error==''
-        admin.next.versionSeqId==admin.current.versionSeqId+1
+        admin.next.versionSeqId>admin.current.versionSeqId
+        admin.next.versionSeqId==Number(String(admin.next.fromDate))
         admin.stale.error.includes('changed')
         editor.error.includes('not available')
         reader.error.includes('Catalog editor')
@@ -171,4 +172,34 @@ feature('typed content copies an authorized drive file and refuses server paths 
    hidden:invoke(C+'store#ProductContent',{productId:'BOSS_PRD_OWN',productContentTypeEnumId:'PcntDescription',sourceDriveId:'NO_SUCH_DRIVE',sourcePath:'private.txt'})
   }
  })},then({copied,text,raw,hidden}){copied.error=='';text=='Authorized catalog source';raw.error.includes('authorized drive');hidden.error!=''},
+})
+
+feature('catalog policy scheduling preserves as-of reads and audits while rejecting stale or duplicate starts', {
+    when(){return as('catalog.admin',()=>{
+        const organizationPartyId='ORG_ZIZI_SERVICES',base=invoke(S+'get#CatalogSettings',{organizationPartyId})
+        const future=new Date(Number(String(ec.user.nowTimestamp))+600000).toISOString(),middle=new Date(Number(String(ec.user.nowTimestamp))+300000).toISOString()
+        const scheduled=invoke(S+'store#CatalogSettings',{organizationPartyId,expectedVersion:base.versionSeqId,fromDate:future,settingsJson:JSON.stringify({idPolicy:'manual',variantsEnabled:false}),changeReason:'Scheduled manual IDs'})
+        const inserted=invoke(S+'store#CatalogSettings',{organizationPartyId,expectedVersion:base.versionSeqId,fromDate:middle,settings:{packagingEnabled:false},changeReason:'Earlier packaging policy'})
+        const current=invoke(S+'get#CatalogSettings',{organizationPartyId}),atMiddle=invoke(S+'get#CatalogSettings',{organizationPartyId,asOfDate:middle}),later=invoke(S+'get#CatalogSettings',{organizationPartyId,asOfDate:future})
+        const duplicate=invoke(S+'store#CatalogSettings',{organizationPartyId,expectedVersion:base.versionSeqId,fromDate:future,settings:{idPolicy:'internal'}})
+        const past=invoke(S+'store#CatalogSettings',{organizationPartyId,expectedVersion:base.versionSeqId,fromDate:'2000-01-01T00:00:00Z',settings:{}})
+        const other=invoke(S+'get#CatalogSettings',{organizationPartyId:'ORG_ZIZI_RETAIL'})
+        const audits=Array.from(ec.entity.find('moqui.entity.EntityAuditLog').condition({changedEntityName:'mantle.product.ProductCatalogSetting',changedFieldName:'thruDate'}).disableAuthz().list())
+        return {base,scheduled,inserted,current,atMiddle,later,duplicate,past,other,audits,future}
+    })},
+    then({base,scheduled,inserted,current,atMiddle,later,duplicate,past,other,audits,future}){
+        scheduled.error==''
+        inserted.error==''
+        current.settings.idPolicy==base.settings.idPolicy
+        current.settings.packagingEnabled==base.settings.packagingEnabled
+        atMiddle.settings.packagingEnabled==false
+        Number(String(atMiddle.thruDate))==Date.parse(future)
+        later.settings.idPolicy=='manual'
+        later.settings.variantsEnabled==false
+        later.history.some(r=>r.changeReason=='Scheduled manual IDs')
+        audits.some(r=>r.changeReason=='Earlier packaging policy')
+        duplicate.error.includes('already starts')
+        past.error.includes('now or later')
+        other.error.includes('not available')
+    },
 })

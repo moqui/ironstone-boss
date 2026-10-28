@@ -3,11 +3,16 @@
     <service verb="get" noun="CatalogSettings">
         <in-parameters>
             <parameter name="organizationPartyId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
         </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId"/>
-            <parameter name="versionSeqId" type="Integer"/>
+            <parameter name="versionSeqId" type="Long"/>
             <parameter name="settings" type="Map"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="history" type="List"/>
         </out-parameters>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('settings', context))</script>
@@ -16,14 +21,20 @@
     <service verb="store" noun="CatalogSettings">
         <in-parameters>
             <parameter name="organizationPartyId" required="true"/>
-            <parameter name="expectedVersion" type="Integer"/>
+            <parameter name="expectedVersion" type="Long"/>
             <parameter name="settings" type="Map"/>
             <parameter name="settingsJson"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="changeReason"/>
         </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId"/>
-            <parameter name="versionSeqId" type="Integer"/>
+            <parameter name="versionSeqId" type="Long"/>
             <parameter name="settings" type="Map"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="history" type="List"/>
         </out-parameters>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeSettings', context))</script>

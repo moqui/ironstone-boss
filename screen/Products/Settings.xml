@@ -10,7 +10,7 @@
     </transition>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.SettingsServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
+            <service-call name="ironstone.products.SettingsServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,fromDate:effectiveFromDate,changeReason:changeReason,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
         </actions>
         <default-response url=".">
             <parameter name="organizationPartyId"/>

@@ -559,7 +559,7 @@ along with this software (see the LICENSE.md file). If not, see
             }
             thread = {store: 'internal', threadId: out.rootCommEventId, subject: out.subject, canSend: false, canReply: out.canReply === true,
                 canModerate: out.canModerate === true, isClosed: out.isClosed === true, contactListId: out.contactListId ?? null,
-                contactListName: out.contactListName ?? null, mailbox: mailbox, unreadCount: out.unreadCount || 0,
+                contactListName: out.contactListName ?? null, mailbox: mailbox, unreadCount: out.unreadCount || 0, forum: out.forum ?? null,
                 isFlagged: messageList.some((message) => message.isFlagged), labelList: Array.from(out.labelList || []), linkList: linkList, messageList: messageList}
         ]]></script></actions>
     </service>

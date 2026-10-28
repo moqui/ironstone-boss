@@ -291,6 +291,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <q-chip v-if="thread.contactListName" dense square class="m-tonal q-ml-none" icon="sym_o_forum" clickable
                                             @click="openView({mailbox: thread.contactListId})">{{thread.contactListName}}</q-chip>
                                     <q-chip v-if="thread.isClosed" dense square class="m-tonal text-positive q-ml-none" icon="sym_o_lock">{{t('Closed')}}</q-chip>
+                                    <q-chip v-if="thread.forum && thread.forum.kind === 'private'" dense square class="m-tonal q-ml-none" icon="sym_o_lock_person">{{t('Private conversation')}}</q-chip>
+                                    <q-chip v-else-if="thread.forum" dense square class="m-tonal q-ml-none" icon="sym_o_public">{{t('Community topic')}}</q-chip>
+                                    <q-chip v-if="thread.forum && thread.forum.acceptedAnswerId" dense square class="m-tonal text-positive q-ml-none" icon="sym_o_check_circle">{{t('Answered')}}</q-chip>
+                                    <q-chip v-if="thread.forum && thread.forum.pinned" dense square class="m-tonal q-ml-none" icon="sym_o_keep">{{t('Pinned')}}</q-chip>
                                     <q-chip v-for="label in thread.labelList" :key="label.emailLabelId" dense square class="m-tonal q-ml-none" icon="sym_o_label"
                                             removable @remove="removeLabel(label)">{{label.labelName}}</q-chip>
                                     <q-chip v-if="threadFolderLabel" dense square class="m-tonal q-ml-none" icon="sym_o_folder">{{threadFolderLabel}}</q-chip>

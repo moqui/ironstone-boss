@@ -18,6 +18,14 @@ along with this software (see the LICENSE.md file). If not, see
     decides who may. A public account has no moderation scopes here even if it moderates a public site. -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
 
+    <service verb="check" noun="Internal" allow-remote="false">
+        <description>Refuses a public account: forum moderation in Comms is for internal staff, whatever public site they moderate.</description>
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.forum.ModerationServices.find#ModerationScopes').parameters({input: {}}).call()?.result || {}
+            if (!out.internal) ec.message.addError(ec.l10n.localize('Forum moderation in Comms is for internal staff'))
+        ]]></script></actions>
+    </service>
+
     <service verb="find" noun="Scopes" allow-remote="false">
         <description>The sites and bound categories the current internal user moderates, as drop-down options keyed
             siteId or siteId|contactListId.</description>
@@ -38,7 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
         <description>Open review items in one scope, each with the title of the post or member it concerns.</description>
         <in-parameters><parameter name="scope" required="true"/></in-parameters>
         <out-parameters><parameter name="reviewList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script><![CDATA[
             const [siteId, contactListId] = String(scope).split('|')
             const call = (verb, input) => ec.service.sync().name('mantle.forum.ModerationServices.' + verb).parameters({input}).call()?.result || {}
             const list = Array.from(call('find#Reviews', {siteId, ...(contactListId ? {contactListId} : {}), limit: 50}).reviewList || [])
@@ -64,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="reportList" type="List"/>
             <parameter name="noteList" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script><![CDATA[
             const out = ec.service.sync().name('mantle.forum.ModerationServices.get#Review').parameters({input: {siteId, reviewId}}).call()?.result || {}
             review = out.review || null
             post = out.post || null
@@ -79,7 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="reviewId" required="true"/>
             <parameter name="expectedRevision" type="Integer" required="true"/>
         </in-parameters>
-        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.claim#Review').parameters({input: {siteId, reviewId, expectedRevision}}).call()</script></actions>
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script>ec.service.sync().name('mantle.forum.ModerationServices.claim#Review').parameters({input: {siteId, reviewId, expectedRevision}}).call()</script></actions>
     </service>
 
     <service verb="decide" noun="Review" allow-remote="false">
@@ -90,7 +98,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="decision" required="true"/>
             <parameter name="reason" required="true"/>
         </in-parameters>
-        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.decide#Review').parameters({input: {siteId, reviewId, expectedRevision, decision, reason}}).call()</script></actions>
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script>ec.service.sync().name('mantle.forum.ModerationServices.decide#Review').parameters({input: {siteId, reviewId, expectedRevision, decision, reason}}).call()</script></actions>
     </service>
 
     <service verb="decide" noun="Reviews" allow-remote="false">
@@ -102,7 +110,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="reason" required="true"/>
         </in-parameters>
         <out-parameters><parameter name="resultList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script><![CDATA[
             const out = ec.service.sync().name('mantle.forum.ModerationServices.decide#Reviews').parameters({input: {siteId,
                 reviewIds: Array.from(reviewIdList).map(String), decision, reason}}).call()?.result || {}
             resultList = Array.from(out.results || out.resultList || [])
@@ -115,6 +123,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="reviewId" required="true"/>
             <parameter name="noteText" required="true"/>
         </in-parameters>
-        <actions><script>ec.service.sync().name('mantle.forum.ModerationServices.add#ReviewNote').parameters({input: {siteId, reviewId, body: noteText, operationId: ec.user.randomString(32)}}).call()</script></actions>
+        <actions><service-call name="ironstone.comms.ModerationServices.check#Internal"/><if condition="ec.message.hasError()"><return/></if><script>ec.service.sync().name('mantle.forum.ModerationServices.add#ReviewNote').parameters({input: {siteId, reviewId, body: noteText, operationId: ec.user.randomString(32)}}).call()</script></actions>
     </service>
 </services>

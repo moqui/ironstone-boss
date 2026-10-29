@@ -70,18 +70,10 @@ feature("shared list and explanation services enforce direction owner and trace 
         explained.traceRows.some(r => r.kind === "list-selected")
     }
 })
-feature("a reader cannot write rules through the shared projection or the native service", {
+feature("a reader cannot write rules through the native service the shared screens call", {
     when() {
-        return as("catalog.price.read", () => ({
-            shared: invoke(S + "store#ProductPriceRule", {
-                priceListId: "BOSS_PRICE_LIST",
-                sequenceNum: 20,
-                selector: "all",
-                baseType: "fixed",
-                fixedPrice: 1,
-                changeReason: "Not permitted"
-            }),
-            native: invoke(M + "store#ProductPriceRule", {
+        return as("catalog.price.read", () =>
+            invoke(M + "store#ProductPriceRule", {
                 priceListId: "BOSS_PRICE_LIST",
                 sequenceNum: 20,
                 selector: "all",
@@ -89,10 +81,9 @@ feature("a reader cannot write rules through the shared projection or the native
                 fixedPrice: 1,
                 changeReason: "Not permitted"
             })
-        }))
+        )
     },
-    then({shared, native}) {
-        shared.error.includes("not available")
+    then(native) {
         native.error.includes("not available")
     }
 })
@@ -123,14 +114,14 @@ feature("price-list screen #path renders its populated data in #mode", {
 feature("a newly saved fixed rule renders in the shared detail projection", {
     when() {
         return as("catalog.price.edit", () => {
-            const saved = call(S + "store#ProductPriceList", {
+            const saved = call(M + "store#ProductPriceList", {
                 listName: "Fixed display regression",
                 organizationPartyId: "ORG_ZIZI_SERVICES",
                 direction: "sales",
                 priceUomId: "USD",
                 changeReason: "Regression policy"
             })
-            call(S + "store#ProductPriceRule", {
+            call(M + "store#ProductPriceRule", {
                 priceListId: saved.priceListId,
                 sequenceNum: 10,
                 selector: "product",
@@ -172,10 +163,10 @@ feature("a Products administrator configures pricing and reads its rules while r
     when() {
         return as("catalog.admin", () => {
             const options = call(S + "get#PriceListOptions"),
-                before = call("ironstone.products.SettingsServices.get#PricingSettings", {
+                before = call("mantle.product.PriceServices.get#PricingSettings", {
                     organizationPartyId: "ORG_ZIZI_SERVICES"
                 }),
-                saved = invoke("ironstone.products.SettingsServices.store#PricingSettings", {
+                saved = invoke("mantle.product.PriceServices.store#PricingSettings", {
                     organizationPartyId: "ORG_ZIZI_SERVICES",
                     expectedFromDate: before.fromDate,
                     defaultPriceListId: "BOSS_PRICE_LIST",

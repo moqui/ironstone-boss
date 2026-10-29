@@ -14,14 +14,8 @@ const call = (name, p, sys = false) => {
     if (sys) c = c.disableAuthz()
     return c.call() || {}
 }
-const find = (entity, p) =>
-    ec.entity
-        .find(entity)
-        .condition(p || {})
-        .disableAuthz()
-const one = (entity, p) => find(entity, p).one()
-const rows = (entity, p) => Array.from(find(entity, p).list())
-const ms = value => (value == null || value === "" ? null : Number(String(value)))
+const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+    {find, one, rows, rowsIn, ms} = lib
 const now = () => ms(ec.user.nowTimestamp)
 const current = (row, at = now()) =>
     (ms(row.fromDate) == null || ms(row.fromDate) <= at) && (ms(row.thruDate) == null || ms(row.thruDate) > at)
@@ -33,12 +27,14 @@ const pick = (p, names) =>
             .map(key => [key, p[key] === "" ? null : p[key]])
     )
 function data(row) {
-    const out = row.getMap ? row.getMap() : Object.assign({}, row)
+    const out = lib.map(row)
     for (const key of ["fromDate", "thruDate"])
-        if (out[key] != null) out[key + "Text"] = ec.l10n.format(new Date(ms(out[key])), "yyyy-MM-dd HH:mm")
+        if (out[key] != null) out[key + "Text"] = lib.dateText(out[key], "yyyy-MM-dd HH:mm")
     return out
 }
-const access = () => call(C + "get#CatalogAccess")
+// The user's catalog access, read once per operation (execute resets it).
+let accessCache = null
+const access = () => accessCache || (accessCache = call(C + "get#CatalogAccess"))
 function record(kind, id, need = "read", quiet = false) {
     const out = call(C + "get#CatalogRecord", {recordEntityName: E[kind], recordId: id, need, checkOnly: true})
     if (!out.record && !quiet) throw new Error("Catalog record is not available for this action")
@@ -224,21 +220,44 @@ function graph(p) {
     const a = access()
     if (!a.capabilities.read) throw new Error("Catalog read access is required")
     const at = ms(p.asOfDate) ?? now(),
-        categories = rows(E.category).filter(row => a.capabilities.systemAdmin || a.ownerPartyIds.includes(row.ownerPartyId)),
-        byId = Object.fromEntries(categories.map(row => [row.productCategoryId, row]))
-    const edges = rows(R).filter(row => current(row, at) && byId[row.productCategoryId] && byId[row.parentProductCategoryId])
-    const members = rows("mantle.product.category.ProductCategoryMember").filter(
-        row => current(row, at) && byId[row.productCategoryId] && product(row.productId, "read", true)
-    )
+        categories = a.capabilities.systemAdmin ? rows(E.category) : rowsIn(E.category, "ownerPartyId", a.ownerPartyIds),
+        byId = Object.fromEntries(categories.map(row => [row.productCategoryId, row])),
+        categoryIds = Object.keys(byId)
+    const edges = rowsIn(R, "productCategoryId", categoryIds).filter(row => current(row, at) && byId[row.parentProductCategoryId])
+    // the current members of the readable categories whose products the user may read, checked in one query
+    const memberRows = rowsIn("mantle.product.category.ProductCategoryMember", "productCategoryId", categoryIds).filter(row =>
+            current(row, at)
+        ),
+        readable = new Set(
+            rowsIn(
+                "mantle.product.Product",
+                "productId",
+                memberRows.map(row => row.productId)
+            )
+                .filter(row => a.capabilities.systemAdmin || a.ownerPartyIds.includes(row.ownerPartyId))
+                .map(row => row.productId)
+        ),
+        members = memberRows.filter(row => readable.has(row.productId))
+    const membersOf = new Map(),
+        childrenOf = new Map()
+    for (const row of members)
+        (membersOf.get(row.productCategoryId) || membersOf.set(row.productCategoryId, []).get(row.productCategoryId)).push(
+            row.productId
+        )
+    for (const edge of edges)
+        (
+            childrenOf.get(edge.parentProductCategoryId) ||
+            childrenOf.set(edge.parentProductCategoryId, []).get(edge.parentProductCategoryId)
+        ).push(edge)
+    // the distinct products of a category and its branch, each counted once however many paths reach it
     const branch = (id, seen = new Set()) => {
         if (seen.has(id)) return new Set()
         seen.add(id)
-        const ids = new Set(members.filter(row => row.productCategoryId === id).map(row => row.productId))
-        for (const edge of edges.filter(row => row.parentProductCategoryId === id))
-            for (const value of branch(edge.productCategoryId, seen)) ids.add(value)
+        const ids = new Set(membersOf.get(id) || [])
+        for (const edge of childrenOf.get(id) || []) for (const value of branch(edge.productCategoryId, seen)) ids.add(value)
         return ids
     }
-    return {a, at, categories, byId, edges, members, branch}
+    return {a, at, categories, byId, edges, members, childrenOf, branch}
 }
 function findCategories(p) {
     const g = graph(p),
@@ -259,9 +278,9 @@ function findCategories(p) {
             parentOccurrenceId: parts.length > 1 ? occurrence(parts.slice(0, -1)) : "",
             originalParentProductCategoryId: edge?.parentProductCategoryId || null,
             fromDate: edge?.fromDate || null,
-            fromDateText: edge?.fromDate ? ec.l10n.format(new Date(ms(edge.fromDate)), "yyyy-MM-dd HH:mm") : null,
+            fromDateText: edge?.fromDate ? lib.dateText(edge.fromDate, "yyyy-MM-dd HH:mm") : null,
             sequenceNum: edge?.sequenceNum || 0,
-            childCount: g.edges.filter(e => e.parentProductCategoryId === row.productCategoryId).length,
+            childCount: (g.childrenOf.get(row.productCategoryId) || []).length,
             branchProductCount: g.branch(row.productCategoryId).size
         })
     let found = []
@@ -799,7 +818,8 @@ function slug(p) {
     )
 }
 function execute(op, p) {
-    return {
+    accessCache = null
+    const operations = {
         storeMaster,
         storeRollup,
         findCategories,
@@ -815,6 +835,8 @@ function execute(op, p) {
         preview,
         options,
         slug
-    }[op](p || {})
+    }
+    if (!operations[op]) throw new Error("Unknown taxonomy operation " + op)
+    return operations[op](p || {})
 }
 ;({execute})

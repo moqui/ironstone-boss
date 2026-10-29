@@ -188,7 +188,8 @@ feature("P2 catalog projections and writers keep grants and owner checks with au
                         ec.message.clearErrors()
                     }
                 }
-                const detail = call(CATALOG + "get#ProductDetail", {productId: "BOSS_PRD_OWN"}).detail
+                const detail = call(CATALOG + "get#ProductDetail", {productId: "BOSS_PRD_OWN"}).detail,
+                    connections = call(CATALOG + "get#ProductConnections", {productId: "BOSS_PRD_OWN"})
                 const palette = call(CATALOG + "search#Catalog", {text: "BOSS-OTHER-CODE"})
                 let hidden = false
                 try {
@@ -199,15 +200,15 @@ feature("P2 catalog projections and writers keep grants and owner checks with au
                 } finally {
                     ec.message.clearErrors()
                 }
-                return {denied, detail, palette, hidden}
+                return {denied, detail, connections, palette, hidden}
             },
             false
         )
     },
-    then({denied, detail, palette, hidden}) {
+    then({denied, detail, connections, palette, hidden}) {
         denied == [true, true, true, true, true, true]
         detail.canEdit == false
-        detail.connectionRows == []
+        connections.connectionRows == []
         detail.priceRows == null
         detail.costRows == null
         palette.rows == []

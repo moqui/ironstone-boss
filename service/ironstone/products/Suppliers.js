@@ -1,153 +1,138 @@
-// App routing is local to this invocation, including nested catalog reads.
+// Products context for supplier offers. The native price policy remains the writer and amount guard.
+// Each invocation keeps its app route local, including nested catalog reads (ProductsLib.forCall).
 function run(op, parameters) {
-    const requestedRoot = parameters.appRoot || "Products"
-    // Products context for supplier offers. The native price policy remains the writer and amount guard.
+    const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+        local = lib.forCall(parameters.appRoot),
+        {find, one, rows, rowsIn, ms, dateText} = lib
     const C = "ironstone.products.CatalogServices.",
-        S = "ironstone.products.SupplierServices.",
         P = "mantle.product."
-    const find = (n, p = {}) => ec.entity.find(n).condition(p).disableAuthz(),
-        one = (n, p) => find(n, p).one(),
-        rows = (n, p) => Array.from(find(n, p).list())
-    const call = (n, p = {}) => {
-        const out =
-            ec.service
-                .sync()
-                .name(n)
-                .parameters(Object.assign({appRoot: requestedRoot}, p))
-                .disableAuthz()
-                .call() || {}
-        if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
-        return out
-    }
-    const ms = v =>
-        v == null || v === "" ? null : Number.isFinite(Number(String(v))) ? Number(String(v)) : Date.parse(String(v))
-    const active = (r, at) => (ms(r.fromDate) ?? -Infinity) <= at && (ms(r.thruDate) ?? Infinity) > at
+    const call = (name, p = {}) => local.call(name, p, {sys: true, strict: true})
+    const active = (row, at) => (ms(row.fromDate) ?? -Infinity) <= at && (ms(row.thruDate) ?? Infinity) > at
     const price = (op, p) => ec.resource.script("component://mr-boss/service/ironstone/products/Prices.js").execute(op, p)
-    function scope(p, write = false) {
-        const a = call(C + "get#SharedContext", {appRoot: p.appRoot}),
-            organizationPartyId = p.organizationPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0]
-        if (!(write ? a.capabilities.supplierPriceEdit : a.capabilities.supplierPriceRead))
-            throw new Error("Supplier-price authority is required")
 
+    // The user's shared context with the internal buying organization the offers belong to.
+    function scope(p, write = false) {
+        const context = local.access(),
+            capabilities = context.capabilities,
+            organizationPartyId = p.organizationPartyId || context.activeOrganizationPartyId || context.organizationPartyIds[0]
+        if (!(write ? capabilities.supplierPriceEdit : capabilities.supplierPriceRead))
+            throw new Error("Supplier-price authority is required")
         if (
             !organizationPartyId ||
             !one("mantle.party.PartyRole", {partyId: organizationPartyId, roleTypeId: "OrgInternal"}) ||
-            (!a.capabilities.systemAdmin && !a.organizationPartyIds.includes(organizationPartyId))
+            (!capabilities.systemAdmin && !context.organizationPartyIds.includes(organizationPartyId))
         )
             throw new Error("Choose an available internal buying organization")
-        return Object.assign({}, a, {organizationPartyId})
+        return Object.assign({}, context, {organizationPartyId})
     }
-    function partyVisible(r, a) {
+    function partyVisible(party, context) {
         return (
-            !!r &&
-            (!r.privateOwnerUserId || r.privateOwnerUserId === ec.user.userId) &&
-            (a.capabilities.systemAdmin || a.ownerPartyIds.includes(r.ownerPartyId) || a.organizationPartyIds.includes(r.partyId))
+            !!party &&
+            (!party.privateOwnerUserId || party.privateOwnerUserId === ec.user.userId) &&
+            (context.capabilities.systemAdmin ||
+                context.ownerPartyIds.includes(party.ownerPartyId) ||
+                context.organizationPartyIds.includes(party.partyId))
         )
     }
-    function supplier(id, a) {
-        const r = one("mantle.party.Party", {partyId: id})
-        if (
-            !partyVisible(r, a) ||
-            r.disabled === "Y" ||
-            !one("mantle.party.PartyRole", {partyId: id, roleTypeId: "Supplier"}) ||
-            one("mantle.party.PartyRole", {partyId: id, roleTypeId: "OrgInternal"})
-        )
-            throw new Error("Supplier is not available")
-        return r
+    // An external supplier the user may see; checked once per supplier in an invocation.
+    const supplierChecks = new Map()
+    function supplier(partyId, context) {
+        if (!supplierChecks.has(partyId)) {
+            const party = one("mantle.party.Party", {partyId})
+            const usable =
+                partyVisible(party, context) &&
+                party.disabled !== "Y" &&
+                !!one("mantle.party.PartyRole", {partyId, roleTypeId: "Supplier"}) &&
+                !one("mantle.party.PartyRole", {partyId, roleTypeId: "OrgInternal"})
+            supplierChecks.set(partyId, usable ? party : null)
+        }
+        const party = supplierChecks.get(partyId)
+        if (!party) throw new Error("Supplier is not available")
+        return party
     }
-    function product(id) {
-        const out = call(C + "get#CatalogRecord", {recordId: id, checkOnly: true})
-        if (!out.record) throw new Error("Product is not available")
-        return out.record
+    function product(productId) {
+        const record = local.readableProduct(productId)
+        if (!record) throw new Error("Product is not available")
+        return record
+    }
+    // An offer as the screens show it: names, its pack, state and whether it may be corrected.
+    function display(offer, context, at, names) {
+        const data = lib.map(offer),
+            now = ms(ec.user.nowTimestamp),
+            pack = rows(P + "ProductAssoc", {productId: offer.productId, productAssocTypeEnumId: "PatPackagingFor"}).find(
+                edge => active(edge, at) && local.readableProduct(edge.toProductId)
+            )
+        Object.assign(data, {
+            organizationPartyId: context.organizationPartyId,
+            productName: product(offer.productId).productName,
+            supplierName: names.get(offer.vendorPartyId) || offer.vendorPartyId,
+            buyerName: names.get(offer.customerPartyId) || offer.customerPartyId,
+            packProductId: pack ? offer.productId : null,
+            baseProductId: pack?.toProductId || null,
+            packSize: pack?.quantity || offer.quantityIncluded || null,
+            packQuantityUomId: pack ? pack.quantityUomId || product(pack.toProductId).amountUomId || null : null,
+            canEdit: context.capabilities.supplierPriceEdit,
+            canCorrect: find("mantle.order.OrderItem", {productPriceId: offer.productPriceId}).count() === 0,
+            state:
+                ms(offer.fromDate) > now
+                    ? "Scheduled"
+                    : ms(offer.thruDate) != null && ms(offer.thruDate) <= now
+                      ? "Ended"
+                      : "Effective"
+        })
+        for (const field of ["fromDate", "thruDate"]) data[field + "Text"] = dateText(offer[field])
+        for (const field of ["price", "minQuantity", "quantityIncrement", "quantityIncluded", "standardLeadTimeDays", "packSize"])
+            if (data[field] != null) data[field] = String(data[field])
+        return data
     }
     function offers(p) {
-        const a = scope(p),
+        const context = scope(p),
             at = p.asOfDate == null ? ms(ec.user.nowTimestamp) : ms(p.asOfDate)
         if (!Number.isFinite(at)) throw new Error("Choose a valid offer date")
-        if (p.vendorPartyId) supplier(p.vendorPartyId, a)
-        const selected = p.productId ? [product(p.productId).productId] : null
-        // Pack offers retain their own priced product. No dimensional unit is invented for a pack.
-        if (selected)
-            for (const edge of rows(P + "ProductAssoc", {
-                toProductId: p.productId,
-                productAssocTypeEnumId: "PatPackagingFor"
-            }).filter(r => active(r, at)))
-                if (call(C + "get#CatalogRecord", {recordId: edge.productId, checkOnly: true}).record)
-                    selected.push(edge.productId)
-        const all = [],
-            ids = selected
-                ? [...new Set(selected)]
-                : [...new Set(rows(P + "ProductPrice", {customerPartyId: a.organizationPartyId}).map(r => r.productId))]
-        for (const productId of ids) {
-            if (!call(C + "get#CatalogRecord", {recordId: productId, checkOnly: true}).record) continue
+        if (p.vendorPartyId) supplier(p.vendorPartyId, context)
+        let productIds
+        if (p.productId) {
+            // Pack offers retain their own priced product. No dimensional unit is invented for a pack.
+            productIds = [product(p.productId).productId]
+            for (const edge of rows(P + "ProductAssoc", {toProductId: p.productId, productAssocTypeEnumId: "PatPackagingFor"}))
+                if (active(edge, at) && local.readableProduct(edge.productId)) productIds.push(edge.productId)
+            productIds = [...new Set(productIds)]
+        } else {
+            const priced = find(P + "ProductPrice", {customerPartyId: context.organizationPartyId})
+                .selectField("productId")
+                .distinct(true)
+                .list()
+            productIds = local.visibleProductIds(Array.from(priced).map(row => row.productId))
+        }
+        const matching = []
+        const itemCode = String(p.supplierItemCode || "").toLowerCase()
+        for (const productId of productIds) {
             ec.message.pushErrors()
             try {
-                const got = call(P + "PriceServices.find#ProductPrices", {
+                const found = call(P + "PriceServices.find#ProductPrices", {
                     productId,
                     direction: "purchase",
                     asOfDate: p.asOfDate,
                     includeHistory: p.includeHistory
                 })
-                for (const r of got.productPriceList || []) {
+                for (const offer of found.productPriceList || []) {
                     if (
-                        r.customerPartyId !== a.organizationPartyId ||
-                        r.priceTypeEnumId === "PptAverage" ||
-                        (p.vendorPartyId && r.vendorPartyId !== p.vendorPartyId) ||
-                        (p.priceUomId && r.priceUomId !== p.priceUomId) ||
-                        (p.preferredOrderEnumId && r.preferredOrderEnumId !== p.preferredOrderEnumId) ||
-                        (p.supplierItemCode &&
-                            !String(r.otherPartyItemId || "")
+                        offer.customerPartyId !== context.organizationPartyId ||
+                        offer.priceTypeEnumId === "PptAverage" ||
+                        (p.vendorPartyId && offer.vendorPartyId !== p.vendorPartyId) ||
+                        (p.priceUomId && offer.priceUomId !== p.priceUomId) ||
+                        (p.preferredOrderEnumId && offer.preferredOrderEnumId !== p.preferredOrderEnumId) ||
+                        (itemCode &&
+                            !String(offer.otherPartyItemId || "")
                                 .toLowerCase()
-                                .includes(String(p.supplierItemCode).toLowerCase()))
+                                .includes(itemCode))
                     )
                         continue
                     try {
-                        supplier(r.vendorPartyId, a)
-                        // Format only the native policy's readable rows.
-                        const data = r.getMap ? r.getMap() : Object.assign({}, r),
-                            pack = rows(P + "ProductAssoc", {
-                                productId: r.productId,
-                                productAssocTypeEnumId: "PatPackagingFor"
-                            }).find(
-                                row =>
-                                    active(row, at) &&
-                                    call(C + "get#CatalogRecord", {recordId: row.toProductId, checkOnly: true}).record
-                            )
-                        Object.assign(data, {
-                            organizationPartyId: a.organizationPartyId,
-                            productName: product(r.productId).productName,
-                            supplierName:
-                                one("mantle.party.Organization", {partyId: r.vendorPartyId})?.organizationName || r.vendorPartyId,
-                            buyerName:
-                                one("mantle.party.Organization", {partyId: r.customerPartyId})?.organizationName ||
-                                r.customerPartyId,
-                            packProductId: pack ? r.productId : null,
-                            baseProductId: pack?.toProductId || null,
-                            packSize: pack?.quantity || r.quantityIncluded || null,
-                            packQuantityUomId: pack ? pack.quantityUomId || product(pack.toProductId).amountUomId || null : null,
-                            canEdit: a.capabilities.supplierPriceEdit,
-                            canCorrect: find("mantle.order.OrderItem", {productPriceId: r.productPriceId}).count() === 0,
-                            state:
-                                ms(r.fromDate) > ms(ec.user.nowTimestamp)
-                                    ? "Scheduled"
-                                    : ms(r.thruDate) != null && ms(r.thruDate) <= ms(ec.user.nowTimestamp)
-                                      ? "Ended"
-                                      : "Effective"
-                        })
-                        for (const k of ["fromDate", "thruDate"])
-                            data[k + "Text"] = r[k] ? ec.l10n.format(new Date(ms(r[k])), "yyyy-MM-dd HH:mm:ss") : ""
-                        for (const k of [
-                            "price",
-                            "minQuantity",
-                            "quantityIncrement",
-                            "quantityIncluded",
-                            "standardLeadTimeDays",
-                            "packSize"
-                        ])
-                            if (data[k] != null) data[k] = String(data[k])
-                        all.push(data)
+                        supplier(offer.vendorPartyId, context)
+                        matching.push(offer)
                     } catch (e) {
-                        ec.logger.error("Supplier offer " + r.productPriceId + " failed: " + e)
+                        ec.logger.error("Supplier offer " + offer.productPriceId + " failed: " + e)
                     }
                 }
             } catch (e) {
@@ -157,56 +142,63 @@ function run(op, parameters) {
                 ec.message.popErrors()
             }
         }
-        all.sort(
-            (x, y) =>
-                String(p.groupBy === "product" ? x.productId : x.vendorPartyId).localeCompare(
-                    String(p.groupBy === "product" ? y.productId : y.vendorPartyId)
-                ) ||
-                String(x.productId).localeCompare(String(y.productId)) ||
-                ms(y.fromDate) - ms(x.fromDate)
+        const groupKey = offer => String(p.groupBy === "product" ? offer.productId : offer.vendorPartyId)
+        matching.sort(
+            (a, b) =>
+                groupKey(a).localeCompare(groupKey(b)) ||
+                String(a.productId).localeCompare(String(b.productId)) ||
+                ms(b.fromDate) - ms(a.fromDate)
         )
-        const pageSize = Math.max(1, Math.min(100, Number(p.pageSize || 25))),
-            pageIndex = Math.max(0, Math.min(Math.max(0, Math.ceil(all.length / pageSize) - 1), Number(p.pageIndex || 0)))
+        // only the page shown is decorated, with the party names of its rows read in one query
+        const shown = lib.page(matching, p),
+            names = new Map(
+                rowsIn(
+                    "mantle.party.Organization",
+                    "partyId",
+                    shown.rows.flatMap(offer => [offer.vendorPartyId, offer.customerPartyId])
+                ).map(org => [org.partyId, org.organizationName])
+            )
         return {
-            appRoot: a.appRoot,
-            organizationPartyId: a.organizationPartyId,
-            offerRows: all.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize),
-            offerRowsCount: all.length,
-            pageIndex,
-            pageSize,
-            canSupplierPriceEdit: a.capabilities.supplierPriceEdit
+            appRoot: context.appRoot,
+            organizationPartyId: context.organizationPartyId,
+            offerRows: shown.rows.map(offer => display(offer, context, at, names)),
+            offerRowsCount: shown.count,
+            pageIndex: shown.pageIndex,
+            pageSize: shown.pageSize,
+            canSupplierPriceEdit: context.capabilities.supplierPriceEdit
         }
     }
     function options(p) {
-        const a = scope(p),
-            out = price("options", {}),
-            enums = t =>
-                rows("moqui.basic.Enumeration", {enumTypeId: t}).map(r => ({value: r.enumId, label: r.description || r.enumId}))
-        out.priceOptions.types = out.priceOptions.types.filter(r => r.value !== "PptAverage")
+        const context = scope(p),
+            out = price("options", {appRoot: parameters.appRoot})
+        out.priceOptions.types = out.priceOptions.types.filter(option => option.value !== "PptAverage")
         out.priceOptions.organizations = out.priceOptions.organizations.filter(
-            r => a.capabilities.systemAdmin || a.organizationPartyIds.includes(r.value)
+            option => context.capabilities.systemAdmin || context.organizationPartyIds.includes(option.value)
         )
-        out.pricingDefaults = call(P + "PriceServices.get#PricingSettings", {organizationPartyId: a.organizationPartyId}).settings
+        out.pricingDefaults = call(P + "PriceServices.get#PricingSettings", {
+            organizationPartyId: context.organizationPartyId
+        }).settings
         return Object.assign(out, {
-            organizationPartyId: a.organizationPartyId,
-            preferenceOptions: enums("SupplierPreferredOrder"),
-            ratingOptions: enums("SupplierRatingType"),
-            appRoot: a.appRoot
+            organizationPartyId: context.organizationPartyId,
+            preferenceOptions: lib.enumOptions("SupplierPreferredOrder"),
+            ratingOptions: lib.enumOptions("SupplierRatingType"),
+            appRoot: context.appRoot
         })
     }
+    // store, replace or expire through Prices.js, with the buyer and supplier of an existing offer fixed.
     function write(op, p) {
-        const a = scope(p, true),
+        const context = scope(p, true),
             old = p.productPriceId ? one(P + "ProductPrice", {productPriceId: p.productPriceId}) : null
         if (p.productPriceId && !old) throw new Error("Supplier offer is not available")
-        const buyer = old?.customerPartyId || p.customerPartyId || a.organizationPartyId,
+        const buyer = old?.customerPartyId || p.customerPartyId || context.organizationPartyId,
             vendor = old?.vendorPartyId || p.vendorPartyId
         if (
-            buyer !== a.organizationPartyId ||
+            buyer !== context.organizationPartyId ||
             (p.customerPartyId && p.customerPartyId !== buyer) ||
             (p.vendorPartyId && old && p.vendorPartyId !== vendor)
         )
             throw new Error("Offer is outside the fixed supplier and buyer scope")
-        supplier(vendor, a)
+        supplier(vendor, context)
         if (
             old &&
             ec.resource.script("component://mr-mantle/service/mantle/product/PricePolicy.js").execute("direction", old) !==
@@ -216,12 +208,12 @@ function run(op, parameters) {
         return price(op, Object.assign({}, p, {customerPartyId: buyer, vendorPartyId: vendor}))
     }
     function detail(p) {
-        const a = scope(p),
-            party = supplier(p.vendorPartyId || p.partyId, a),
+        const context = scope(p),
+            party = supplier(p.vendorPartyId || p.partyId, context),
             contacts = call("ironstone.commons.ContactServices.get#ContactRecord", {partyId: party.partyId})
         return {
-            appRoot: a.appRoot,
-            organizationPartyId: a.organizationPartyId,
+            appRoot: context.appRoot,
+            organizationPartyId: context.organizationPartyId,
             vendorPartyId: party.partyId,
             supplier: {
                 partyId: party.partyId,
@@ -231,18 +223,21 @@ function run(op, parameters) {
             },
             contactRows: contacts.contactMechList || [],
             addressRows: contacts.addressList || [],
-            roleRows: rows("mantle.party.PartyRole", {partyId: party.partyId}).map(r => ({roleTypeId: r.roleTypeId})),
-            relatedContacts: (contacts.relationshipList || []).filter(r =>
-                partyVisible(one("mantle.party.Party", {partyId: r.otherPartyId || r.partyId}), a)
+            roleRows: rows("mantle.party.PartyRole", {partyId: party.partyId}).map(role => ({roleTypeId: role.roleTypeId})),
+            relatedContacts: (contacts.relationshipList || []).filter(relation =>
+                partyVisible(one("mantle.party.Party", {partyId: relation.otherPartyId || relation.partyId}), context)
             )
         }
     }
-    function execute(op, p) {
-        if (op === "offers") return offers(p)
-        if (op === "options") return options(p)
-        if (op === "detail") return detail(p)
-        return write(op, p)
+    const operations = {
+        offers,
+        options,
+        detail,
+        store: p => write("store", p),
+        replace: p => write("replace", p),
+        expire: p => write("expire", p)
     }
-    return execute(op, parameters)
+    if (!operations[op]) throw new Error("Unknown supplier operation " + op)
+    return operations[op](parameters)
 }
 ;({execute: run})

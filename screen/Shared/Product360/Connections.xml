@@ -14,13 +14,18 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Connections" default-menu-index="10">
     <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Connections')</expression></condition>
+    <actions>
+        <if condition="productFound">
+            <service-call name="ironstone.products.CatalogServices.get#ProductConnections" in-map="{productId:productId,appRoot:appRoot}" out-map="context"/>
+        </if>
+    </actions>
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>
                 <container-box>
                     <box-header title="Connections"/>
                     <box-body>
-                        <form-list name="Connections" list="detail.connectionRows" skip-form="true" paginate="false">
+                        <form-list name="Connections" list="connectionRows" skip-form="true" paginate="false">
                             <field name="kind">
                                 <header-field title="Record type"/>
                                 <default-field>

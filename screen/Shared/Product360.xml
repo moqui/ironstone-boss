@@ -24,6 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="product360Tabs" from="sharedMountContext.productTabs"/>
         <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId,checkOnly:true,appRoot:appRoot}" out-map="catalog"/>
         <set field="productFound" from="!!catalog.record"/>
+        <!-- always-actions, as a tab renders standalone (the terminal, a reloaded tab) without this screen's actions;
+            the costly reads (connections, stock, prices) are each tab's own -->
         <if condition="productFound">
             <service-call name="ironstone.products.CatalogServices.get#ProductDetail" in-map="{productId:productId,appRoot:appRoot}" out-map="context"/>
             <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>

@@ -95,32 +95,4 @@ along with this software (see the LICENSE.md file). If not, see
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('storeSettings',context))</script>
         </actions>
     </service>
-    <service verb="get" noun="PricingSettings" allow-remote="false">
-        <in-parameters>
-            <parameter name="organizationPartyId"/>
-            <parameter name="asOfDate" type="Timestamp"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="organizationPartyId"/>
-            <parameter name="fromDate" type="Timestamp"/>
-            <parameter name="settings" type="Map"/>
-        </out-parameters>
-        <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('settings',context))</script>
-        </actions>
-    </service>
-    <service verb="store" noun="PricingSettings" allow-remote="false">
-        <in-parameters>
-            <auto-parameters entity-name="mantle.product.ProductPricingSetting" include="all"/>
-            <parameter name="expectedFromDate" type="Timestamp"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="organizationPartyId"/>
-            <parameter name="fromDate" type="Timestamp"/>
-            <parameter name="settings" type="Map"/>
-        </out-parameters>
-        <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('storeSettings',context))</script>
-        </actions>
-    </service>
 </services>

@@ -30,7 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="store">
         <actions>
-            <service-call name="ironstone.products.PriceListServices.store#ProductPriceList" in-map="context" out-map="saved"/>
+            <service-call name="mantle.product.PriceServices.store#ProductPriceList" in-map="context" out-map="saved"/>
         </actions>
         <default-response url="${sharedLinks['Prices/PriceLists/PriceListDetail']}">
             <parameter name="priceListId" from="saved.priceListId"/>

@@ -30,7 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="store">
         <actions>
-            <service-call name="ironstone.products.PriceListServices.store#ProductPriceList" in-map="context" out-map="saved"/>
+            <service-call name="mantle.product.PriceServices.store#ProductPriceList" in-map="context" out-map="saved"/>
         </actions>
         <default-response url=".">
             <parameter name="priceListId" from="saved.priceListId"/>
@@ -39,7 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="rule">
         <actions>
-            <service-call name="ironstone.products.PriceListServices.store#ProductPriceRule" in-map="context"/>
+            <service-call name="mantle.product.PriceServices.store#ProductPriceRule" in-map="context"/>
         </actions>
         <default-response url=".">
             <parameter name="priceListId"/>
@@ -48,7 +48,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="publish">
         <actions>
-            <service-call name="ironstone.products.PriceListServices.publish#ProductPriceList" in-map="context"/>
+            <service-call name="mantle.product.PriceServices.publish#ProductPriceList" in-map="context"/>
         </actions>
         <default-response url=".">
             <parameter name="priceListId"/>
@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="retire">
         <actions>
-            <service-call name="ironstone.products.PriceListServices.retire#ProductPriceList" in-map="context"/>
+            <service-call name="mantle.product.PriceServices.retire#ProductPriceList" in-map="context"/>
         </actions>
         <default-response url=".">
             <parameter name="priceListId"/>

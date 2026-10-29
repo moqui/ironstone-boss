@@ -1,68 +1,58 @@
-// Each invocation keeps its app route local; helpers never capture a cached service context.
+// The shared pricing screens use real direction grants, independently of a launcher or caller-supplied capabilities.
+// Each invocation keeps its app route local (ProductsLib.forCall).
 function run(op, parameters) {
-    const requestedRoot = parameters.appRoot || "Products"
-    ec.service.sync().name("ironstone.products.CatalogServices.get#SharedContext").parameters({appRoot: requestedRoot}).call()
-    // The shared pricing screens use real direction grants, independently of a launcher or caller-supplied capabilities.
+    const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+        local = lib.forCall(parameters.appRoot),
+        {find, one, rows, rowsIn, ms, dateText: text} = lib
     const P = "mantle.product.",
         M = P + "PriceServices."
-    const find = (n, p = {}) => ec.entity.find(n).condition(p).disableAuthz(),
-        one = (n, p) => find(n, p).one(),
-        rows = (n, p) => Array.from(find(n, p).list())
-    const call = (n, p = {}) => {
-        const out =
-            ec.service
-                .sync()
-                .name(n)
-                .parameters(Object.assign({appRoot: requestedRoot}, p))
-                .disableAuthz()
-                .call() || {}
-        if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
-        return out
-    }
+    const call = (name, p = {}) => local.call(name, p, {sys: true, strict: true})
     const domain = () => ec.resource.script("component://mr-mantle/service/mantle/product/PriceLists.js")
-    const ms = v =>
-        v == null || v === "" ? null : Number.isFinite(Number(String(v))) ? Number(String(v)) : Date.parse(String(v))
-    const text = v => (v == null ? "" : ec.l10n.format(new Date(ms(v)), "yyyy-MM-dd HH:mm:ss"))
+    let accessCache = null
+    // The price-list scope of PriceLists.js with the user's direction grants, read once per invocation.
     function access() {
-        const shared = call("ironstone.products.CatalogServices.get#SharedContext", {appRoot: requestedRoot})
-        if (!shared.capabilities.read) throw new Error("Catalog read access is required")
-        const s = domain().scope(),
-            has = domain().has
-        return Object.assign({}, s, {
-            canPriceRead: s.systemAdmin || has("PRICE_VIEW") || has("PRICE_EDIT"),
-            canSupplierRead: s.systemAdmin || has("SUPPLIER_PRICE_VIEW") || has("SUPPLIER_PRICE_EDIT"),
-            canPriceEdit: s.systemAdmin || has("PRICE_EDIT"),
-            canSupplierEdit: s.systemAdmin || has("SUPPLIER_PRICE_EDIT"),
-            canSettings: s.systemAdmin || has("PRODUCT_CATALOG_ADMIN"),
+        if (accessCache) return accessCache
+        if (!local.access().capabilities.read) throw new Error("Catalog read access is required")
+        const policy = domain(),
+            scope = policy.scope(),
+            has = policy.has
+        accessCache = Object.assign({}, scope, {
+            canPriceRead: scope.systemAdmin || has("PRICE_VIEW") || has("PRICE_EDIT"),
+            canSupplierRead: scope.systemAdmin || has("SUPPLIER_PRICE_VIEW") || has("SUPPLIER_PRICE_EDIT"),
+            canPriceEdit: scope.systemAdmin || has("PRICE_EDIT"),
+            canSupplierEdit: scope.systemAdmin || has("SUPPLIER_PRICE_EDIT"),
+            canSettings: scope.systemAdmin || has("PRODUCT_CATALOG_ADMIN"),
             canCostRead: ec.resource.script("component://mr-mantle/service/mantle/product/CostPolicy.js").capabilities().read
         })
+        return accessCache
     }
     function options() {
         const a = access()
         if (!a.canPriceRead && !a.canSupplierRead && !a.canSettings) throw new Error("Price authority is required")
-        const visible = r =>
-                (!r.privateOwnerUserId || r.privateOwnerUserId === ec.user.userId) &&
-                (a.systemAdmin || a.ownerPartyIds.includes(r.ownerPartyId) || a.organizationPartyIds.includes(r.partyId)),
-            parties = rows("mantle.party.Party").filter(visible),
-            name = id =>
-                one("mantle.party.Organization", {partyId: id})?.organizationName ||
-                one("mantle.party.Person", {partyId: id})?.firstName ||
-                id,
-            option = p => ({value: p.partyId, label: name(p.partyId) + " (" + p.partyId + ")"}),
-            role = (id, type) => !!one("mantle.party.PartyRole", {partyId: id, roleTypeId: type}),
-            enums = type =>
-                rows("moqui.basic.Enumeration", {enumTypeId: type}).map(r => ({
-                    value: r.enumId,
-                    label: r.description || r.enumId
-                }))
+        const visible = party =>
+            (!party.privateOwnerUserId || party.privateOwnerUserId === ec.user.userId) &&
+            (a.systemAdmin || a.ownerPartyIds.includes(party.ownerPartyId) || a.organizationPartyIds.includes(party.partyId))
+        // the parties in the three roles a list names, read by role and then by ID, with names from one query each
+        const roles = {OrgInternal: new Set(), Supplier: new Set(), Customer: new Set()}
+        for (const role of find("mantle.party.PartyRole").condition("roleTypeId", "in", Object.keys(roles)).list())
+            roles[role.roleTypeId].add(role.partyId)
+        const partyIds = [...roles.OrgInternal, ...roles.Supplier, ...roles.Customer],
+            parties = rowsIn("mantle.party.Party", "partyId", partyIds).filter(visible),
+            names = new Map()
+        for (const person of rowsIn("mantle.party.Person", "partyId", partyIds)) names.set(person.partyId, person.firstName)
+        for (const org of rowsIn("mantle.party.Organization", "partyId", partyIds)) names.set(org.partyId, org.organizationName)
+        const option = party => ({
+            value: party.partyId,
+            label: (names.get(party.partyId) || party.partyId) + " (" + party.partyId + ")"
+        })
         const listChoices = call(M + "find#ProductPriceLists", {includeHistory: true}).priceListRows
         if (a.canSettings && !a.canPriceRead)
-            for (const list of rows(P + "ProductPriceList").filter(
-                r => r.direction === "sales" && (a.systemAdmin || a.ownerPartyIds.includes(r.organizationPartyId))
+            for (const list of rows(P + "ProductPriceList", {direction: "sales"}).filter(
+                list => a.systemAdmin || a.ownerPartyIds.includes(list.organizationPartyId)
             )) {
                 if (
                     rows(P + "ProductPriceListParty", {priceListId: list.priceListId}).some(
-                        r => !visible(one("mantle.party.Party", {partyId: r.partyId}) || {})
+                        listParty => !visible(one("mantle.party.Party", {partyId: listParty.partyId}) || {})
                     )
                 )
                     continue
@@ -72,29 +62,29 @@ function run(op, parameters) {
             pricingAccess: a,
             defaultOrganizationPartyId: a.activeOrganizationPartyId || a.organizationPartyIds[0],
             pricingOptions: {
-                organizations: parties.filter(r => role(r.partyId, "OrgInternal")).map(option),
-                vendors: parties.filter(r => role(r.partyId, "Supplier")).map(option),
-                customers: parties.filter(r => role(r.partyId, "Customer")).map(option),
-                currencies: rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"}).map(r => ({
-                    value: r.uomId,
-                    label: r.uomId + " · " + r.description
+                organizations: parties.filter(party => roles.OrgInternal.has(party.partyId)).map(option),
+                vendors: parties.filter(party => roles.Supplier.has(party.partyId)).map(option),
+                customers: parties.filter(party => roles.Customer.has(party.partyId)).map(option),
+                currencies: rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"}).map(uom => ({
+                    value: uom.uomId,
+                    label: uom.uomId + " · " + uom.description
                 })),
                 units: rows("moqui.basic.Uom")
                     .filter(
-                        r =>
-                            r.uomTypeEnumId !== "UT_CURRENCY_MEASURE" &&
-                            (r.uomTypeEnumId !== "UT_OTHER_MEASURE" || ["OTH_ea", "OTH_ct", "OTH_pp"].includes(r.uomId))
+                        uom =>
+                            uom.uomTypeEnumId !== "UT_CURRENCY_MEASURE" &&
+                            (uom.uomTypeEnumId !== "UT_OTHER_MEASURE" || ["OTH_ea", "OTH_ct", "OTH_pp"].includes(uom.uomId))
                     )
-                    .map(r => ({value: r.uomId, label: r.description + " (" + r.uomId + ")"})),
+                    .map(uom => ({value: uom.uomId, label: uom.description + " (" + uom.uomId + ")"})),
                 bases: [
                     {value: "typed", label: "Typed price"},
                     {value: "fixed", label: "Fixed amount"},
                     {value: "list", label: "Another list"},
                     ...(a.canCostRead ? [{value: "standard", label: "Approved standard estimate"}] : [])
                 ],
-                purposes: enums("ProductPricePurpose"),
-                types: enums("ProductPriceType").filter(r => r.value !== "PptAverage"),
-                lists: listChoices.map(r => ({value: r.priceListId, label: r.listName + " (" + r.priceListId + ")"}))
+                purposes: lib.enumOptions("ProductPricePurpose"),
+                types: lib.enumOptions("ProductPriceType").filter(option => option.value !== "PptAverage"),
+                lists: listChoices.map(list => ({value: list.priceListId, label: list.listName + " (" + list.priceListId + ")"}))
             }
         }
     }
@@ -232,24 +222,8 @@ function run(op, parameters) {
         )
         return {priceResult: out, traceRows: out.priceTrace}
     }
-    function execute(op, p) {
-        if (op === "options") return options()
-        if (op === "lists") return lists(p)
-        if (op === "detail") return detail(p)
-        if (op === "explanation") return explanation(p)
-        return call(
-            M +
-                {
-                    storeList: "store#ProductPriceList",
-                    storeRule: "store#ProductPriceRule",
-                    publish: "publish#ProductPriceList",
-                    retire: "retire#ProductPriceList",
-                    settings: "get#PricingSettings",
-                    storeSettings: "store#PricingSettings"
-                }[op],
-            p
-        )
-    }
-    return execute(op, parameters)
+    const operations = {options, lists, detail, explanation}
+    if (!operations[op]) throw new Error("Unknown pricing operation " + op)
+    return operations[op](parameters)
 }
 ;({execute: run})

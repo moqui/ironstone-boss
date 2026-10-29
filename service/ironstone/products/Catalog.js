@@ -348,9 +348,11 @@ function run(op, parameters) {
                 : "PrdActive")
         result.kitAvailable = null
         if (product.productTypeEnumId === "PtPickAssembly") {
-            const facilities = list("mantle.facility.Facility").filter(
-                row => a.capabilities.systemAdmin || a.organizationPartyIds.includes(row.ownerPartyId)
-            )
+            const facilities = a.capabilities.systemAdmin
+                ? list("mantle.facility.Facility")
+                : ec.resource
+                      .script("component://mr-boss/service/ironstone/products/ProductsLib.js")
+                      .rowsIn("mantle.facility.Facility", "ownerPartyId", a.organizationPartyIds)
             result.kitAvailable = facilities.reduce(
                 (total, row) =>
                     total.add(
@@ -363,8 +365,12 @@ function run(op, parameters) {
                 toDecimal(0)
             )
         }
-        result.connectionRows = connections(p.productId)
         return {detail: result}
+    }
+    // The Connections tab's rows: per record type, the transaction records of the product the user may read.
+    function productConnections(p) {
+        record(p.productId)
+        return {connectionRows: connections(p.productId)}
     }
     function connections(id) {
         const allowed = access({includeConnections: true}).connectionTypes
@@ -869,88 +875,49 @@ function run(op, parameters) {
             }))
         }
     }
+    // The drop-down options of the catalog forms. Each list is read by its own condition: owners and parties within the
+    // user's organizations (all for a system administrator), categories and features of the readable owners, and each
+    // enumeration by its type.
     function options() {
         const a = access()
         if (!a.capabilities.read) throw new Error("Catalog read access is required")
-        const internalIds = new Set(list("mantle.party.PartyRole", {roleTypeId: "OrgInternal"}).map(row => row.partyId))
-        const choices = (entity, key, label, predicate) =>
-            list(entity)
-                .filter(predicate || (() => true))
-                .map(row => ({value: row[key], label: row[label] || row[key]}))
+        const admin = a.capabilities.systemAdmin,
+            lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+            option = (key, label) => row => ({value: row[key], label: row[label] || row[key]}),
+            internalIds = list("mantle.party.PartyRole", {roleTypeId: "OrgInternal"}).map(row => row.partyId),
+            ownerIds = admin ? internalIds : internalIds.filter(id => a.organizationPartyIds.includes(id)),
+            byOwner = entity => (admin ? list(entity) : lib.rowsIn(entity, "ownerPartyId", a.ownerPartyIds))
+        const parties = new Map()
+        for (const row of admin
+            ? list("mantle.party.Party")
+            : lib
+                  .rowsIn("mantle.party.Party", "ownerPartyId", a.ownerPartyIds)
+                  .concat(lib.rowsIn("mantle.party.Party", "partyId", a.organizationPartyIds)))
+            if (!row.privateOwnerUserId || row.privateOwnerUserId === ec.user.userId) parties.set(row.partyId, row)
         return {
             options: {
-                owners: choices(
-                    "mantle.party.Party",
-                    "partyId",
-                    "pseudoId",
-                    row =>
-                        internalIds.has(row.partyId) &&
-                        (a.capabilities.systemAdmin || a.organizationPartyIds.includes(row.partyId))
-                ).concat(a.capabilities.systemAdmin ? [{value: "_NA_", label: "Shared catalog"}] : []),
-                units: choices("moqui.basic.Uom", "uomId", "description", row => row.uomTypeEnumId !== "UT_CURRENCY_MEASURE"),
-                categories: choices(
-                    P + "category.ProductCategory",
-                    "productCategoryId",
-                    "categoryName",
-                    row => a.capabilities.systemAdmin || a.ownerPartyIds.includes(row.ownerPartyId)
-                ),
-                features: choices(
-                    P + "feature.ProductFeature",
-                    "productFeatureId",
-                    "description",
-                    row => a.capabilities.systemAdmin || a.ownerPartyIds.includes(row.ownerPartyId)
-                ),
-                products: findProducts({pageSize: 200}).productList.map(row => ({
-                    value: row.productId,
-                    label: row.productName || row.productId
-                })),
-                dimensions: choices("moqui.basic.UomDimensionType", "uomDimensionTypeId", "description"),
-                productTypes: choices(
-                    "moqui.basic.Enumeration",
-                    "enumId",
-                    "description",
-                    row => row.enumTypeId === "ProductType"
-                ),
-                idTypes: choices(
-                    "moqui.basic.Enumeration",
-                    "enumId",
-                    "description",
-                    row => row.enumTypeId === "ProductIdentificationType"
-                ),
-                parties: choices(
-                    "mantle.party.Party",
-                    "partyId",
-                    "pseudoId",
-                    row =>
-                        (!row.privateOwnerUserId || row.privateOwnerUserId === ec.user.userId) &&
-                        (a.capabilities.systemAdmin ||
-                            a.ownerPartyIds.includes(row.ownerPartyId) ||
-                            a.organizationPartyIds.includes(row.partyId))
-                ),
-                featureTypes: choices(
-                    "moqui.basic.Enumeration",
-                    "enumId",
-                    "description",
-                    row => row.enumTypeId === "ProductFeatureType"
-                ),
-                assetTypes: choices("moqui.basic.Enumeration", "enumId", "description", row => row.enumTypeId === "AssetType"),
-                maintenanceTypes: choices(
-                    "moqui.basic.Enumeration",
-                    "enumId",
-                    "description",
-                    row => row.enumTypeId === "MaintenanceType"
-                ),
+                owners: lib
+                    .rowsIn("mantle.party.Party", "partyId", ownerIds)
+                    .map(option("partyId", "pseudoId"))
+                    .concat(admin ? [{value: "_NA_", label: "Shared catalog"}] : []),
+                units: list("moqui.basic.Uom")
+                    .filter(row => row.uomTypeEnumId !== "UT_CURRENCY_MEASURE")
+                    .map(option("uomId", "description")),
+                categories: byOwner(P + "category.ProductCategory").map(option("productCategoryId", "categoryName")),
+                features: byOwner(P + "feature.ProductFeature").map(option("productFeatureId", "description")),
+                dimensions: list("moqui.basic.UomDimensionType").map(option("uomDimensionTypeId", "description")),
+                productTypes: lib.enumOptions("ProductType"),
+                idTypes: lib.enumOptions("ProductIdentificationType"),
+                parties: [...parties.values()].map(option("partyId", "pseudoId")),
+                featureTypes: lib.enumOptions("ProductFeatureType"),
+                assetTypes: lib.enumOptions("AssetType"),
+                maintenanceTypes: lib.enumOptions("MaintenanceType"),
                 drives: Array.from(call("org.moqui.impl.FileServices.get#UserDrives").driveList || []).map(row => ({
                     value: row.driveId,
                     label: row.driveName || row.driveId
                 })),
-                contentTypes: choices(
-                    "moqui.basic.Enumeration",
-                    "enumId",
-                    "description",
-                    row => row.enumTypeId === "ProductContentType"
-                ),
-                meterTypes: choices(P + "maintenance.ProductMeterType", "productMeterTypeId", "description")
+                contentTypes: lib.enumOptions("ProductContentType"),
+                meterTypes: list(P + "maintenance.ProductMeterType").map(option("productMeterTypeId", "description"))
             }
         }
     }
@@ -1004,6 +971,7 @@ function run(op, parameters) {
             storeRow,
             choices,
             detail,
+            connections: productConnections,
             deleteProduct,
             bulk,
             clone,

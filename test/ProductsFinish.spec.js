@@ -88,6 +88,7 @@ feature("Products alone refuses financial outputs, posting and unsupported conte
     when({enabled}) {
         return as("catalog.reader", enabled, () => {
             const context = call("ironstone.products.CatalogServices.get#ProductDetail", {productId: "BOSS_PRD_OWN"}).detail,
+                connections = call("ironstone.products.CatalogServices.get#ProductConnections", {productId: "BOSS_PRD_OWN"}),
                 cost = call("ironstone.products.CostServices.get#CostContext", {productId: "BOSS_PRD_OWN"}),
                 failures = []
             for (const [name, args] of [
@@ -102,14 +103,15 @@ feature("Products alone refuses financial outputs, posting and unsupported conte
                 if (!denied(name, args)) failures.push(name)
             return {
                 context,
+                connections,
                 cost,
                 failures,
                 search: call("ironstone.products.CatalogServices.search#Catalog", {text: "BOSS-OTHER-CODE"})
             }
         })
     },
-    then({context, cost, failures, search}) {
-        context.connectionRows == []
+    then({context, connections, cost, failures, search}) {
+        connections.connectionRows == []
         context.priceRows == null
         cost.costAccess.read == false
         cost.standardCostRows == []

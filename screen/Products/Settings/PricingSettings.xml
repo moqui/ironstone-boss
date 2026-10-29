@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="asOfDate"/>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.SettingsServices.store#PricingSettings" in-map="context"/>
+            <service-call name="mantle.product.PriceServices.store#PricingSettings" in-map="context"/>
         </actions>
         <default-response url=".">
             <parameter name="organizationPartyId"/>
@@ -26,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <actions>
         <service-call name="ironstone.products.PriceListServices.get#PriceListOptions" out-map="context"/>
-        <service-call name="ironstone.products.SettingsServices.get#PricingSettings" in-map="context" out-map="policy"/>
+        <service-call name="mantle.product.PriceServices.get#PricingSettings" in-map="context" out-map="policy"/>
         <set field="organizationPartyId" from="policy.organizationPartyId"/>
         <set field="settings" from="Object.assign({},policy.settings,{organizationPartyId:policy.organizationPartyId,expectedFromDate:policy.fromDate,fromDate:null})"/>
         <set field="settings.roundingIncrement" from="settings.roundingIncrement == null ? null : String(settings.roundingIncrement)"/>

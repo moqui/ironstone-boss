@@ -84,13 +84,13 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="partyId">
                                                 <default-field>
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                                                 </default-field>
                                             </field>
                                             <field name="roleTypeId">
                                                 <default-field>
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.party.RoleType"/>
                                                 </default-field>
                                             </field>
                                             <field name="fromDate">
@@ -128,6 +128,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="partyId"/></column>
+                                <column><field-ref name="roleTypeId"/></column>
+                            </columns>
                         </form-list>
                         <section name="PartiesEditor" condition="canEdit">
                             <widgets>

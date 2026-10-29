@@ -185,6 +185,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="recordId"/></column>
+                <column><field-ref name="contentTypeText"/></column>
+            </columns>
         </form-list>
         <section name="TranslationEditors" condition="canEdit">
             <widgets>
@@ -218,6 +222,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <display />
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="entityName"/></column>
+                <column><field-ref name="pkValue"/></column>
+            </columns>
         </form-list>
     </widgets>
 </screen>

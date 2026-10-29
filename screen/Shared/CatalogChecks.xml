@@ -124,6 +124,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'"/>
                             </default-field>
                         </field>
+                        <columns type="mobile">
+                            <column><field-ref name="productId"/></column>
+                            <column><field-ref name="severity"/></column>
+                        </columns>
                     </form-list>
                 </container>
             </widgets>

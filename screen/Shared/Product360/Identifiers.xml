@@ -81,7 +81,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="productIdTypeEnumId">
                                                 <default-field>
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="moqui.basic.Enumeration"/>
                                                 </default-field>
                                             </field>
                                             <field name="idValue">
@@ -202,6 +202,10 @@ along with this software (see the LICENSE.md file). If not, see
                                             </container-dialog>
                                         </default-field>
                                     </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="productIdTypeEnumId"/></column>
+                                        <column><field-ref name="idValue"/></column>
+                                    </columns>
                                 </form-list>
                                 <section name="OtherEditor" condition="canEdit">
                                     <widgets>

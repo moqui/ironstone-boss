@@ -54,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </drop-down>
                 </header-field>
                 <default-field>
-                    <display/>
+                    <display-entity entity-name="moqui.basic.Enumeration"/>
                 </default-field>
             </field>
             <field name="abbrev">
@@ -78,7 +78,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="numberUomId">
                 <header-field title="Unit"/>
                 <default-field>
-                    <display/>
+                    <display-entity entity-name="moqui.basic.Uom"/>
                 </default-field>
             </field>
             <field name="ownerPartyId">
@@ -88,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </drop-down>
                 </header-field>
                 <default-field>
-                    <display/>
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                 </default-field>
             </field>
             <field name="productFeatureGroupId">
@@ -101,6 +101,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <ignored/>
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="productFeatureId"/></column>
+                <column><field-ref name="description"/></column>
+            </columns>
         </form-list>
     </widgets>
 </screen>

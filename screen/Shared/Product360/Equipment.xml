@@ -99,6 +99,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="productMeterTypeId"/></column>
+                                <column><field-ref name="meterUomId"/></column>
+                            </columns>
                         </form-list>
                         <section name="EquipmentEditor" condition="canEdit">
                             <widgets>
@@ -261,6 +265,10 @@ along with this software (see the LICENSE.md file). If not, see
                                             </container-dialog>
                                         </default-field>
                                     </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="maintenanceTypeEnumId"/></column>
+                                        <column><field-ref name="description"/></column>
+                                    </columns>
                                 </form-list>
                                 <section name="MaintenanceEditor" condition="canEdit">
                                     <widgets>

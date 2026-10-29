@@ -135,6 +135,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <display />
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="lineageId"/></column>
+                <column><field-ref name="changeType"/></column>
+            </columns>
         </form-list>
         <form-list name="BomHeaderChanges" list="headerChanges || []" skip-form="true" paginate="false" show-csv-button="true">
             <field name="field">
@@ -152,6 +156,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <display />
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="field"/></column>
+                <column><field-ref name="left"/></column>
+            </columns>
         </form-list>
         <form-list name="BomOperationChanges" list="operationChanges || []" skip-form="true" paginate="false" show-csv-button="true">
             <field name="workEffortId">

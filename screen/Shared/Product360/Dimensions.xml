@@ -101,6 +101,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="uomDimensionTypeId"/></column>
+                                <column><field-ref name="marketSegmentId"/></column>
+                            </columns>
                         </form-list>
                         <section name="DimensionsEditor" condition="canEdit">
                             <widgets>
@@ -171,6 +175,10 @@ along with this software (see the LICENSE.md file). If not, see
                                             <display/>
                                         </default-field>
                                     </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="dimensionTypeEnumId"/></column>
+                                        <column><field-ref name="value"/></column>
+                                    </columns>
                                 </form-list>
                             </box-body>
                         </container-box>

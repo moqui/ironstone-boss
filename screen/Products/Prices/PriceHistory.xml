@@ -145,6 +145,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="changedDateText"/></column>
+                        <column><field-ref name="changedByUserId"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>
@@ -168,7 +172,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="organizationPartyId">
                         <default-field title="Organization">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="direction">
@@ -206,6 +210,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="organizationPartyId"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

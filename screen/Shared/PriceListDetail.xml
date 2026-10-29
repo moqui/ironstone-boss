@@ -124,7 +124,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="organizationPartyId">
                                 <default-field title="Organization">
-                                    <display/>
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                                 </default-field>
                             </field>
                             <field name="direction">
@@ -139,7 +139,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="pricePurposeEnumId">
                                 <default-field title="Purpose">
-                                    <display/>
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
                                 </default-field>
                             </field>
                             <field name="stateText">
@@ -159,7 +159,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="productStoreId">
                                 <default-field title="Store">
-                                    <display/>
+                                    <display-entity entity-name="mantle.product.store.ProductStore" text="${storeName}"/>
                                 </default-field>
                             </field>
                             <field name="agreementId">
@@ -174,12 +174,12 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="vendorPartyId">
                                 <default-field title="Vendor">
-                                    <display/>
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                                 </default-field>
                             </field>
                             <field name="customerPartyId">
                                 <default-field title="Customer">
-                                    <display/>
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                                 </default-field>
                             </field>
                             <field name="partyClassificationId">
@@ -289,7 +289,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="quantityUomId">
                                 <default-field title="Unit">
-                                    <display/>
+                                    <display-entity entity-name="moqui.basic.Uom"/>
                                 </default-field>
                             </field>
                             <field name="calculation">
@@ -483,6 +483,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="sequenceNum"/></column>
+                                <column><field-ref name="priceRuleId"/></column>
+                            </columns>
                         </form-list>
                     </widgets>
                 </section>
@@ -884,7 +888,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="quantityUomId">
                                         <default-field title="Unit">
-                                            <display/>
+                                            <display-entity entity-name="moqui.basic.Uom"/>
                                         </default-field>
                                     </field>
                                     <field name="price">
@@ -902,6 +906,10 @@ along with this software (see the LICENSE.md file). If not, see
                                             <display/>
                                         </default-field>
                                     </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="productId"/></column>
+                                        <column><field-ref name="price"/></column>
+                                    </columns>
                                 </form-list>
                             </widgets>
                         </section>

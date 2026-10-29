@@ -39,6 +39,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display style="m-muted"/>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="kindLabel"/></column>
+                                <column><field-ref name="value"/></column>
+                            </columns>
                         </form-list>
                         <label text="No contact information is recorded." type="p" style="q-pa-md m-muted" condition="!contactRows?.length"/>
                     </box-body-nopad>
@@ -64,6 +68,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="address1"/></column>
+                                <column><field-ref name="city"/></column>
+                            </columns>
                         </form-list>
                         <label text="No address is recorded." type="p" style="q-pa-md m-muted" condition="!addressRows?.length"/>
                     </box-body-nopad>

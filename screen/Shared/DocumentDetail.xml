@@ -223,6 +223,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="." text="Compare with current" parameter-map="{recordKind:recordKind,contentId:document.contentId,fromVersion:versionName}" />
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="versionName"/></column>
+                        <column><field-ref name="dateText"/></column>
+                    </columns>
                 </form-list>
                 <form-single name="CompareContentVersions" transition=".">
                     <field name="recordKind">
@@ -332,6 +336,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <link url="download" text="Download draft" parameter-map="{recordKind:recordKind,contentId:document.contentId,contentEditConflictId:contentEditConflictId}" />
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="dateText"/></column>
+                                <column><field-ref name="submittedByUserId"/></column>
+                            </columns>
                         </form-list>
                     </widgets>
                 </section>

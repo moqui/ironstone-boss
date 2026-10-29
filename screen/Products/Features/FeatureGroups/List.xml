@@ -50,7 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="ownerPartyId">
                 <header-field title="Owner"/>
                 <default-field>
-                    <display/>
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                 </default-field>
             </field>
             <field name="featureCount">
@@ -65,6 +65,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="../FeatureGroupDetail/Categories" text="${categoryCount}" parameter-map="{productFeatureGroupId:productFeatureGroupId}" link-type="anchor"/>
                 </default-field>
             </field>
+            <columns type="mobile">
+                <column><field-ref name="productFeatureGroupId"/></column>
+                <column><field-ref name="description"/></column>
+            </columns>
         </form-list>
     </widgets>
 </screen>

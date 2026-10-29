@@ -237,7 +237,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="organizationPartyId">
                         <default-field title="Organization">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="direction">
@@ -247,7 +247,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="pricePurposeEnumId">
                         <default-field title="Purpose">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Enumeration"/>
                         </default-field>
                     </field>
                     <field name="priceUomId">
@@ -262,7 +262,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="stateText">
                         <default-field title="State">
-                            <display/>
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${({effective:'positive',published:'positive',approved:'positive',active:'positive',scheduled:'info',draft:'warning',pending:'warning',ended:'grey-7',retired:'grey-7',superseded:'grey-7'})[String(stateText ?? '').toLowerCase()] || 'primary'}">${WebUtilities.encodeHtml(String(stateText ?? ''))}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", text: String(stateText ?? "")})}]]></text>
+                            </render-mode>
                         </default-field>
                     </field>
                     <field name="fromDateText">
@@ -275,6 +278,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="open"/></column>
+                        <column><field-ref name="stateText"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

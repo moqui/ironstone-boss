@@ -95,7 +95,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
                 <field name="uomTypeEnumId">
                     <default-field title="Type">
-                        <display />
+                        <display-entity entity-name="moqui.basic.Enumeration"/>
                     </default-field>
                 </field>
                 <field name="abbreviation">
@@ -113,6 +113,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="." text="Edit unit" parameter-map="{selectedUomId:uomId}" />
                     </default-field>
                 </field>
+                <columns type="mobile">
+                    <column><field-ref name="uomId"/></column>
+                    <column><field-ref name="description"/></column>
+                </columns>
             </form-list>
         </container>
         <section name="UnitEditor" condition="canManageUnits">
@@ -196,12 +200,12 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list name="Conversions" list="conversionRows" skip-form="true" paginate="false" show-csv-button="true">
                 <field name="uomId">
                     <default-field title="From unit">
-                        <display />
+                        <display-entity entity-name="moqui.basic.Uom"/>
                     </default-field>
                 </field>
                 <field name="toUomId">
                     <default-field title="To unit">
-                        <display />
+                        <display-entity entity-name="moqui.basic.Uom"/>
                     </default-field>
                 </field>
                 <field name="conversionFactor">
@@ -229,6 +233,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="." text="Schedule successor" parameter-map="{selectedConversionId:uomConversionId}" />
                     </default-field>
                 </field>
+                <columns type="mobile">
+                    <column><field-ref name="uomId"/></column>
+                    <column><field-ref name="toUomId"/></column>
+                </columns>
             </form-list>
         </container>
         <section name="ConversionEditor" condition="canManageUnits">

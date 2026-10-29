@@ -209,7 +209,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="state">
                         <default-field title="State">
-                            <display/>
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${({effective:'positive',published:'positive',approved:'positive',active:'positive',scheduled:'info',draft:'warning',pending:'warning',ended:'grey-7',retired:'grey-7',superseded:'grey-7'})[String(state ?? '').toLowerCase()] || 'primary'}">${WebUtilities.encodeHtml(String(state ?? ''))}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", text: String(state ?? "")})}]]></text>
+                            </render-mode>
                         </default-field>
                     </field>
                     <field name="fromDateText">
@@ -252,14 +255,14 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
-                    <field name="totalCost">
+                    <field name="totalCost" align="right">
                         <default-field title="Total">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
-                    <field name="unitCost">
+                    <field name="unitCost" align="right">
                         <default-field title="Unit estimate">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
                     <field name="priceUomId">
@@ -272,6 +275,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="." text="Open estimate" parameter-map="{productId:productId,productStandardCostId:productStandardCostId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="state"/></column>
+                    </columns>
                 </form-list>
                 <section name="SelectedEstimate" condition="!!standardCost">
                     <widgets>
@@ -338,6 +345,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="componentTypeText"/></column>
+                                <column><field-ref name="amount"/></column>
+                            </columns>
                         </form-list>
                         <container-dialog id="ComponentDialog" button-text="Add or edit component" title="Manual estimate component" condition="costAccess.edit &amp;&amp; standardCost.state === 'draft' &amp;&amp; !standardCost.calculationId" width="640">
                             <form-single name="StandardCostComponent" transition="component" map="componentDraft">

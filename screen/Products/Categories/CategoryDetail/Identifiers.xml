@@ -94,7 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="productCategoryId">
                                                 <default-field title="Category">
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.product.category.ProductCategory" text="${categoryName}"/>
                                                 </default-field>
                                             </field>
                                             <field name="productCategoryIdentId">
@@ -136,6 +136,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="identTypeEnumId"/></column>
+                                <column><field-ref name="idValue"/></column>
+                            </columns>
                         </form-list>
                         <section name="IdentifiersRowsEditor" condition="canEdit">
                             <widgets>

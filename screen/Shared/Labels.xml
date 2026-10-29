@@ -186,7 +186,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </field>
                         <field name="quantityUomId">
                             <default-field title="Unit">
-                                <display />
+                                <display-entity entity-name="moqui.basic.Uom"/>
                             </default-field>
                         </field>
                         <field name="sellingPrice">
@@ -199,6 +199,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <display />
                             </default-field>
                         </field>
+                        <columns type="mobile">
+                            <column><field-ref name="productId"/></column>
+                            <column><field-ref name="idValue"/></column>
+                        </columns>
                     </form-list>
                 </container>
                 <section-iterate name="BarcodePreviewRows" list="labelRows" entry="labelRow">

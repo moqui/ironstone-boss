@@ -185,6 +185,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="minimumStock"/></column>
+                        <column><field-ref name="maximumStock"/></column>
+                    </columns>
                 </form-list>
                 <form-list name="LocationPolicies" list="locationPolicies" skip-form="true" paginate="false">
                     <field name="locationSeqId">
@@ -202,6 +206,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="locationSeqId"/></column>
+                        <column><field-ref name="minimumStock"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>
@@ -350,6 +358,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="fieldLabel"/></column>
+                        <column><field-ref name="valueText"/></column>
+                    </columns>
                 </form-list>
                 <label text="History of the selected exception scope" type="h6"/>
                 <form-list name="TrackingHistory" list="trackingHistory" skip-form="true" paginate="false">
@@ -378,6 +390,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="fromDateText"/></column>
+                        <column><field-ref name="thruDateText"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

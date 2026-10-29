@@ -72,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="productCategoryId">
                                                 <default-field>
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.product.category.ProductCategory" text="${categoryName}"/>
                                                 </default-field>
                                             </field>
                                             <field name="fromDate">
@@ -105,6 +105,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="productCategoryId"/></column>
+                                <column><field-ref name="fromDate"/></column>
+                            </columns>
                         </form-list>
                         <section name="CategoriesEditor" condition="canEdit">
                             <widgets>

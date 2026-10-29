@@ -141,7 +141,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="amountUomId">
                         <default-field title="Amount currency">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Uom"/>
                         </default-field>
                     </field>
                     <field name="sourceId">
@@ -154,6 +154,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="basis"/></column>
+                        <column><field-ref name="amount"/></column>
+                    </columns>
                 </form-list>
             </widgets>
         </section>

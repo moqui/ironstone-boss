@@ -220,7 +220,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="timeUomId">
                                 <default-field title="Time unit">
-                                    <display />
+                                    <display-entity entity-name="moqui.basic.Uom"/>
                                 </default-field>
                             </field>
                             <field name="batchQuantity">
@@ -230,7 +230,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="quantityUomId">
                                 <default-field title="Output unit">
-                                    <display />
+                                    <display-entity entity-name="moqui.basic.Uom"/>
                                 </default-field>
                             </field>
                             <field name="workCenterFacilityId">
@@ -248,6 +248,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <link url="." text="Stage standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId}" />
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="workEffortId"/></column>
+                                <column><field-ref name="workEffortName"/></column>
+                            </columns>
                         </form-list>
                     </box-body>
                 </container-box>
@@ -285,6 +289,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <link url="." text="Edit standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId}" />
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="workEffortId"/></column>
+                                <column><field-ref name="workEffortName"/></column>
+                            </columns>
                         </form-list>
                     </box-body>
                 </container-box>

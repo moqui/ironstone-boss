@@ -168,6 +168,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="assetId"/></column>
+                                <column><field-ref name="amount"/></column>
+                            </columns>
                         </form-list>
                         <container-dialog id="PostRevaluationDialog" button-text="Post reviewed revaluation" title="Post revaluation" condition="complete &amp;&amp; !posted" width="640">
                             <label text="Post ${totalAmount} ${amountUomId} for ${quantity} units? This creates balanced ledger entries and linked book events." type="p"/>
@@ -239,6 +243,10 @@ along with this software (see the LICENSE.md file). If not, see
                                             <display/>
                                         </default-field>
                                     </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="glAccountId"/></column>
+                                        <column><field-ref name="amount"/></column>
+                                    </columns>
                                 </form-list>
                             </widgets>
                         </section>

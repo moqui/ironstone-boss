@@ -44,6 +44,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="kind"/></column>
+                                <column><field-ref name="count"/></column>
+                            </columns>
                         </form-list>
                     </box-body>
                 </container-box>

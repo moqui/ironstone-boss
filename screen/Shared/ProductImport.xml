@@ -206,6 +206,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <submit />
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="sourceColumn"/></column>
+                                <column><field-ref name="targetField"/></column>
+                            </columns>
                         </form-list>
                         <container-dialog id="ImportDefaultsDialog" button-text="Column defaults" title="Column defaults" width="700">
                             <form-single name="ImportDefault" transition="mapping">
@@ -331,6 +335,10 @@ along with this software (see the LICENSE.md file). If not, see
                                         <display />
                                     </default-field>
                                 </field>
+                                <columns type="mobile">
+                                    <column><field-ref name="field"/></column>
+                                    <column><field-ref name="sourceValue"/></column>
+                                </columns>
                             </form-list>
                         </container>
                         <container-dialog id="ImportFormatsDialog" button-text="Formats and clearing" title="Formats and clearing" width="700">
@@ -496,6 +504,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <display />
                             </default-field>
                         </field>
+                        <columns type="mobile">
+                            <column><field-ref name="itemSeqId"/></column>
+                            <column><field-ref name="result"/></column>
+                        </columns>
                     </form-list>
                 </container>
                 <form-single name="ImportPagination" transition=".">

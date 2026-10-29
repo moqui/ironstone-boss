@@ -307,7 +307,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-box>
             <box-header title="Comparable supplier prices"/>
             <box-body>
-                <form-list show-csv-button="true" show-xlsx-button="true" name="SupplierOffers" list="offerRows" paginate="true" skip-form="true">
+                <form-list show-csv-button="true" show-xlsx-button="true" name="SupplierOffers" list="offerRows" paginate="true" skip-form="true" select-columns="true">
                     <row-selection id-field="productPriceId" parameter="productPriceIds" list-mode="true" condition="canSupplierPriceEdit">
                         <action>
                             <form-single name="SupplierBulkSelection" transition="bulk">
@@ -331,7 +331,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </row-selection>
                     <field name="productId">
                         <default-field title="Priced product">
-                            <display/>
+                            <link url="${sharedLinks['Products/Product360']}" text="${productId}" link-type="anchor" parameter-map="{productId:productId}"/>
                         </default-field>
                     </field>
                     <field name="productName">
@@ -341,12 +341,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="supplierName">
                         <default-field title="Supplier">
-                            <display/>
+                            <link url="${sharedLinks['SupplierPrices/Supplier360']}" text="${supplierName}" link-type="anchor" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
                     <field name="vendorPartyId">
                         <default-field title="Vendor role">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="buyerName">
@@ -356,7 +356,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="customerPartyId">
                         <default-field title="Customer role">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="otherPartyItemId">
@@ -369,9 +369,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
-                    <field name="price">
+                    <field name="price" align="right">
                         <default-field title="Unit price">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
                     <field name="priceUomId">
@@ -391,7 +391,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="quantityUomId">
                         <default-field title="Quantity unit">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Uom"/>
                         </default-field>
                     </field>
                     <field name="packSize">
@@ -401,7 +401,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="packQuantityUomId">
                         <default-field title="Contained quantity unit">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Uom"/>
                         </default-field>
                     </field>
                     <field name="baseProductId">
@@ -416,12 +416,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="preferredOrderEnumId">
                         <default-field title="Preference">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Enumeration"/>
                         </default-field>
                     </field>
                     <field name="supplierRatingTypeEnumId">
                         <default-field title="Recorded rating">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Enumeration"/>
                         </default-field>
                     </field>
                     <field name="canDropShip">
@@ -451,17 +451,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="state">
                         <default-field title="State">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="openSupplier">
-                        <default-field title="Supplier record">
-                            <link url="${sharedLinks['SupplierPrices/Supplier360']}" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
-                        </default-field>
-                    </field>
-                    <field name="openProduct">
-                        <default-field title="Product record">
-                            <link url="${sharedLinks['Products/Product360']}" text="Product360" parameter-map="{productId:productId}"/>
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${({effective:'positive',published:'positive',approved:'positive',active:'positive',scheduled:'info',draft:'warning',pending:'warning',ended:'grey-7',retired:'grey-7',superseded:'grey-7'})[String(state ?? '').toLowerCase()] || 'primary'}">${WebUtilities.encodeHtml(String(state ?? ''))}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", text: String(state ?? "")})}]]></text>
+                            </render-mode>
                         </default-field>
                     </field>
                     <field name="rowActions">
@@ -704,6 +697,23 @@ along with this software (see the LICENSE.md file). If not, see
                             </container-dialog>
                         </default-field>
                     </field>
+                    <columns>
+                        <column><field-ref name="productId"/><field-ref name="productName"/></column>
+                        <column><field-ref name="supplierName"/><field-ref name="otherPartyItemId"/><field-ref name="otherPartyItemName"/></column>
+                        <column><field-ref name="buyerName"/></column>
+                        <column><field-ref name="price"/><field-ref name="priceUomId"/></column>
+                        <column><field-ref name="minQuantity"/><field-ref name="quantityIncrement"/><field-ref name="quantityUomId"/></column>
+                        <column><field-ref name="packSize"/><field-ref name="packQuantityUomId"/><field-ref name="baseProductId"/></column>
+                        <column><field-ref name="standardLeadTimeDays"/><field-ref name="preferredOrderEnumId"/><field-ref name="supplierRatingTypeEnumId"/></column>
+                        <column><field-ref name="canDropShip"/><field-ref name="agreementId"/><field-ref name="agreementItemSeqId"/></column>
+                        <column><field-ref name="fromDateText"/><field-ref name="thruDateText"/></column>
+                        <column><field-ref name="state"/></column>
+                        <column><field-ref name="rowActions"/></column>
+                    </columns>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="state"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

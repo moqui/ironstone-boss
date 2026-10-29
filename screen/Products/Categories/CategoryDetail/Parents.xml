@@ -84,13 +84,13 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="productCategoryId">
                                                 <default-field title="Category">
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.product.category.ProductCategory" text="${categoryName}"/>
                                                 </default-field>
                                             </field>
                                             <field name="parentProductCategoryId">
                                                 <default-field title="Parent">
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.product.category.ProductCategory" text="${categoryName}"/>
                                                 </default-field>
                                             </field>
                                             <field name="fromDate">
@@ -158,6 +158,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </button-menu>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="parentProductCategoryId"/></column>
+                                <column><field-ref name="fromDate"/></column>
+                            </columns>
                         </form-list>
                         <section name="ParentsEditor" condition="canEdit">
                             <widgets>
@@ -264,6 +268,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="childProductCategoryId"/></column>
+                                <column><field-ref name="fromDate"/></column>
+                            </columns>
                         </form-list>
                         <section name="ChildrenEditor" condition="canEdit">
                             <widgets>

@@ -70,7 +70,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list name="IdentificationTypes" list="identifierPolicyRows" skip-form="true" paginate="false">
                 <field name="productIdTypeEnumId">
                     <default-field title="Type">
-                        <display />
+                        <display-entity entity-name="moqui.basic.Enumeration"/>
                     </default-field>
                 </field>
                 <field name="description">
@@ -103,6 +103,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="." text="Open policy" parameter-map="{productIdTypeEnumId:productIdTypeEnumId,organizationPartyId:organizationPartyId}" />
                     </default-field>
                 </field>
+                <columns type="mobile">
+                    <column><field-ref name="productIdTypeEnumId"/></column>
+                    <column><field-ref name="description"/></column>
+                </columns>
             </form-list>
         </container>
         <section name="IdentifierPolicyEditor" condition="toolAccess.catalogAdmin">
@@ -190,7 +194,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list name="IdentifierPolicyHistory" list="identifierPolicyHistory" skip-form="true" paginate="false">
                 <field name="productIdTypeEnumId">
                     <default-field title="Type">
-                        <display />
+                        <display-entity entity-name="moqui.basic.Enumeration"/>
                     </default-field>
                 </field>
                 <field name="fromDateText">
@@ -218,6 +222,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <display />
                     </default-field>
                 </field>
+                <columns type="mobile">
+                    <column><field-ref name="productIdTypeEnumId"/></column>
+                    <column><field-ref name="fromDateText"/></column>
+                </columns>
             </form-list>
         </container>
         <label text="Test an identifier" type="h6" />

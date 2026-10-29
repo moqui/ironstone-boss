@@ -56,7 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="direction" from="direction || 'sales'"/>
         <set field="priceTypeEnumId" from="priceTypeEnumId || 'PptCurrent'"/>
         <set field="pricePurposeEnumId" from="pricePurposeEnumId || 'PppPurchase'"/>
-        <set field="priceUomId" from="priceUomId || 'USD'"/>
+        <set field="priceUomId" from="priceUomId || ec.user.userAccount?.currencyUomId"/>
         <set field="previewRows" from="[]"/>
         <set field="results" from="[]"/>
         <set field="readyCount" from="0"/>
@@ -179,14 +179,14 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
-                    <field name="beforePrice">
+                    <field name="beforePrice" align="right">
                         <default-field title="Before">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
-                    <field name="afterPrice">
+                    <field name="afterPrice" align="right">
                         <default-field title="After">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
                     <field name="result">
@@ -199,6 +199,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="result"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>
@@ -264,6 +268,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="result"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

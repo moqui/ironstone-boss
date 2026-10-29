@@ -167,7 +167,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="productStoreId">
                         <default-field title="Store">
-                            <display />
+                            <display-entity entity-name="mantle.product.store.ProductStore" text="${storeName}"/>
                         </default-field>
                     </field>
                     <field name="productFeatureId">
@@ -193,6 +193,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display />
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="filename"/></column>
+                        <column><field-ref name="recordId"/></column>
+                    </columns>
                 </form-list>
             </widgets>
         </section>

@@ -64,7 +64,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="productFeatureId">
                                                 <default-field title="Feature">
                                                     <hidden/>
-                                                    <display/>
+                                                    <display-entity entity-name="mantle.product.feature.ProductFeature" text="${description}"/>
                                                 </default-field>
                                             </field>
                                             <field name="productId">
@@ -107,6 +107,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </container-dialog>
                                 </default-field>
                             </field>
+                            <columns type="mobile">
+                                <column><field-ref name="productId"/></column>
+                                <column><field-ref name="amount"/></column>
+                            </columns>
                         </form-list>
                         <section name="ProductsRowsEditor" condition="canEdit">
                             <widgets>

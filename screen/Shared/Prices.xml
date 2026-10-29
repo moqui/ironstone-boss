@@ -440,7 +440,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
         <container-box>
             <box-header title="Price rows"/>
             <box-body>
-                <form-list name="Prices" list="priceRows" skip-form="true" paginate="true" saved-finds="true" header-dialog="false" show-csv-button="true" show-xlsx-button="true">
+                <form-list name="Prices" list="priceRows" skip-form="true" paginate="true" saved-finds="true" header-dialog="false" show-csv-button="true" show-xlsx-button="true" select-columns="true">
                     <row-selection id-field="productPriceId" parameter="productPriceIds" list-mode="true" condition="canPriceEdit || canSupplierPriceEdit">
                         <action>
                             <dialog button-text="Review bulk change" title="Review selected prices"/>
@@ -488,9 +488,9 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             <display/>
                         </default-field>
                     </field>
-                    <field name="price">
+                    <field name="price" align="right">
                         <default-field title="Price">
-                            <display/>
+                            <display currency-unit-field="priceUomId"/>
                         </default-field>
                     </field>
                     <field name="priceUomId">
@@ -505,22 +505,22 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                     </field>
                     <field name="quantityUomId">
                         <default-field title="Quantity unit">
-                            <display/>
+                            <display-entity entity-name="moqui.basic.Uom"/>
                         </default-field>
                     </field>
                     <field name="vendorPartyId">
                         <default-field title="Vendor">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="customerPartyId">
                         <default-field title="Customer">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="productStoreId">
                         <default-field title="Store">
-                            <display/>
+                            <display-entity entity-name="mantle.product.store.ProductStore" text="${storeName}"/>
                         </default-field>
                     </field>
                     <field name="agreementId">
@@ -540,7 +540,10 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                     </field>
                     <field name="state">
                         <default-field title="State">
-                            <display/>
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${({effective:'positive',published:'positive',approved:'positive',active:'positive',scheduled:'info',draft:'warning',pending:'warning',ended:'grey-7',retired:'grey-7',superseded:'grey-7'})[String(state ?? '').toLowerCase()] || 'primary'}">${WebUtilities.encodeHtml(String(state ?? ''))}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", text: String(state ?? "")})}]]></text>
+                            </render-mode>
                         </default-field>
                     </field>
                     <field name="history">
@@ -690,6 +693,22 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             </container-dialog>
                         </default-field>
                     </field>
+                    <columns>
+                        <column><field-ref name="productId"/><field-ref name="productName"/></column>
+                        <column><field-ref name="direction"/><field-ref name="priceType"/></column>
+                        <column><field-ref name="price"/><field-ref name="priceUomId"/></column>
+                        <column><field-ref name="minQuantity"/><field-ref name="quantityUomId"/></column>
+                        <column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/></column>
+                        <column><field-ref name="productStoreId"/><field-ref name="agreementId"/></column>
+                        <column><field-ref name="fromDateText"/><field-ref name="thruDateText"/></column>
+                        <column><field-ref name="state"/></column>
+                        <column><field-ref name="standardCostAmount"/><field-ref name="marginAmount"/><field-ref name="marginPercent"/></column>
+                        <column><field-ref name="history"/><field-ref name="rowActions"/></column>
+                    </columns>
+                    <columns type="mobile">
+                        <column><field-ref name="productId"/></column>
+                        <column><field-ref name="state"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

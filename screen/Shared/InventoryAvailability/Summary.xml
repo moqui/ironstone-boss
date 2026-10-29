@@ -35,7 +35,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="ownerPartyId">
                         <default-field title="Stock owner">
-                            <display/>
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                         </default-field>
                     </field>
                     <field name="quantityUomText">
@@ -63,6 +63,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <columns type="mobile">
+                        <column><field-ref name="facilityName"/></column>
+                        <column><field-ref name="available"/></column>
+                    </columns>
                 </form-list>
             </box-body>
         </container-box>

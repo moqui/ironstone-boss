@@ -326,11 +326,6 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display />
                                 </default-field>
                             </field>
-                            <field name="submittedMetadataJson">
-                                <default-field title="Submitted metadata">
-                                    <display />
-                                </default-field>
-                            </field>
                             <field name="draft">
                                 <default-field title="Submitted draft">
                                     <link url="download" text="Download draft" parameter-map="{recordKind:recordKind,contentId:document.contentId,contentEditConflictId:contentEditConflictId}" />

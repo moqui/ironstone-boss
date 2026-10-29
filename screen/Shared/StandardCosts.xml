@@ -337,7 +337,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="edit">
                                 <default-field>
-                                    <link url="." text="Edit component" condition="costAccess.edit &amp;&amp; standardCost.state === 'draft' &amp;&amp; !standardCost.calculationId &amp;&amp; !sourceRestricted" parameter-map="{productId:standardCost.productId,productStandardCostId:standardCost.productStandardCostId,selectedComponentId:productStandardCostComponentId}"/>
+                                    <link url="." text="Edit component" condition="costAccess.edit &amp;&amp; standardCost.state === 'draft' &amp;&amp; !standardCost.calculationId &amp;&amp; !sourceRestricted" parameter-map="{productId:standardCost.productId,productStandardCostId:standardCost.productStandardCostId,selectedComponentId:productStandardCostComponentId,_openDialog:'ComponentDialog'}"/>
                                 </default-field>
                             </field>
                             <field name="costAllocationFactor">

@@ -245,7 +245,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="editOperation">
                                 <default-field title="">
-                                    <link url="." text="Stage standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId}" />
+                                    <link url="." text="Stage standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId,_openDialog:'RoutingOperationDialog'}" />
                                 </default-field>
                             </field>
                             <columns type="mobile">
@@ -286,7 +286,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="editOperation">
                                 <default-field title="">
-                                    <link url="." text="Edit standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId}" />
+                                    <link url="." text="Edit standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId,_openDialog:'RoutingOperationDialog'}" />
                                 </default-field>
                             </field>
                             <columns type="mobile">

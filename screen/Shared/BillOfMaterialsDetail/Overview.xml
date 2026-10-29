@@ -316,7 +316,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="editLine">
                                         <default-field title="">
-                                            <link url="." text="Stage change" condition="methodAccess.edit" parameter-map="{productId:productBom.productId,productBomId:productBomId,selectedBomItemId:bomItemId}" />
+                                            <link url="." text="Stage change" condition="methodAccess.edit" parameter-map="{productId:productBom.productId,productBomId:productBomId,selectedBomItemId:bomItemId,_openDialog:'BomItemDialog'}" />
                                         </default-field>
                                     </field>
                                     <columns type="mobile">
@@ -367,7 +367,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="editLine">
                                         <default-field title="">
-                                            <link url="." text="Edit draft" condition="methodAccess.edit" parameter-map="{productId:productBom.productId,productBomId:productBomId,selectedBomItemId:bomItemId}" />
+                                            <link url="." text="Edit draft" condition="methodAccess.edit" parameter-map="{productId:productBom.productId,productBomId:productBomId,selectedBomItemId:bomItemId,_openDialog:'BomItemDialog'}" />
                                         </default-field>
                                     </field>
                                     <columns type="mobile">
@@ -605,7 +605,26 @@ along with this software (see the LICENSE.md file). If not, see
                                         <column><field-ref name="approverText"/></column>
                                     </columns>
                                 </form-list>
-                                <label text="${productBom &amp;&amp; productBom.legacyImportComplete === &quot;N&quot; ? productBom.legacyImportIssuesJson : &quot;&quot;}" type="p" />
+                                <section name="LegacyImportIssues" condition="productBom &amp;&amp; productBom.legacyImportComplete === 'N'">
+                                    <actions>
+                                        <set field="legacyImportIssueRows" from="(() =&gt; { try { return JSON.parse(productBom.legacyImportIssuesJson || '[]') } catch (e) { return [{message: String(productBom.legacyImportIssuesJson)}] } })()"/>
+                                    </actions>
+                                    <widgets>
+                                        <label text="The legacy component import is incomplete:" type="p" style="q-mt-md text-weight-medium"/>
+                                        <form-list name="LegacyImportIssues" list="legacyImportIssueRows" skip-form="true" paginate="false">
+                                            <field name="recordId">
+                                                <default-field title="Component">
+                                                    <display-entity entity-name="mantle.product.Product" text="${productName || recordId}"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="message">
+                                                <default-field title="Issue">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                        </form-list>
+                                    </widgets>
+                                </section>
                             </box-body>
                         </container-box>
                         <container-box>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<secas xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-eca-3.xsd">
+    <seca id="BossCatalogImportResult" service="mantle.product.ProductImportServices.apply#CatalogImport" when="post-service">
+        <condition><expression>Number(results.attemptedCount || 0) &gt; 0</expression></condition>
+        <actions><service-call name="ironstone.products.ImportServices.notify#CatalogImport" in-map="{operationKey:operationKey,inputFingerprint:inputFingerprint,attemptedCount:attemptedCount,changedRows:changedRows}" disable-authz="true" ignore-error="true"/></actions>
+    </seca>
+</secas>

@@ -87,31 +87,10 @@ function storeSettings(p) {
     return settings({organizationPartyId:p.organizationPartyId,asOfDate:fromDate})
 }
 function storeProduct(p) {
-    const a = access(), oldRow = p.productId ? find(P + 'Product', {productId: p.productId}).forUpdate(true).one() : null, old = oldRow ? map(oldRow) : null
-    if (p.createOnly && old) throw new Error('Product ID is already in use')
-    if (old && p.expectedLastUpdatedStamp && ms(p.expectedLastUpdatedStamp)!==ms(old.lastUpdatedStamp)) throw new Error('Product changed; reload before saving')
-    let owner = old?.ownerPartyId || p.ownerPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0]
-    if (!a.capabilities.catalogEdit || !owner || (owner === '_NA_' ? !a.capabilities.systemAdmin : !a.capabilities.systemAdmin && !a.organizationPartyIds.includes(owner))) throw new Error('Catalog editor authority over the owner is required')
-    if (old) record(p.productId, 'catalogEdit')
-    if (p.ownerPartyId && old && p.ownerPartyId !== old.ownerPartyId) throw new Error('Changing a product owner requires a separate migration')
-    const cfg = owner === '_NA_' ? defaults : settings({organizationPartyId: owner}).settings
-    const data = Object.assign({}, old || {productTypeEnumId: cfg.defaultProductTypeEnumId, amountUomId: cfg.defaultAmountUomId}, fields(p, masterFields), {ownerPartyId: owner})
-    if(one('moqui.basic.Enumeration',{enumId:data.productTypeEnumId})?.enumTypeId!=='ProductType') throw new Error('Choose a valid product type')
-    if(data.amountUomId && one('moqui.basic.Uom',{uomId:data.amountUomId})?.uomTypeEnumId==='UT_CURRENCY_MEASURE') throw new Error('A stock unit cannot be a currency')
-    if (!String(data.productName || '').trim()) throw new Error('Product name is required')
-    if (p.productId && !/^[A-Za-z0-9_.-]{1,40}$/.test(p.productId)) throw new Error('Product ID must contain 1–40 letters, numbers, dots, dashes or underscores')
-    for (const key of ['salesAllowed', 'purchaseAllowed', 'salesDiscWhenNotAvail', 'amountRequire', 'requireInventory', 'chargeShipping', 'taxable', 'returnable'])
-        if (data[key] != null && !['Y', 'N'].includes(data[key])) throw new Error('Choose Yes or No for ' + key)
-    if (old && ['productTypeEnumId','amountUomId'].some(k => data[k] !== old[k])) {
-        if (old.statusId !== 'PrdDraft' || ['mantle.order.OrderItem','mantle.product.asset.Asset','mantle.account.invoice.InvoiceItem'].some(entity => find(entity,{productId:p.productId}).count()>0)) throw new Error('Change type or stock unit only on an unused draft')
-    }
-    if (!old && cfg.idPolicy === 'manual' && !p.productId) throw new Error('This organization requires a manual product ID')
-    const save = fields(data, masterFields)
-    Object.assign(save, {ownerPartyId: owner, productId: p.productId})
-    if (!old) save.statusId = 'PrdDraft'
-    const out = call((old ? 'update#' : 'create#') + P + 'Product', save, true)
-    return {productId: old?.productId || out.productId}
+    const a=access();if(!a.capabilities.read||!a.capabilities.catalogEdit)throw new Error('Catalog editor authority is required')
+    return call('mantle.product.CatalogRecordServices.store#Product',p,true)
 }
+
 function transition(p) {
     const product = record(p.productId, 'catalogEdit')
     find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one()
@@ -138,56 +117,10 @@ const kinds = {
     maintenance: {entity: P+'maintenance.ProductMaintenance', names: 'productMaintenanceId,maintenanceTypeEnumId,description,comments,templateWorkEffortId,intervalQuantity,intervalProductMeterId,intervalUomId,repeatCount', id: 'productMaintenanceId'}
 }
 function storeRow(p) {
-    const product = record(p.productId, 'catalogEdit')
-    if (p.kind === 'identifier' || p.kind === 'otherIdentifier') return call('mantle.product.ProductServices.store#ProductIdentifier', Object.assign(fields(p, 'productId,productIdTypeEnumId,idValue,productOtherIdentId,productStoreId,marketSegmentId'), {other: p.kind === 'otherIdentifier'}), true)
-    if (p.kind === 'kit') { record(p.toProductId); return call('mantle.product.ProductServices.store#KitComponent', fields(p, 'productId,toProductId,fromDate,thruDate,quantity,sequenceNum'), true) }
-    const spec = Object.prototype.hasOwnProperty.call(kinds,p.kind) ? kinds[p.kind] : null
-    if (!spec) throw new Error('Unknown catalog row kind')
-    const data = Object.assign(fields(p, spec.names), {productId: p.productId})
-    if ('fromDate' in p || spec.names.includes('fromDate')) data.fromDate = p.fromDate || ec.user.nowTimestamp
-    if (ms(data.thruDate) != null && ms(data.thruDate) <= ms(data.fromDate)) throw new Error('End must follow start; use End now on an existing row')
-    if (spec.id && data[spec.id]) {
-        const old = one(spec.entity, {[spec.id]: data[spec.id]})
-        if (!old || old.productId !== p.productId) throw new Error('Row is not on this product')
-    }
-    if (p.kind === 'category') {find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one(); record(data.productCategoryId, 'read', P+'category.ProductCategory')}
-    if (p.kind === 'feature') {
-        find('moqui.basic.EnumerationType',{enumTypeId:'ProductFeatureType'}).forUpdate(true).one()
-        const lockedProduct=find(P+'Product',{productId:p.productId}).forUpdate(true).one()
-        record(data.productFeatureId, 'read', P+'feature.ProductFeature')
-        const old = one(spec.entity, {productId:p.productId, productFeatureId:data.productFeatureId, fromDate:data.fromDate})
-        if ((old?.applTypeEnumId === 'PfatDistinguishing' || data.applTypeEnumId === 'PfatDistinguishing') && (lockedProduct.statusId || 'PrdActive') !== 'PrdDraft') throw new Error('Distinguishing feature identity is fixed on a used or active variant')
-    }
-    if (p.kind === 'association') {
-        if (!['PatEquivalent', 'PatReplacement'].includes(data.productAssocTypeEnumId)) throw new Error('Use the dedicated kit, variant, BOM or packaging editor for this association')
-        record(data.toProductId)
-        if (data.toProductId === p.productId) throw new Error('A product cannot substitute for itself')
-    }
-    if (p.kind === 'party') {
-        const party = one('mantle.party.Party', {partyId: data.partyId}), a = access()
-        if (!party || (party.privateOwnerUserId && party.privateOwnerUserId !== ec.user.userId) || (!a.capabilities.systemAdmin && !a.ownerPartyIds.includes(party.ownerPartyId) && !a.organizationPartyIds.includes(party.partyId))) throw new Error('Party is not available')
-        if (!['Customer','Manufacturer','Distributor'].includes(data.roleTypeId)) throw new Error('Choose a catalog party role')
-    }
-    if (p.kind === 'dimension') {
-        const unit = one('moqui.basic.Uom', {uomId:data.uomId}), type = one('moqui.basic.UomDimensionType', {uomDimensionTypeId:data.uomDimensionTypeId})
-        const standard = type?.defaultUomId ? one('moqui.basic.Uom', {uomId:type.defaultUomId}) : null
-        if (!unit || !type || unit.uomTypeEnumId === 'UT_CURRENCY_MEASURE' || ((type.uomTypeEnumId || standard?.uomTypeEnumId) && unit.uomTypeEnumId !== (type.uomTypeEnumId || standard?.uomTypeEnumId)) || toDecimal(data.value || 0).compare(0) < 0) throw new Error('Dimension value and unit do not match its type')
-    }
-    if (['meter','maintenance'].includes(p.kind)) {
-        if (product.assetTypeEnumId !== 'AstTpEquipment') throw new Error('Equipment templates require an equipment product')
-        if (p.kind === 'maintenance' && toDecimal(data.intervalQuantity || 0).compare(0) <= 0) throw new Error('Maintenance interval must be positive')
-        if (data.intervalProductMeterId && one(P+'maintenance.ProductMeter', {productMeterId:data.intervalProductMeterId})?.productId !== p.productId) throw new Error('Maintenance meter is not on this product')
-    }
-    if (p.operation === 'expire') {
-        const keys = Object.keys(ec.entity.makeValue(spec.entity).getPrimaryKeys())
-        const old = one(spec.entity, fields(data, keys.join(',')))
-        if (!old || old.productId !== p.productId || !spec.names.includes('thruDate')) throw new Error('Dated row is not on this product')
-        const end = ec.user.nowTimestamp
-        if (ms(old.fromDate) >= ms(end)) throw new Error('Future row must be rescheduled rather than end-dated before its start')
-        return call('update#'+spec.entity, Object.assign(fields(data, keys.join(',')), {thruDate:end}), true)
-    }
-    return call((spec.id && !data[spec.id] ? 'create#' : 'store#') + spec.entity, data, true)
+    record(p.productId,'catalogEdit')
+    return call('mantle.product.CatalogRecordServices.store#CatalogRow',p,true)
 }
+
 function detail(p) {
     const product = record(p.productId), a = access()
     const result = {product:withDates(product), capabilities:a.capabilities, canEdit: !!call(C+'get#CatalogRecord', {recordId:p.productId, need:'catalogEdit', checkOnly:true}).record}
@@ -265,7 +198,9 @@ function bulk(p) {
         ec.message.pushErrors()
         try {
             const data = Object.assign({},p,{productId:id, kind:p.kind, productIds:null})
-            callNew(C+'store#CatalogRow',data)
+            if(!['category','feature'].includes(p.kind))throw new Error('Choose a category or feature bulk action')
+            record(id,'catalogEdit')
+            callNew('mantle.product.CatalogRecordServices.ensure#CatalogAssignment',data)
             if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
             results.push({productId:id, status:'success'})
         } catch(err) { ec.logger.error(`Bulk catalog product ${id}: ${err}`); results.push({productId:id,status:'error',error:String(err.message||err)}) }

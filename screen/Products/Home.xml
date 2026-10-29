@@ -33,6 +33,7 @@
             <box-body>
                 <container style="row q-gutter-sm">
                     <link url="../Products/NewProduct" text="Create product" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+                    <link url="../ProductImport" text="Import catalog" link-type="anchor" condition="access.capabilities.catalogEdit || access.capabilities.priceEdit || access.capabilities.supplierPriceEdit"/>
                     <link url="../Products" text="Products" link-type="anchor"/>
                     <link url="../Categories" text="Categories" link-type="anchor"/>
                     <link url="../Features" text="Features" link-type="anchor"/>

@@ -2,6 +2,7 @@
 <secas xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-eca-3.xsd">
     <!-- Notification failures happen after the price commit and never undo an accepted price change. -->
     <seca id="BossStoredPriceNotice" service="mantle.product.PriceServices.store#ProductPrice" when="tx-commit">
+        <condition><expression>!parameters.catalogOperationKey</expression></condition>
         <actions><service-call name="ironstone.products.PriceNoticeServices.notify#ProductPriceChange" disable-authz="true" in-map="{productPriceId:productPriceId}" ignore-error="true"/></actions>
     </seca>
     <seca id="BossReplacedPriceNotice" service="mantle.product.PriceServices.replace#ProductPrice" when="tx-commit">

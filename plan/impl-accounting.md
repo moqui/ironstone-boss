@@ -42,7 +42,7 @@ of Products P2, P6 and P9 are there to extend.
 - [impl-projects.md](impl-projects.md): InvoiceDetail, OrderDetail and the billing services, and its findings
   that recur here (F91, F131).
 - Inventories: [ss-inventory.md](ss-inventory.md) and [usl-inventory.md](usl-inventory.md).
-- mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
+- mr-moqui: `plans/Remaining-Work.md` and `docs/Build-Test.md`.
 
 Framework paths are under the mr-moqui checkout (`crates/`, `runtime/base-component/`), Mantle paths under
 `runtime/component/mr-mantle/`, PASS paths under `runtime/component/mr-pass/`.

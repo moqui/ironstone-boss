@@ -27,7 +27,7 @@ Four decisions shape every screen:
   milestones, releases, sprints and components are work efforts under the project linked to their items by
   `WorkEffortAssoc`.
 - **Code is part of the work.** Repositories are mr-moqui's (`moqui.resource.GitRepository`, cloned and pushed
-  over HTTPS and SSH, mr-moqui `docs/Git-Hosting.md`), and Mantle's conventions already tie commits, branches and
+  over HTTPS and SSH, mr-moqui `docs/interfaces/Git-Hosting.md`), and Mantle's conventions already tie commits, branches and
   tags to work items (`mantle.work.GitServices`, mr-mantle `service/Work.gitecas.xml`). This file adds the
   browser, compare, merge requests with review, CI statuses, webhooks and branch rules, the Development tab of a
   work item, and releases tied to tags.
@@ -54,7 +54,7 @@ and requests, §9 record files, §10 Knowledge, §15 Chatter, §19 its needs), [
 (what M0–M11 built), [ss-inventory.md](ss-inventory.md), [usl-inventory.md](usl-inventory.md),
 [research-people.md](research-people.md) §7 (time and working schedules),
 [research-customer-service.md](research-customer-service.md) §2–§4 (intake and the case detail); mr-moqui
-`docs/Git-Hosting.md` and `docs/Revision-Management.md`, `org.moqui.impl.GitServices` and `UserServices`; Mantle
+`docs/interfaces/Git-Hosting.md` and `docs/data/Revision-Management.md`, `org.moqui.impl.GitServices` and `UserServices`; Mantle
 `mantle.work.ProjectServices`, `TaskServices`, `TimeServices`, `WorkEffortServices`, `GitServices`,
 `mantle.request.RequestServices`, `mantle.account.InvoiceServices`, `mantle.humanres.RateServices` and the
 entities of `WorkEffortEntities.xml`, `RequestEntities.xml`, `HumanResourcesEntities.xml` and `OrderEntities.xml`;
@@ -630,7 +630,7 @@ helper), with Open beside Rotate and Turn off.
   Recent commits, Open merge requests and Tags, read only; when it shares none, the tab says the project's code is not
   shared with them. As built (impl-projects.md P10b) they also open the read-only Code screens of those repositories
   (§7, "Clients").
-- **Source:** research §16 and mr-moqui `docs/Git-Hosting.md` "Projects and tasks"; baseline `Project/EditRepositories`.
+- **Source:** research §16 and mr-moqui `docs/interfaces/Git-Hosting.md` "Projects and tasks"; baseline `Project/EditRepositories`.
 - **Needs:** Code review store; Repository list with access.
 
 ### ProjectDocs (Context passed)
@@ -1342,7 +1342,7 @@ limits; the request's number). The CAPTCHA is reCAPTCHA with the `reCAPTCHA.site
 
 mr-moqui hosts each project's repositories: `local` repositories on disk for code, `db` repositories in the
 database with the backup, and `remote` mirrors of a repository hosted elsewhere, cloned, fetched and pushed over
-HTTPS and the built-in SSH server, with Git LFS for large files (mr-moqui `docs/Git-Hosting.md`). Access is by
+HTTPS and the built-in SSH server, with Git LFS for large files (mr-moqui `docs/interfaces/Git-Hosting.md`). Access is by
 repository: the parties of a project a repository is linked to may view, push new and fast-forward refs
 (`mantle.work.GitServices.check#GitRepositoryAuthz`); this design gives the project's leads (`ProjectManager`,
 `Manager`, `ProgrammerLead`, `SysArchitect`) the delete right too (force pushes, deleting branches and tags) and
@@ -1613,7 +1613,7 @@ find stays in it.
 - **Layout:** settings page with three boxes: SSH keys, Access tokens, How to clone. Commons/Settings/Account
   links here ("Git access") for a user who has Projects; for one who does not, Account hosts the Access tokens box
   itself, since tokens also serve the REST API. How to clone says that git over HTTPS also takes an app password
-  of Commons/Settings/Sync (mr-moqui `docs/Git-Hosting.md`).
+  of Commons/Settings/Sync (mr-moqui `docs/interfaces/Git-Hosting.md`).
 - **Forms:**
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |

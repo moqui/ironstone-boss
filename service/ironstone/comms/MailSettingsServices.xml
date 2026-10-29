@@ -19,7 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     user's access (get#EmailAccountAccess, R21): an account the user does not reach is "not found", and only a manager changes
     one. Server passwords and sign-in tokens are never answered: the views say only whether one is stored. An account signs
     in with a password (or an app password, with the provider's help on where to make one) or, where this server is set up
-    for it (mr-moqui docs/Mail-OAuth.md), with Google or Microsoft: get#OAuthChoice says which (and whether the provider has
+    for it (mr-moqui docs/interfaces/Mail-OAuth.md), with Google or Microsoft: get#OAuthChoice says which (and whether the provider has
     a POP server here), start#MailSignIn begins the sign-in of the SignIn screen's popup (a new account, IMAP or POP on the
     provider's POP server with its POP scope, is made by the framework only when the sign-in succeeds). An outgoing server
     that signs in as another user has its own sign-in
@@ -126,7 +126,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <service verb="get" noun="OAuthChoice">
         <description>Whether an address (or a server) signs in with a provider this server is set up for (mr-moqui
-            docs/Mail-OAuth.md): oauthProviderEnumId when given (discover#EmailServer's, or the account server's), else the
+            docs/interfaces/Mail-OAuth.md): oauthProviderEnumId when given (discover#EmailServer's, or the account server's), else the
             provider org.moqui.impl.EmailClientServices.find#OAuthProvider finds for the address's domain or the incoming
             server's host (no network: no MX lookup); configured as get#OAuthProviders says (a client of this deployment, not
             disabled); providerLabel names the button (Sign in with Google, with Microsoft); offersPop when the provider has a
@@ -707,7 +707,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <service verb="start" noun="MailSignIn">
         <description>Begin an account's sign-in with Google or Microsoft (org.moqui.impl.EmailClientServices.start#OAuthSignIn,
-            in the popup of the SignIn screen; mr-moqui docs/Mail-OAuth.md), on a provider this server is set up for
+            in the popup of the SignIn screen; mr-moqui docs/interfaces/Mail-OAuth.md), on a provider this server is set up for
             (get#OAuthChoice). From the wizard (setup) with no account yet, the address, name and kind go to start#OAuthSignIn,
             which makes the account only when the sign-in succeeds: paused with the year's sync window until the wizard's
             Finish, as one with a password; its emailAccountId comes with the sign-in's outcome (get#OAuthStatus). storeKind pop

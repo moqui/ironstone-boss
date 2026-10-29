@@ -22,7 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     Between the steps the URL carries the address and the server settings (never the password) and, from Connect on, the
     account itself (emailAccountId), which every step reads through the access rules: an id the user does not manage is
-    "not found". The provider's sign-in (OAuth, impl-drawers-commons.md R19, M5e; mr-moqui docs/Mail-OAuth.md) is the SignIn
+    "not found". The provider's sign-in (OAuth, impl-drawers-commons.md R19, M5e; mr-moqui docs/interfaces/Mail-OAuth.md) is the SignIn
     screen next to Add, which Connect and the account page load; an administrator sets the providers up. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
         default-menu-title="Add an account" default-menu-index="2" default-menu-include="false" server-static="qvt">

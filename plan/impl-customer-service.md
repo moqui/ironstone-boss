@@ -77,7 +77,7 @@ provide. Customer Service is the last of the six core apps (§4), so these are t
   [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules, with the party-role and effective-date rules).
 - Inventories: [ss-inventory.md](ss-inventory.md) and [usl-inventory.md](usl-inventory.md), which already carry the
   design §10 **Designed in** paths.
-- mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
+- mr-moqui: `plans/Remaining-Work.md` and `docs/Build-Test.md`.
 
 Framework paths are under the mr-moqui checkout (`crates/`, `runtime/base-component/`), Mantle paths under
 `runtime/component/mr-mantle/`, PASS paths under `runtime/component/mr-pass/`.

@@ -13,7 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <!-- Add account step 2, connect (design-drawers-commons.md §17 AccountCredentials): for mail at Google or Microsoft where this
-    server is set up for it (ironstone.comms.MailSettingsServices.get#OAuthChoice; mr-moqui docs/Mail-OAuth.md), "Sign in with Google"
+    server is set up for it (ironstone.comms.MailSettingsServices.get#OAuthChoice; mr-moqui docs/interfaces/Mail-OAuth.md), "Sign in with Google"
     or "Sign in with Microsoft" first: the SignIn screen's button in a dynamic-container, with the choice of IMAP or POP when
     the provider has a POP server here (POP reads it, and the sign-in asks to allow POP too), whose popup makes the account (paused until
     Finish, as with a password) and signs it in, then goes on to Test; where the provider has a sign-in this server is not set

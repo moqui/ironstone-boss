@@ -26,7 +26,7 @@ placeholders too.
   [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules).
 - [impl-projects.md](impl-projects.md): the pattern, and its findings that recur here (F9, F15, F17).
 - Inventories: [ss-inventory.md](ss-inventory.md) and [usl-inventory.md](usl-inventory.md).
-- mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
+- mr-moqui: `plans/Remaining-Work.md` and `docs/Build-Test.md`.
 
 Code paths are under `mr-moqui-base/` unless they name a component.
 

@@ -1,6 +1,6 @@
 // The composer (screen/Comms/Inbox/Compose.xml and Compose.qvue, service/ironstone/comms/ComposeServices.xml, impl-drawers-commons.md
 // M5b, M5c), its JSON transitions under the Comms app root as john.doe, with the framework's mail capture so a send goes with
-// no mail server (docs/Testing.md "Mail"): what a new message, a reply, a reply all, a forward with its files and a draft start
+// no mail server (docs/Build-Test.md "Mail"): what a new message, a reply, a reply all, a forward with its files and a draft start
 // with; the recipient search for email and for internal messages; drafts saved and opened again; a send now, a send held for
 // Undo and taken back to Drafts, a scheduled send; a send with the record chip filed on the record (send#EmailDraft, R6) and
 // shown in its Chatter; internal messages: new, to a mailbox, replies (reply all and to the sender only), Undo; the text

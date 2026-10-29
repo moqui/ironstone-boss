@@ -13,7 +13,7 @@ do not do what the design assumed (§3).
 
 **Inputs.** [design-drawers-commons.md](design-drawers-commons.md), [design-doc-guide.md](design-doc-guide.md),
 [style-guide.md](style-guide.md) §8 and §10, [ss-inventory.md](ss-inventory.md), [usl-inventory.md](usl-inventory.md);
-mr-moqui `plans/Remaining-Work.md`, `docs/Revision-Management.md`, `docs/Native-Components.md` and `docs/Testing.md`;
+mr-moqui `plans/Remaining-Work.md`, `docs/data/Revision-Management.md`, `docs/dev/Native-Components.md` and `docs/Build-Test.md`;
 the code as of Oct 18, 2026. Code paths are under `mr-moqui-base/` unless they name a component.
 
 Sections: [1 scope](#1-scope-and-order) · [2 step 0](#2-step-0) · [3 review](#3-review-findings-and-resolutions) ·
@@ -109,7 +109,7 @@ Each finding was verified in the code. Each resolution is now part of the design
   When in doubt, the logic goes in Mantle.
 - **A new XML element** follows style-guide §8.1. That means the XSD, `ScreenQvt.js` with its `ScreenQvtStatic.js`
   mirror and a `ScreenHtml.js` fallback, the `ScreenSupport.js` element tables (a missing entry is an error), the
-  `m-*` wrapper, a regenerated `WebrootVue.qvt.render.js`, CSS, goldens, a `docs/Qvt-Client.md` row and a gallery screen.
+  `m-*` wrapper, a regenerated `WebrootVue.qvt.render.js`, CSS, goldens, a `docs/ui/Qvt-Client.md` row and a gallery screen.
 - **A JS library** comes in through `libs/refresh.mjs`, as an esbuild bundle like compiler-dom when it has no UMD build,
   with a MANIFEST entry and a `plans/archive/License-Review.md` row. **A Rust crate** is checked against `deny.toml`.
 - **`.qvue` screens** copy the gallery pattern (`example/screen/Gallery/Board.qvue`, `Calendar.qvue`): JSON transitions
@@ -485,7 +485,7 @@ Built Oct 19 (M5e and the settings screens):
   - R19, checked: Google's IMAP and SMTP scope is restricted. An Internal Workspace app needs no review; an External
     app in Testing allows 100 users and its refresh tokens expire after 7 days; production needs the restricted-scope
     review. Microsoft needs an Entra Web app with a secret and the IMAP, POP and SMTP delegated scopes; Microsoft 365
-    needs SMTP AUTH on per mailbox. A deployment's setup is in mr-moqui docs/Mail-OAuth.md.
+    needs SMTP AUTH on per mailbox. A deployment's setup is in mr-moqui docs/interfaces/Mail-OAuth.md.
   - The add-account wizard has five steps (Address, Connect, Test, Options, Finish) and an account page replaces the
     AccountEdit form. Known providers are resolved offline, with app-password help.
   - Out of office can reply to everyone, contacts or internal senders; "contacts" asks a hook
@@ -663,9 +663,9 @@ with what the drawers and Commons gained for it.
 - Server-static pass (agreed Oct 19): built Oct 21 (§8): 19 Commons and Comms screens are server-static, the others left
   as server merges for the reasons §8 gives.
 - Calls: WebRTC with Calls, Call, LiveCall, CallSettings, CallSession and CallLink, and the `Call` comm type.
-- Sync: built Oct 21 (§8, mr-moqui docs/Sync.md): CalDAV, CardDAV and WebDAV at `/dav`, SFTP to the drives, app passwords,
+- Sync: built Oct 21 (§8, mr-moqui docs/interfaces/Sync.md): CalDAV, CardDAV and WebDAV at `/dav`, SFTP to the drives, app passwords,
   Settings/Sync, and the addresses on Calendars, Contact books and a drive's settings.
-- `m-coedit` with `yrs` and CollabDocument: built Oct 21 (§8; mr-moqui docs/Revision-Management.md, Co-editing); Knowledge
+- `m-coedit` with `yrs` and CollabDocument: built Oct 21 (§8; mr-moqui docs/data/Revision-Management.md, Co-editing); Knowledge
   and Notes edit with it.
 - The Assist drawer port (Phase 13), BOSS skills and agent room members.
 - PWA install and web push.
@@ -680,7 +680,7 @@ with what the drawers and Commons gained for it.
   unsubscribe page (`screen/Unsubscribe.xml` at `/u/<token>` with its List-Unsubscribe one-click POST, M11), and the
   published calendar (`screen/PublishedCalendar.xml` at `/cal/<token>`), as pages of PASS apps. PASS already has its
   own unsubscribe page for forum mail, which the list one may join.
-- Git: push and an HTTPS git server: built in the framework (mr-moqui docs/Git-Hosting.md). Oct 21: a version-controlled
+- Git: push and an HTTPS git server: built in the framework (mr-moqui docs/interfaces/Git-Hosting.md). Oct 21: a version-controlled
   drive's repository takes the drive's members by the drive's own rule, and a drive's settings show its clone addresses with
   its WebDAV and SFTP addresses.
 
@@ -739,7 +739,7 @@ plans/Remaining-Work.md.
 - Oct 21: an avatar given a user id shows that user's photo. `userPhoto` read the always-actions `userId`, which is the
   viewer's, so every such avatar showed the viewer's own photo.
 
-**Built Oct 21, the Later items Sync and `m-coedit`** (this session; mr-moqui docs/Sync.md and docs/Revision-Management.md)
+**Built Oct 21, the Later items Sync and `m-coedit`** (this session; mr-moqui docs/interfaces/Sync.md and docs/data/Revision-Management.md)
 - Framework:
   - App passwords: `moqui.security.UserAppPassword`, `UserServices` `create#`, `revoke#UserAppPassword` and
     `get#UserAppPasswords`; taken by the DAV server, SFTP and git over HTTPS, never by the web login.

@@ -16,7 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
     §1.5, impl R3): Records, People, Pages and files, Events and the id lookup. BOSS owns the mapping from a Mantle record to
     its BOSS screen, so each row's link is a /qapps link to the Commons or Comms screen of the record.
 
-    The contract of a palette source (docs/Qvt-Client.md, "Shell data and providers"): in text (trimmed),
+    The contract of a palette source (docs/ui/Qvt-Client.md, "Shell data and providers"): in text (trimmed),
     limit (the rows wanted), docTypes (the palette-type document types of the apps the user may open) and idMatch (true for a
     source with an id-pattern); out rows [{title, subtitle, icon, url}] and optionally moreUrl. The webroot shellSearch
     transition runs each source as the app root that registered it (Commons), so the Commons authorization and its entity

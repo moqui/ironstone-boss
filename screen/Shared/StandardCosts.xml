@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Standard costs" default-menu-include="false">
     <parameter name="appRoot"/>
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Costs')</expression></condition>
-    <parameter name="productId" />
-    <parameter name="organizationPartyId" />
-    <parameter name="facilityId" />
-    <parameter name="productStandardCostId" />
-    <parameter name="selectedComponentId" />
-    <parameter name="state" />
-    <parameter name="priceUomId" />
-    <parameter name="asOfDate" />
-    <parameter name="fromDate" />
-    <parameter name="thruDate" />
-    <parameter name="calculationId" />
-    <parameter name="productBomId" />
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Costs')</expression>
+    </condition>
+    <parameter name="productId"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="facilityId"/>
+    <parameter name="productStandardCostId"/>
+    <parameter name="selectedComponentId"/>
+    <parameter name="state"/>
+    <parameter name="priceUomId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="fromDate"/>
+    <parameter name="thruDate"/>
+    <parameter name="calculationId"/>
+    <parameter name="productBomId"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
         <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
@@ -22,106 +37,106 @@
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
     <actions>
-        <service-call name="ironstone.products.CostServices.get#CostContext" in-map="context" out-map="context" />
+        <service-call name="ironstone.products.CostServices.get#CostContext" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <label text="Standard costs" type="h5" />
-        <label text="${costMessage || &quot;&quot;}" type="p" />
+        <label text="Standard costs" type="h5"/>
+        <label text="${costMessage || &quot;&quot;}" type="p"/>
         <section name="CostAccess" condition="costAccess.read">
             <widgets>
                 <form-single name="StandardCostFind" transition=".">
                     <field name="productId" from="productId || null">
                         <default-field title="Product ID">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="organizationPartyId" from="organizationPartyId || null">
                         <default-field>
-                            <hidden />
+                            <hidden/>
                         </default-field>
                     </field>
                     <field name="facilityId">
                         <default-field title="Facility">
                             <drop-down allow-empty="true">
-                                <list-options list="facilityOptions" key="${value}" text="${label}" />
+                                <list-options list="facilityOptions" key="${value}" text="${label}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="state">
                         <default-field title="State">
                             <drop-down allow-empty="true">
-                                <option key="draft" text="Draft" />
-                                <option key="approved" text="Approved" />
+                                <option key="draft" text="Draft"/>
+                                <option key="approved" text="Approved"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="asOfDate">
                         <default-field title="As of date">
-                            <date-time />
+                            <date-time/>
                         </default-field>
                     </field>
                     <field name="includeHistory" from="includeHistory == null ? true : includeHistory">
                         <default-field title="Include all dates">
                             <drop-down allow-empty="false">
-                                <option key="true" text="Yes" />
-                                <option key="false" text="No" />
+                                <option key="true" text="Yes"/>
+                                <option key="false" text="No"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="submitButton">
                         <default-field title="Find estimates">
-                            <submit />
+                            <submit/>
                         </default-field>
                     </field>
                 </form-single>
-                <link url="${sharedLinks['Prices/CostRollup']}" text="Roll up estimate" link-type="anchor-button" condition="costAccess.edit" parameter-map="{productId:productId,organizationPartyId:organizationPartyId,facilityId:facilityId}" />
-                <link url="${sharedLinks['Prices/CostHistory']}" text="Cost history" link-type="anchor-button" parameter-map="{productId:productId,organizationPartyId:organizationPartyId,facilityId:facilityId}" />
+                <link url="${sharedLinks['Prices/CostRollup']}" text="Roll up estimate" link-type="anchor-button" condition="costAccess.edit" parameter-map="{productId:productId,organizationPartyId:organizationPartyId,facilityId:facilityId}"/>
+                <link url="${sharedLinks['Prices/CostHistory']}" text="Cost history" link-type="anchor-button" parameter-map="{productId:productId,organizationPartyId:organizationPartyId,facilityId:facilityId}"/>
                 <container-dialog id="NewStandardCostDialog" button-text="New draft" title="New standard estimate" condition="costAccess.edit" width="640">
                     <form-single name="NewStandardCost" transition="store" map="costDraft">
                         <field name="productId" from="productId || null">
                             <default-field title="Product ID">
-                                <text-line />
+                                <text-line/>
                             </default-field>
                         </field>
                         <field name="organizationPartyId" from="organizationPartyId || null">
                             <default-field>
-                                <hidden />
+                                <hidden/>
                             </default-field>
                         </field>
                         <field name="facilityId">
                             <default-field title="Facility">
                                 <drop-down allow-empty="true">
-                                    <list-options list="facilityOptions" key="${value}" text="${label}" />
+                                    <list-options list="facilityOptions" key="${value}" text="${label}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="quantity">
                             <default-field title="Estimate quantity">
-                                <text-line />
+                                <text-line/>
                             </default-field>
                         </field>
                         <field name="quantityUomId">
                             <default-field title="Unit">
                                 <drop-down allow-empty="true">
-                                    <list-options list="unitOptions" key="${value}" text="${label}" />
+                                    <list-options list="unitOptions" key="${value}" text="${label}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="priceUomId">
                             <default-field title="Currency">
                                 <drop-down allow-empty="true">
-                                    <list-options list="currencyOptions" key="${value}" text="${label}" />
+                                    <list-options list="currencyOptions" key="${value}" text="${label}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="changeReason">
                             <default-field title="Reason">
-                                <text-area />
+                                <text-area/>
                             </default-field>
                         </field>
                         <field name="submitButton">
                             <default-field title="Create draft">
-                                <submit />
+                                <submit/>
                             </default-field>
                         </field>
                     </form-single>
@@ -129,138 +144,138 @@
                 <form-list name="StandardCosts" list="standardCostRows" skip-form="true" paginate="false" show-csv-button="true">
                     <field name="productId">
                         <default-field title="Product">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="state">
                         <default-field title="State">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="fromDateText">
                         <default-field title="Effective from">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="thruDateText">
                         <default-field title="Through">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="quantity">
                         <default-field title="Batch">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="unitText">
                         <default-field title="Unit">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="materialCost">
                         <default-field title="Material">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="laborCost">
                         <default-field title="Labor">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="machineCost">
                         <default-field title="Machine">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="overheadCost">
                         <default-field title="Overhead">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="totalCost">
                         <default-field title="Total">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="unitCost">
                         <default-field title="Unit estimate">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="priceUomId">
                         <default-field title="Currency">
-                            <display />
+                            <display/>
                         </default-field>
                     </field>
                     <field name="open">
                         <default-field title="Estimate">
-                            <link url="." text="Open estimate" parameter-map="{productId:productId,productStandardCostId:productStandardCostId,organizationPartyId:organizationPartyId}" />
+                            <link url="." text="Open estimate" parameter-map="{productId:productId,productStandardCostId:productStandardCostId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
                 </form-list>
                 <section name="SelectedEstimate" condition="!!standardCost">
                     <widgets>
-                        <label text="Estimate ${standardCost.productStandardCostId} · ${standardCost.state}" type="h6" />
-                        <label text="${standardCost.changeReason || &quot;&quot;}" type="p" />
+                        <label text="Estimate ${standardCost.productStandardCostId} · ${standardCost.state}" type="h6"/>
+                        <label text="${standardCost.changeReason || &quot;&quot;}" type="p"/>
                         <form-list name="StandardCostComponents" list="componentRows" skip-form="true" paginate="false" show-csv-button="true">
                             <field name="componentTypeText">
                                 <default-field title="Type">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="description">
                                 <default-field title="Component / source">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="path">
                                 <default-field title="Path">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="quantity">
                                 <default-field title="Quantity">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="unitText">
                                 <default-field title="Unit">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="rateAmount">
                                 <default-field title="Rate">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="amount">
                                 <default-field title="Amount">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="priceUomId">
                                 <default-field title="Currency">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="sourceEntityName">
                                 <default-field title="Source type">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="sourceId">
                                 <default-field title="Source">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="edit">
                                 <default-field>
-                                    <link url="." text="Edit component" condition="costAccess.edit &amp;&amp; standardCost.state === 'draft' &amp;&amp; !standardCost.calculationId &amp;&amp; !sourceRestricted" parameter-map="{productId:standardCost.productId,productStandardCostId:standardCost.productStandardCostId,selectedComponentId:productStandardCostComponentId}" />
+                                    <link url="." text="Edit component" condition="costAccess.edit &amp;&amp; standardCost.state === 'draft' &amp;&amp; !standardCost.calculationId &amp;&amp; !sourceRestricted" parameter-map="{productId:standardCost.productId,productStandardCostId:standardCost.productStandardCostId,selectedComponentId:productStandardCostComponentId}"/>
                                 </default-field>
                             </field>
                             <field name="costAllocationFactor">
                                 <default-field title="Output allocation">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                         </form-list>
@@ -268,91 +283,91 @@
                             <form-single name="StandardCostComponent" transition="component" map="componentDraft">
                                 <field name="productStandardCostId" from="standardCost.productStandardCostId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="expectedRevision" from="estimateRevision">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="productStandardCostComponentId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="componentTypeEnumId">
                                     <default-field title="Component type">
                                         <drop-down allow-empty="true">
-                                            <list-options list="componentTypes" key="${value}" text="${label}" />
+                                            <list-options list="componentTypes" key="${value}" text="${label}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
                                 <field name="description">
                                     <default-field title="Description">
-                                        <text-line />
+                                        <text-line/>
                                     </default-field>
                                 </field>
                                 <field name="quantity">
                                     <default-field title="Quantity">
-                                        <text-line />
+                                        <text-line/>
                                     </default-field>
                                 </field>
                                 <field name="quantityUomId">
                                     <default-field title="Unit">
                                         <drop-down allow-empty="true">
-                                            <list-options list="unitOptions" key="${value}" text="${label}" />
+                                            <list-options list="unitOptions" key="${value}" text="${label}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
                                 <field name="rateAmount">
                                     <default-field title="Rate per unit">
-                                        <text-line />
+                                        <text-line/>
                                     </default-field>
                                 </field>
                                 <field name="changeReason">
                                     <default-field title="Reason">
-                                        <text-area />
+                                        <text-area/>
                                     </default-field>
                                 </field>
                                 <field name="submitButton">
                                     <default-field title="Save component">
-                                        <submit />
+                                        <submit/>
                                     </default-field>
                                 </field>
                             </form-single>
                         </container-dialog>
                         <container-dialog id="ApproveCostDialog" button-text="Approve estimate" title="Approve standard estimate" condition="costAccess.approve &amp;&amp; standardCost.state === 'draft'" width="640">
-                            <label text="Approval freezes this estimate and stores its PDF. Stock values and the ledger remain unchanged." type="p" />
+                            <label text="Approval freezes this estimate and stores its PDF. Stock values and the ledger remain unchanged." type="p"/>
                             <form-single name="ApproveStandardCost" transition="approve">
                                 <field name="productStandardCostId" from="standardCost.productStandardCostId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="expectedRevision" from="estimateRevision">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="fromDate">
                                     <default-field title="Effective from (blank means now)">
-                                        <date-time />
+                                        <date-time/>
                                     </default-field>
                                 </field>
                                 <field name="thruDate">
                                     <default-field title="Through">
-                                        <date-time />
+                                        <date-time/>
                                     </default-field>
                                 </field>
                                 <field name="changeReason">
                                     <default-field title="Reason">
-                                        <text-area />
+                                        <text-area/>
                                     </default-field>
                                 </field>
                                 <field name="submitButton">
                                     <default-field title="Approve estimate">
-                                        <submit />
+                                        <submit/>
                                     </default-field>
                                 </field>
                             </form-single>
@@ -361,40 +376,40 @@
                             <form-single name="CloneStandardCost" transition="clone">
                                 <field name="productStandardCostId" from="standardCost.productStandardCostId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="expectedRevision" from="estimateRevision">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="changeReason">
                                     <default-field title="Reason">
-                                        <text-area />
+                                        <text-area/>
                                     </default-field>
                                 </field>
                                 <field name="submitButton">
                                     <default-field title="Clone estimate">
-                                        <submit />
+                                        <submit/>
                                     </default-field>
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <link url="approvedPdf" text="Approved PDF" link-type="anchor-button" condition="standardCost.state === 'approved'" parameter-map="{productStandardCostId:standardCost.productStandardCostId}" />
-                        <link url="estimatePrint" text="Print estimate" link-type="anchor-button" parameter-map="{productStandardCostId:standardCost.productStandardCostId}" />
-                        <link url="${sharedLinks['InventoryValuation']}" text="Request revaluation" link-type="anchor-button" condition="costAccess.glPost &amp;&amp; standardCost.state === 'approved'" parameter-map="{productStandardCostId:standardCost.productStandardCostId,productId:standardCost.productId,organizationPartyId:standardCost.organizationPartyId,facilityId:standardCost.facilityId}" />
+                        <link url="approvedPdf" text="Approved PDF" link-type="anchor-button" condition="standardCost.state === 'approved'" parameter-map="{productStandardCostId:standardCost.productStandardCostId}"/>
+                        <link url="estimatePrint" text="Print estimate" link-type="anchor-button" parameter-map="{productStandardCostId:standardCost.productStandardCostId}"/>
+                        <link url="${sharedLinks['InventoryValuation']}" text="Request revaluation" link-type="anchor-button" condition="costAccess.glPost &amp;&amp; standardCost.state === 'approved'" parameter-map="{productStandardCostId:standardCost.productStandardCostId,productId:standardCost.productId,organizationPartyId:standardCost.organizationPartyId,facilityId:standardCost.facilityId}"/>
                         <section name="StandardCostFindingsAvailable" condition="(findings).length &gt; 0">
                             <widgets>
                                 <form-list name="StandardCostFindings" list="findings" skip-form="true" paginate="false" show-csv-button="true">
                                     <field name="recordId">
                                         <default-field title="Input">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="message">
                                         <default-field title="Finding">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                 </form-list>
@@ -407,62 +422,62 @@
     </widgets>
     <transition name="store">
         <actions>
-            <service-call name="ironstone.products.CostServices.store#StandardCost" in-map="Object.assign({},context,{productStandardCostId:null})" out-map="saved" />
-            <set field="productStandardCostId" from="saved.productStandardCostId" />
+            <service-call name="ironstone.products.CostServices.store#StandardCost" in-map="Object.assign({},context,{productStandardCostId:null})" out-map="saved"/>
+            <set field="productStandardCostId" from="saved.productStandardCostId"/>
         </actions>
         <default-response url=".">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="component">
         <actions>
-            <service-call name="ironstone.products.CostServices.store#CostComponent" in-map="context" out-map="saved" />
+            <service-call name="ironstone.products.CostServices.store#CostComponent" in-map="context" out-map="saved"/>
         </actions>
         <default-response url=".">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="clone">
         <actions>
-            <service-call name="ironstone.products.CostServices.clone#StandardCost" in-map="context" out-map="saved" />
-            <set field="productStandardCostId" from="saved.productStandardCostId" />
+            <service-call name="ironstone.products.CostServices.clone#StandardCost" in-map="context" out-map="saved"/>
+            <set field="productStandardCostId" from="saved.productStandardCostId"/>
         </actions>
         <default-response url=".">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="approve">
         <actions>
-            <service-call name="ironstone.products.CostServices.approve#StandardCost" in-map="context" out-map="saved" />
+            <service-call name="ironstone.products.CostServices.approve#StandardCost" in-map="context" out-map="saved"/>
         </actions>
         <default-response url=".">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="approvedPdf" read-only="true">
         <actions>
-            <service-call name="mantle.product.CostServices.get#ProductStandardCost" in-map="{productStandardCostId:productStandardCostId}" out-map="pdfCost" />
+            <service-call name="mantle.product.CostServices.get#ProductStandardCost" in-map="{productStandardCostId:productStandardCostId}" out-map="pdfCost"/>
             <script>if (!pdfCost.standardCost.approvedPdfLocation) throw new Error('This estimate has no approved PDF'); ec.web.sendResourceResponse(pdfCost.standardCost.approvedPdfLocation,true,'standard-estimate-'+productStandardCostId+'.pdf')</script>
         </actions>
-        <default-response type="none" />
+        <default-response type="none"/>
     </transition>
     <transition name="estimatePrint" read-only="true">
         <actions>
-            <service-call name="ironstone.products.CostServices.get#CostPrint" in-map="context" out-map="printed" />
+            <service-call name="ironstone.products.CostServices.get#CostPrint" in-map="context" out-map="printed"/>
             <script>ec.web.sendTextResponse(printed.printHtml,'text/html',null)</script>
         </actions>
-        <default-response type="none" />
+        <default-response type="none"/>
     </transition>
 </screen>

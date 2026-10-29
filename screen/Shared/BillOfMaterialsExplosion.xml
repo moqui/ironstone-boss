@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="BOM explosion" default-menu-include="false">
-    <parameter name="appRoot" />
-    <parameter name="productId" />
-    <parameter name="productBomId" />
-    <parameter name="organizationPartyId" />
-    <parameter name="workEffortId" />
-    <parameter name="asOfDate" />
-    <parameter name="quantity" />
-    <parameter name="quantityUomId" />
-    <parameter name="facilityId" />
+    <parameter name="appRoot"/>
+    <parameter name="productId"/>
+    <parameter name="productBomId"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="workEffortId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="quantity"/>
+    <parameter name="quantityUomId"/>
+    <parameter name="facilityId"/>
     <parameter name="fullBlowThrough"/>
-    <parameter name="leftDate" />
-    <parameter name="rightDate" />
+    <parameter name="leftDate"/>
+    <parameter name="rightDate"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
         <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
@@ -20,138 +33,174 @@
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
     <actions>
-        <service-call name="ironstone.products.MethodServices.get#BomExplosion" in-map="context" out-map="context" />
+        <service-call name="ironstone.products.MethodServices.get#BomExplosion" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <label text="BOM explosion" type="h5" />
+        <label text="BOM explosion" type="h5"/>
         <form-single name="BillOfMaterialsExplosionParameters" transition=".">
             <field name="productId" from="productId || null">
                 <default-field>
-                    <hidden />
+                    <hidden/>
                 </default-field>
             </field>
             <field name="productBomId" from="productBomId || null">
                 <default-field>
-                    <hidden />
+                    <hidden/>
                 </default-field>
             </field>
             <field name="organizationPartyId" from="organizationPartyId || null">
                 <default-field>
-                    <hidden />
+                    <hidden/>
                 </default-field>
             </field>
             <field name="asOfDate">
                 <default-field title="As of date">
-                    <date-time />
+                    <date-time/>
                 </default-field>
             </field>
             <field name="quantity">
                 <default-field title="Required output">
-                    <text-line default-value="1" />
+                    <text-line default-value="1"/>
                 </default-field>
             </field>
             <field name="quantityUomId">
                 <default-field title="Output unit">
                     <drop-down allow-empty="true">
-                        <list-options list="unitOptions" key="${value}" text="${label}" />
+                        <list-options list="unitOptions" key="${value}" text="${label}"/>
                     </drop-down>
                 </default-field>
             </field>
             <field name="facilityId">
                 <default-field title="Stock facility">
                     <drop-down allow-empty="true">
-                        <list-options list="facilityOptions" key="${value}" text="${label}" />
+                        <list-options list="facilityOptions" key="${value}" text="${label}"/>
                     </drop-down>
                 </default-field>
             </field>
-            <field name="fullBlowThrough"><default-field title="Requirements"><drop-down allow-empty="false"><option key="false" text="Stop at stocked subassemblies"/><option key="true" text="Full blow-through to leaves"/></drop-down></default-field></field>
+            <field name="fullBlowThrough">
+                <default-field title="Requirements">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="Stop at stocked subassemblies"/>
+                        <option key="true" text="Full blow-through to leaves"/>
+                    </drop-down>
+                </default-field>
+            </field>
             <field name="submitButton">
                 <default-field title="Show report">
-                    <submit />
+                    <submit/>
                 </default-field>
             </field>
         </form-single>
-        <label text="${reportMessage || &quot;&quot;}" type="p" />
+        <label text="${reportMessage || &quot;&quot;}" type="p"/>
         <form-list name="BillOfMaterialsExplosionFindings" list="findings || []" skip-form="true" paginate="false" show-csv-button="true">
             <field name="recordId">
                 <default-field title="Record">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="message">
                 <default-field title="Finding">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
         </form-list>
         <form-list name="BillOfMaterialsExplosionRows" list="explosionRows || []" skip-form="true" paginate="false" show-csv-button="true" views="tree,list">
-            <view-tree parent-field="parentPath" key-fields="path" />
+            <view-tree parent-field="parentPath" key-fields="path"/>
             <field name="productId">
                 <default-field title="Component">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="depth">
                 <default-field title="Level">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="productName">
                 <default-field title="Name">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="netQuantity">
                 <default-field title="Net">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="grossQuantity">
                 <default-field title="With scrap">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="quantityUomId">
                 <default-field title="Unit">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="inventoryQuantity">
                 <default-field title="Inventory quantity">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="inventoryUomId">
                 <default-field title="Inventory unit">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="conversionFactor">
                 <default-field title="Conversion">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
             <field name="componentProductBomId">
                 <default-field title="Chosen method">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
-            <field name="planningBoundary"><default-field title="Stocked subassembly"><display/></default-field></field>
-            <field name="requiredForProduction"><default-field title="Requirement"><display/></default-field></field>
+            <field name="planningBoundary">
+                <default-field title="Stocked subassembly">
+                    <display/>
+                </default-field>
+            </field>
+            <field name="requiredForProduction">
+                <default-field title="Requirement">
+                    <display/>
+                </default-field>
+            </field>
             <field name="complete">
                 <default-field title="Complete">
-                    <display />
+                    <display/>
                 </default-field>
             </field>
-            <field name="estimatedAmount"><conditional-field condition="canCostRead" title="Standard estimate"><display/></conditional-field></field>
-            <field name="costCurrency"><conditional-field condition="canCostRead" title="Cost currency"><display/></conditional-field></field>
+            <field name="estimatedAmount">
+                <conditional-field condition="canCostRead" title="Standard estimate">
+                    <display/>
+                </conditional-field>
+            </field>
+            <field name="costCurrency">
+                <conditional-field condition="canCostRead" title="Cost currency">
+                    <display/>
+                </conditional-field>
+            </field>
         </form-list>
-        <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; !!costSummary"><widgets>
-            <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p"/>
-            <form-list name="ExplosionCostFindings" list="costFindings || []" skip-form="true" paginate="false"><field name="recordId"><default-field title="Cost input"><display/></default-field></field><field name="message"><default-field title="Finding"><display/></default-field></field></form-list>
-            <link url="${sharedLinks['Prices/CostRollup']}" text="Roll up estimate" parameter-map="{productId:productId,productBomId:productBomId,asOfDate:asOfDate,quantity:quantity,quantityUomId:quantityUomId,organizationPartyId:organizationPartyId}"/>
-        </widgets></section>
-        <label text="Buildable from selected facility: ${buildableQuantity == null ? &quot;Unavailable&quot; : buildableQuantity}" type="p" />
-        <label text="Quantities only. The report creates no supply and does not post stock." type="p" />
+        <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; !!costSummary">
+            <widgets>
+                <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p"/>
+                <form-list name="ExplosionCostFindings" list="costFindings || []" skip-form="true" paginate="false">
+                    <field name="recordId">
+                        <default-field title="Cost input">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="message">
+                        <default-field title="Finding">
+                            <display/>
+                        </default-field>
+                    </field>
+                </form-list>
+                <link url="${sharedLinks['Prices/CostRollup']}" text="Roll up estimate" parameter-map="{productId:productId,productBomId:productBomId,asOfDate:asOfDate,quantity:quantity,quantityUomId:quantityUomId,organizationPartyId:organizationPartyId}"/>
+            </widgets>
+        </section>
+        <label text="Buildable from selected facility: ${buildableQuantity == null ? &quot;Unavailable&quot; : buildableQuantity}" type="p"/>
+        <label text="Quantities only. The report creates no supply and does not post stock." type="p"/>
     </widgets>
 </screen>

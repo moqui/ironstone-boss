@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Price history" default-menu-index="2">
     <parameter name="productId"/>
     <parameter name="productPriceId"/>
@@ -22,7 +35,12 @@
                 <service-call name="ironstone.products.CatalogServices.get#TransactionPriceStatistics" in-map="context" out-map="context"/>
             </if>
         </if>
-    <if condition="statisticsRows.length"><service-call name="ironstone.projects.ReportServices.get#ChartConfig" disable-authz="true" in-map="{id:'PriceStatisticsChart',labels:['Minimum','Weighted average','Maximum'],series:[{name:'Unit price',data:[statisticsRows[0].unitAmountMin,statisticsRows[0].weightedAmountAvg,statisticsRows[0].unitAmountMax]}],yTitle:priceUomId}" out-map="priceChart"/><set field="chartHtml" from="priceChart.html"/><set field="chartTui" from="priceChart.tui"/></if></actions>
+        <if condition="statisticsRows.length">
+            <service-call name="ironstone.projects.ReportServices.get#ChartConfig" disable-authz="true" in-map="{id:'PriceStatisticsChart',labels:['Minimum','Weighted average','Maximum'],series:[{name:'Unit price',data:[statisticsRows[0].unitAmountMin,statisticsRows[0].weightedAmountAvg,statisticsRows[0].unitAmountMax]}],yTitle:priceUomId}" out-map="priceChart"/>
+            <set field="chartHtml" from="priceChart.html"/>
+            <set field="chartTui" from="priceChart.tui"/>
+        </if>
+    </actions>
     <widgets>
         <container-box>
             <box-header title="History scope"/>
@@ -81,7 +99,12 @@
         <container-box>
             <box-header title="Price changes"/>
             <box-body>
-                <section name="RestrictedEarlierPriceHistory" condition="historyRestricted"><widgets><label text="Some earlier changes are outside your current permissions." type="p"/></widgets></section><form-list name="PriceChanges" list="auditRows" skip-form="true" paginate="false">
+                <section name="RestrictedEarlierPriceHistory" condition="historyRestricted">
+                    <widgets>
+                        <label text="Some earlier changes are outside your current permissions." type="p"/>
+                    </widgets>
+                </section>
+                <form-list name="PriceChanges" list="auditRows" skip-form="true" paginate="false">
                     <field name="changedDateText">
                         <default-field title="When">
                             <display/>
@@ -129,7 +152,15 @@
             <box-header title="Transacted order prices"/>
             <box-body>
                 <label text="${statisticsMessage}" type="p"/>
-                <section name="PriceStatisticsChart" condition="statisticsRows.length"><widgets><render-mode><text type="qvt"><![CDATA[${chartHtml}]]></text><text type="tui"><![CDATA[${JSON.stringify(chartTui)}]]></text></render-mode></widgets></section><form-list name="TransactionPriceStatistics" list="statisticsRows" skip-form="true" paginate="false">
+                <section name="PriceStatisticsChart" condition="statisticsRows.length">
+                    <widgets>
+                        <render-mode>
+                            <text type="qvt"><![CDATA[${chartHtml}]]></text>
+                            <text type="tui"><![CDATA[${JSON.stringify(chartTui)}]]></text>
+                        </render-mode>
+                    </widgets>
+                </section>
+                <form-list name="TransactionPriceStatistics" list="statisticsRows" skip-form="true" paginate="false">
                     <field name="productId">
                         <default-field title="Product">
                             <display/>

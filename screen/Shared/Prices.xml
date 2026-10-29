@@ -1,6 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?><screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Prices" default-menu-index="1">
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Prices" default-menu-index="1">
     <parameter name="appRoot"/>
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression></condition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression>
+    </condition>
     <parameter name="productId"/>
     <parameter name="direction"/>
     <parameter name="organizationPartyId"/>
@@ -55,8 +71,6 @@
     <transition name="bulk">
         <default-response url="${sharedLinks['Products/BulkPrice']}"/>
     </transition>
-    
-
     <transition name="choices" read-only="true">
         <actions>
             <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:'products',term:term}" out-map="choices"/>
@@ -64,8 +78,6 @@
         </actions>
         <default-response type="none"/>
     </transition>
-    
-
     <actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="access"/>
         <service-call name="ironstone.products.CatalogServices.get#PriceOptions" out-map="context"/>
@@ -77,7 +89,9 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
 ]]></script>
     </actions>
     <widgets>
-        <link text="Explain price" url="${sharedLinks['Prices/PriceExplain']}"><parameter name="productId"/></link>
+        <link text="Explain price" url="${sharedLinks['Prices/PriceExplain']}">
+            <parameter name="productId"/>
+        </link>
         <container-box>
             <box-header title="Price scope"/>
             <box-body>
@@ -540,22 +554,22 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             <link url="history" text="History" parameter-map="{productId:productId,productPriceId:productPriceId}"/>
                         </default-field>
                     </field>
-                                    <field name="standardCostAmount">
+                    <field name="standardCostAmount">
                         <conditional-field condition="access.capabilities.marginRead" title="Standard estimate">
-                            <display />
+                            <display/>
                         </conditional-field>
                     </field>
                     <field name="marginAmount">
                         <conditional-field condition="access.capabilities.marginRead" title="Margin">
-                            <display />
+                            <display/>
                         </conditional-field>
                     </field>
                     <field name="marginPercent">
                         <conditional-field condition="access.capabilities.marginRead" title="Margin %">
-                            <display />
+                            <display/>
                         </conditional-field>
                     </field>
-</form-list>
+                </form-list>
             </box-body>
         </container-box>
         <section-iterate name="PriceActions" list="priceRows" entry="entry">
@@ -593,7 +607,10 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                                             </default-field>
                                         </field>
                                         <field name="fromDate">
-                                            <default-field title="Effective from"><hidden/><display text="${entry.fromDateText}"/></default-field>
+                                            <default-field title="Effective from">
+                                                <hidden/>
+                                                <display text="${entry.fromDateText}"/>
+                                            </default-field>
                                         </field>
                                         <field name="thruDate" from="entry.thruDateText">
                                             <default-field title="Through">

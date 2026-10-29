@@ -1,41 +1,363 @@
 // App routing is local to this invocation, including nested catalog reads.
-function run(op,parameters){
-const requestedRoot=parameters.appRoot||'Products'
-// Products context for Manufacturing-owned methods. All writes still pass the owner's independent guards.
-const S='mantle.product.BomServices.',R='mantle.work.RoutingServices.',C='ironstone.products.CatalogServices.'
-const policy=()=>ec.resource.script('component://mr-mantle/service/mantle/product/MethodPolicy.js'),call=(n,p={})=>policy().call(n,p),rows=(n,p={})=>policy().rows(n,p),map=r=>policy().map(r),ms=v=>policy().ms(v)
-function context(p){
-
- const shared=call(C+'get#SharedContext',{appRoot:p.appRoot});if(!shared.capabilities.read)throw new Error('Catalog read access is required')
- let productId=p.productId,detail=null
- if(p.productBomId){detail=call(S+'get#BomDetail',{productBomId:p.productBomId,asOfDate:p.asOfDate});if(productId&&productId!==detail.productBom.productId)throw new Error('BOM does not belong to this product');productId=detail.productBom.productId}
- const product=call(C+'get#CatalogRecord',{recordId:productId,checkOnly:true}).record;if(!product)throw new Error('Product is not available')
- const a=policy().capabilities(),out={appRoot:shared.appRoot,product:map(product),productId,methodAccess:a,productBomId:p.productBomId||null,bomRows:[],bomItemRows:[],draftItemRows:[],releaseHistory:[],bomHeader:{baseQuantity:1,quantityUomId:product.amountUomId||'OTH_ea',methodCode:'MAIN',isPhantom:'N'},bomItemEdit:{quantity:1,quantityUomId:product.amountUomId||'OTH_ea',scrapFactor:0,roleEnumId:'BmirConsume',sequenceNum:10},methodMessage:!a.read?'Manufacturing method access is required.':product.productTypeEnumId==='PtPickAssembly'?'Kits use dated Kit components. Their usage is shown read only.':''}
- if(!a.read)return out
- const scope=policy().scope(Object.assign({},p,{organizationPartyId:detail?.productBom.organizationPartyId||p.organizationPartyId}));out.organizationPartyId=scope.organizationPartyId
- const kit=product.productTypeEnumId==='PtPickAssembly';out.kit=kit
- if(!kit){out.bomRows=call(S+'find#Boms',{organizationPartyId:scope.organizationPartyId,productId,asOfDate:p.asOfDate}).bomRows;if(!detail&&out.bomRows.length){out.productBomId=out.bomRows[0].productBomId;detail=call(S+'get#BomDetail',{productBomId:out.productBomId,asOfDate:p.asOfDate})}}
- if(detail){Object.assign(out,detail,{productId,productBomId:detail.productBom.productBomId,bomHeader:Object.assign({},detail.productBom,{changeReason:''}),bomItemEdit:Object.assign({},out.bomItemEdit,(p.selectedBomItemId?[...detail.draftItemRows,...detail.bomItemRows].find(r=>r.bomItemId===p.selectedBomItemId):null)||{})});out.bomItemEdit.componentProductId=out.bomItemEdit.productId||'';delete out.bomItemEdit.productId;out.bomItemEdit.changeReason='';out.bomExpectedRevision=detail.expectedRevision;delete out.expectedRevision;out.workEffortId=p.workEffortId||detail.productBom.routingWorkEffortId||null}
- else out.workEffortId=p.workEffortId||null
- out.routingOptions=call(R+'find#Routings',{organizationPartyId:out.organizationPartyId}).routingRows.map(r=>({value:r.workEffortId,label:r.workEffortName||r.workEffortId}))
- out.facilityOptions=rows('mantle.facility.Facility',{ownerPartyId:out.organizationPartyId}).map(r=>({value:r.facilityId,label:r.facilityName||r.facilityId}));out.centerOptions=out.facilityOptions.filter(f=>policy().one('mantle.work.production.WorkCenter',{facilityId:f.value}))
- const used=new Set(['OTH_ea','TF_hr','TF_min','LEN_m','WT_kg',product.amountUomId,detail?.productBom.quantityUomId,...(detail?.bomItemRows||[]).map(r=>r.quantityUomId),...(detail?.draftItemRows||[]).map(r=>r.quantityUomId)].filter(Boolean))
- out.unitOptions=rows('moqui.basic.Uom').filter(r=>used.has(r.uomId)).map(r=>({value:r.uomId,label:r.description||r.uomId}));out.skillOptions=rows('moqui.basic.Enumeration',{enumTypeId:'SkillType'}).map(r=>({value:r.enumId,label:r.description||r.enumId}));out.rateSettings={priceUomId:ec.user.userAccount?.currencyUomId||'USD',componentTypeEnumId:'PccLabor',approve:false};out.currencyOptions=rows('moqui.basic.Uom',{uomTypeEnumId:'UT_CURRENCY_MEASURE'}).map(r=>({value:r.uomId,label:r.uomId}))
- out.releaseOptions=out.releaseHistory.map(r=>({value:r.methodReleaseDecisionId,label:new Date(ms(r.fromDate)).toISOString().replace('T',' ').replace('Z',' UTC')+' · '+r.changeReason}));out.leftReleaseId=p.leftReleaseId||out.releaseHistory[1]?.methodReleaseDecisionId||out.releaseHistory[0]?.methodReleaseDecisionId||null;out.rightReleaseId=p.rightReleaseId||out.releaseHistory[0]?.methodReleaseDecisionId||null
- const dated=rs=>rs.map(row=>Object.assign({},map(row),{fromDateText:row.fromDate?ec.l10n.format(new Date(ms(row.fromDate)),'yyyy-MM-dd HH:mm:ss'):'Draft',thruDateText:row.thruDate?ec.l10n.format(new Date(ms(row.thruDate)),'yyyy-MM-dd HH:mm:ss'):'',productName:row.productId?policy().one('mantle.product.Product',{productId:row.productId})?.productName||row.productId:null,quantityUomText:row.quantityUomId?policy().one('moqui.basic.Uom',{uomId:row.quantityUomId})?.description||row.quantityUomId:null,approverText:row.approvedByUserId?policy().one('moqui.security.UserAccount',{userId:row.approvedByUserId})?.userFullName||row.approvedByUserId:null,roleText:row.roleEnumId==='BmirByproduct'?'By-product':'Consume'}))
- out.bomItemRows=dated(out.bomItemRows);out.draftItemRows=dated(out.draftItemRows);out.releaseHistory=dated(out.releaseHistory);out.asOfDate=p.asOfDate?ec.l10n.format(new Date(ms(p.asOfDate)),'yyyy-MM-dd HH:mm:ss'):null
- return out
+function run(op, parameters) {
+    const requestedRoot = parameters.appRoot || "Products"
+    // Products context for Manufacturing-owned methods. All writes still pass the owner's independent guards.
+    const S = "mantle.product.BomServices.",
+        R = "mantle.work.RoutingServices.",
+        C = "ironstone.products.CatalogServices."
+    const policy = () => ec.resource.script("component://mr-mantle/service/mantle/product/MethodPolicy.js"),
+        call = (n, p = {}) => policy().call(n, p),
+        rows = (n, p = {}) => policy().rows(n, p),
+        map = r => policy().map(r),
+        ms = v => policy().ms(v)
+    function context(p) {
+        const shared = call(C + "get#SharedContext", {appRoot: p.appRoot})
+        if (!shared.capabilities.read) throw new Error("Catalog read access is required")
+        let productId = p.productId,
+            detail = null
+        if (p.productBomId) {
+            detail = call(S + "get#BomDetail", {productBomId: p.productBomId, asOfDate: p.asOfDate})
+            if (productId && productId !== detail.productBom.productId) throw new Error("BOM does not belong to this product")
+            productId = detail.productBom.productId
+        }
+        const product = call(C + "get#CatalogRecord", {recordId: productId, checkOnly: true}).record
+        if (!product) throw new Error("Product is not available")
+        const a = policy().capabilities(),
+            out = {
+                appRoot: shared.appRoot,
+                product: map(product),
+                productId,
+                methodAccess: a,
+                productBomId: p.productBomId || null,
+                bomRows: [],
+                bomItemRows: [],
+                draftItemRows: [],
+                releaseHistory: [],
+                bomHeader: {baseQuantity: 1, quantityUomId: product.amountUomId || "OTH_ea", methodCode: "MAIN", isPhantom: "N"},
+                bomItemEdit: {
+                    quantity: 1,
+                    quantityUomId: product.amountUomId || "OTH_ea",
+                    scrapFactor: 0,
+                    roleEnumId: "BmirConsume",
+                    sequenceNum: 10
+                },
+                methodMessage: !a.read
+                    ? "Manufacturing method access is required."
+                    : product.productTypeEnumId === "PtPickAssembly"
+                      ? "Kits use dated Kit components. Their usage is shown read only."
+                      : ""
+            }
+        if (!a.read) return out
+        const scope = policy().scope(
+            Object.assign({}, p, {organizationPartyId: detail?.productBom.organizationPartyId || p.organizationPartyId})
+        )
+        out.organizationPartyId = scope.organizationPartyId
+        const kit = product.productTypeEnumId === "PtPickAssembly"
+        out.kit = kit
+        if (!kit) {
+            out.bomRows = call(S + "find#Boms", {
+                organizationPartyId: scope.organizationPartyId,
+                productId,
+                asOfDate: p.asOfDate
+            }).bomRows
+            if (!detail && out.bomRows.length) {
+                out.productBomId = out.bomRows[0].productBomId
+                detail = call(S + "get#BomDetail", {productBomId: out.productBomId, asOfDate: p.asOfDate})
+            }
+        }
+        if (detail) {
+            Object.assign(out, detail, {
+                productId,
+                productBomId: detail.productBom.productBomId,
+                bomHeader: Object.assign({}, detail.productBom, {changeReason: ""}),
+                bomItemEdit: Object.assign(
+                    {},
+                    out.bomItemEdit,
+                    (p.selectedBomItemId
+                        ? [...detail.draftItemRows, ...detail.bomItemRows].find(r => r.bomItemId === p.selectedBomItemId)
+                        : null) || {}
+                )
+            })
+            out.bomItemEdit.componentProductId = out.bomItemEdit.productId || ""
+            delete out.bomItemEdit.productId
+            out.bomItemEdit.changeReason = ""
+            out.bomExpectedRevision = detail.expectedRevision
+            delete out.expectedRevision
+            out.workEffortId = p.workEffortId || detail.productBom.routingWorkEffortId || null
+        } else out.workEffortId = p.workEffortId || null
+        out.routingOptions = call(R + "find#Routings", {organizationPartyId: out.organizationPartyId}).routingRows.map(r => ({
+            value: r.workEffortId,
+            label: r.workEffortName || r.workEffortId
+        }))
+        out.facilityOptions = rows("mantle.facility.Facility", {ownerPartyId: out.organizationPartyId}).map(r => ({
+            value: r.facilityId,
+            label: r.facilityName || r.facilityId
+        }))
+        out.centerOptions = out.facilityOptions.filter(f =>
+            policy().one("mantle.work.production.WorkCenter", {facilityId: f.value})
+        )
+        const used = new Set(
+            [
+                "OTH_ea",
+                "TF_hr",
+                "TF_min",
+                "LEN_m",
+                "WT_kg",
+                product.amountUomId,
+                detail?.productBom.quantityUomId,
+                ...(detail?.bomItemRows || []).map(r => r.quantityUomId),
+                ...(detail?.draftItemRows || []).map(r => r.quantityUomId)
+            ].filter(Boolean)
+        )
+        out.unitOptions = rows("moqui.basic.Uom")
+            .filter(r => used.has(r.uomId))
+            .map(r => ({value: r.uomId, label: r.description || r.uomId}))
+        out.skillOptions = rows("moqui.basic.Enumeration", {enumTypeId: "SkillType"}).map(r => ({
+            value: r.enumId,
+            label: r.description || r.enumId
+        }))
+        out.rateSettings = {
+            priceUomId: ec.user.userAccount?.currencyUomId || "USD",
+            componentTypeEnumId: "PccLabor",
+            approve: false
+        }
+        out.currencyOptions = rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"}).map(r => ({
+            value: r.uomId,
+            label: r.uomId
+        }))
+        out.releaseOptions = out.releaseHistory.map(r => ({
+            value: r.methodReleaseDecisionId,
+            label: new Date(ms(r.fromDate)).toISOString().replace("T", " ").replace("Z", " UTC") + " · " + r.changeReason
+        }))
+        out.leftReleaseId =
+            p.leftReleaseId ||
+            out.releaseHistory[1]?.methodReleaseDecisionId ||
+            out.releaseHistory[0]?.methodReleaseDecisionId ||
+            null
+        out.rightReleaseId = p.rightReleaseId || out.releaseHistory[0]?.methodReleaseDecisionId || null
+        const dated = rs =>
+            rs.map(row =>
+                Object.assign({}, map(row), {
+                    fromDateText: row.fromDate ? ec.l10n.format(new Date(ms(row.fromDate)), "yyyy-MM-dd HH:mm:ss") : "Draft",
+                    thruDateText: row.thruDate ? ec.l10n.format(new Date(ms(row.thruDate)), "yyyy-MM-dd HH:mm:ss") : "",
+                    productName: row.productId
+                        ? policy().one("mantle.product.Product", {productId: row.productId})?.productName || row.productId
+                        : null,
+                    quantityUomText: row.quantityUomId
+                        ? policy().one("moqui.basic.Uom", {uomId: row.quantityUomId})?.description || row.quantityUomId
+                        : null,
+                    approverText: row.approvedByUserId
+                        ? policy().one("moqui.security.UserAccount", {userId: row.approvedByUserId})?.userFullName ||
+                          row.approvedByUserId
+                        : null,
+                    roleText: row.roleEnumId === "BmirByproduct" ? "By-product" : "Consume"
+                })
+            )
+        out.bomItemRows = dated(out.bomItemRows)
+        out.draftItemRows = dated(out.draftItemRows)
+        out.releaseHistory = dated(out.releaseHistory)
+        out.asOfDate = p.asOfDate ? ec.l10n.format(new Date(ms(p.asOfDate)), "yyyy-MM-dd HH:mm:ss") : null
+        return out
+    }
+    function requireContext(p, need = "read") {
+        const c = context(p)
+        if (!c.methodAccess.read || !c.methodAccess[need]) throw new Error("Manufacturing " + need + " authority is required")
+        return c
+    }
+    function storeBom(p) {
+        const c = requireContext(p, "edit"),
+            out = call(
+                S + "store#Bom",
+                Object.assign({}, p, {
+                    productId: c.productId,
+                    productBomId: p.productBomId || null,
+                    organizationPartyId: c.organizationPartyId
+                })
+            )
+        return {productBomId: out.productBom.productBomId, productId: c.productId}
+    }
+    function storeItem(p) {
+        const c = requireContext(p, "edit")
+        if (!c.productBomId) throw new Error("Create or select a BOM first")
+        if (
+            p.bomItemId &&
+            !rows("mantle.product.bom.ProductBomItem", {productBomId: c.productBomId}).some(r => r.bomItemId === p.bomItemId)
+        )
+            throw new Error("BOM item is not in this product method")
+        const out = call(
+            S + "store#BomItem",
+            Object.assign({}, p, {productBomId: c.productBomId, productId: p.componentProductId})
+        )
+        return {productBomId: c.productBomId, productId: c.productId, bomItemId: out.bomItemId}
+    }
+    function native(p, name, need = "read") {
+        const c = requireContext(p, need)
+        const out = call(
+            name,
+            Object.assign({}, p, {
+                productId: c.productId,
+                productBomId: c.productBomId,
+                organizationPartyId: c.organizationPartyId,
+                workEffortId: p.workEffortId || c.workEffortId
+            })
+        )
+        return Object.assign(out, {
+            productId: c.productId,
+            productBomId: out.productBom?.productBomId || c.productBomId,
+            workEffortId: out.routing?.workEffortId || p.workEffortId || c.workEffortId
+        })
+    }
+    function report(p, name) {
+        const c = requireContext(p)
+        if (!c.productBomId && name !== S + "get#BomWhereUsed")
+            return Object.assign(c, {
+                findings: [],
+                reportMessage: "Create and release a method before running this report.",
+                explosionRows: [],
+                comparisonRows: [],
+                whereUsedRows: []
+            })
+        ec.message.pushErrors()
+        try {
+            const args = Object.assign({}, p)
+            if (name === S + "compare#BomDates") {
+                const left = c.releaseHistory.find(r => r.methodReleaseDecisionId === c.leftReleaseId),
+                    right = c.releaseHistory.find(r => r.methodReleaseDecisionId === c.rightReleaseId)
+                if ((p.leftReleaseId && !left) || (p.rightReleaseId && !right))
+                    throw new Error("Choose approvals from this method")
+                args.leftDate = p.manualLeftDate || (p.leftReleaseId ? left?.fromDate : p.leftDate || left?.fromDate)
+                args.rightDate = p.manualRightDate || (p.rightReleaseId ? right?.fromDate : p.rightDate || right?.fromDate)
+            }
+            const result = Object.assign(c, native(args, name))
+            for (const f of ["manualLeftDate", "manualRightDate"])
+                result[f] = p[f] ? ec.l10n.format(new Date(ms(p[f])), "yyyy-MM-dd HH:mm:ss") : null
+            if (result.comparisonRows)
+                result.comparisonRows = result.comparisonRows.map(r =>
+                    Object.assign({}, r, {
+                        beforeProductId: r.left?.productId || "",
+                        beforeQuantity: r.left?.quantity,
+                        afterProductId: r.right?.productId || "",
+                        afterQuantity: r.right?.quantity
+                    })
+                )
+            for (const f of ["asOfDate", "leftDate", "rightDate"])
+                if (result[f]) result[f] = ec.l10n.format(new Date(ms(result[f])), "yyyy-MM-dd HH:mm:ss")
+            return result
+        } catch (e) {
+            ec.logger.error("Method report " + c.productId + ": " + e)
+            return Object.assign(c, {
+                complete: false,
+                findings: [{recordId: c.productBomId, message: String(e.message || e)}],
+                reportMessage: "This report is incomplete. Review its findings.",
+                explosionRows: [],
+                comparisonRows: [],
+                whereUsedRows: []
+            })
+        } finally {
+            ec.message.clearErrors()
+            ec.message.popErrors()
+        }
+    }
+    function routing(p) {
+        const c = requireContext(p),
+            out = c.workEffortId
+                ? call(R + "get#RoutingDetail", {workEffortId: c.workEffortId, asOfDate: p.asOfDate})
+                : {routing: {}, operationRows: [], releasedOperationRows: [], releaseHistory: [], expectedRevision: null}
+        if (out.routing.ownerPartyId && out.routing.ownerPartyId !== c.organizationPartyId)
+            throw new Error("Routing belongs to another method organization")
+        const edited =
+            [...out.operationRows, ...out.releasedOperationRows].find(o => o.workEffortId === p.selectedOperationId) || {}
+        const result = Object.assign(c, out, {
+            workEffortId: c.workEffortId,
+            operationEdit: Object.assign(
+                {
+                    methodBatchQuantity: 1,
+                    methodQuantityUomId: c.product.amountUomId || "OTH_ea",
+                    timeUomId: "TF_hr",
+                    estimatedSetupTime: 0,
+                    estimatedWorkTime: 0,
+                    methodMachineSetupTime: 0,
+                    methodMachineRunTime: 0
+                },
+                edited,
+                {
+                    operationWorkEffortId: edited.workEffortId || null,
+                    estimatedSetupTime: edited.estimatedSetupTime ?? edited.setupTime ?? 0,
+                    estimatedWorkTime: edited.estimatedWorkTime ?? edited.runTime ?? 0,
+                    methodMachineSetupTime: edited.methodMachineSetupTime ?? edited.machineSetupTime ?? 0,
+                    methodMachineRunTime: edited.methodMachineRunTime ?? edited.machineRunTime ?? 0,
+                    methodBatchQuantity: edited.methodBatchQuantity ?? edited.batchQuantity ?? 1,
+                    methodQuantityUomId: edited.methodQuantityUomId || edited.quantityUomId || c.product.amountUomId || "OTH_ea",
+                    methodWorkCenterId: edited.methodWorkCenterId || edited.workCenterFacilityId || null,
+                    methodPredecessorIds: edited.methodPredecessorIds || edited.predecessorWorkEffortIds || "",
+                    changeReason: ""
+                }
+            )
+        })
+        delete result.operationEdit.workEffortId
+        result.routingExpectedRevision = out.expectedRevision
+        delete result.expectedRevision
+        return result
+    }
+    function execute(op, p) {
+        p = Object.assign({}, p)
+        for (const k of [
+            "productBomId",
+            "workEffortId",
+            "bomItemId",
+            "operationWorkEffortId",
+            "componentProductBomId",
+            "expectedRevision"
+        ])
+            if (["null", "undefined", ""].includes(p[k])) p[k] = null
+        if (op === "context") return context(p)
+        if (op === "storeBom") return storeBom(p)
+        if (op === "storeItem") return storeItem(p)
+        if (op === "routing") return routing(p)
+        if (op === "explosion") {
+            const result = report(p, S + "get#BomExplosion"),
+                costAccess = ec.resource.script("component://mr-mantle/service/mantle/product/CostPolicy.js").capabilities()
+            result.canCostRead = costAccess.read
+            if (costAccess.read && result.productBomId) {
+                const cost = call(
+                    "mantle.product.CostServices.preview#ProductCostRollup",
+                    Object.assign({}, p, {
+                        productId: result.productId,
+                        productBomId: result.productBomId,
+                        organizationPartyId: result.organizationPartyId,
+                        transientPreview: true
+                    })
+                )
+                result.costFindings = cost.findings
+                result.costSummary = cost.standardCost
+                result.explosionRows = result.explosionRows.map(row => {
+                    const lines = cost.componentRows.filter(c => c.path === row.path || c.path?.startsWith(row.path + "/")),
+                        amount = lines.length ? lines.reduce((v, c) => v.add(c.amount), toDecimal(0)) : null
+                    return Object.assign({}, row, {
+                        estimatedAmount: amount == null ? null : String(amount),
+                        costCurrency: cost.standardCost.priceUomId
+                    })
+                })
+            }
+            return result
+        }
+        if (op === "compare") return report(p, S + "compare#BomDates")
+        if (op === "whereUsed") return report(p, S + "get#BomWhereUsed")
+        const route = {
+            importLegacy: [S + "import#LegacyBom", "edit"],
+            validate: [S + "validate#BomDraft"],
+            release: [S + "release#BomDraft", "approve"],
+            storeRouting: [R + "store#Routing", "edit"],
+            storeOperation: [R + "store#RoutingOperation", "edit"],
+            storeResource: [R + "store#RoutingResource", "edit"],
+            validateRouting: [R + "validate#RoutingDraft"],
+            releaseRouting: [R + "release#RoutingDraft", "approve"],
+            storeCenter: [R + "store#WorkCenter", "resources"],
+            storeRate: [R + "store#WorkCenterRate", "resources"]
+        }
+        if (!route[op]) throw new Error("Unknown method operation")
+        return native(p, ...route[op])
+    }
+    return execute(op, parameters)
 }
-function requireContext(p,need='read'){const c=context(p);if(!c.methodAccess.read||!c.methodAccess[need])throw new Error('Manufacturing '+need+' authority is required');return c}
-function storeBom(p){const c=requireContext(p,'edit'),out=call(S+'store#Bom',Object.assign({},p,{productId:c.productId,productBomId:p.productBomId||null,organizationPartyId:c.organizationPartyId}));return{productBomId:out.productBom.productBomId,productId:c.productId}}
-function storeItem(p){const c=requireContext(p,'edit');if(!c.productBomId)throw new Error('Create or select a BOM first');if(p.bomItemId&&!rows('mantle.product.bom.ProductBomItem',{productBomId:c.productBomId}).some(r=>r.bomItemId===p.bomItemId))throw new Error('BOM item is not in this product method');const out=call(S+'store#BomItem',Object.assign({},p,{productBomId:c.productBomId,productId:p.componentProductId}));return{productBomId:c.productBomId,productId:c.productId,bomItemId:out.bomItemId}}
-function native(p,name,need='read'){const c=requireContext(p,need);const out=call(name,Object.assign({},p,{productId:c.productId,productBomId:c.productBomId,organizationPartyId:c.organizationPartyId,workEffortId:p.workEffortId||c.workEffortId}));return Object.assign(out,{productId:c.productId,productBomId:out.productBom?.productBomId||c.productBomId,workEffortId:out.routing?.workEffortId||p.workEffortId||c.workEffortId})}
-function report(p,name){const c=requireContext(p);if(!c.productBomId&&name!==S+'get#BomWhereUsed')return Object.assign(c,{findings:[],reportMessage:'Create and release a method before running this report.',explosionRows:[],comparisonRows:[],whereUsedRows:[]});ec.message.pushErrors();try{const args=Object.assign({},p);if(name===S+'compare#BomDates'){const left=c.releaseHistory.find(r=>r.methodReleaseDecisionId===c.leftReleaseId),right=c.releaseHistory.find(r=>r.methodReleaseDecisionId===c.rightReleaseId);if(p.leftReleaseId&&!left||p.rightReleaseId&&!right)throw new Error('Choose approvals from this method');args.leftDate=p.manualLeftDate||(p.leftReleaseId?left?.fromDate:p.leftDate||left?.fromDate);args.rightDate=p.manualRightDate||(p.rightReleaseId?right?.fromDate:p.rightDate||right?.fromDate)}const result=Object.assign(c,native(args,name));for(const f of ['manualLeftDate','manualRightDate'])result[f]=p[f]?ec.l10n.format(new Date(ms(p[f])),'yyyy-MM-dd HH:mm:ss'):null;if(result.comparisonRows)result.comparisonRows=result.comparisonRows.map(r=>Object.assign({},r,{beforeProductId:r.left?.productId||'',beforeQuantity:r.left?.quantity,afterProductId:r.right?.productId||'',afterQuantity:r.right?.quantity}));for(const f of ['asOfDate','leftDate','rightDate'])if(result[f])result[f]=ec.l10n.format(new Date(ms(result[f])),'yyyy-MM-dd HH:mm:ss');return result}catch(e){ec.logger.error('Method report '+c.productId+': '+e);return Object.assign(c,{complete:false,findings:[{recordId:c.productBomId,message:String(e.message||e)}],reportMessage:'This report is incomplete. Review its findings.',explosionRows:[],comparisonRows:[],whereUsedRows:[]})}finally{ec.message.clearErrors();ec.message.popErrors()}}
-function routing(p){const c=requireContext(p),out=c.workEffortId?call(R+'get#RoutingDetail',{workEffortId:c.workEffortId,asOfDate:p.asOfDate}):{routing:{},operationRows:[],releasedOperationRows:[],releaseHistory:[],expectedRevision:null};if(out.routing.ownerPartyId&&out.routing.ownerPartyId!==c.organizationPartyId)throw new Error('Routing belongs to another method organization');const edited=[...out.operationRows,...out.releasedOperationRows].find(o=>o.workEffortId===p.selectedOperationId)||{};const result=Object.assign(c,out,{workEffortId:c.workEffortId,operationEdit:Object.assign({methodBatchQuantity:1,methodQuantityUomId:c.product.amountUomId||'OTH_ea',timeUomId:'TF_hr',estimatedSetupTime:0,estimatedWorkTime:0,methodMachineSetupTime:0,methodMachineRunTime:0},edited,{operationWorkEffortId:edited.workEffortId||null,estimatedSetupTime:edited.estimatedSetupTime??edited.setupTime??0,estimatedWorkTime:edited.estimatedWorkTime??edited.runTime??0,methodMachineSetupTime:edited.methodMachineSetupTime??edited.machineSetupTime??0,methodMachineRunTime:edited.methodMachineRunTime??edited.machineRunTime??0,methodBatchQuantity:edited.methodBatchQuantity??edited.batchQuantity??1,methodQuantityUomId:edited.methodQuantityUomId||edited.quantityUomId||c.product.amountUomId||'OTH_ea',methodWorkCenterId:edited.methodWorkCenterId||edited.workCenterFacilityId||null,methodPredecessorIds:edited.methodPredecessorIds||edited.predecessorWorkEffortIds||'',changeReason:''})});delete result.operationEdit.workEffortId;result.routingExpectedRevision=out.expectedRevision;delete result.expectedRevision;return result}
-function execute(op,p){p=Object.assign({},p);for(const k of ['productBomId','workEffortId','bomItemId','operationWorkEffortId','componentProductBomId','expectedRevision'])if(['null','undefined',''].includes(p[k]))p[k]=null;if(op==='context')return context(p);if(op==='storeBom')return storeBom(p);if(op==='storeItem')return storeItem(p);if(op==='routing')return routing(p);if(op==='explosion'){
- const result=report(p,S+'get#BomExplosion'),costAccess=ec.resource.script('component://mr-mantle/service/mantle/product/CostPolicy.js').capabilities();result.canCostRead=costAccess.read
- if(costAccess.read&&result.productBomId){const cost=call('mantle.product.CostServices.preview#ProductCostRollup',Object.assign({},p,{productId:result.productId,productBomId:result.productBomId,organizationPartyId:result.organizationPartyId,transientPreview:true}));result.costFindings=cost.findings;result.costSummary=cost.standardCost;result.explosionRows=result.explosionRows.map(row=>{const lines=cost.componentRows.filter(c=>c.path===row.path||c.path?.startsWith(row.path+'/')),amount=lines.length?lines.reduce((v,c)=>v.add(c.amount),toDecimal(0)):null;return Object.assign({},row,{estimatedAmount:amount==null?null:String(amount),costCurrency:cost.standardCost.priceUomId})})}return result
- }if(op==='compare')return report(p,S+'compare#BomDates');if(op==='whereUsed')return report(p,S+'get#BomWhereUsed');const route={importLegacy:[S+'import#LegacyBom','edit'],validate:[S+'validate#BomDraft'],release:[S+'release#BomDraft','approve'],storeRouting:[R+'store#Routing','edit'],storeOperation:[R+'store#RoutingOperation','edit'],storeResource:[R+'store#RoutingResource','edit'],validateRouting:[R+'validate#RoutingDraft'],releaseRouting:[R+'release#RoutingDraft','approve'],storeCenter:[R+'store#WorkCenter','resources'],storeRate:[R+'store#WorkCenterRate','resources']};if(!route[op])throw new Error('Unknown method operation');return native(p,...route[op])}
-return execute(op,parameters)
-}
-;({execute:run})
+;({execute: run})

@@ -1,18 +1,144 @@
-const C='ironstone.products.CostServices.'
-function as(user,fn){login(user);ec.artifactExecution.disableAuthz();try{return fn()}finally{ec.message.clearErrors();login('john.doe')}}
-function invoke(n,p){try{const out=call(n,p)||{},error=ec.message.getErrorsString();ec.message.clearErrors();return Object.assign({},out,{error})}catch(e){ec.message.clearErrors();return{error:String(e.message||e)}}}
-spec({setupSpec(){try{ec.resource.xslFoTransform('<html><body>Standard estimate approval</body></html>',null,null,'application/pdf')}catch(e){if(String(e).includes('PDF is not available'))skip('Cost approval integration needs Chromium: configure pdf_chromium_path');throw e}},dependsOn:['ProductsCostFixtures'],cleanup(){ec.message.clearErrors();ec.artifactExecution.enableAuthz()}})
-feature('the cost workspace separates cost, pricing, method and GL authority',{
- when(){return{plain:as('catalog.reader',()=>call(C+'get#CostContext',{productId:'BOSS_PRD_OWN'})),read:as('catalog.cost.read',()=>call(C+'get#CostContext',{productStandardCostId:'BOSS_COST_SAMPLE'})),admin:as('catalog.admin',()=>call(C+'get#CostContext',{productId:'BOSS_PRD_OWN'})),denied:as('catalog.price.read',()=>invoke('mantle.product.CostServices.get#ProductStandardCost',{productStandardCostId:'BOSS_COST_SAMPLE'})),foreign:as('catalog.cost.read',()=>invoke(C+'get#CostContext',{productId:'BOSS_PRD_OTHER'}))}},
- then({plain,read,admin,denied,foreign}){plain.standardCostRows.length==0;plain.costAccess.read==false;read.standardCostRows.length>0;read.costAccess.edit==false;admin.costAccess.edit==true;admin.costAccess.glPost==false;admin.costAccess.methodRead==false;denied.error.includes('authority');foreign.error.includes('not available')},
+const C = "ironstone.products.CostServices."
+function as(user, fn) {
+    login(user)
+    ec.artifactExecution.disableAuthz()
+    try {
+        return fn()
+    } finally {
+        ec.message.clearErrors()
+        login("john.doe")
+    }
+}
+function invoke(n, p) {
+    try {
+        const out = call(n, p) || {},
+            error = ec.message.getErrorsString()
+        ec.message.clearErrors()
+        return Object.assign({}, out, {error})
+    } catch (e) {
+        ec.message.clearErrors()
+        return {error: String(e.message || e)}
+    }
+}
+spec({
+    setupSpec() {
+        try {
+            ec.resource.xslFoTransform("<html><body>Standard estimate approval</body></html>", null, null, "application/pdf")
+        } catch (e) {
+            if (String(e).includes("PDF is not available"))
+                skip("Cost approval integration needs Chromium: configure pdf_chromium_path")
+            throw e
+        }
+    },
+    dependsOn: ["ProductsCostFixtures"],
+    cleanup() {
+        ec.message.clearErrors()
+        ec.artifactExecution.enableAuthz()
+    }
 })
-feature('cost #path renders in #mode with an approved estimate and no other-app launcher',{
- where:['Prices/StandardCosts','Pricing/StandardCosts','Prices/CostRollup','Prices/CostHistory','Products/Product360/Costs'].flatMap(path=>['qvt','html','tui'].map(mode=>({path,mode}))),expect({path,mode}){const r=as('catalog.cost.estimate',()=>ec.screen.makeTest().rootScreen('component://mr-boss/screen/Products.xml').renderMode(mode).withStaticData().render(path,{productId:'BOSS_PRD_OWN',productStandardCostId:'BOSS_COST_SAMPLE'},null));if(r.errorMessages.length)log.warn(r.errorMessages.join(' | '));r.status==200;r.errorMessages.length==0;!/Error rendering|Exception in render/.test(r.output)},
+feature("the cost workspace separates cost, pricing, method and GL authority", {
+    when() {
+        return {
+            plain: as("catalog.reader", () => call(C + "get#CostContext", {productId: "BOSS_PRD_OWN"})),
+            read: as("catalog.cost.read", () => call(C + "get#CostContext", {productStandardCostId: "BOSS_COST_SAMPLE"})),
+            admin: as("catalog.admin", () => call(C + "get#CostContext", {productId: "BOSS_PRD_OWN"})),
+            denied: as("catalog.price.read", () =>
+                invoke("mantle.product.CostServices.get#ProductStandardCost", {productStandardCostId: "BOSS_COST_SAMPLE"})
+            ),
+            foreign: as("catalog.cost.read", () => invoke(C + "get#CostContext", {productId: "BOSS_PRD_OTHER"}))
+        }
+    },
+    then({plain, read, admin, denied, foreign}) {
+        plain.standardCostRows.length == 0
+        plain.costAccess.read == false
+        read.standardCostRows.length > 0
+        read.costAccess.edit == false
+        admin.costAccess.edit == true
+        admin.costAccess.glPost == false
+        admin.costAccess.methodRead == false
+        denied.error.includes("authority")
+        foreign.error.includes("not available")
+    }
 })
-feature('roll-up saves and clones use native totals and preserve the reviewed source fingerprint',{
- when(){return as('catalog.cost.estimate',()=>{const p=call(C+'preview#CostRollup',{productId:'BOSS_PRD_OWN',organizationPartyId:'ORG_ZIZI_SERVICES',quantity:4,methodMode:'purchased'}),saved=call(C+'save#CostRollup',{calculationId:p.calculationId,inputFingerprint:p.inputFingerprint,changeReason:'Reviewed four-unit estimate'}),clone=call(C+'clone#StandardCost',{productStandardCostId:saved.productStandardCostId,expectedRevision:saved.estimateRevision,changeReason:'Separate cloned draft'});return{p,saved,clone}})},then({p,saved,clone}){p.complete==true;p.standardCost.totalCost==25;saved.standardCost.state=='draft';clone.standardCost.productStandardCostId!=saved.productStandardCostId;clone.standardCost.unitCost==6.25;clone.componentRows.length==saved.componentRows.length},
+feature("cost #path renders in #mode with an approved estimate and no other-app launcher", {
+    where: [
+        "Prices/StandardCosts",
+        "Pricing/StandardCosts",
+        "Prices/CostRollup",
+        "Prices/CostHistory",
+        "Products/Product360/Costs"
+    ].flatMap(path => ["qvt", "html", "tui"].map(mode => ({path, mode}))),
+    expect({path, mode}) {
+        const r = as("catalog.cost.estimate", () =>
+            ec.screen
+                .makeTest()
+                .rootScreen("component://mr-boss/screen/Products.xml")
+                .renderMode(mode)
+                .withStaticData()
+                .render(path, {productId: "BOSS_PRD_OWN", productStandardCostId: "BOSS_COST_SAMPLE"}, null)
+        )
+        if (r.errorMessages.length) log.warn(r.errorMessages.join(" | "))
+        r.status == 200
+        r.errorMessages.length == 0
+        !/Error rendering|Exception in render/.test(r.output)
+    }
+})
+feature("roll-up saves and clones use native totals and preserve the reviewed source fingerprint", {
+    when() {
+        return as("catalog.cost.estimate", () => {
+            const p = call(C + "preview#CostRollup", {
+                    productId: "BOSS_PRD_OWN",
+                    organizationPartyId: "ORG_ZIZI_SERVICES",
+                    quantity: 4,
+                    methodMode: "purchased"
+                }),
+                saved = call(C + "save#CostRollup", {
+                    calculationId: p.calculationId,
+                    inputFingerprint: p.inputFingerprint,
+                    changeReason: "Reviewed four-unit estimate"
+                }),
+                clone = call(C + "clone#StandardCost", {
+                    productStandardCostId: saved.productStandardCostId,
+                    expectedRevision: saved.estimateRevision,
+                    changeReason: "Separate cloned draft"
+                })
+            return {p, saved, clone}
+        })
+    },
+    then({p, saved, clone}) {
+        p.complete == true
+        p.standardCost.totalCost == 25
+        saved.standardCost.state == "draft"
+        clone.standardCost.productStandardCostId != saved.productStandardCostId
+        clone.standardCost.unitCost == 6.25
+        clone.componentRows.length == saved.componentRows.length
+    }
 })
 
-feature('cost source links and history charts retain the capability and comparison boundaries',{
- when(){return{link:as('catalog.cost.read',()=>call('ironstone.commons.PaletteServices.get#RecordLink',{recordEntityName:'mantle.product.cost.ProductStandardCost',id:'BOSS_COST_SAMPLE'})),hidden:as('catalog.reader',()=>call('ironstone.commons.PaletteServices.get#RecordLink',{recordEntityName:'mantle.product.cost.ProductStandardCost',id:'BOSS_COST_SAMPLE'})),history:as('catalog.cost.read',()=>call(C+'get#CostHistory',{productId:'BOSS_PRD_OWN'}))}},then({link,hidden,history}){link.url.includes('/Prices/StandardCosts?');hidden.url==null;history.costCharts.length==1;history.costCharts[0].title.includes('USD');history.costHistoryRows.every(r=>!r.acctgTransId);history.costHistoryRows[0].dateText.includes('-')},
+feature("cost source links and history charts retain the capability and comparison boundaries", {
+    when() {
+        return {
+            link: as("catalog.cost.read", () =>
+                call("ironstone.commons.PaletteServices.get#RecordLink", {
+                    recordEntityName: "mantle.product.cost.ProductStandardCost",
+                    id: "BOSS_COST_SAMPLE"
+                })
+            ),
+            hidden: as("catalog.reader", () =>
+                call("ironstone.commons.PaletteServices.get#RecordLink", {
+                    recordEntityName: "mantle.product.cost.ProductStandardCost",
+                    id: "BOSS_COST_SAMPLE"
+                })
+            ),
+            history: as("catalog.cost.read", () => call(C + "get#CostHistory", {productId: "BOSS_PRD_OWN"}))
+        }
+    },
+    then({link, hidden, history}) {
+        link.url.includes("/Prices/StandardCosts?")
+        hidden.url == null
+        history.costCharts.length == 1
+        history.costCharts[0].title.includes("USD")
+        history.costHistoryRows.every(r => !r.acctgTransId)
+        history.costHistoryRows[0].dateText.includes("-")
+    }
 })

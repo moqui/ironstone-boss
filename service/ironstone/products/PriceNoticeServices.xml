@@ -1,14 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="notify" noun="ProductPriceChange" authenticate="anonymous-all" allow-remote="false">
-        <in-parameters><parameter name="productPriceId" required="true"/></in-parameters>
-        <out-parameters><parameter name="sentCount" type="Integer"/><parameter name="sentToUserIds" type="List"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('changed',context))</script></actions>
+        <in-parameters>
+            <parameter name="productPriceId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="sentCount" type="Integer"/>
+            <parameter name="sentToUserIds" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('changed',context))</script>
+        </actions>
     </service>
     <service verb="send" noun="ExpiringPriceNotices" authenticate="anonymous-all" allow-remote="false">
-        <in-parameters><parameter name="days" type="Integer" default="30"/></in-parameters>
-        <out-parameters><parameter name="sentCount" type="Integer"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('expiring',context))</script></actions>
+        <in-parameters>
+            <parameter name="days" type="Integer" default="30"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="sentCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('expiring',context))</script>
+        </actions>
     </service>
-    <service verb="send" noun="ProductPriceNotice" authenticate="anonymous-all" allow-remote="false"><in-parameters><parameter name="productPriceId" required="true"/><parameter name="recipientUserId" required="true"/><parameter name="topic" required="true"/></in-parameters><out-parameters><parameter name="sent" type="Boolean"/></out-parameters><actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('sendOne',context))</script></actions></service>
+    <service verb="send" noun="ProductPriceNotice" authenticate="anonymous-all" allow-remote="false">
+        <in-parameters>
+            <parameter name="productPriceId" required="true"/>
+            <parameter name="recipientUserId" required="true"/>
+            <parameter name="topic" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="sent" type="Boolean"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/PriceNotices.js').execute('sendOne',context))</script>
+        </actions>
+    </service>
 </services>

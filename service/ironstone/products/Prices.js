@@ -1,96 +1,611 @@
 // Each invocation keeps its app route local; helpers never capture a cached service context.
-function run(op,parameters){
-const requestedRoot=parameters.appRoot||'Products'
-ec.service.sync().name('ironstone.products.CatalogServices.get#SharedContext').parameters({appRoot:requestedRoot}).call()
-// Price projections and reviewed changes. Every native/domain read is scoped before any value enters a response.
-const P='mantle.product.',E=P+'ProductPrice',C='ironstone.products.CatalogServices.',M=P+'PriceServices.'
-const find=(n,p)=>ec.entity.find(n).condition(p||{}).disableAuthz(),one=(n,p)=>find(n,p).one(),rows=(n,p)=>Array.from(find(n,p).list())
-const call=(n,p={},fresh=false)=>{let c=ec.service.sync().name(n).parameters(Object.assign({appRoot:requestedRoot},p)).disableAuthz();if(fresh)c=c.requireNewTransaction(true);const out=c.call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
-const domain=(op,p)=>ec.resource.script('component://mr-mantle/service/mantle/product/PricePolicy.js').execute(op,p)
-const ms=v=>v==null||v===''?null:Number.isFinite(Number(String(v)))?Number(String(v)):Date.parse(String(v))
-const ids=v=>[...new Set((Array.isArray(v)?v:[v||'']).flatMap(v=>String(v).split(',')).map(v=>v.trim()).filter(Boolean))]
-const parse=(v,fallback)=>v==null||v===''?fallback:typeof v==='string'?JSON.parse(v):v
-const access=()=>{const a=call(C+'get#SharedContext',{appRoot:requestedRoot});if(!a.capabilities.read)throw new Error('Catalog read authority is required');return a}
-function product(id){const r=call(C+'get#CatalogRecord',{recordId:id,checkOnly:true}).record;if(!r)throw new Error('Product is not available');return r}
-function row(id,write=false){const r=one(E,{productPriceId:id});if(!r)throw new Error('Price record is not available');product(r.productId);domain('access',r);if(write){const a=access(),d=domain('direction',r);if(!(a.capabilities.systemAdmin||(d==='purchase'?a.capabilities.supplierPriceEdit:a.capabilities.priceEdit)))throw new Error('Price edit authority is required')}return r}
-function display(r){const out=r.getMap?r.getMap():Object.assign({},r),a=access(),d=domain('direction',r);out.direction=d==='public'?'sales':d;out.productName=product(r.productId).productName;out.priceType=one('moqui.basic.Enumeration',{enumId:r.priceTypeEnumId})?.description||r.priceTypeEnumId;out.canEdit=r.priceTypeEnumId!=='PptAverage'&&(a.capabilities.systemAdmin||(d==='purchase'?a.capabilities.supplierPriceEdit:a.capabilities.priceEdit));for(const k of ['fromDate','thruDate','lastUpdatedStamp'])out[k+'Text']=r[k]?ec.l10n.format(new Date(ms(r[k])),'yyyy-MM-dd HH:mm:ss'):'';out.canCorrect=out.canEdit&&find('mantle.order.OrderItem',{productPriceId:r.productPriceId}).count()===0;if(a.capabilities.marginRead&&out.direction==='sales'&&r.priceTypeEnumId!=='PptAverage'&&r.pricePurposeEnumId==='PppPurchase'&&!r.termUomId)Object.assign(out,call('mantle.product.CostServices.get#ProductMargin',{productId:r.productId,organizationPartyId:r.vendorPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0],quantityUomId:r.quantityUomId,priceUomId:r.priceUomId,asOfDate:ec.user.nowTimestamp,price:r.price}));out.state=ms(r.fromDate)>ms(ec.user.nowTimestamp)?'Scheduled':ms(r.thruDate)!=null&&ms(r.thruDate)<=ms(ec.user.nowTimestamp)?'Ended':'Effective';return out}
-function findPrices(p){
- const a=access();if(!a.capabilities.priceRead&&!a.capabilities.supplierPriceRead&&!a.capabilities.costRead)throw new Error('Price read authority is required')
- if(p.productId)product(p.productId)
- const productIds=p.productId?[p.productId]:[...new Set(rows(E).map(r=>r.productId))],out=[]
- for(const id of productIds){
-  if(!call(C+'get#CatalogRecord',{recordId:id,checkOnly:true}).record)continue
-  ec.message.pushErrors()
-  try{const got=call(M+'find#ProductPrices',{productId:id,includeHistory:p.includeHistory,asOfDate:p.asOfDate,direction:p.direction||'all',priceTypeEnumId:p.priceTypeEnumId});for(const r of got.productPriceList||[]){if(p.organizationPartyId&&(r.vendorPartyId!==p.organizationPartyId&&r.customerPartyId!==p.organizationPartyId))continue;if(p.priceUomId&&r.priceUomId!==p.priceUomId)continue;if(p.pricePurposeEnumId&&r.pricePurposeEnumId!==p.pricePurposeEnumId)continue;if(p.vendorPartyId&&r.vendorPartyId!==p.vendorPartyId)continue;if(p.customerPartyId&&r.customerPartyId!==p.customerPartyId)continue;if(p.productStoreId&&r.productStoreId!==p.productStoreId)continue;if(p.agreementId&&r.agreementId!==p.agreementId)continue;out.push(display(r))}}
-  catch(e){ec.logger.error('Price rows for product '+id+' failed: '+e)}finally{ec.message.clearErrors();ec.message.popErrors()}
- }
- out.sort((a,b)=>String(a.productId).localeCompare(String(b.productId))||ms(b.fromDate)-ms(a.fromDate)||String(a.productPriceId).localeCompare(String(b.productPriceId)))
- const pageSize=Math.max(1,Math.min(100,Number(p.pageSize||25))),pageIndex=Math.max(0,Math.min(Math.max(0,Math.ceil(out.length/pageSize)-1),Number(p.pageIndex||0)))
- return {priceRows:out.slice(pageIndex*pageSize,(pageIndex+1)*pageSize),priceRowsCount:out.length,pageIndex,pageSize}
+function run(op, parameters) {
+    const requestedRoot = parameters.appRoot || "Products"
+    ec.service.sync().name("ironstone.products.CatalogServices.get#SharedContext").parameters({appRoot: requestedRoot}).call()
+    // Price projections and reviewed changes. Every native/domain read is scoped before any value enters a response.
+    const P = "mantle.product.",
+        E = P + "ProductPrice",
+        C = "ironstone.products.CatalogServices.",
+        M = P + "PriceServices."
+    const find = (n, p) =>
+            ec.entity
+                .find(n)
+                .condition(p || {})
+                .disableAuthz(),
+        one = (n, p) => find(n, p).one(),
+        rows = (n, p) => Array.from(find(n, p).list())
+    const call = (n, p = {}, fresh = false) => {
+        let c = ec.service
+            .sync()
+            .name(n)
+            .parameters(Object.assign({appRoot: requestedRoot}, p))
+            .disableAuthz()
+        if (fresh) c = c.requireNewTransaction(true)
+        const out = c.call() || {}
+        if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
+        return out
+    }
+    const domain = (op, p) => ec.resource.script("component://mr-mantle/service/mantle/product/PricePolicy.js").execute(op, p)
+    const ms = v =>
+        v == null || v === "" ? null : Number.isFinite(Number(String(v))) ? Number(String(v)) : Date.parse(String(v))
+    const ids = v => [
+        ...new Set(
+            (Array.isArray(v) ? v : [v || ""])
+                .flatMap(v => String(v).split(","))
+                .map(v => v.trim())
+                .filter(Boolean)
+        )
+    ]
+    const parse = (v, fallback) => (v == null || v === "" ? fallback : typeof v === "string" ? JSON.parse(v) : v)
+    const access = () => {
+        const a = call(C + "get#SharedContext", {appRoot: requestedRoot})
+        if (!a.capabilities.read) throw new Error("Catalog read authority is required")
+        return a
+    }
+    function product(id) {
+        const r = call(C + "get#CatalogRecord", {recordId: id, checkOnly: true}).record
+        if (!r) throw new Error("Product is not available")
+        return r
+    }
+    function row(id, write = false) {
+        const r = one(E, {productPriceId: id})
+        if (!r) throw new Error("Price record is not available")
+        product(r.productId)
+        domain("access", r)
+        if (write) {
+            const a = access(),
+                d = domain("direction", r)
+            if (!(a.capabilities.systemAdmin || (d === "purchase" ? a.capabilities.supplierPriceEdit : a.capabilities.priceEdit)))
+                throw new Error("Price edit authority is required")
+        }
+        return r
+    }
+    function display(r) {
+        const out = r.getMap ? r.getMap() : Object.assign({}, r),
+            a = access(),
+            d = domain("direction", r)
+        out.direction = d === "public" ? "sales" : d
+        out.productName = product(r.productId).productName
+        out.priceType = one("moqui.basic.Enumeration", {enumId: r.priceTypeEnumId})?.description || r.priceTypeEnumId
+        out.canEdit =
+            r.priceTypeEnumId !== "PptAverage" &&
+            (a.capabilities.systemAdmin || (d === "purchase" ? a.capabilities.supplierPriceEdit : a.capabilities.priceEdit))
+        for (const k of ["fromDate", "thruDate", "lastUpdatedStamp"])
+            out[k + "Text"] = r[k] ? ec.l10n.format(new Date(ms(r[k])), "yyyy-MM-dd HH:mm:ss") : ""
+        out.canCorrect = out.canEdit && find("mantle.order.OrderItem", {productPriceId: r.productPriceId}).count() === 0
+        if (
+            a.capabilities.marginRead &&
+            out.direction === "sales" &&
+            r.priceTypeEnumId !== "PptAverage" &&
+            r.pricePurposeEnumId === "PppPurchase" &&
+            !r.termUomId
+        )
+            Object.assign(
+                out,
+                call("mantle.product.CostServices.get#ProductMargin", {
+                    productId: r.productId,
+                    organizationPartyId: r.vendorPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0],
+                    quantityUomId: r.quantityUomId,
+                    priceUomId: r.priceUomId,
+                    asOfDate: ec.user.nowTimestamp,
+                    price: r.price
+                })
+            )
+        out.state =
+            ms(r.fromDate) > ms(ec.user.nowTimestamp)
+                ? "Scheduled"
+                : ms(r.thruDate) != null && ms(r.thruDate) <= ms(ec.user.nowTimestamp)
+                  ? "Ended"
+                  : "Effective"
+        return out
+    }
+    function findPrices(p) {
+        const a = access()
+        if (!a.capabilities.priceRead && !a.capabilities.supplierPriceRead && !a.capabilities.costRead)
+            throw new Error("Price read authority is required")
+        if (p.productId) product(p.productId)
+        const productIds = p.productId ? [p.productId] : [...new Set(rows(E).map(r => r.productId))],
+            out = []
+        for (const id of productIds) {
+            if (!call(C + "get#CatalogRecord", {recordId: id, checkOnly: true}).record) continue
+            ec.message.pushErrors()
+            try {
+                const got = call(M + "find#ProductPrices", {
+                    productId: id,
+                    includeHistory: p.includeHistory,
+                    asOfDate: p.asOfDate,
+                    direction: p.direction || "all",
+                    priceTypeEnumId: p.priceTypeEnumId
+                })
+                for (const r of got.productPriceList || []) {
+                    if (
+                        p.organizationPartyId &&
+                        r.vendorPartyId !== p.organizationPartyId &&
+                        r.customerPartyId !== p.organizationPartyId
+                    )
+                        continue
+                    if (p.priceUomId && r.priceUomId !== p.priceUomId) continue
+                    if (p.pricePurposeEnumId && r.pricePurposeEnumId !== p.pricePurposeEnumId) continue
+                    if (p.vendorPartyId && r.vendorPartyId !== p.vendorPartyId) continue
+                    if (p.customerPartyId && r.customerPartyId !== p.customerPartyId) continue
+                    if (p.productStoreId && r.productStoreId !== p.productStoreId) continue
+                    if (p.agreementId && r.agreementId !== p.agreementId) continue
+                    out.push(display(r))
+                }
+            } catch (e) {
+                ec.logger.error("Price rows for product " + id + " failed: " + e)
+            } finally {
+                ec.message.clearErrors()
+                ec.message.popErrors()
+            }
+        }
+        out.sort(
+            (a, b) =>
+                String(a.productId).localeCompare(String(b.productId)) ||
+                ms(b.fromDate) - ms(a.fromDate) ||
+                String(a.productPriceId).localeCompare(String(b.productPriceId))
+        )
+        const pageSize = Math.max(1, Math.min(100, Number(p.pageSize || 25))),
+            pageIndex = Math.max(0, Math.min(Math.max(0, Math.ceil(out.length / pageSize) - 1), Number(p.pageIndex || 0)))
+        return {
+            priceRows: out.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize),
+            priceRowsCount: out.length,
+            pageIndex,
+            pageSize
+        }
+    }
+    function store(p) {
+        access()
+        if (p.productPriceId) {
+            const old = row(p.productPriceId, true)
+            if (p.productId && p.productId !== old.productId) throw new Error("Price is not on this product")
+        } else product(p.productId)
+        return call(M + "store#ProductPrice", p)
+    }
+    function replace(p) {
+        access()
+        row(p.productPriceId, true)
+        return call(M + "replace#ProductPrice", p)
+    }
+    function expire(p) {
+        access()
+        row(p.productPriceId, true)
+        return call(M + "expire#ProductPrice", p)
+    }
+    function options() {
+        const a = access(),
+            internal = id => !!one("mantle.party.PartyRole", {partyId: id, roleTypeId: "OrgInternal"}),
+            partyVisible = r =>
+                (!r.privateOwnerUserId || r.privateOwnerUserId === ec.user.userId) &&
+                (a.capabilities.systemAdmin ||
+                    a.ownerPartyIds.includes(r.ownerPartyId) ||
+                    a.organizationPartyIds.includes(r.partyId)),
+            parties = rows("mantle.party.Party").filter(partyVisible),
+            partyName = id =>
+                one("mantle.party.Organization", {partyId: id})?.organizationName ||
+                one("mantle.party.Person", {partyId: id})?.firstName ||
+                id,
+            partyOption = r => ({value: r.partyId, label: partyName(r.partyId) + " (" + r.partyId + ")"}),
+            role = id => new Set(rows("mantle.party.PartyRole", {roleTypeId: id}).map(r => r.partyId))
+        const suppliers = role("Supplier"),
+            customers = role("Customer"),
+            enums = t =>
+                rows("moqui.basic.Enumeration", {enumTypeId: t}).map(r => ({value: r.enumId, label: r.description || r.enumId}))
+        const defaultOrg = a.activeOrganizationPartyId || a.organizationPartyIds[0] || null,
+            pricingDefaults =
+                defaultOrg && (a.capabilities.priceRead || a.capabilities.supplierPriceRead || a.capabilities.catalogAdmin)
+                    ? call(M + "get#PricingSettings", {organizationPartyId: defaultOrg}).settings
+                    : {}
+        return {
+            pricingDefaults,
+            priceOptions: {
+                organizations: parties.filter(r => internal(r.partyId)).map(partyOption),
+                suppliers: parties.filter(r => suppliers.has(r.partyId) && !internal(r.partyId)).map(partyOption),
+                customers: parties.filter(r => customers.has(r.partyId)).map(partyOption),
+                types: enums("ProductPriceType").filter(r => r.value !== "PptAverage" || a.capabilities.costRead),
+                purposes: enums("ProductPricePurpose"),
+                currencies: rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"}).map(r => ({
+                    value: r.uomId,
+                    label: r.uomId + " · " + r.description
+                })),
+                units: rows("moqui.basic.Uom")
+                    .filter(
+                        r =>
+                            r.uomTypeEnumId !== "UT_CURRENCY_MEASURE" &&
+                            (r.uomTypeEnumId !== "UT_OTHER_MEASURE" || ["OTH_ea", "OTH_ct", "OTH_pp"].includes(r.uomId))
+                    )
+                    .map(r => ({value: r.uomId, label: r.description + " (" + r.uomId + ")"})),
+                stores: rows(P + "store.ProductStore")
+                    .filter(r => a.capabilities.systemAdmin || a.ownerPartyIds.includes(r.organizationPartyId))
+                    .map(r => ({value: r.productStoreId, label: r.storeName || r.productStoreId}))
+            },
+            defaultOrganizationPartyId: a.activeOrganizationPartyId || a.organizationPartyIds[0] || null,
+            canPriceEdit: a.capabilities.priceEdit,
+            canSupplierPriceEdit: a.capabilities.supplierPriceEdit
+        }
+    }
+    function audit(p) {
+        const a = access()
+        product(p.productId)
+        const allowed = call(M + "find#ProductPrices", {productId: p.productId, includeHistory: true}).productPriceList,
+            changes = []
+        let historyRestricted = false
+        const scopeFields = ["productId", "vendorPartyId", "customerPartyId", "productStoreId", "agreementId", "priceTypeEnumId"],
+            labels = {
+                price: "Unit price",
+                minQuantity: "Minimum quantity",
+                fromDate: "Effective from",
+                thruDate: "Through",
+                priceUomId: "Currency",
+                quantityUomId: "Quantity unit",
+                vendorPartyId: "Vendor",
+                customerPartyId: "Customer",
+                priceTypeEnumId: "Price type",
+                pricePurposeEnumId: "Purpose",
+                productId: "Product",
+                productStoreId: "Store",
+                agreementId: "Agreement",
+                agreementItemSeqId: "Agreement item",
+                changeReason: "Reason",
+                otherPartyItemId: "Supplier item code",
+                otherPartyItemName: "Supplier item name",
+                standardLeadTimeDays: "Lead time in days",
+                termUomId: "Term unit"
+            }
+        const text = (field, v) =>
+            v == null
+                ? ""
+                : ["fromDate", "thruDate"].includes(field) && Number.isFinite(ms(v))
+                  ? ec.l10n.format(new Date(ms(v)), "yyyy-MM-dd HH:mm:ss")
+                  : ["priceTypeEnumId", "pricePurposeEnumId"].includes(field)
+                    ? one("moqui.basic.Enumeration", {enumId: v})?.description || String(v)
+                    : String(v)
+        for (const r of allowed) {
+            if (p.productPriceId && r.productPriceId !== p.productPriceId) continue
+            const direction = domain("direction", r),
+                org = direction === "purchase" ? r.customerPartyId : r.vendorPartyId
+            if (
+                (p.direction && p.direction !== "all" && p.direction !== (direction === "public" ? "sales" : direction)) ||
+                (p.organizationPartyId && p.organizationPartyId !== org) ||
+                (p.priceUomId && p.priceUomId !== r.priceUomId)
+            )
+                continue
+            const logs = rows("moqui.entity.EntityAuditLog", {changedEntityName: E, pkPrimaryValue: r.productPriceId})
+            let safe = true
+            // A legacy row may have been repurposed before the scope became immutable. Check its old scopes before exposing any earlier amounts.
+            for (const log of logs.filter(
+                l => scopeFields.includes(l.changedFieldName) && l.oldValueText != null && l.oldValueText !== l.newValueText
+            )) {
+                try {
+                    domain("access", Object.assign({}, r, {[log.changedFieldName]: log.oldValueText}))
+                } catch (e) {
+                    if (!(a.capabilities.systemAdmin && String(e).includes("internal sales vendor"))) safe = false
+                }
+            }
+            if (!safe) {
+                historyRestricted = true
+                continue
+            }
+            for (const log of logs) {
+                if ((p.fromDate && ms(log.changedDate) < ms(p.fromDate)) || (p.thruDate && ms(log.changedDate) >= ms(p.thruDate)))
+                    continue
+                changes.push({
+                    productPriceId: r.productPriceId,
+                    direction: domain("direction", r),
+                    priceUomId: r.priceUomId,
+                    changedFieldName: log.changedFieldName,
+                    fieldLabel: labels[log.changedFieldName] || log.changedFieldName,
+                    oldValueText: log.oldValueText,
+                    newValueText: log.newValueText,
+                    oldDisplay: text(log.changedFieldName, log.oldValueText),
+                    newDisplay: text(log.changedFieldName, log.newValueText),
+                    changeReason: log.changeReason || r.changeReason,
+                    changedByUserId: log.changedByUserId,
+                    changedDate: log.changedDate,
+                    changedDateText: ec.l10n.format(new Date(ms(log.changedDate)), "yyyy-MM-dd HH:mm:ss")
+                })
+            }
+        }
+        changes.sort((a, b) => ms(b.changedDate) - ms(a.changedDate))
+        return {auditRows: changes.slice(0, 1000), historyRestricted}
+    }
+    function statistics(p) {
+        const a = access()
+        product(p.productId)
+        const d = p.direction || "sales",
+            org = p.organizationPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0]
+        if (!["sales", "purchase"].includes(d) || !(d === "sales" ? a.capabilities.priceRead : a.capabilities.supplierPriceRead))
+            throw new Error("Price authority for this direction is required")
+        if (!org || (!a.capabilities.systemAdmin && !a.ownerPartyIds.includes(org)))
+            throw new Error("Choose an available price organization")
+        const currency = p.priceUomId || "USD"
+        if (one("moqui.basic.Uom", {uomId: currency})?.uomTypeEnumId !== "UT_CURRENCY_MEASURE")
+            throw new Error("Choose a price currency")
+        const got = call(P + "InventoryReportServices.get#PriceHistoryInfo", {
+            productIdList: [p.productId],
+            vendorPartyId: d === "sales" ? org : null,
+            customerPartyId: d === "purchase" ? org : null,
+            direction: d,
+            currencyUomId: currency,
+            fromDate: p.fromDate,
+            thruDate: p.thruDate || ec.user.nowTimestamp
+        })
+        return {
+            statisticsAvailable: got.searchAvailable,
+            statisticsMessage: got.searchAvailable
+                ? "Transacted order prices in " + currency + " for " + org + "."
+                : "Search is unavailable; transaction price statistics cannot be calculated.",
+            statisticsRows: Object.entries(got.infoByProductId || {}).map(([productId, data]) =>
+                Object.assign({productId, direction: d, organizationPartyId: org, priceUomId: currency}, data)
+            )
+        }
+    }
+    function bulkPreview(p) {
+        const a = access(),
+            org = p.organizationPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0],
+            direction = p.direction || "sales"
+        if (
+            !org ||
+            (!a.capabilities.systemAdmin && !a.ownerPartyIds.includes(org)) ||
+            !(direction === "purchase" ? a.capabilities.supplierPriceEdit : a.capabilities.priceEdit)
+        )
+            throw new Error("Price editor authority in the selected organization is required")
+        if (!["sales", "purchase"].includes(direction)) throw new Error("Choose a sales or supplier direction")
+        if (!p.effectiveDate || ms(p.effectiveDate) < ms(ec.user.nowTimestamp))
+            throw new Error("Choose an effective date now or later")
+        if (!String(p.changeReason || "").trim()) throw new Error("Give a reason for the reviewed change")
+        let selected = ids(p.productPriceIds),
+            productIds = ids(p.productIds)
+        const sourceFailures = []
+        if (!selected.length && productIds.length)
+            for (const id of productIds) {
+                const found = findPrices(Object.assign({}, p, {productId: id, pageSize: 100, includeHistory: false}))
+                selected.push(...found.priceRows.map(r => r.productPriceId))
+                if (!found.priceRows.length)
+                    sourceFailures.push({
+                        productId: id,
+                        result: "failed",
+                        error: "No readable effective price matches this product and scope"
+                    })
+            }
+        selected = ids(selected)
+        if ((!selected.length && !sourceFailures.length) || selected.length > 1000)
+            throw new Error("Select between 1 and 1000 price rows")
+        const operationKey = p.operationKey || ec.user.randomString(32)
+        if (!/^[A-Za-z0-9_.-]{1,40}$/.test(operationKey) || one(P + "ProductCatalogOperation", {operationKey}))
+            throw new Error("Use a new operation key")
+        const plan = [],
+            result = sourceFailures
+        for (const id of selected) {
+            try {
+                const old = row(id, true),
+                    d = domain("direction", old),
+                    rowOrg = d === "purchase" ? old.customerPartyId : old.vendorPartyId
+                if ((d !== "public" && d !== direction) || rowOrg !== org)
+                    throw new Error("Price row is outside the reviewed scope")
+                for (const field of [
+                    "priceTypeEnumId",
+                    "pricePurposeEnumId",
+                    "priceUomId",
+                    "productStoreId",
+                    "agreementId",
+                    "vendorPartyId",
+                    "customerPartyId"
+                ])
+                    if (p[field] && p[field] !== old[field]) throw new Error("Price row does not match the reviewed " + field)
+                const amount =
+                    p.fixedPrice != null
+                        ? toDecimal(p.fixedPrice)
+                        : toDecimal(old.price)
+                              .multiply(toDecimal(1).add(toDecimal(p.percentChange || 0).divide(100)))
+                              .add(p.amountChange || 0)
+                const price = amount.setScale(6, "HALF_UP")
+                if (price.compare(0) < 0) throw new Error("Resulting price cannot be negative")
+                const request = {
+                    productPriceId: id,
+                    productId: old.productId,
+                    expectedLastUpdatedStamp: old.lastUpdatedStamp,
+                    expectedState: ec.user.singleUseCodeHash(JSON.stringify(old.getMap())),
+                    effectiveDate: p.effectiveDate,
+                    price: String(price),
+                    beforePrice: String(old.price),
+                    priceUomId: old.priceUomId,
+                    minQuantity: old.minQuantity == null ? null : String(old.minQuantity),
+                    changeReason: p.changeReason
+                }
+                plan.push(request)
+                result.push({
+                    productPriceId: id,
+                    productId: old.productId,
+                    productName: product(old.productId).productName,
+                    priceUomId: old.priceUomId,
+                    minQuantity: old.minQuantity,
+                    vendorPartyId: old.vendorPartyId,
+                    customerPartyId: old.customerPartyId,
+                    productStoreId: old.productStoreId,
+                    agreementId: old.agreementId,
+                    beforePrice: old.price,
+                    afterPrice: price,
+                    result: "ready"
+                })
+            } catch (e) {
+                ec.logger.error("Price-change preview row " + id + " failed: " + e)
+                result.push({productPriceId: id, result: "failed", error: String(e.message || e)})
+            }
+        }
+        const previewToken = ec.user.singleUseCodeHash(JSON.stringify(plan)),
+            requestJson = JSON.stringify({
+                organizationPartyId: org,
+                direction,
+                previewToken,
+                changeReason: p.changeReason,
+                previewFailures: result.filter(r => r.result === "failed")
+            })
+        call("create#" + P + "ProductCatalogOperation", {
+            operationKey,
+            operationType: "price-change",
+            ownerPartyId: org,
+            submittedByUserId: ec.user.userId,
+            submittedDate: ec.user.nowTimestamp,
+            requestJson
+        })
+        for (let i = 0; i < plan.length; i++)
+            call("create#" + P + "ProductCatalogOperationItem", {
+                operationKey,
+                itemSeqId: i,
+                itemKey: plan[i].productPriceId,
+                requestJson: JSON.stringify(plan[i])
+            })
+        return {
+            operationKey,
+            previewToken,
+            previewRows: result,
+            readyCount: plan.length,
+            failedCount: result.length - plan.length
+        }
+    }
+    function operation(p) {
+        const a = access(),
+            op = one(P + "ProductCatalogOperation", {operationKey: p.operationKey})
+        if (!op || op.operationType !== "price-change") throw new Error("Price-change operation is not available")
+        const request = JSON.parse(op.requestJson)
+        if (
+            (!a.capabilities.systemAdmin && !a.ownerPartyIds.includes(op.ownerPartyId)) ||
+            !(request.direction === "purchase" ? a.capabilities.supplierPriceEdit : a.capabilities.priceEdit)
+        )
+            throw new Error("Price-change operation is not available")
+        return {op, request}
+    }
+    function applyItem(p) {
+        const {request} = operation(p),
+            item = find(P + "ProductCatalogOperationItem", {operationKey: p.operationKey, itemSeqId: p.itemSeqId})
+                .forUpdate(true)
+                .one()
+        if (!item) throw new Error("Price-change item is not available")
+        if (item.result === "created") return {}
+        const args = JSON.parse(item.requestJson)
+        row(args.productPriceId, true)
+        const changed = call(M + "replace#ProductPrice", args)
+        call("update#" + P + "ProductCatalogOperationItem", {
+            operationKey: p.operationKey,
+            itemSeqId: p.itemSeqId,
+            result: "created",
+            resultRecordId: changed.productPriceId,
+            resultEntityName: E,
+            errorMessage: null,
+            completedDate: ec.user.nowTimestamp
+        })
+        return {}
+    }
+    function failItem(p) {
+        operation(p)
+        const item = find(P + "ProductCatalogOperationItem", {operationKey: p.operationKey, itemSeqId: p.itemSeqId})
+            .forUpdate(true)
+            .one()
+        if (item && item.result !== "created")
+            call("update#" + P + "ProductCatalogOperationItem", {
+                operationKey: p.operationKey,
+                itemSeqId: p.itemSeqId,
+                result: "failed",
+                errorMessage: p.errorMessage,
+                completedDate: ec.user.nowTimestamp
+            })
+        return {}
+    }
+    function bulkApply(p) {
+        const {request} = operation(p)
+        if (!p.previewToken || request.previewToken !== p.previewToken)
+            throw new Error("Confirm the exact reviewed price-change preview")
+        for (const item of rows(P + "ProductCatalogOperationItem", {operationKey: p.operationKey}).filter(
+            r => r.result !== "created"
+        )) {
+            ec.message.pushErrors()
+            try {
+                call(C + "apply#PriceChangeItem", {operationKey: p.operationKey, itemSeqId: item.itemSeqId}, true)
+            } catch (e) {
+                ec.logger.error("Price-change operation " + p.operationKey + " row " + item.itemKey + " failed: " + e)
+                ec.message.clearErrors()
+                try {
+                    call(
+                        C + "fail#PriceChangeItem",
+                        {operationKey: p.operationKey, itemSeqId: item.itemSeqId, errorMessage: String(e.message || e)},
+                        true
+                    )
+                } catch (storeError) {
+                    ec.logger.error("Could not save price-change failure " + item.itemKey + ": " + storeError)
+                }
+            } finally {
+                ec.message.clearErrors()
+                ec.message.popErrors()
+            }
+        }
+        return bulkResult(p)
+    }
+    function bulkResult(p) {
+        const {request} = operation(p),
+            result = Array.from(request.previewFailures || [])
+        for (const item of rows(P + "ProductCatalogOperationItem", {operationKey: p.operationKey})) {
+            const saved = JSON.parse(item.requestJson)
+            try {
+                row(saved.productPriceId, true)
+                result.push({
+                    productPriceId: saved.productPriceId,
+                    productId: saved.productId,
+                    successorProductPriceId: item.resultRecordId,
+                    result: item.result || "pending",
+                    error: item.errorMessage
+                })
+            } catch (e) {
+                result.push({result: "unavailable", error: "Price row is no longer available"})
+            }
+        }
+        return {
+            operationKey: p.operationKey,
+            previewToken: request.previewToken,
+            results: result,
+            successCount: result.filter(r => r.result === "created").length,
+            failedCount: result.filter(r => r.result === "failed").length
+        }
+    }
+    function bulkInfo(p) {
+        const {request: manifest} = operation(p)
+        const previewRows = rows(P + "ProductCatalogOperationItem", {operationKey: p.operationKey}).map(item => {
+            const request = JSON.parse(item.requestJson),
+                old = row(request.productPriceId, true)
+            return {
+                productPriceId: old.productPriceId,
+                productId: old.productId,
+                productName: product(old.productId).productName,
+                beforePrice: request.beforePrice,
+                afterPrice: request.price,
+                priceUomId: request.priceUomId,
+                minQuantity: request.minQuantity,
+                changeReason: request.changeReason,
+                result: item.result || (ms(old.lastUpdatedStamp) === ms(request.expectedLastUpdatedStamp) ? "ready" : "stale")
+            }
+        })
+        return Object.assign(bulkResult(p), {
+            previewRows: previewRows.concat(manifest.previewFailures || []),
+            readyCount: previewRows.filter(r => r.result === "ready").length
+        })
+    }
+    function execute(op, p) {
+        return {
+            findPrices,
+            store,
+            replace,
+            expire,
+            options,
+            audit,
+            statistics,
+            bulkPreview,
+            bulkApply,
+            applyItem,
+            failItem,
+            bulkResult,
+            bulkInfo
+        }[op](p)
+    }
+    return execute(op, parameters)
 }
-function store(p){access();if(p.productPriceId){const old=row(p.productPriceId,true);if(p.productId&&p.productId!==old.productId)throw new Error('Price is not on this product')}else product(p.productId);return call(M+'store#ProductPrice',p)}
-function replace(p){access();row(p.productPriceId,true);return call(M+'replace#ProductPrice',p)}
-function expire(p){access();row(p.productPriceId,true);return call(M+'expire#ProductPrice',p)}
-function options(){
- const a=access(),internal=id=>!!one('mantle.party.PartyRole',{partyId:id,roleTypeId:'OrgInternal'}),partyVisible=r=>(!r.privateOwnerUserId||r.privateOwnerUserId===ec.user.userId)&&(a.capabilities.systemAdmin||a.ownerPartyIds.includes(r.ownerPartyId)||a.organizationPartyIds.includes(r.partyId)),parties=rows('mantle.party.Party').filter(partyVisible),partyName=id=>one('mantle.party.Organization',{partyId:id})?.organizationName||one('mantle.party.Person',{partyId:id})?.firstName||id,partyOption=r=>({value:r.partyId,label:partyName(r.partyId)+' ('+r.partyId+')'}),role=id=>new Set(rows('mantle.party.PartyRole',{roleTypeId:id}).map(r=>r.partyId))
- const suppliers=role('Supplier'),customers=role('Customer'),enums=t=>rows('moqui.basic.Enumeration',{enumTypeId:t}).map(r=>({value:r.enumId,label:r.description||r.enumId}))
- const defaultOrg=a.activeOrganizationPartyId||a.organizationPartyIds[0]||null,pricingDefaults=defaultOrg&&(a.capabilities.priceRead||a.capabilities.supplierPriceRead||a.capabilities.catalogAdmin)?call(M+'get#PricingSettings',{organizationPartyId:defaultOrg}).settings:{}
- return {pricingDefaults,priceOptions:{organizations:parties.filter(r=>internal(r.partyId)).map(partyOption),suppliers:parties.filter(r=>suppliers.has(r.partyId)&&!internal(r.partyId)).map(partyOption),customers:parties.filter(r=>customers.has(r.partyId)).map(partyOption),types:enums('ProductPriceType').filter(r=>r.value!=='PptAverage'||a.capabilities.costRead),purposes:enums('ProductPricePurpose'),currencies:rows('moqui.basic.Uom',{uomTypeEnumId:'UT_CURRENCY_MEASURE'}).map(r=>({value:r.uomId,label:r.uomId+' · '+r.description})),units:rows('moqui.basic.Uom').filter(r=>r.uomTypeEnumId!=='UT_CURRENCY_MEASURE'&&(r.uomTypeEnumId!=='UT_OTHER_MEASURE'||['OTH_ea','OTH_ct','OTH_pp'].includes(r.uomId))).map(r=>({value:r.uomId,label:r.description+' ('+r.uomId+')'})),stores:rows(P+'store.ProductStore').filter(r=>a.capabilities.systemAdmin||a.ownerPartyIds.includes(r.organizationPartyId)).map(r=>({value:r.productStoreId,label:r.storeName||r.productStoreId}))},defaultOrganizationPartyId:a.activeOrganizationPartyId||a.organizationPartyIds[0]||null,canPriceEdit:a.capabilities.priceEdit,canSupplierPriceEdit:a.capabilities.supplierPriceEdit}
-}
-function audit(p){
- const a=access();product(p.productId);const allowed=call(M+'find#ProductPrices',{productId:p.productId,includeHistory:true}).productPriceList,changes=[];let historyRestricted=false
- const scopeFields=['productId','vendorPartyId','customerPartyId','productStoreId','agreementId','priceTypeEnumId'],labels={price:'Unit price',minQuantity:'Minimum quantity',fromDate:'Effective from',thruDate:'Through',priceUomId:'Currency',quantityUomId:'Quantity unit',vendorPartyId:'Vendor',customerPartyId:'Customer',priceTypeEnumId:'Price type',pricePurposeEnumId:'Purpose',productId:'Product',productStoreId:'Store',agreementId:'Agreement',agreementItemSeqId:'Agreement item',changeReason:'Reason',otherPartyItemId:'Supplier item code',otherPartyItemName:'Supplier item name',standardLeadTimeDays:'Lead time in days',termUomId:'Term unit'}
- const text=(field,v)=>v==null?'':['fromDate','thruDate'].includes(field)&&Number.isFinite(ms(v))?ec.l10n.format(new Date(ms(v)),'yyyy-MM-dd HH:mm:ss'):['priceTypeEnumId','pricePurposeEnumId'].includes(field)?one('moqui.basic.Enumeration',{enumId:v})?.description||String(v):String(v)
- for(const r of allowed){
-  if(p.productPriceId&&r.productPriceId!==p.productPriceId)continue
-  const direction=domain('direction',r),org=direction==='purchase'?r.customerPartyId:r.vendorPartyId
-  if(p.direction&&p.direction!=='all'&&p.direction!==(direction==='public'?'sales':direction)||p.organizationPartyId&&p.organizationPartyId!==org||p.priceUomId&&p.priceUomId!==r.priceUomId)continue
-  const logs=rows('moqui.entity.EntityAuditLog',{changedEntityName:E,pkPrimaryValue:r.productPriceId});let safe=true
-  // A legacy row may have been repurposed before the scope became immutable. Check its old scopes before exposing any earlier amounts.
-  for(const log of logs.filter(l=>scopeFields.includes(l.changedFieldName)&&l.oldValueText!=null&&l.oldValueText!==l.newValueText)){
-   try{domain('access',Object.assign({},r,{[log.changedFieldName]:log.oldValueText}))}
-   catch(e){if(!(a.capabilities.systemAdmin&&String(e).includes('internal sales vendor')))safe=false}
-  }
-  if(!safe){historyRestricted=true;continue}
-  for(const log of logs){if(p.fromDate&&ms(log.changedDate)<ms(p.fromDate)||p.thruDate&&ms(log.changedDate)>=ms(p.thruDate))continue;changes.push({productPriceId:r.productPriceId,direction:domain('direction',r),priceUomId:r.priceUomId,changedFieldName:log.changedFieldName,fieldLabel:labels[log.changedFieldName]||log.changedFieldName,oldValueText:log.oldValueText,newValueText:log.newValueText,oldDisplay:text(log.changedFieldName,log.oldValueText),newDisplay:text(log.changedFieldName,log.newValueText),changeReason:log.changeReason||r.changeReason,changedByUserId:log.changedByUserId,changedDate:log.changedDate,changedDateText:ec.l10n.format(new Date(ms(log.changedDate)),'yyyy-MM-dd HH:mm:ss')})}
- }
- changes.sort((a,b)=>ms(b.changedDate)-ms(a.changedDate));return {auditRows:changes.slice(0,1000),historyRestricted}
-}
-function statistics(p){
- const a=access();product(p.productId);const d=p.direction||'sales',org=p.organizationPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0]
- if(!['sales','purchase'].includes(d)||!(d==='sales'?a.capabilities.priceRead:a.capabilities.supplierPriceRead))throw new Error('Price authority for this direction is required')
- if(!org||(!a.capabilities.systemAdmin&&!a.ownerPartyIds.includes(org)))throw new Error('Choose an available price organization')
- const currency=p.priceUomId||'USD';if(one('moqui.basic.Uom',{uomId:currency})?.uomTypeEnumId!=='UT_CURRENCY_MEASURE')throw new Error('Choose a price currency');const got=call(P+'InventoryReportServices.get#PriceHistoryInfo',{productIdList:[p.productId],vendorPartyId:d==='sales'?org:null,customerPartyId:d==='purchase'?org:null,direction:d,currencyUomId:currency,fromDate:p.fromDate,thruDate:p.thruDate||ec.user.nowTimestamp})
- return {statisticsAvailable:got.searchAvailable,statisticsMessage:got.searchAvailable?'Transacted order prices in '+currency+' for '+org+'.':'Search is unavailable; transaction price statistics cannot be calculated.',statisticsRows:Object.entries(got.infoByProductId||{}).map(([productId,data])=>Object.assign({productId,direction:d,organizationPartyId:org,priceUomId:currency},data))}
-}
-function bulkPreview(p){
- const a=access(),org=p.organizationPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0],direction=p.direction||'sales'
- if(!org||(!a.capabilities.systemAdmin&&!a.ownerPartyIds.includes(org))||!(direction==='purchase'?a.capabilities.supplierPriceEdit:a.capabilities.priceEdit))throw new Error('Price editor authority in the selected organization is required')
- if(!['sales','purchase'].includes(direction))throw new Error('Choose a sales or supplier direction')
- if(!p.effectiveDate||ms(p.effectiveDate)<ms(ec.user.nowTimestamp))throw new Error('Choose an effective date now or later')
- if(!String(p.changeReason||'').trim())throw new Error('Give a reason for the reviewed change')
- let selected=ids(p.productPriceIds),productIds=ids(p.productIds);const sourceFailures=[]
- if(!selected.length&&productIds.length)for(const id of productIds){const found=findPrices(Object.assign({},p,{productId:id,pageSize:100,includeHistory:false}));selected.push(...found.priceRows.map(r=>r.productPriceId));if(!found.priceRows.length)sourceFailures.push({productId:id,result:'failed',error:'No readable effective price matches this product and scope'})}
- selected=ids(selected);if((!selected.length&&!sourceFailures.length)||selected.length>1000)throw new Error('Select between 1 and 1000 price rows')
- const operationKey=p.operationKey||ec.user.randomString(32);if(!/^[A-Za-z0-9_.-]{1,40}$/.test(operationKey)||one(P+'ProductCatalogOperation',{operationKey}))throw new Error('Use a new operation key')
- const plan=[],result=sourceFailures
- for(const id of selected){try{const old=row(id,true),d=domain('direction',old),rowOrg=d==='purchase'?old.customerPartyId:old.vendorPartyId;if((d!=='public'&&d!==direction)||rowOrg!==org)throw new Error('Price row is outside the reviewed scope');for(const field of ['priceTypeEnumId','pricePurposeEnumId','priceUomId','productStoreId','agreementId','vendorPartyId','customerPartyId'])if(p[field]&&p[field]!==old[field])throw new Error('Price row does not match the reviewed '+field);const amount=p.fixedPrice!=null?toDecimal(p.fixedPrice):toDecimal(old.price).multiply(toDecimal(1).add(toDecimal(p.percentChange||0).divide(100))).add(p.amountChange||0);const price=amount.setScale(6,'HALF_UP');if(price.compare(0)<0)throw new Error('Resulting price cannot be negative');const request={productPriceId:id,productId:old.productId,expectedLastUpdatedStamp:old.lastUpdatedStamp,expectedState:ec.user.singleUseCodeHash(JSON.stringify(old.getMap())),effectiveDate:p.effectiveDate,price:String(price),beforePrice:String(old.price),priceUomId:old.priceUomId,minQuantity:old.minQuantity==null?null:String(old.minQuantity),changeReason:p.changeReason};plan.push(request);result.push({productPriceId:id,productId:old.productId,productName:product(old.productId).productName,priceUomId:old.priceUomId,minQuantity:old.minQuantity,vendorPartyId:old.vendorPartyId,customerPartyId:old.customerPartyId,productStoreId:old.productStoreId,agreementId:old.agreementId,beforePrice:old.price,afterPrice:price,result:'ready'})}catch(e){ec.logger.error('Price-change preview row '+id+' failed: '+e);result.push({productPriceId:id,result:'failed',error:String(e.message||e)})}}
- const previewToken=ec.user.singleUseCodeHash(JSON.stringify(plan)),requestJson=JSON.stringify({organizationPartyId:org,direction,previewToken,changeReason:p.changeReason,previewFailures:result.filter(r=>r.result==='failed')})
- call('create#'+P+'ProductCatalogOperation',{operationKey,operationType:'price-change',ownerPartyId:org,submittedByUserId:ec.user.userId,submittedDate:ec.user.nowTimestamp,requestJson})
- for(let i=0;i<plan.length;i++)call('create#'+P+'ProductCatalogOperationItem',{operationKey,itemSeqId:i,itemKey:plan[i].productPriceId,requestJson:JSON.stringify(plan[i])})
- return {operationKey,previewToken,previewRows:result,readyCount:plan.length,failedCount:result.length-plan.length}
-}
-function operation(p){const a=access(),op=one(P+'ProductCatalogOperation',{operationKey:p.operationKey});if(!op||op.operationType!=='price-change')throw new Error('Price-change operation is not available');const request=JSON.parse(op.requestJson);if((!a.capabilities.systemAdmin&&!a.ownerPartyIds.includes(op.ownerPartyId))||!(request.direction==='purchase'?a.capabilities.supplierPriceEdit:a.capabilities.priceEdit))throw new Error('Price-change operation is not available');return {op,request}}
-function applyItem(p){const {request}=operation(p),item=find(P+'ProductCatalogOperationItem',{operationKey:p.operationKey,itemSeqId:p.itemSeqId}).forUpdate(true).one();if(!item)throw new Error('Price-change item is not available');if(item.result==='created')return {};const args=JSON.parse(item.requestJson);row(args.productPriceId,true);const changed=call(M+'replace#ProductPrice',args);call('update#'+P+'ProductCatalogOperationItem',{operationKey:p.operationKey,itemSeqId:p.itemSeqId,result:'created',resultRecordId:changed.productPriceId,resultEntityName:E,errorMessage:null,completedDate:ec.user.nowTimestamp});return {}}
-function failItem(p){operation(p);const item=find(P+'ProductCatalogOperationItem',{operationKey:p.operationKey,itemSeqId:p.itemSeqId}).forUpdate(true).one();if(item&&item.result!=='created')call('update#'+P+'ProductCatalogOperationItem',{operationKey:p.operationKey,itemSeqId:p.itemSeqId,result:'failed',errorMessage:p.errorMessage,completedDate:ec.user.nowTimestamp});return {}}
-function bulkApply(p){
- const {request}=operation(p);if(!p.previewToken||request.previewToken!==p.previewToken)throw new Error('Confirm the exact reviewed price-change preview')
- for(const item of rows(P+'ProductCatalogOperationItem',{operationKey:p.operationKey}).filter(r=>r.result!=='created')){ec.message.pushErrors();try{call(C+'apply#PriceChangeItem',{operationKey:p.operationKey,itemSeqId:item.itemSeqId},true)}catch(e){ec.logger.error('Price-change operation '+p.operationKey+' row '+item.itemKey+' failed: '+e);ec.message.clearErrors();try{call(C+'fail#PriceChangeItem',{operationKey:p.operationKey,itemSeqId:item.itemSeqId,errorMessage:String(e.message||e)},true)}catch(storeError){ec.logger.error('Could not save price-change failure '+item.itemKey+': '+storeError)}}finally{ec.message.clearErrors();ec.message.popErrors()}}
- return bulkResult(p)
-}
-function bulkResult(p){const {request}=operation(p),result=Array.from(request.previewFailures||[]);for(const item of rows(P+'ProductCatalogOperationItem',{operationKey:p.operationKey})){const saved=JSON.parse(item.requestJson);try{row(saved.productPriceId,true);result.push({productPriceId:saved.productPriceId,productId:saved.productId,successorProductPriceId:item.resultRecordId,result:item.result||'pending',error:item.errorMessage})}catch(e){result.push({result:'unavailable',error:'Price row is no longer available'})}}return {operationKey:p.operationKey,previewToken:request.previewToken,results:result,successCount:result.filter(r=>r.result==='created').length,failedCount:result.filter(r=>r.result==='failed').length}}
-function bulkInfo(p){const {request:manifest}=operation(p);const previewRows=rows(P+'ProductCatalogOperationItem',{operationKey:p.operationKey}).map(item=>{const request=JSON.parse(item.requestJson),old=row(request.productPriceId,true);return {productPriceId:old.productPriceId,productId:old.productId,productName:product(old.productId).productName,beforePrice:request.beforePrice,afterPrice:request.price,priceUomId:request.priceUomId,minQuantity:request.minQuantity,changeReason:request.changeReason,result:item.result||(ms(old.lastUpdatedStamp)===ms(request.expectedLastUpdatedStamp)?'ready':'stale')}});return Object.assign(bulkResult(p),{previewRows:previewRows.concat(manifest.previewFailures||[]),readyCount:previewRows.filter(r=>r.result==='ready').length})}
-function execute(op,p){return ({findPrices,store,replace,expire,options,audit,statistics,bulkPreview,bulkApply,applyItem,failItem,bulkResult,bulkInfo})[op](p)}
-return execute(op,parameters)
-}
-;({execute:run})
+;({execute: run})

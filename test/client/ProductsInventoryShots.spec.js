@@ -1,5 +1,35 @@
-let pages={}
-spec({setupSpec(){for(const width of [390,1280,1440]){pages[width]=browser.newPage({user:'catalog.stock.plan',viewport:{width,height:1100},timeout:30});pages[width].allowProblems(/userPhoto\?userId=/)}}})
-feature('inventory #tab at #width dark=#dark',{
- where:['Summary','Projection','Policy'].flatMap(tab=>[390,1280,1440].flatMap(width=>[false,true].map(dark=>({tab,width,dark})))),expect({tab,width,dark}){const page=pages[width];page.goto('/qapps/Products/Products/Product360/Stock/'+tab+'?productId=BOSS_PRD_OWN&facilityId=BOSS_PRD_WH').status==200;page.waitFor(()=>document.querySelector('.q-page')?.innerText.trim().length>20);page.settle();page.evaluate(dark=>{document.querySelector('#apps-root').__vue_app__.config.globalProperties.$q.dark.set(!!dark);return true},dark)==true;page.waitFor(dark=>document.body.classList.contains('body--dark')===!!dark,{arg:dark});page.waitFor(()=>document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).every(a=>a.playState!=='running'));!/Error rendering|Exception in render/.test(page.text());!page.text().includes('510.98');page.screenshot('Inventory-'+tab+'-'+width+(dark?'-dark':'-light'),{fullPage:true})},
+let pages = {}
+spec({
+    setupSpec() {
+        for (const width of [390, 1280, 1440]) {
+            pages[width] = browser.newPage({user: "catalog.stock.plan", viewport: {width, height: 1100}, timeout: 30})
+            pages[width].allowProblems(/userPhoto\?userId=/)
+        }
+    }
+})
+feature("inventory #tab at #width dark=#dark", {
+    where: ["Summary", "Projection", "Policy"].flatMap(tab =>
+        [390, 1280, 1440].flatMap(width => [false, true].map(dark => ({tab, width, dark})))
+    ),
+    expect({tab, width, dark}) {
+        const page = pages[width]
+        page.goto("/qapps/Products/Products/Product360/Stock/" + tab + "?productId=BOSS_PRD_OWN&facilityId=BOSS_PRD_WH").status ==
+            200
+        page.waitFor(() => document.querySelector(".q-page")?.innerText.trim().length > 20)
+        page.settle()
+        page.evaluate(dark => {
+            document.querySelector("#apps-root").__vue_app__.config.globalProperties.$q.dark.set(!!dark)
+            return true
+        }, dark) == true
+        page.waitFor(dark => document.body.classList.contains("body--dark") === !!dark, {arg: dark})
+        page.waitFor(() =>
+            document
+                .getAnimations()
+                .filter(a => a.effect?.getTiming().iterations !== Infinity)
+                .every(a => a.playState !== "running")
+        )
+        !/Error rendering|Exception in render/.test(page.text())
+        !page.text().includes("510.98")
+        page.screenshot("Inventory-" + tab + "-" + width + (dark ? "-dark" : "-light"), {fullPage: true})
+    }
 })

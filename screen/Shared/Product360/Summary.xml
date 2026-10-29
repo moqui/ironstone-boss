@@ -1,9 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Summary')</expression></condition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Summary')</expression>
+    </condition>
     <widgets>
         <link url="${sharedLinks['Units/Labels']}" text="Product labels" parameter-map="{productId:productId}" condition="productFound"/>
-        <section name="ProductTags" condition="productFound &amp;&amp; detail.tagRows.length"><widgets><container style="row q-gutter-sm"><section-iterate name="Tags" list="detail.tagRows" entry="tag"><widgets><link url="${sharedLinks['Categories/CategoryDetail']}" text="${tag.categoryName}" link-type="anchor-button" parameter-map="{productCategoryId:tag.productCategoryId}"/></widgets></section-iterate></container></widgets></section>
+        <section name="ProductTags" condition="productFound &amp;&amp; detail.tagRows.length">
+            <widgets>
+                <container style="row q-gutter-sm">
+                    <section-iterate name="Tags" list="detail.tagRows" entry="tag">
+                        <widgets>
+                            <link url="${sharedLinks['Categories/CategoryDetail']}" text="${tag.categoryName}" link-type="anchor-button" parameter-map="{productCategoryId:tag.productCategoryId}"/>
+                        </widgets>
+                    </section-iterate>
+                </container>
+            </widgets>
+        </section>
         <section name="Master" condition="productFound">
             <widgets>
                 <container-box>

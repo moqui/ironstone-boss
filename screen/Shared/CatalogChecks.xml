@@ -1,4 +1,17 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Catalog checks" default-menu-include="false">
     <parameter name="appRoot"/>
     <always-actions>
@@ -9,102 +22,106 @@
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
     <actions>
-        <service-call name="ironstone.products.CheckServices.get#CheckContext" in-map="context" out-map="context" />
+        <service-call name="ironstone.products.CheckServices.get#CheckContext" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <label text="Catalog checks" type="h5" />
-        <label text="Readiness issues include evidence and a suggested correction. Each record is checked independently." type="p" />
+        <label text="Catalog checks" type="h5"/>
+        <label text="Readiness issues include evidence and a suggested correction. Each record is checked independently." type="p"/>
         <form-single name="CheckSelection" transition="." map="checkForm">
             <field name="runChecks">
                 <default-field title="">
-                    <hidden />
+                    <hidden/>
                 </default-field>
             </field>
             <field name="productIds">
                 <default-field title="Product IDs (empty: visible catalog)">
-                    <text-line />
+                    <text-line/>
                 </default-field>
             </field>
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <list-options list="ownerOptions" key="${value}" text="${label}" />
+                        <list-options list="ownerOptions" key="${value}" text="${label}"/>
                     </drop-down>
                 </default-field>
             </field>
             <field name="checkIds">
                 <default-field title="Checks">
                     <drop-down allow-empty="true" allow-multiple="true">
-                        <list-options list="checkOptions" key="${value}" text="${label}" />
+                        <list-options list="checkOptions" key="${value}" text="${label}"/>
                     </drop-down>
                 </default-field>
             </field>
             <field name="productCategoryId">
                 <default-field title="Category ID (optional)">
-                    <text-line />
+                    <text-line/>
                 </default-field>
             </field>
             <field name="includeDescendants">
                 <default-field title="Include descendant categories">
                     <drop-down allow-empty="false">
-                        <option key="false" text="No" />
-                        <option key="true" text="Yes" />
+                        <option key="false" text="No"/>
+                        <option key="true" text="Yes"/>
                     </drop-down>
                 </default-field>
             </field>
             <field name="includeInactive">
                 <default-field title="Include discontinued and obsolete products">
                     <drop-down allow-empty="false">
-                        <option key="false" text="No" />
-                        <option key="true" text="Yes" />
+                        <option key="false" text="No"/>
+                        <option key="true" text="Yes"/>
                     </drop-down>
                 </default-field>
             </field>
             <field name="asOfDate">
                 <default-field title="As of">
-                    <date-time />
+                    <date-time/>
                 </default-field>
             </field>
             <field name="submitButton">
                 <default-field title="Run catalog checks">
-                    <submit />
+                    <submit/>
                 </default-field>
             </field>
         </form-single>
         <section name="CatalogCheckResults" condition="catalogChecksRan">
             <widgets>
-                <label text="${checkedCount} products checked · ${issueCount} issues · ${incompleteCount} incomplete products" type="p" />
+                <label text="${checkedCount} products checked · ${issueCount} issues · ${incompleteCount} incomplete products" type="p"/>
                 <container style="scroll full-width">
                     <form-list name="CatalogIssues" list="issueRows" skip-form="true" paginate="false" show-csv-button="true">
                         <field name="productId">
                             <default-field title="Product">
-                                <link url="${sharedLinks['Products/Product360']}" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId" />
+                                <link url="${sharedLinks['Products/Product360']}" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId"/>
                             </default-field>
                         </field>
-                        <field name="productCategoryId"><default-field title="Category"><link url="${sharedLinks['Categories/CategoryDetail']}" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/></default-field></field>
-                    <field name="checkId">
+                        <field name="productCategoryId">
+                            <default-field title="Category">
+                                <link url="${sharedLinks['Categories/CategoryDetail']}" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/>
+                            </default-field>
+                        </field>
+                        <field name="checkId">
                             <default-field title="Check">
-                                <display />
+                                <display/>
                             </default-field>
                         </field>
                         <field name="severity">
                             <default-field title="Severity">
-                                <display />
+                                <display/>
                             </default-field>
                         </field>
                         <field name="evidence">
                             <default-field title="Evidence">
-                                <display />
+                                <display/>
                             </default-field>
                         </field>
                         <field name="suggestedAction">
                             <default-field title="Suggested action">
-                                <display />
+                                <display/>
                             </default-field>
                         </field>
                         <field name="retry">
                             <default-field title="Retry">
-                                <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'" />
+                                <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'"/>
                             </default-field>
                         </field>
                     </form-list>

@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="get" noun="CatalogSettings">
         <in-parameters>
@@ -82,6 +95,32 @@
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Variants.js').execute('storeSettings',context))</script>
         </actions>
     </service>
-<service verb="get" noun="PricingSettings" allow-remote="false"><in-parameters><parameter name="organizationPartyId"/><parameter name="asOfDate" type="Timestamp"/></in-parameters><out-parameters><parameter name="organizationPartyId"/><parameter name="fromDate" type="Timestamp"/><parameter name="settings" type="Map"/></out-parameters><actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('settings',context))</script></actions></service>
-<service verb="store" noun="PricingSettings" allow-remote="false"><in-parameters><auto-parameters entity-name="mantle.product.ProductPricingSetting" include="all"/><parameter name="expectedFromDate" type="Timestamp"/></in-parameters><out-parameters><parameter name="organizationPartyId"/><parameter name="fromDate" type="Timestamp"/><parameter name="settings" type="Map"/></out-parameters><actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('storeSettings',context))</script></actions></service>
+    <service verb="get" noun="PricingSettings" allow-remote="false">
+        <in-parameters>
+            <parameter name="organizationPartyId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="settings" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('settings',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="PricingSettings" allow-remote="false">
+        <in-parameters>
+            <auto-parameters entity-name="mantle.product.ProductPricingSetting" include="all"/>
+            <parameter name="expectedFromDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="settings" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Pricing.js').execute('storeSettings',context))</script>
+        </actions>
+    </service>
 </services>

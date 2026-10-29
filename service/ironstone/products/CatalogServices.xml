@@ -1,12 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <!-- Products owner/capability boundary. Check the real user's groups and organizations even when a caller has disabled
      artifact authorization. Never trust a capability or organization list supplied by a screen, import or client. -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="get" noun="SharedContext" allow-remote="false">
         <description>Trusted app routing, tabs and launcher capabilities for shared catalog mounts. New apps extend the policy in SharedContext.js.</description>
-        <in-parameters><parameter name="appRoot"/><parameter name="includeConnections" type="Boolean"/></in-parameters>
-        <out-parameters><parameter name="appRoot"/><parameter name="linkBase"/><parameter name="webBase"/><parameter name="printBase"/><parameter name="sharedLinks" type="Map"/><parameter name="productTabs" type="List"/><parameter name="connectionTypes" type="List"/><parameter name="capabilities" type="Map"/><parameter name="ownerPartyIds" type="List"/><parameter name="organizationPartyIds" type="List"/><parameter name="activeOrganizationPartyId"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/SharedContext.js').execute('context',context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="includeConnections" type="Boolean"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="linkBase"/>
+            <parameter name="webBase"/>
+            <parameter name="printBase"/>
+            <parameter name="sharedLinks" type="Map"/>
+            <parameter name="productTabs" type="List"/>
+            <parameter name="connectionTypes" type="List"/>
+            <parameter name="capabilities" type="Map"/>
+            <parameter name="ownerPartyIds" type="List"/>
+            <parameter name="organizationPartyIds" type="List"/>
+            <parameter name="activeOrganizationPartyId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/SharedContext.js').execute('context',context))</script>
+        </actions>
     </service>
     <service verb="get" noun="CatalogAccess" allow-remote="false">
         <out-parameters>
@@ -15,7 +45,8 @@
             <parameter name="organizationPartyIds" type="List"/>
             <parameter name="activeOrganizationPartyId"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             const admin = !!ec.user.userId && ec.user.isInGroup('ADMIN')
             const blockedClient = !!ec.user.userId && !admin && ec.user.hasPermission('PROJECT_CLIENT')
             const has = (group) => !!ec.user.userId && !blockedClient && (admin || ec.user.isInGroup(group) || group.startsWith('BOSS_PRODUCTS') && ec.user.isInGroup('BOSS_PRODUCTS_ADMIN'))
@@ -44,11 +75,12 @@
             organizationPartyIds = scope.organizationPartyIds || []
             activeOrganizationPartyId = scope.activeOrganizationPartyId || null
             ownerPartyIds = scope.ownerPartyIds || ['_NA_']
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="CatalogRecord" allow-remote="false">
-        <in-parameters><parameter name="appRoot"/>
+        <in-parameters>
+            <parameter name="appRoot"/>
             <parameter name="recordEntityName" default-value="mantle.product.Product"/>
             <parameter name="recordId" required="true"/>
             <parameter name="need" default-value="read"/>
@@ -60,7 +92,8 @@
             <parameter name="canWrite" type="Boolean"/>
             <parameter name="capabilities" type="Map"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             record = null; canRead = false; canWrite = false
             const access = ec.service.sync().name('ironstone.products.CatalogServices.get#SharedContext').parameters({appRoot:appRoot}).call() || {}
             capabilities = access.capabilities || {}
@@ -83,23 +116,56 @@
                 }
             }
             if (!checkOnly && !record) ec.message.addError('Catalog record is not available for this action')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="find" noun="Products">
-        <in-parameters><parameter name="appRoot"/><parameter name="text"/><parameter name="keyword"/><parameter name="ownerPartyId"/><parameter name="productTypeEnumId"/><parameter name="productClassEnumId"/><parameter name="statusId"/><parameter name="categoryIds" type="List"/><parameter name="tagIds" type="List"/><parameter name="categoryOperator"/><parameter name="productFeatureId"/><parameter name="idValue"/><parameter name="partyItemId"/><parameter name="salesAllowed"/><parameter name="purchaseAllowed"/><parameter name="list"/><parameter name="pageIndex" type="Integer"/><parameter name="pageSize" type="Integer"/><parameter name="orderByField"/></in-parameters>
-        <out-parameters><parameter name="productList" type="List"/><parameter name="productListCount" type="Long"/><parameter name="pageIndex" type="Integer"/><parameter name="pageSize" type="Integer"/><parameter name="searchUnavailable" type="Boolean"/><parameter name="searchMessage"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('findProducts', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="text"/>
+            <parameter name="keyword"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="productTypeEnumId"/>
+            <parameter name="productClassEnumId"/>
+            <parameter name="statusId"/>
+            <parameter name="categoryIds" type="List"/>
+            <parameter name="tagIds" type="List"/>
+            <parameter name="categoryOperator"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="idValue"/>
+            <parameter name="partyItemId"/>
+            <parameter name="salesAllowed"/>
+            <parameter name="purchaseAllowed"/>
+            <parameter name="list"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="orderByField"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productList" type="List"/>
+            <parameter name="productListCount" type="Long"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="searchUnavailable" type="Boolean"/>
+            <parameter name="searchMessage"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('findProducts', context))</script>
+        </actions>
     </service>
     <service verb="search" noun="ProductIds">
-        <in-parameters><parameter name="appRoot"/>
+        <in-parameters>
+            <parameter name="appRoot"/>
             <parameter name="text" required="true"/>
             <parameter name="limit" type="Integer" default="5"/>
             <parameter name="docTypes" type="List"/>
             <parameter name="idMatch" type="Boolean"/>
         </in-parameters>
-        <out-parameters><parameter name="rows" type="List"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             rows = []
             const access = ec.service.sync().name('ironstone.products.CatalogServices.get#SharedContext').parameters({appRoot:appRoot}).call() || {}
             if (!access.capabilities?.read) return
@@ -124,275 +190,501 @@
                     title: result.record.productName || productId, subtitle: productId + (result.record.ownerPartyId === '_NA_' ? ' · Shared' : ''),
                     icon: 'sym_o_inventory_2', url: '/qapps/Products/Products/Product360?productId=' + encodeURIComponent(productId)})
             }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
     <service verb="store" noun="Product">
-        <in-parameters><parameter name="appRoot"/><auto-parameters entity-name="mantle.product.Product" include="all"/><parameter name="createOnly" type="Boolean"/><parameter name="expectedLastUpdatedStamp" type="Timestamp"/></in-parameters>
-        <out-parameters><parameter name="productId"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeProduct', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <auto-parameters entity-name="mantle.product.Product" include="all"/>
+            <parameter name="createOnly" type="Boolean"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeProduct', context))</script>
+        </actions>
     </service>
     <service verb="transition" noun="ProductStatus">
-        <in-parameters><parameter name="appRoot"/><parameter name="productId" required="true"/><parameter name="statusId" required="true"/><parameter name="expectedStatusId"/></in-parameters>
-        <out-parameters><parameter name="productId"/><parameter name="statusId"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('transition', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId" required="true"/>
+            <parameter name="statusId" required="true"/>
+            <parameter name="expectedStatusId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productId"/>
+            <parameter name="statusId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('transition', context))</script>
+        </actions>
     </service>
     <service verb="store" noun="CatalogRow">
-        <in-parameters><parameter name="appRoot"/><parameter name="kind" required="true"/><parameter name="operation"/><parameter name="productId" required="true"/><parameter name="toProductId"/><parameter name="productAssocTypeEnumId"/><parameter name="fromDate" type="Timestamp"/><parameter name="thruDate" type="Timestamp"/><parameter name="sequenceNum" type="Long"/><parameter name="reason"/><parameter name="quantity" type="BigDecimal"/><parameter name="scrapFactor" type="BigDecimal"/><parameter name="instruction"/><parameter name="routingWorkEffortId"/><parameter name="productUomDimensionId"/><parameter name="uomDimensionTypeId"/><parameter name="marketSegmentId"/><parameter name="value" type="BigDecimal"/><parameter name="uomId"/><parameter name="productIdTypeEnumId"/><parameter name="idValue"/><parameter name="productOtherIdentId"/><parameter name="productStoreId"/><parameter name="parentProductId"/><parameter name="partyId"/><parameter name="roleTypeId"/><parameter name="comments"/><parameter name="otherPartyItemName"/><parameter name="otherPartyItemId"/><parameter name="productCategoryId"/><parameter name="productFeatureId"/><parameter name="applTypeEnumId"/><parameter name="amount" type="BigDecimal"/><parameter name="recurringAmount" type="BigDecimal"/><parameter name="featureProductId"/><parameter name="productMeterId"/><parameter name="productMeterTypeId"/><parameter name="meterUomId"/><parameter name="meterName"/><parameter name="productMaintenanceId"/><parameter name="maintenanceTypeEnumId"/><parameter name="description"/><parameter name="templateWorkEffortId"/><parameter name="intervalQuantity" type="BigDecimal"/><parameter name="intervalProductMeterId"/><parameter name="intervalUomId"/><parameter name="repeatCount" type="Long"/></in-parameters>
-        <out-parameters><parameter name="productOtherIdentId"/><parameter name="productUomDimensionId"/><parameter name="productMeterId"/><parameter name="productMaintenanceId"/><parameter name="fromDate" type="Timestamp"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeRow', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="kind" required="true"/>
+            <parameter name="operation"/>
+            <parameter name="productId" required="true"/>
+            <parameter name="toProductId"/>
+            <parameter name="productAssocTypeEnumId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="sequenceNum" type="Long"/>
+            <parameter name="reason"/>
+            <parameter name="quantity" type="BigDecimal"/>
+            <parameter name="scrapFactor" type="BigDecimal"/>
+            <parameter name="instruction"/>
+            <parameter name="routingWorkEffortId"/>
+            <parameter name="productUomDimensionId"/>
+            <parameter name="uomDimensionTypeId"/>
+            <parameter name="marketSegmentId"/>
+            <parameter name="value" type="BigDecimal"/>
+            <parameter name="uomId"/>
+            <parameter name="productIdTypeEnumId"/>
+            <parameter name="idValue"/>
+            <parameter name="productOtherIdentId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="parentProductId"/>
+            <parameter name="partyId"/>
+            <parameter name="roleTypeId"/>
+            <parameter name="comments"/>
+            <parameter name="otherPartyItemName"/>
+            <parameter name="otherPartyItemId"/>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="applTypeEnumId"/>
+            <parameter name="amount" type="BigDecimal"/>
+            <parameter name="recurringAmount" type="BigDecimal"/>
+            <parameter name="featureProductId"/>
+            <parameter name="productMeterId"/>
+            <parameter name="productMeterTypeId"/>
+            <parameter name="meterUomId"/>
+            <parameter name="meterName"/>
+            <parameter name="productMaintenanceId"/>
+            <parameter name="maintenanceTypeEnumId"/>
+            <parameter name="description"/>
+            <parameter name="templateWorkEffortId"/>
+            <parameter name="intervalQuantity" type="BigDecimal"/>
+            <parameter name="intervalProductMeterId"/>
+            <parameter name="intervalUomId"/>
+            <parameter name="repeatCount" type="Long"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productOtherIdentId"/>
+            <parameter name="productUomDimensionId"/>
+            <parameter name="productMeterId"/>
+            <parameter name="productMaintenanceId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('storeRow', context))</script>
+        </actions>
     </service>
     <service verb="get" noun="ProductDetail">
-        <in-parameters><parameter name="appRoot"/><parameter name="productId" required="true"/></in-parameters>
-        <out-parameters><parameter name="detail" type="Map"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('detail', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('detail', context))</script>
+        </actions>
     </service>
     <service verb="delete" noun="UnusedDraft">
-        <in-parameters><parameter name="appRoot"/><parameter name="productId" required="true"/></in-parameters>
-        <out-parameters><parameter name="productId"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('deleteProduct', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('deleteProduct', context))</script>
+        </actions>
     </service>
     <service verb="bulk" noun="Products">
-        <in-parameters><parameter name="appRoot"/><parameter name="productIds" type="Object" required="true"/><parameter name="kind" required="true"/><parameter name="operation"/><parameter name="toProductId"/><parameter name="productAssocTypeEnumId"/><parameter name="fromDate" type="Timestamp"/><parameter name="thruDate" type="Timestamp"/><parameter name="sequenceNum" type="Long"/><parameter name="reason"/><parameter name="quantity" type="BigDecimal"/><parameter name="scrapFactor" type="BigDecimal"/><parameter name="instruction"/><parameter name="routingWorkEffortId"/><parameter name="productUomDimensionId"/><parameter name="uomDimensionTypeId"/><parameter name="marketSegmentId"/><parameter name="value" type="BigDecimal"/><parameter name="uomId"/><parameter name="productIdTypeEnumId"/><parameter name="idValue"/><parameter name="productOtherIdentId"/><parameter name="productStoreId"/><parameter name="parentProductId"/><parameter name="partyId"/><parameter name="roleTypeId"/><parameter name="comments"/><parameter name="otherPartyItemName"/><parameter name="otherPartyItemId"/><parameter name="productCategoryId"/><parameter name="productFeatureId"/><parameter name="applTypeEnumId"/><parameter name="amount" type="BigDecimal"/><parameter name="recurringAmount" type="BigDecimal"/><parameter name="featureProductId"/><parameter name="productMeterId"/><parameter name="productMeterTypeId"/><parameter name="meterUomId"/><parameter name="meterName"/><parameter name="productMaintenanceId"/><parameter name="maintenanceTypeEnumId"/><parameter name="description"/><parameter name="templateWorkEffortId"/><parameter name="intervalQuantity" type="BigDecimal"/><parameter name="intervalProductMeterId"/><parameter name="intervalUomId"/><parameter name="repeatCount" type="Long"/></in-parameters>
-        <out-parameters><parameter name="results" type="List"/><parameter name="successCount" type="Integer"/><parameter name="failedCount" type="Integer"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('bulk', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productIds" type="Object" required="true"/>
+            <parameter name="kind" required="true"/>
+            <parameter name="operation"/>
+            <parameter name="toProductId"/>
+            <parameter name="productAssocTypeEnumId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="sequenceNum" type="Long"/>
+            <parameter name="reason"/>
+            <parameter name="quantity" type="BigDecimal"/>
+            <parameter name="scrapFactor" type="BigDecimal"/>
+            <parameter name="instruction"/>
+            <parameter name="routingWorkEffortId"/>
+            <parameter name="productUomDimensionId"/>
+            <parameter name="uomDimensionTypeId"/>
+            <parameter name="marketSegmentId"/>
+            <parameter name="value" type="BigDecimal"/>
+            <parameter name="uomId"/>
+            <parameter name="productIdTypeEnumId"/>
+            <parameter name="idValue"/>
+            <parameter name="productOtherIdentId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="parentProductId"/>
+            <parameter name="partyId"/>
+            <parameter name="roleTypeId"/>
+            <parameter name="comments"/>
+            <parameter name="otherPartyItemName"/>
+            <parameter name="otherPartyItemId"/>
+            <parameter name="productCategoryId"/>
+            <parameter name="productFeatureId"/>
+            <parameter name="applTypeEnumId"/>
+            <parameter name="amount" type="BigDecimal"/>
+            <parameter name="recurringAmount" type="BigDecimal"/>
+            <parameter name="featureProductId"/>
+            <parameter name="productMeterId"/>
+            <parameter name="productMeterTypeId"/>
+            <parameter name="meterUomId"/>
+            <parameter name="meterName"/>
+            <parameter name="productMaintenanceId"/>
+            <parameter name="maintenanceTypeEnumId"/>
+            <parameter name="description"/>
+            <parameter name="templateWorkEffortId"/>
+            <parameter name="intervalQuantity" type="BigDecimal"/>
+            <parameter name="intervalProductMeterId"/>
+            <parameter name="intervalUomId"/>
+            <parameter name="repeatCount" type="Long"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="results" type="List"/>
+            <parameter name="successCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('bulk', context))</script>
+        </actions>
     </service>
     <service verb="clone" noun="Product">
-        <in-parameters><parameter name="appRoot"/><parameter name="baseProductId" required="true"/><parameter name="productId"/><parameter name="productName"/><parameter name="ownerPartyId"/><parameter name="copyCategories" type="Boolean"/><parameter name="copyFeatures" type="Boolean"/><parameter name="copyDimensions" type="Boolean"/><parameter name="copyParties" type="Boolean"/><parameter name="copyAssociations" type="Boolean"/><parameter name="copyEquipment" type="Boolean"/><parameter name="copyIdentifiers" type="Boolean"/><parameter name="copyContent" type="Boolean"/></in-parameters>
-        <out-parameters><parameter name="productId"/><parameter name="warnings" type="List"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('clone', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="baseProductId" required="true"/>
+            <parameter name="productId"/>
+            <parameter name="productName"/>
+            <parameter name="ownerPartyId"/>
+            <parameter name="copyCategories" type="Boolean"/>
+            <parameter name="copyFeatures" type="Boolean"/>
+            <parameter name="copyDimensions" type="Boolean"/>
+            <parameter name="copyParties" type="Boolean"/>
+            <parameter name="copyAssociations" type="Boolean"/>
+            <parameter name="copyEquipment" type="Boolean"/>
+            <parameter name="copyIdentifiers" type="Boolean"/>
+            <parameter name="copyContent" type="Boolean"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productId"/>
+            <parameter name="warnings" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('clone', context))</script>
+        </actions>
     </service>
     <service verb="get" noun="CatalogSummary">
-        <in-parameters><parameter name="appRoot"/></in-parameters>
-        <out-parameters><parameter name="summary" type="Map"/><parameter name="recentProducts" type="List"/><parameter name="activityRows" type="List"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('summary', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="summary" type="Map"/>
+            <parameter name="recentProducts" type="List"/>
+            <parameter name="activityRows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('summary', context))</script>
+        </actions>
     </service>
     <service verb="search" noun="Catalog">
-        <in-parameters><parameter name="appRoot"/><parameter name="text" required="true"/><parameter name="limit" type="Integer"/><parameter name="docTypes" type="List"/><parameter name="idMatch" type="Boolean"/></in-parameters>
-        <out-parameters><parameter name="rows" type="List"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('palette', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="text" required="true"/>
+            <parameter name="limit" type="Integer"/>
+            <parameter name="docTypes" type="List"/>
+            <parameter name="idMatch" type="Boolean"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('palette', context))</script>
+        </actions>
     </service>
     <service verb="get" noun="CatalogOptions">
-        <in-parameters><parameter name="appRoot"/></in-parameters>
-        <out-parameters><parameter name="options" type="Map"/></out-parameters>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('options', context))</script></actions>
+        <in-parameters>
+            <parameter name="appRoot"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="options" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('options', context))</script>
+        </actions>
     </service>
-    <service verb="store" noun="ProductContent"><in-parameters><parameter name="appRoot"/><auto-parameters entity-name="mantle.product.ProductContent" include="all"/><parameter name="productId" required="true"/><parameter name="contentFile" type="org.apache.commons.fileupload2.core.FileItem"/><parameter name="contentText" allow-html="any"/><parameter name="sourceDriveId"/><parameter name="sourcePath"/><parameter name="expectedRevision"/></in-parameters><out-parameters><parameter name="productContentId"/><parameter name="contentId"/><parameter name="contentEditConflictId"/><parameter name="conflict" type="Boolean"/><parameter name="currentRevision"/></out-parameters><actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Documents.js').execute('store',context))</script></actions></service>
-<service verb="search" noun="CatalogChoices"><in-parameters><parameter name="appRoot"/><parameter name="choice" required="true"/><parameter name="term"/></in-parameters><out-parameters><parameter name="rows" type="List"/></out-parameters><actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('choices',context))</script></actions></service>
-<service verb="find" noun="ProductPrices" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="productId"/>
-        <parameter name="organizationPartyId"/>
-        <parameter name="direction"/>
-        <parameter name="priceTypeEnumId"/>
-        <parameter name="pricePurposeEnumId"/>
-        <parameter name="priceUomId"/>
-        <parameter name="vendorPartyId"/>
-        <parameter name="customerPartyId"/>
-        <parameter name="productStoreId"/>
-        <parameter name="agreementId"/>
-        <parameter name="asOfDate" type="Timestamp"/>
-        <parameter name="includeHistory" type="Boolean"/>
-        <parameter name="pageIndex" type="Integer"/>
-        <parameter name="pageSize" type="Integer"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="priceRows" type="List"/>
-        <parameter name="priceRowsCount" type="Long"/>
-        <parameter name="pageIndex" type="Integer"/>
-        <parameter name="pageSize" type="Integer"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('findPrices',context))</script>
-    </actions>
-</service>
-
-<service verb="store" noun="ProductPrice" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
-        <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="productPriceId"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('store',context))</script>
-    </actions>
-</service>
-
-<service verb="replace" noun="ProductPrice" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="productPriceId"/>
-        <parameter name="productId"/>
-        <parameter name="price" type="BigDecimal"/>
-        <parameter name="effectiveDate" type="Timestamp"/>
-        <parameter name="changeReason"/>
-        <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="productPriceId"/>
-        <parameter name="previousProductPriceId"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('replace',context))</script>
-    </actions>
-</service>
-
-<service verb="expire" noun="ProductPrice" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="productPriceId"/>
-        <parameter name="productId"/>
-        <parameter name="thruDate" type="Timestamp"/>
-        <parameter name="changeReason"/>
-        <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="productPriceId"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('expire',context))</script>
-    </actions>
-</service>
-
-<service verb="get" noun="PriceOptions" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/></in-parameters>
-    <out-parameters><parameter name="pricingDefaults" type="Map"/>
-        <parameter name="priceOptions" type="Map"/>
-        <parameter name="defaultOrganizationPartyId"/>
-        <parameter name="canPriceEdit" type="Boolean"/>
-        <parameter name="canSupplierPriceEdit" type="Boolean"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('options',context))</script>
-    </actions>
-</service>
-
-<service verb="get" noun="PriceAudit" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/><parameter name="direction"/><parameter name="organizationPartyId"/><parameter name="priceUomId"/>
-        <parameter name="productId"/>
-        <parameter name="productPriceId"/>
-        <parameter name="fromDate" type="Timestamp"/>
-        <parameter name="thruDate" type="Timestamp"/>
-    </in-parameters>
-    <out-parameters><parameter name="historyRestricted" type="Boolean"/>
-        <parameter name="auditRows" type="List"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('audit',context))</script>
-    </actions>
-</service>
-
-<service verb="get" noun="TransactionPriceStatistics" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="productId"/>
-        <parameter name="organizationPartyId"/>
-        <parameter name="direction"/>
-        <parameter name="priceUomId"/>
-        <parameter name="fromDate" type="Timestamp"/>
-        <parameter name="thruDate" type="Timestamp"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="statisticsRows" type="List"/>
-        <parameter name="statisticsAvailable" type="Boolean"/>
-        <parameter name="statisticsMessage"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('statistics',context))</script>
-    </actions>
-</service>
-
-<service verb="preview" noun="PriceChanges" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="productId"/>
-        <parameter name="organizationPartyId"/>
-        <parameter name="direction"/>
-        <parameter name="priceTypeEnumId"/>
-        <parameter name="pricePurposeEnumId"/>
-        <parameter name="priceUomId"/>
-        <parameter name="vendorPartyId"/>
-        <parameter name="customerPartyId"/>
-        <parameter name="productStoreId"/>
-        <parameter name="agreementId"/>
-        <parameter name="asOfDate" type="Timestamp"/>
-        <parameter name="includeHistory" type="Boolean"/>
-        <parameter name="pageIndex" type="Integer"/>
-        <parameter name="pageSize" type="Integer"/>
-        <parameter name="productIds" type="Object"/>
-        <parameter name="productPriceIds" type="Object"/>
-        <parameter name="fixedPrice" type="BigDecimal"/>
-        <parameter name="percentChange" type="BigDecimal"/>
-        <parameter name="amountChange" type="BigDecimal"/>
-        <parameter name="effectiveDate" type="Timestamp"/>
-        <parameter name="changeReason"/>
-        <parameter name="operationKey"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="operationKey"/>
-        <parameter name="previewToken"/>
-        <parameter name="previewRows" type="List"/>
-        <parameter name="readyCount" type="Integer"/>
-        <parameter name="failedCount" type="Integer"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkPreview',context))</script>
-    </actions>
-</service>
-
-<service verb="apply" noun="PriceChanges" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="operationKey"/>
-        <parameter name="previewToken"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="operationKey"/>
-        <parameter name="previewToken"/>
-        <parameter name="results" type="List"/>
-        <parameter name="successCount" type="Integer"/>
-        <parameter name="failedCount" type="Integer"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkApply',context))</script>
-    </actions>
-</service>
-
-<service verb="apply" noun="PriceChangeItem" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="operationKey"/>
-        <parameter name="itemSeqId" type="Integer"/>
-    </in-parameters>
-    <out-parameters/>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('applyItem',context))</script>
-    </actions>
-</service>
-
-<service verb="fail" noun="PriceChangeItem" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="operationKey"/>
-        <parameter name="itemSeqId" type="Integer"/>
-        <parameter name="errorMessage"/>
-    </in-parameters>
-    <out-parameters/>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('failItem',context))</script>
-    </actions>
-</service>
-
-<service verb="get" noun="PriceChanges" allow-remote="false">
-    <in-parameters><parameter name="appRoot"/>
-        <parameter name="operationKey"/>
-    </in-parameters>
-    <out-parameters>
-        <parameter name="operationKey"/>
-        <parameter name="previewToken"/>
-        <parameter name="previewRows" type="List"/>
-        <parameter name="readyCount" type="Integer"/>
-        <parameter name="results" type="List"/>
-        <parameter name="successCount" type="Integer"/>
-        <parameter name="failedCount" type="Integer"/>
-    </out-parameters>
-    <actions>
-        <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkInfo',context))</script>
-    </actions>
-</service>
-
+    <service verb="store" noun="ProductContent">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <auto-parameters entity-name="mantle.product.ProductContent" include="all"/>
+            <parameter name="productId" required="true"/>
+            <parameter name="contentFile" type="org.apache.commons.fileupload2.core.FileItem"/>
+            <parameter name="contentText" allow-html="any"/>
+            <parameter name="sourceDriveId"/>
+            <parameter name="sourcePath"/>
+            <parameter name="expectedRevision"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productContentId"/>
+            <parameter name="contentId"/>
+            <parameter name="contentEditConflictId"/>
+            <parameter name="conflict" type="Boolean"/>
+            <parameter name="currentRevision"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Documents.js').execute('store',context))</script>
+        </actions>
+    </service>
+    <service verb="search" noun="CatalogChoices">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="choice" required="true"/>
+            <parameter name="term"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Catalog.js').execute('choices',context))</script>
+        </actions>
+    </service>
+    <service verb="find" noun="ProductPrices" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="direction"/>
+            <parameter name="priceTypeEnumId"/>
+            <parameter name="pricePurposeEnumId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="customerPartyId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="agreementId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="includeHistory" type="Boolean"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="priceRows" type="List"/>
+            <parameter name="priceRowsCount" type="Long"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('findPrices',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="ProductPrice" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('store',context))</script>
+        </actions>
+    </service>
+    <service verb="replace" noun="ProductPrice" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productPriceId"/>
+            <parameter name="productId"/>
+            <parameter name="price" type="BigDecimal"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+            <parameter name="changeReason"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+            <parameter name="previousProductPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('replace',context))</script>
+        </actions>
+    </service>
+    <service verb="expire" noun="ProductPrice" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productPriceId"/>
+            <parameter name="productId"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="changeReason"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('expire',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="PriceOptions" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="pricingDefaults" type="Map"/>
+            <parameter name="priceOptions" type="Map"/>
+            <parameter name="defaultOrganizationPartyId"/>
+            <parameter name="canPriceEdit" type="Boolean"/>
+            <parameter name="canSupplierPriceEdit" type="Boolean"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('options',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="PriceAudit" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="direction"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="productId"/>
+            <parameter name="productPriceId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="historyRestricted" type="Boolean"/>
+            <parameter name="auditRows" type="List"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('audit',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="TransactionPriceStatistics" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="direction"/>
+            <parameter name="priceUomId"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="statisticsRows" type="List"/>
+            <parameter name="statisticsAvailable" type="Boolean"/>
+            <parameter name="statisticsMessage"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('statistics',context))</script>
+        </actions>
+    </service>
+    <service verb="preview" noun="PriceChanges" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="direction"/>
+            <parameter name="priceTypeEnumId"/>
+            <parameter name="pricePurposeEnumId"/>
+            <parameter name="priceUomId"/>
+            <parameter name="vendorPartyId"/>
+            <parameter name="customerPartyId"/>
+            <parameter name="productStoreId"/>
+            <parameter name="agreementId"/>
+            <parameter name="asOfDate" type="Timestamp"/>
+            <parameter name="includeHistory" type="Boolean"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="productIds" type="Object"/>
+            <parameter name="productPriceIds" type="Object"/>
+            <parameter name="fixedPrice" type="BigDecimal"/>
+            <parameter name="percentChange" type="BigDecimal"/>
+            <parameter name="amountChange" type="BigDecimal"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+            <parameter name="changeReason"/>
+            <parameter name="operationKey"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="previewToken"/>
+            <parameter name="previewRows" type="List"/>
+            <parameter name="readyCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkPreview',context))</script>
+        </actions>
+    </service>
+    <service verb="apply" noun="PriceChanges" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="operationKey"/>
+            <parameter name="previewToken"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="previewToken"/>
+            <parameter name="results" type="List"/>
+            <parameter name="successCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkApply',context))</script>
+        </actions>
+    </service>
+    <service verb="apply" noun="PriceChangeItem" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="operationKey"/>
+            <parameter name="itemSeqId" type="Integer"/>
+        </in-parameters>
+        <out-parameters/>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('applyItem',context))</script>
+        </actions>
+    </service>
+    <service verb="fail" noun="PriceChangeItem" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="operationKey"/>
+            <parameter name="itemSeqId" type="Integer"/>
+            <parameter name="errorMessage"/>
+        </in-parameters>
+        <out-parameters/>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('failItem',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="PriceChanges" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot"/>
+            <parameter name="operationKey"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="operationKey"/>
+            <parameter name="previewToken"/>
+            <parameter name="previewRows" type="List"/>
+            <parameter name="readyCount" type="Integer"/>
+            <parameter name="results" type="List"/>
+            <parameter name="successCount" type="Integer"/>
+            <parameter name="failedCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute('bulkInfo',context))</script>
+        </actions>
+    </service>
 </services>

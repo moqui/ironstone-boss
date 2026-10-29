@@ -1,18 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Cost roll-up" default-menu-include="false">
     <parameter name="appRoot"/>
-    <parameter name="productId" />
-    <parameter name="organizationPartyId" />
-    <parameter name="facilityId" />
-    <parameter name="productStandardCostId" />
-    <parameter name="selectedComponentId" />
-    <parameter name="state" />
-    <parameter name="priceUomId" />
-    <parameter name="asOfDate" />
-    <parameter name="fromDate" />
-    <parameter name="thruDate" />
-    <parameter name="calculationId" />
-    <parameter name="productBomId" />
+    <parameter name="productId"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="facilityId"/>
+    <parameter name="productStandardCostId"/>
+    <parameter name="selectedComponentId"/>
+    <parameter name="state"/>
+    <parameter name="priceUomId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="fromDate"/>
+    <parameter name="thruDate"/>
+    <parameter name="calculationId"/>
+    <parameter name="productBomId"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
         <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
@@ -21,114 +34,114 @@
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
     <actions>
-        <service-call name="ironstone.products.CostServices.get#CostRollup" in-map="context" out-map="context" />
+        <service-call name="ironstone.products.CostServices.get#CostRollup" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <label text="Cost roll-up" type="h5" />
-        <label text="${costMessage || &quot;&quot;}" type="p" />
+        <label text="Cost roll-up" type="h5"/>
+        <label text="${costMessage || &quot;&quot;}" type="p"/>
         <section name="CostAccess" condition="costAccess.read">
             <widgets>
-                <label text="Setup follows the BOM costing lot, with fractional cycles retained. Work-center efficiency adjusts setup and run hours. Percentage overhead applies once to material plus conversion at each level." type="p" />
+                <label text="Setup follows the BOM costing lot, with fractional cycles retained. Work-center efficiency adjusts setup and run hours. Percentage overhead applies once to material plus conversion at each level." type="p"/>
                 <form-single name="CostRollupInputs" transition="preview">
                     <field name="productId" from="productId || null">
                         <default-field title="Product ID">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="organizationPartyId" from="organizationPartyId || null">
                         <default-field>
-                            <hidden />
+                            <hidden/>
                         </default-field>
                     </field>
                     <field name="productBomId">
                         <default-field title="BOM ID (optional)">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="facilityId">
                         <default-field title="Facility">
                             <drop-down allow-empty="true">
-                                <list-options list="facilityOptions" key="${value}" text="${label}" />
+                                <list-options list="facilityOptions" key="${value}" text="${label}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="asOfDate">
                         <default-field title="As of date">
-                            <date-time />
+                            <date-time/>
                         </default-field>
                     </field>
                     <field name="quantity" from="quantity || 1">
                         <default-field title="Batch quantity">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="quantityUomId" from="quantityUomId || costDraft.quantityUomId">
                         <default-field title="Output unit">
                             <drop-down allow-empty="true">
-                                <list-options list="unitOptions" key="${value}" text="${label}" />
+                                <list-options list="unitOptions" key="${value}" text="${label}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="priceUomId" from="priceUomId || costDraft.priceUomId">
                         <default-field title="Currency">
                             <drop-down allow-empty="true">
-                                <list-options list="currencyOptions" key="${value}" text="${label}" />
+                                <list-options list="currencyOptions" key="${value}" text="${label}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="methodMode">
                         <default-field title="Method basis">
                             <drop-down allow-empty="true">
-                                <option key="auto" text="Released method, or purchased item" />
-                                <option key="purchased" text="Purchased item — no method" />
+                                <option key="auto" text="Released method, or purchased item"/>
+                                <option key="purchased" text="Purchased item — no method"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="materialBasis">
                         <default-field title="Material basis">
                             <drop-down allow-empty="true">
-                                <option key="standard" text="Approved standard estimate" />
-                                <option key="supplier" text="Main supplier price" />
-                                <option key="average" text="Organization average cost" />
-                                <option key="last-receipt" text="Last receipt acquisition cost" />
+                                <option key="standard" text="Approved standard estimate"/>
+                                <option key="supplier" text="Main supplier price"/>
+                                <option key="average" text="Organization average cost"/>
+                                <option key="last-receipt" text="Last receipt acquisition cost"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="overheadBasis">
                         <default-field title="Overhead basis">
                             <drop-down allow-empty="true">
-                                <option key="work-center" text="Approved hourly work-center rates" />
-                                <option key="percent" text="Percentage of direct labor" />
-                                <option key="none" text="No overhead" />
+                                <option key="work-center" text="Approved hourly work-center rates"/>
+                                <option key="percent" text="Percentage of direct labor"/>
+                                <option key="none" text="No overhead"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="overheadPercent">
                         <default-field title="Overhead percentage">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="submitButton">
                         <default-field title="Preview estimate">
-                            <submit />
+                            <submit/>
                         </default-field>
                     </field>
                 </form-single>
                 <section name="ReviewedRollup" condition="!!calculationId">
                     <widgets>
-                        <label text="Total ${standardCost.totalCost == null ? &quot;Unvalued&quot; : standardCost.totalCost} ${standardCost.priceUomId} · unit estimate ${standardCost.unitCost == null ? &quot;Unvalued&quot; : standardCost.unitCost}" type="h6" />
-                        <label text="${complete ? &quot;Complete estimate&quot; : &quot;Incomplete — review findings&quot;}" type="p" />
+                        <label text="Total ${standardCost.totalCost == null ? &quot;Unvalued&quot; : standardCost.totalCost} ${standardCost.priceUomId} · unit estimate ${standardCost.unitCost == null ? &quot;Unvalued&quot; : standardCost.unitCost}" type="h6"/>
+                        <label text="${complete ? &quot;Complete estimate&quot; : &quot;Incomplete — review findings&quot;}" type="p"/>
                         <section name="CostRollupFindingsAvailable" condition="(findings).length &gt; 0">
                             <widgets>
                                 <form-list name="CostRollupFindings" list="findings" skip-form="true" paginate="false" show-csv-button="true">
                                     <field name="recordId">
                                         <default-field title="Input">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="message">
                                         <default-field title="Finding">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                 </form-list>
@@ -137,47 +150,47 @@
                         <form-list name="CostRollupLines" list="componentRows" skip-form="true" paginate="false" show-csv-button="true">
                             <field name="path">
                                 <default-field title="Component path">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="description">
                                 <default-field title="Component">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="quantity">
                                 <default-field title="With scrap / hours">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="quantityUomId">
                                 <default-field title="Unit">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="rateAmount">
                                 <default-field title="Rate">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="amount">
                                 <default-field title="Amount">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="priceUomId">
                                 <default-field title="Currency">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="sourceId">
                                 <default-field title="Source">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="costAllocationFactor">
                                 <default-field title="Output allocation">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                         </form-list>
@@ -186,32 +199,32 @@
                                 <form-list name="CostOutputAllocation" list="allocationRows || []" skip-form="true" paginate="false">
                                     <field name="productId">
                                         <default-field title="Output">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="quantity">
                                         <default-field title="Planned output">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="allocationBasis">
                                         <default-field title="Allocation basis">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="allocationFactor">
                                         <default-field title="Share">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="amount">
                                         <default-field title="Allocated amount">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="priceUomId">
                                         <default-field title="Currency">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                 </form-list>
@@ -222,32 +235,32 @@
                                 <form-single name="CostRollupSave" transition="save">
                                     <field name="productId" from="productId || null">
                                         <default-field title="Product ID">
-                                            <hidden />
+                                            <hidden/>
                                         </default-field>
                                     </field>
                                     <field name="organizationPartyId" from="organizationPartyId || null">
                                         <default-field>
-                                            <hidden />
+                                            <hidden/>
                                         </default-field>
                                     </field>
                                     <field name="calculationId">
                                         <default-field>
-                                            <hidden />
+                                            <hidden/>
                                         </default-field>
                                     </field>
                                     <field name="inputFingerprint">
                                         <default-field>
-                                            <hidden />
+                                            <hidden/>
                                         </default-field>
                                     </field>
                                     <field name="changeReason">
                                         <default-field title="Reason">
-                                            <text-area />
+                                            <text-area/>
                                         </default-field>
                                     </field>
                                     <field name="submitButton">
                                         <default-field title="Save reviewed draft">
-                                            <submit />
+                                            <submit/>
                                         </default-field>
                                     </field>
                                 </form-single>
@@ -260,27 +273,27 @@
     </widgets>
     <transition name="preview">
         <actions>
-            <service-call name="ironstone.products.CostServices.preview#CostRollup" in-map="context" out-map="saved" />
-            <set field="calculationId" from="saved.calculationId" />
+            <service-call name="ironstone.products.CostServices.preview#CostRollup" in-map="context" out-map="saved"/>
+            <set field="calculationId" from="saved.calculationId"/>
         </actions>
         <default-response url=".">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
-            <parameter name="calculationId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
+            <parameter name="calculationId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.CostServices.save#CostRollup" in-map="context" out-map="saved" />
-            <set field="productStandardCostId" from="saved.productStandardCostId" />
+            <service-call name="ironstone.products.CostServices.save#CostRollup" in-map="context" out-map="saved"/>
+            <set field="productStandardCostId" from="saved.productStandardCostId"/>
         </actions>
         <default-response url="${sharedLinks['Prices/StandardCosts']}">
-            <parameter name="productId" />
-            <parameter name="organizationPartyId" />
-            <parameter name="productStandardCostId" />
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
 </screen>

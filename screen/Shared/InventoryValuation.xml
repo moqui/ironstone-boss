@@ -1,12 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Inventory revaluation" default-menu-include="false">
     <parameter name="appRoot"/>
-    <parameter name="productStandardCostId" />
-    <parameter name="productId" />
-    <parameter name="organizationPartyId" />
-    <parameter name="facilityId" />
-    <parameter name="previewId" />
-    <parameter name="operationKey" />
+    <parameter name="productStandardCostId"/>
+    <parameter name="productId"/>
+    <parameter name="organizationPartyId"/>
+    <parameter name="facilityId"/>
+    <parameter name="previewId"/>
+    <parameter name="operationKey"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
         <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
@@ -15,201 +28,214 @@
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
     <actions>
-        <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context" />
+        <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context"/>
     </actions>
     <transition name="preview">
         <actions>
-            <service-call name="ironstone.accounting.AssetBookServices.preview#Revaluation" in-map="context" out-map="result" />
-            <set field="previewId" from="result.previewId" />
+            <service-call name="ironstone.accounting.AssetBookServices.preview#Revaluation" in-map="context" out-map="result"/>
+            <set field="previewId" from="result.previewId"/>
         </actions>
         <default-response url=".">
-            <parameter name="productStandardCostId" />
-            <parameter name="previewId" />
-            <parameter name="operationKey" />
+            <parameter name="productStandardCostId"/>
+            <parameter name="previewId"/>
+            <parameter name="operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="post">
         <actions>
-            <service-call name="ironstone.accounting.AssetBookServices.post#Revaluation" in-map="context" out-map="result" />
+            <service-call name="ironstone.accounting.AssetBookServices.post#Revaluation" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
-            <parameter name="productStandardCostId" />
-            <parameter name="previewId" />
-            <parameter name="operationKey" />
+            <parameter name="productStandardCostId"/>
+            <parameter name="previewId"/>
+            <parameter name="operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <widgets>
-        <label text="Inventory revaluation" type="h5" />
-        <label text="${bookMessage || &quot;&quot;}" type="p" />
+        <label text="Inventory revaluation" type="h5"/>
+        <label text="${bookMessage || &quot;&quot;}" type="p"/>
         <section name="FinanceRevaluation" condition="bookAccess.glPost">
             <widgets>
-                <label text="Approved estimate ${standardCost.productStandardCostId} · ${standardCost.productId}" type="h6" />
-                <label text="Review the current owned stock position. Posting records a value adjustment and its ledger entries." type="p" />
+                <label text="Approved estimate ${standardCost.productStandardCostId} · ${standardCost.productId}" type="h6"/>
+                <label text="Review the current owned stock position. Posting records a value adjustment and its ledger entries." type="p"/>
                 <container-dialog id="ValuationAdjustmentDialog" condition="revaluationEnabled" button-text="Preview revaluation" title="Valuation adjustment" width="640">
                     <form-single name="ValuationAdjustment" transition="preview">
                         <field name="productStandardCostId">
                             <default-field>
-                                <hidden />
+                                <hidden/>
                             </default-field>
                         </field>
                         <field name="organizationPartyId">
                             <default-field>
-                                <hidden />
+                                <hidden/>
                             </default-field>
                         </field>
                         <field name="productId">
                             <default-field>
-                                <hidden />
+                                <hidden/>
                             </default-field>
                         </field>
                         <field name="facilityId">
                             <default-field title="Facility">
                                 <drop-down allow-empty="true">
-                                    <list-options list="facilityOptions" key="${value}" text="${label}" />
+                                    <list-options list="facilityOptions" key="${value}" text="${label}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="eventDate">
                             <default-field title="Effective date (blank means now)">
-                                <date-time />
+                                <date-time/>
                             </default-field>
                         </field>
                         <field name="changeReason">
                             <default-field title="Reason">
-                                <text-area />
+                                <text-area/>
                             </default-field>
                         </field>
                         <field name="submitButton">
                             <default-field title="Preview owned inventory">
-                                <submit />
+                                <submit/>
                             </default-field>
                         </field>
                     </form-single>
                 </container-dialog>
                 <section name="RevaluationReview" condition="!!previewId">
                     <widgets>
-                        <label text="Affected quantity ${quantity} · value adjustment ${totalAmount} ${amountUomId}" type="h6" />
-                        <label text="${stale ? &quot;Inputs changed or the review expired. Preview again.&quot; : complete ? &quot;Reviewed inputs are complete.&quot; : &quot;Resolve the findings before posting.&quot;}" type="p" />
+                        <label text="Affected quantity ${quantity} · value adjustment ${totalAmount} ${amountUomId}" type="h6"/>
+                        <label text="${stale ? &quot;Inputs changed or the review expired. Preview again.&quot; : complete ? &quot;Reviewed inputs are complete.&quot; : &quot;Resolve the findings before posting.&quot;}" type="p"/>
                         <form-list name="RevaluationFindings" list="findings" skip-form="true" paginate="false" show-csv-button="true">
                             <field name="recordId">
                                 <default-field title="Asset">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="message">
                                 <default-field title="Finding">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                         </form-list>
                         <form-list name="RevaluationRows" list="bookRows" skip-form="true" paginate="false" show-csv-button="true">
                             <field name="assetId">
                                 <default-field title="Asset">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="quantity">
                                 <default-field title="Quantity">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="quantityUomId">
                                 <default-field title="Unit">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="previousUnitCost">
                                 <default-field title="Current unit cost">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="newUnitCost">
                                 <default-field title="Forward unit cost">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
-                            <field name="unitCostUomId"><default-field title="Cost currency"><display/></default-field></field>
-                    <field name="amount">
+                            <field name="unitCostUomId">
+                                <default-field title="Cost currency">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
                                 <default-field title="Adjustment">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="amountUomId">
                                 <default-field title="Currency">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="assetGlAccountId">
                                 <default-field title="Inventory account">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                             <field name="offsetGlAccountId">
                                 <default-field title="Offset account">
-                                    <display />
+                                    <display/>
                                 </default-field>
                             </field>
                         </form-list>
                         <container-dialog id="PostRevaluationDialog" button-text="Post reviewed revaluation" title="Post revaluation" condition="complete &amp;&amp; !posted" width="640">
-                            <label text="Post ${totalAmount} ${amountUomId} for ${quantity} units? This creates balanced ledger entries and linked book events." type="p" />
+                            <label text="Post ${totalAmount} ${amountUomId} for ${quantity} units? This creates balanced ledger entries and linked book events." type="p"/>
                             <form-single name="PostRevaluation" transition="post">
                                 <field name="productStandardCostId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="previewId">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="inputFingerprint">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="operationKey">
                                     <default-field>
-                                        <hidden />
+                                        <hidden/>
                                     </default-field>
                                 </field>
                                 <field name="changeReason">
                                     <default-field title="Reviewed reason">
-                                        <display />
+                                        <display/>
                                     </default-field>
                                 </field>
-                                <field name="eventDate"><default-field><hidden/></default-field></field><field name="eventDateText"><default-field title="Effective date"><display/></default-field></field>
+                                <field name="eventDate">
+                                    <default-field>
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="eventDateText">
+                                    <default-field title="Effective date">
+                                        <display/>
+                                    </default-field>
+                                </field>
                                 <field name="submitButton">
                                     <default-field title="Confirm and post">
-                                        <submit />
+                                        <submit/>
                                     </default-field>
                                 </field>
                             </form-single>
                         </container-dialog>
                         <section name="PostedRevaluation" condition="!!posted">
                             <widgets>
-                                <link url="." text="Posted accounting transaction ${acctgTransId}" parameter-map="{productStandardCostId:productStandardCostId,previewId:previewId,operationKey:operationKey}" />
+                                <link url="." text="Posted accounting transaction ${acctgTransId}" parameter-map="{productStandardCostId:productStandardCostId,previewId:previewId,operationKey:operationKey}"/>
                                 <form-list name="RevaluationLedgerEntries" list="ledgerRows || []" skip-form="true" paginate="false">
                                     <field name="glAccountId">
                                         <default-field title="Account">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="debitCreditFlag">
                                         <default-field title="Debit / credit">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="amount">
                                         <default-field title="Amount">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="assetId">
                                         <default-field title="Asset">
-                                            <display />
+                                            <display/>
                                         </default-field>
                                     </field>
                                 </form-list>

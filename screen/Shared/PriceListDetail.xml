@@ -4,6 +4,7 @@
     <parameter name="priceListId" />
     <parameter name="asOfDate" />
     <parameter name="includeHistory" />
+    <parameter name="productIds"/><parameter name="quantity"/><parameter name="quantityUomId"/><parameter name="runEffectivePrices"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
         <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
@@ -53,8 +54,19 @@
         <service-call name="ironstone.products.PriceListServices.get#PriceListDetail" in-map="context" out-map="context" />
         <set field="ruleEdits" from="priceRuleRows.map(r =&gt; Object.assign({},r,{expectedLastUpdatedStamp:r.lastUpdatedStamp,fromDate:null}))" />
         <set field="header" from="Object.assign({},successor,{fromDate:null,expectedLastUpdatedStamp:priceList.lastUpdatedStamp,priority:String(priceList.priority || 0)})" />
-        <set field="printUrl" from="printBase+'/Prices/PriceLists/PriceListDetail?renderMode=html-print&amp;priceListId='+encodeURIComponent(priceListId)+'&amp;asOfDate='+encodeURIComponent(asOfDate || ec.user.nowTimestamp)" />
+        <set field="printUrl" from="printBase+'/Prices/PriceLists/PriceListDetail/effectiveOutput?priceListId='+encodeURIComponent(priceListId)+'&amp;asOfDate='+encodeURIComponent(asOfDate || ec.user.nowTimestamp)+'&amp;quantity='+encodeURIComponent(quantity||1)+'&amp;productIds='+encodeURIComponent(productIds||'')+'&amp;quantityUomId='+encodeURIComponent(quantityUomId||'')" />
+        <set field="effectivePriceRows" from="[]"/><set field="effectiveReport" from="null"/>
+        <if condition="runEffectivePrices || ['csv','xlsx'].includes(sri.getRenderMode())">
+            <service-call name="mantle.product.PriceServices.get#EffectivePriceList" in-map="context" out-map="effectiveReport"/>
+            <set field="effectivePriceRows" from="effectiveReport.effectivePriceRows"/>
+        </if>
     </actions>
+    <transition name="effectiveOutput" read-only="true" method="get">
+        <actions>
+            <service-call name="mantle.product.PriceServices.get#EffectivePriceList" in-map="context" out-map="effectiveOutput"/>
+            <script>if(outputFormat==='pdf'){const bytes=ec.resource.xslFoTransform(effectiveOutput.printHtml,null,null,'application/pdf');ec.web.response.setContentType('application/pdf');ec.web.response.setHeader('Content-Disposition','attachment; filename="Effective-prices.pdf"');ec.web.response.getOutputStream().write(bytes)}else ec.web.sendTextResponse(effectiveOutput.printHtml,'text/html',null)</script>
+        </actions><default-response type="none"/>
+    </transition>
     <widgets>
         <render-mode>
             <text type="html-print">&lt;style&gt;body{font:14px/1.4 Arial,sans-serif;margin:24px}h1{font-size:24px}.pricing-print-scope{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.pricing-print-scope div{display:flex;gap:8px}.pricing-print-scope dt{font-weight:bold}.pricing-print-scope dd{margin:0}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{padding:6px;text-align:left;vertical-align:top}th{border-bottom:1px solid #777}thead{display:table-header-group}@page{size:A4 landscape;margin:14mm}&lt;/style&gt;</text>
@@ -74,7 +86,7 @@
         </section>
         <section name="ListPrintAction" condition="sri.getRenderMode() !== 'html-print'">
             <widgets>
-                <link text="Print effective list" url="${printUrl}" url-type="plain" link-type="anchor-button" target-window="_blank" />
+                <link condition="priceList.effective" text="Print effective list" url="${printUrl}" url-type="plain" link-type="anchor-button" target-window="_blank" />
             </widgets>
         </section>
         <section name="InteractiveList4" condition="sri.getRenderMode() !== 'html-print'">
@@ -230,7 +242,7 @@
                         </form-single>
                     </widgets>
                 </section>
-                <form-list name="PriceRules" list="priceRuleRows" skip-form="true" paginate="false">
+                <section name="PolicyRulesView" condition="!['csv','xlsx'].includes(sri.getRenderMode())"><widgets><form-list name="PriceRules" list="priceRuleRows" skip-form="true" paginate="false">
                     <field name="sequenceNum">
                         <default-field title="Sequence">
                             <display />
@@ -301,7 +313,7 @@
                             <display />
                         </default-field>
                     </field>
-                </form-list>
+                </form-list></widgets></section>
             </box-body>
         </container-box>
         <section name="ListEditAllowed" condition="priceList.canEdit &amp;&amp; sri.getRenderMode() !== 'html-print'">
@@ -785,6 +797,34 @@
                     <parameter name="direction" from="priceList.direction" />
                 </link>
             </widgets>
+        </section>
+
+        <section name="EffectiveProductPrices" condition="priceList.effective">
+            <widgets><container-box><box-header title="Resolved product prices"/><box-body>
+                <form-single name="EffectivePriceScope" transition=".">
+                    <field name="priceListId"><default-field><hidden/></default-field></field>
+                    <field name="runEffectivePrices"><default-field><hidden default-value="true"/></default-field></field>
+                    <field name="asOfDate"><default-field title="As of"><date-time/></default-field></field>
+                    <field name="quantity"><default-field title="Quantity (empty: 1)"><text-line input-type="number"/></default-field></field>
+                    <field name="quantityUomId"><default-field title="Quantity unit (empty: product unit)"><text-line/></default-field></field>
+                    <field name="productIds"><default-field title="Product IDs (empty: authorized catalog, up to 1000)"><text-area rows="2"/></default-field></field>
+                    <field name="submitButton"><default-field title="Resolve prices"><submit/></default-field></field>
+                </form-single>
+                <section name="ResolvedPricesReady" condition="!!effectiveReport"><widgets>
+                    <label text="${effectiveReport.reportContext.productCount} ${effectiveReport.reportContext.productCount === 1 ? 'product' : 'products'} · ${effectiveReport.reportContext.asOfDate} · quantity ${effectiveReport.reportContext.quantity}" type="p"/>
+                    <link text="Print resolved prices" url="${printUrl}" url-type="plain" target="_blank"/>
+                    <link text="Download resolved prices PDF" url="${printUrl}&amp;outputFormat=pdf" url-type="plain" target="_blank"/>
+                    <form-list name="EffectivePrices" list="effectivePriceRows" skip-form="true" paginate="false" show-csv-button="true" show-xlsx-button="true">
+                        <field name="productId"><default-field title="Product"><display/></default-field></field>
+                        <field name="productName"><default-field title="Name"><display/></default-field></field>
+                        <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
+                        <field name="quantityUomId"><default-field title="Unit"><display/></default-field></field>
+                        <field name="price"><default-field title="Price"><display/></default-field></field>
+                        <field name="priceUomId"><default-field title="Currency"><display/></default-field></field>
+                        <field name="status"><default-field title="Result"><display/></default-field></field>
+                    </form-list>
+                </widgets></section>
+            </box-body></container-box></widgets>
         </section>
     </widgets>
 </screen>

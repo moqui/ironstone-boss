@@ -250,7 +250,7 @@
                 <container-box>
                     <box-header title="Price explanation" />
                     <box-body>
-                        <form-list name="PriceTrace" list="traceRows" skip-form="true" paginate="false">
+                        <form-list show-csv-button="true" name="PriceTrace" list="traceRows" skip-form="true" paginate="false">
                             <field name="sequence">
                                 <default-field title="Step">
                                     <display />

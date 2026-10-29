@@ -392,7 +392,7 @@
         <container-box>
             <box-header title="Comparable supplier prices"/>
             <box-body>
-                <form-list name="SupplierOffers" list="offerRows" paginate="true" skip-form="true">
+                <form-list show-csv-button="true" show-xlsx-button="true" name="SupplierOffers" list="offerRows" paginate="true" skip-form="true">
                     <row-selection id-field="productPriceId" parameter="productPriceIds" list-mode="true" condition="canSupplierPriceEdit">
                         <action>
                             <form-single name="SupplierBulkSelection" transition="bulk">

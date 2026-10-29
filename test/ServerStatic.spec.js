@@ -24,6 +24,16 @@ function findScreenFiles(appList) {
 
 // the id parameters of the screens that open on one demo record (as AppStructure's demoRecords)
 const demoParameters = {
+    "Products/Products/VariantBuilder": {productId:"BOSS_PRD_VIRT"},
+    "Products/Products/VariantBuilderTui": {productId:"BOSS_PRD_VIRT"},
+    "Products/Products/BulkPrice": {productIds:"BOSS_PRD_OWN"},
+    "Products/Categories/CategoryDetail": {productCategoryId:"BOSS_PRD_CAT"},
+    "Products/Features/FeatureDetail": {productFeatureId:"BOSS_PRD_FEATURE"},
+    "Products/Features/FeatureGroups/FeatureGroupDetail": {productFeatureGroupId:"BOSS_PRD_GROUP"},
+    "Products/Prices/PriceLists/PriceListDetail": {priceListId:"BOSS_PRICE_LIST"},
+    "Products/Prices/PriceExplain": {productId:"BOSS_PRD_OWN",organizationPartyId:"ORG_ZIZI_SERVICES"},
+    "Products/Settings/PricingSettings": {organizationPartyId:"ORG_ZIZI_SERVICES"},
+
     "Commons/QuickCreate": { kind: "task" },
     "Commons/Calendar/EventDetail": { workEffortId: "BOSS_DEMO_EVENT" },
     "Commons/Calendar/Schedules/ResourceDetail": { resourceType: "room", resourceId: "BOSS_DEMO_ROOM_MAPLE" },
@@ -91,18 +101,18 @@ const demoParameters = {
 spec({
     setupSpec() {
         login("john.doe")
-        screens = findScreenFiles(["Commons", "Comms", "Projects"])
+        screens = findScreenFiles(["Commons", "Comms", "Projects", "Products"])
     },
 })
 
-feature("the full check of every Commons, Comms and Projects XML screen; each one marked server-static is clean", {
+feature("the full check of every Commons, Comms, Projects and Products XML screen; each one marked server-static is clean", {
     when() {
         const rows = []
         for (const [root, path, location, marked] of screens) {
             const app = root.substring(base.length + 1).replace(/\.xml$/, "")
             let report
             try {
-                report = ec.screen.staticReport({ rootScreen: root, screenPath: path, parameters: demoParameters[`${app}/${path}`] || {} })
+                report = ec.screen.staticReport({ rootScreen: root, screenPath: path, parameters: demoParameters[`${app}/${path}`] || (app === "Products" ? (Object.entries(demoParameters).filter(([key]) => `${app}/${path}`.startsWith(key+"/")).sort((a,b)=>b[0].length-a[0].length)[0]?.[1] || Object.assign({productId:"BOSS_PRD_OWN",organizationPartyId:"ORG_ZIZI_SERVICES"},path.includes("InventoryValuation")?{productStandardCostId:"BOSS_COST_SAMPLE"}:{})) : {}) })
             } catch (err) {
                 report = { verdict: "error", violations: [], reasons: [String(err && err.message ? err.message : err)] }
             }

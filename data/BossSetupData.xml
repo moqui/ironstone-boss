@@ -181,6 +181,7 @@ along with this software (see the LICENSE.md file). If not, see
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SERVICES" description="Guarded catalog services">
         <artifacts artifactName="mantle\.product\.(ProductImportServices|CatalogRecordServices)\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
+        <artifacts artifactName="mantle.product.PriceServices.get#EffectivePriceList" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <artifacts artifactName="mantle\.product\.CatalogCheckServices\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <artifacts artifactName="ironstone.commons.PaletteServices.get#RecordLink" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <artifacts artifactName="ironstone\.products\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>

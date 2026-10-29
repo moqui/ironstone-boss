@@ -50,6 +50,10 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroup userGroupId="BOSS_PROJECT_MANAGER" description="Project managers (IronStone Projects): project, delivery and resource managers, and who bills the work"/>
     <moqui.security.UserGroup userGroupId="BOSS_PROJECT_CLIENT" description="Project clients (IronStone Projects): client contacts with a user account"/>
     <moqui.security.UserGroup userGroupId="BOSS_CONTACT_ADMIN" description="Contact admins (IronStone): edit and delete directory contacts, review duplicates"/>
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_READ" description="Accounting financial reader"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_COST" description="Manufacturing cost"/>
+    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" description="Warehouse facility admin"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PURCHASING_PLANNER" description="Purchasing planner"/>
 
     <!-- Ordinary users carry MANTLE_USER_ORG and private-contact filters. App administrators carry
         MANTLE_ACTIVE_ORG and private-contact filters; framework ADMIN records retain their grants.
@@ -188,7 +192,6 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_SYSADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_READ" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL"/>
     <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_READ" description="Accounting financial reader"/>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_PRICES" description="Products Prices capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Shared/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_READ" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_EDIT" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
@@ -546,23 +549,97 @@ along with this software (see the LICENSE.md file). If not, see
             idField="productId" label="Products" sequenceNum="100"/>
     <moqui.resource.ResourceDriveRecordFolder driveId="BOSS_RECORDS" folderPath="productCategory"
             recordEntityName="mantle.product.category.ProductCategory" idField="productCategoryId" label="Product categories" sequenceNum="105"/>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_VIRTUAL" description="Virtual" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="virtual"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_VARIANTS" description="Variants" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="variants"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_SERVICES" description="Services" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="services"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_STOCKED" description="Stocked" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="stocked"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_DISCONTINUED" description="Discontinued" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="discontinued"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<moqui.screen.form.FormListFind formListFindId="BOSS_PRD_MISSINGPRICE" description="Missing price" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList"><moqui.screen.form.FormListFindField fieldName="list" fieldValue="missingPrice"/><moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/><moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/></moqui.screen.form.FormListFind>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW"><artifacts artifactName="component://mr-boss/screen/Products/Products/NewProduct.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_CATEGORY"><artifacts artifactName="component://mr-boss/screen/Products/Categories/NewCategory.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_FEATURE"><artifacts artifactName="component://mr-boss/screen/Products/Features/NewFeature.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_FEATURE_GROUP"><artifacts artifactName="component://mr-boss/screen/Products/Features/FeatureGroups/NewGroup.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS"><artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilder.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS_TUI"><artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilderTui.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_BULK_PRICE"><artifacts artifactName="component://mr-boss/screen/Products/Products/BulkPrice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_EDIT" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SUP" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
-<moqui.security.user.NotificationTopic topic="ProductPriceChanged" inboxEnumId="NinUpdates" description="Catalog price changes" titleTemplate="Price changed for ${productName}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="info"/>
-<moqui.security.user.NotificationTopic topic="ProductPriceExpiring" inboxEnumId="NinNotifications" description="Expiring catalog prices" titleTemplate="Price for ${productName} expires ${thruDate}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="warning"/>
-<moqui.service.job.ServiceJob jobName="send_ExpiringProductPrices" serviceName="ironstone.products.PriceNoticeServices.send#ExpiringPriceNotices" description="Notify authorized pricing staff about prices ending in 30 days" cronExpression="0 0 6 * * ?" paused="N"/>
-<artifactGroups artifactGroupId="BOSS_PRODUCTS_LISTS" description="Shared price-list and explanation capabilities"><artifacts artifactName="component://mr-boss/screen/Shared/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceListDetail.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Shared/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_0" userGroupId="BOSS_PRODUCTS_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_1" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_2" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_3" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_4" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_LISTS_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_VIRTUAL" description="Virtual" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="virtual"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_VARIANTS" description="Variants" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="variants"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_SERVICES" description="Services" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="services"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_STOCKED" description="Stocked" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="stocked"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_DISCONTINUED" description="Discontinued" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="discontinued"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormListFind formListFindId="BOSS_PRD_MISSINGPRICE" description="Missing price" formLocation="component://mr-boss/screen/Products/Products/List.xml.form_list$ProductList">
+        <moqui.screen.form.FormListFindField fieldName="list" fieldValue="missingPrice"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="BOSS_PRODUCTS"/>
+        <moqui.screen.form.FormListFindUserGroup userGroupId="ADMIN"/>
+    </moqui.screen.form.FormListFind>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW">
+        <artifacts artifactName="component://mr-boss/screen/Products/Products/NewProduct.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_CATEGORY">
+        <artifacts artifactName="component://mr-boss/screen/Products/Categories/NewCategory.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_CATEGORY_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_FEATURE">
+        <artifacts artifactName="component://mr-boss/screen/Products/Features/NewFeature.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_NEW_FEATURE_GROUP">
+        <artifacts artifactName="component://mr-boss/screen/Products/Features/FeatureGroups/NewGroup.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_NEW_FEATURE_GROUP_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS">
+        <artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilder.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_VARIANTS_TUI">
+        <artifacts artifactName="component://mr-boss/screen/Products/Products/VariantBuilderTui.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_EDIT" userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_VARIANTS_TUI_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_BULK_PRICE">
+        <artifacts artifactName="component://mr-boss/screen/Products/Products/BulkPrice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_EDIT" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SUP" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_SYS" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_BULK_PRICE_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <moqui.security.user.NotificationTopic topic="ProductPriceChanged" inboxEnumId="NinUpdates" description="Catalog price changes" titleTemplate="Price changed for ${productName}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="info"/>
+    <moqui.security.user.NotificationTopic topic="ProductPriceExpiring" inboxEnumId="NinNotifications" description="Expiring catalog prices" titleTemplate="Price for ${productName} expires ${thruDate}" showAlert="N" persistOnSend="Y" receiveNotifications="Y" emailNotifications="N" isPrivate="Y" typeString="warning"/>
+    <moqui.service.job.ServiceJob jobName="send_ExpiringProductPrices" serviceName="ironstone.products.PriceNoticeServices.send#ExpiringPriceNotices" description="Notify authorized pricing staff about prices ending in 30 days" cronExpression="0 0 6 * * ?" paused="N"/>
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_LISTS" description="Shared price-list and explanation capabilities">
+        <artifacts artifactName="component://mr-boss/screen/Shared/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/PriceListDetail.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceLists.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices/PriceExplain.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_0" userGroupId="BOSS_PRODUCTS_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_1" userGroupId="BOSS_PRODUCTS_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_2" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_3" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_4" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_LISTS_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SUPPLIERS" description="Guarded shared supplier offers and supplier records">
         <artifacts artifactName="component://mr-boss/screen/Products/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Products/Suppliers.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
@@ -631,7 +708,6 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" userPermissionId="METHOD_APPROVE" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userPermissionId="METHOD_VIEW" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userPermissionId="METHOD_RESOURCES" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_COST" description="Manufacturing cost"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="METHOD_VIEW" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="METHOD_COST_EDIT" fromDate="0"/>
@@ -645,12 +721,10 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_MANAGER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_MANAGER" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" description="Warehouse facility admin"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_ADMIN" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_ADMIN" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_PURCHASING_PLANNER" description="Purchasing planner"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PURCHASING_PLANNER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>

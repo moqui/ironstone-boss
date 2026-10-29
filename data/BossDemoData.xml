@@ -90,8 +90,8 @@ along with this software (see the LICENSE.md file). If not, see
         contacts); two directory people who look like duplicates (Pat Quinn and Patricia Quinn: same email, phone and address,
         flagged as the scan leaves them) and two organizations with the same name but for the LLC (Quinn Consulting, Quinn
         Consulting LLC, flagged too: Mantle's name match leaves out the legal suffix);
-        Bob Developer as Joe Developer's manager, for the directory card. The import specs read data/demo/contacts-google.csv
-        and data/demo/contacts.vcf. -->
+        Bob Developer as Joe Developer's manager, for the directory card. The import specs read test/files/contacts-google.csv
+        and test/files/contacts.vcf. -->
     <mantle.party.contact.ContactBook contactBookId="BOSS_DEMO_BOOK_JD" contactBookName="My Contacts" ownerUserId="EX_JOHN_DOE"
             visibilityEnumId="CbvPersonal" isDefault="Y" color="#1e88e5" createdDate="2026-10-01 09:00:00"/>
     <mantle.party.contact.ContactBookGroup contactBookGroupId="BOSS_DEMO_GRP_FAMILY" contactBookId="BOSS_DEMO_BOOK_JD" groupName="Family" sequenceNum="1"/>

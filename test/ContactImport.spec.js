@@ -1,13 +1,13 @@
 // The contact import wizard (screen/Commons/Contacts/Import.xml and its steps; design-drawers-commons.md §6 ContactImport; impl M4): step
-// by step as the wizard's Next posts each step's form, for a Google Contacts CSV (data/demo/contacts-google.csv: two new people and Mary
-// Doe, already john.doe's personal contact, skipped as a duplicate) and a vCard (data/demo/contacts.vcf: Ada Lovelace new, Robin Fischer
+// by step as the wizard's Next posts each step's form, for a Google Contacts CSV (test/files/contacts-google.csv: two new people and Mary
+// Doe, already john.doe's personal contact, skipped as a duplicate) and a vCard (test/files/contacts.vcf: Ada Lovelace new, Robin Fischer
 // updated with the card's phone), and a CSV with a row that fails, whose failures download as CSV. Between the steps the draft is in
 // john.doe's own folder of the resource store (dbresource://ironstone/ContactImport/EX_JOHN_DOE/<importId>/), which another user's
 // wizard never reads. Authorization stays on, as for a browser request.
 // Run: ./moq test mr-boss --spec ContactImport
 const webroot = "component://webroot/screen/webroot.xml"
 const commons = "component://mr-boss/screen/Commons.xml"
-const demo = "component://mr-boss/data/demo"
+const demo = "component://mr-boss/test/files"
 
 function render(path, parameters) {
     const str = ec.screen.makeTest().rootScreen(webroot).renderMode("qvt").withStaticData().render(path, Object.assign({ lastStandalone: "true" }, parameters || {}), null)

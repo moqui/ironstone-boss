@@ -316,12 +316,12 @@ that parity.
 
 | Screen XML | Form | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| Category/Content/ContentDetail | UpdateContentForm | Products/Categories/CategoryDetail/Content |  |
-| Category/Content/ContentDetail | UpdateTextForm | Products/Categories/CategoryDetail/Content |  |
-| Category/Content/ContentList | NewContentForm | Products/Categories/CategoryDetail/Content |  |
-| Category/Content/ContentList | NewLocationForm | Products/Categories/CategoryDetail/Content |  |
-| Category/Content/ContentList | NewTextForm | Products/Categories/CategoryDetail/Content |  |
-| Category/Content/ContentList | ContentList | Products/Categories/CategoryDetail/Content |  |
+| Category/Content/ContentDetail | UpdateContentForm | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
+| Category/Content/ContentDetail | UpdateTextForm | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
+| Category/Content/ContentList | NewContentForm | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
+| Category/Content/ContentList | NewLocationForm | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
+| Category/Content/ContentList | NewTextForm | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
+| Category/Content/ContentList | ContentList | Products/Categories/CategoryDetail/Content | Products/Categories/CategoryDetail/Content (Shared/Documents: AddCatalogText, UploadCatalogFiles, Documents; Shared/DocumentDetail: ProductContentMetadata) |
 | EditCategory | EditCategoryForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Summary |
 | EditCategory | AddChild | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Parents |
 | EditCategory | ChildCategoriesForm | Products/Categories/CategoryDetail | Products/Categories/CategoryDetail/Parents |
@@ -359,17 +359,17 @@ that parity.
 | EditAssocs | AddAssocToForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
 | EditAssocs | AssocToListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
 | EditAssocs | AssocFromListForm | Products/Products/Product360; Manufacturing/BillsOfMaterials/WhereUsed; Shared/Product360 | Shared/Product360/Associations (substitutes only) |
-| EditAssocs | CreateVariantsForm | Products/Products/VariantBuilder; Shared/Product360 |  |
-| EditAssocs | AllSelectableFeaturesForm | Products/Products/VariantBuilder; Shared/Product360 |  |
+| EditAssocs | CreateVariantsForm | Products/Products/VariantBuilder; Shared/Product360 | Products/Products/VariantBuilder (qvue; VariantBuilderTui XML twin) |
+| EditAssocs | AllSelectableFeaturesForm | Products/Products/VariantBuilder; Shared/Product360 | Products/Products/VariantBuilder (qvue; VariantBuilderTui XML twin) |
 | EditCategories | AddCategoryForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Categories |
 | EditCategories | CategoriesForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Categories |
-| EditPrices | NewPriceForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
-| EditPrices | PricesForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices |  |
+| EditPrices | NewPriceForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices | Shared/Prices (NewSalesPrice, NewSupplierPrice, Prices); Shared/SupplierPrices (SupplierOffers and offer forms); Products mounts only |
+| EditPrices | PricesForm | Products/Pricing/Prices; Products/Products/Product360; Products/Suppliers/SupplierPrices; Purchasing/Suppliers/SupplierPrices; Shared/Product360; Shared/SupplierPrices | Shared/Prices (NewSalesPrice, NewSupplierPrice, Prices); Shared/SupplierPrices (SupplierOffers and offer forms); Products mounts only |
 | EditProduct | CloneProductForm | Products/Products/Product360; Shared/Product360 | Shared/Product360 |
 | EditProduct | EditProductForm | Products/Products/Product360; Shared/Product360 | Shared/Product360 |
 | EditProduct | AddIdentificationForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | IdentificationsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
-| EditProduct | GenerateOtherIdentification | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | GenerateOtherIdentification | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers (GenerateIdentifierPreview, AssignGeneratedIdentifier; explicit internal generation) |
 | EditProduct | AddOtherIdentificationForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | OtherIdentificationsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Identifiers |
 | EditProduct | NewFeatureForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Features (atomic create/apply) |
@@ -379,8 +379,8 @@ that parity.
 | EditProduct | DimensionsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
 | EditProduct | AddUomDimensionForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
 | EditProduct | UomDimensionsForm | Products/Products/Product360; Shared/Product360 | Shared/Product360/Dimensions (modern writes; legacy read only) |
-| EditProduct | CreateProductLocation | Products/Products/Product360; Shared/Product360 |  |
-| EditProduct | ProductLocationList | Products/Products/Product360; Shared/Product360 |  |
+| EditProduct | CreateProductLocation | Products/Products/Product360; Shared/Product360 | Shared/InventoryAvailability/Policy (LocationStockPolicy, LocationPolicies) |
+| EditProduct | ProductLocationList | Products/Products/Product360; Shared/Product360 | Shared/InventoryAvailability/Policy (LocationStockPolicy, LocationPolicies) |
 | EditProduct | CreateProductMeter | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
 | EditProduct | ProductMeterList | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
 | EditProduct | CreateProductMaintenance | Products/Products/Product360; Shared/Product360 | Shared/Product360/Equipment |
@@ -427,8 +427,8 @@ that parity.
 | EditFacility | LocationTypesForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacilityLocations | NewLocationForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
 | EditFacilityLocations | LocationsForm | Warehouse/Locations/FacilityDetail; Shared/FacilityDetail |  |
-| EditFacilityProducts | AddProductForm | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability |  |
-| EditFacilityProducts | ProductList | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability |  |
+| EditFacilityProducts | AddProductForm | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability | Shared/InventoryAvailability/Policy (FacilityStockPolicy, FacilityPolicyRead); Products/Products/Product360/Stock/Policy |
+| EditFacilityProducts | ProductList | Warehouse/Locations/FacilityDetail; Warehouse/Inventory/Product360; Purchasing/Replenishment/ReorderRules; Shared/FacilityDetail; Products/Products/Product360/Stock; Shared/InventoryAvailability | Shared/InventoryAvailability/Policy (FacilityStockPolicy, FacilityPolicyRead); Products/Products/Product360/Stock/Policy |
 | FindFacility | NewFacilityForm | Warehouse/Locations/Facilities |  |
 | FindFacility | FacilityListForm | Warehouse/Locations/Facilities |  |
 

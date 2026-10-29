@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — implementation in progress; P0–P9 built; P10 in progress
+Oct 29, 2026 — P0–P14 built and validated
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -10,8 +10,7 @@ open questions, findings against the code, and what is deferred.
 
 At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers,
 Documents, Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed
-services, entities, fields or status items existed in Mantle or BOSS. P1–P9 are now built below, P10 is in progress, and
-P11–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing, Accounting and Purchasing are
+services, entities, fields or status items existed in Mantle or BOSS. P1–P14 are now built below. Products is the first core ERP app built, so Warehouse, Manufacturing, Accounting and Purchasing are
 placeholders too.
 
 **Inputs.**
@@ -143,11 +142,11 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P7 Stock and facility policy | Mantle, BOSS | InventoryAvailability (Product360's Stock tab) | built Oct 28; Mantle 0716de75; BOSS c413cdd |
 | P8 Methods | Mantle, BOSS | BillOfMaterialsDetail, BillOfMaterialsExplosion, BillOfMaterialsCompare, WhereUsed, RoutingDetail | built Oct 28; Mantle 4422dd44; BOSS 8e946df |
 | P9 Standard costs | Mantle, BOSS | StandardCosts, CostRollup, CostHistory | built Oct 28; Mantle 5a18970e; BOSS 2a4abd6 |
-| P10 Documents and translations | Mantle, BOSS | Documents, DocumentDetail, CategoryContent, Translations | in progress |
-| P11 Units, packaging and labels | mr-moqui, Mantle, BOSS | Units, Packaging, Labels, IdentificationTypes | — |
-| P12 Import | Mantle, BOSS | ProductImport | — |
-| P13 Catalog checks | Mantle, BOSS | CatalogChecks | — |
-| P14 Finish | BOSS | — | — |
+| P10 Documents and translations | Mantle, BOSS | Documents, DocumentDetail, CategoryContent, Translations | built Oct 29; Mantle 83a1b96d; BOSS 100a56e |
+| P11 Units, packaging and labels | mr-moqui, Mantle, BOSS | Units, Packaging, Labels, IdentificationTypes | built Oct 29; Mantle 11e998b7; BOSS ea046d5; framework prerequisites below |
+| P12 Import | Mantle, BOSS | ProductImport | built Oct 29; Mantle f5d4a419; BOSS cc1d5b6 |
+| P13 Catalog checks | Mantle, BOSS | CatalogChecks | built Oct 29 before P12; Mantle 6f070c9f; BOSS 042c2e3 |
+| P14 Finish | Mantle, BOSS, mr-moqui docs | — | built Oct 29; Mantle 82a0e9ad; BOSS 366f9d1; mr-moqui bd1eca3c |
 
 ### P0 — Checks
 
@@ -568,6 +567,8 @@ services only call Mantle's. Validation evidence was kept by the build session.
   - two editors of one text get a conflict, with both versions kept;
   - a source edit flags its translations for review.
 
+**Built Oct 29 (P10).** Mantle `83a1b96d`; BOSS `100a56e`. Typed content and translation revisions, conflict drafts, guarded uploads/restores and product datasheets; source changes mark translations for review. The native services run without BOSS. Browser editing, retained conflicts, translation review and datasheet HTML/PDF were validated.
+
 ### P11 — Units, packaging and labels
 
 - **Framework** (F18).
@@ -587,6 +588,8 @@ services only call Mantle's. Validation evidence was kept by the build session.
 - **PRD-LABELS:** Labels, with `prepare#ProductLabels` and `render#ProductLabels`.
 - **Usable when:** §12.3 #7 and #11.
 
+**Built Oct 29 (P11).** Mantle `11e998b7`; BOSS `ea046d5`; framework `944b3cf0`, `67a1b2f5`, `373fc8e6`. Shared barcode/GS1 tooling, dimensional non-currency units, dated packs, validated identifiers, explicit internal assignment and durable existing-code labels. Packs and labels make no stock movement. BOSS **989/989**; browser scans, dated successors, PDF/print output and unit authority validated. Standalone Mantle has four reproduced baseline failures (InboxThreads, MantleSearch, WorkTimeEntries, WorkTimesheets).
+
 ### P12 — Import
 
 - **PRD-IMPORT.**
@@ -600,6 +603,8 @@ services only call Mantle's. Validation evidence was kept by the build session.
 - **Usable when** (§12.3 #6, for imports): mixed valid and invalid rows apply the valid ones, and a resumed retry
   writes nothing twice.
 
+**Built Oct 29 (P12).** Mantle `f5d4a419`; BOSS `cc1d5b6`. Actor-private staged CSV, typed mapping and preview, native validators, atomic dependent rows and independent apply/retry, stale checks, downloadable results and one aggregate notice. Native catalog writers moved out of BOSS; overlapping staged price tiers are rejected before writes. BOSS **1009/1009**; standalone Mantle **800 passed, four baseline failures, 17 skipped**; eight browser cases cover real multipart upload, mapping, mixed outcomes, resume and required screenshots.
+
 ### P13 — Catalog checks
 
 - **PRD-VALIDATION:** `mantle.product.CatalogCheckServices.validate#Catalog` (new), with design §11's checks, each
@@ -609,6 +614,10 @@ services only call Mantle's. Validation evidence was kept by the build session.
 - **Usable when:** each issue planted in the demo is reported with its evidence, and a record that cannot be read does
   not stop the others.
 
+**Built Oct 29 (P13, before P12).** Mantle `6f070c9f`; BOSS `042c2e3`. Native catalog readiness checks, source permissions and per-record failure tolerance; activation/import reuse them. BOSS **999/999**, eight native check cases and seven browser cases passed. Categories without products are also checked for cycles.
+
+**Shared context seam before P14 (I-PRD-01).** BOSS `d82ed0b`: one server-derived app context supplies capabilities, owner scope, route aliases and Product360 tabs. Unsupported roots fail closed; nested reads retain request-local routing. Connections checks actual root authorizations and native record visibility without naming another app's groups. Validation: 75 screen/output cases, 165 domain cases (one expected error-text assertion updated and the supplier suite rerun **27/27**), 31 context/access cases and 13 browser workflows; no screen parse failures. Other app branches remain §7 work. See `docs/ProductsSharedScreens.md`.
+
 ### P14 — Finish
 
 - The terminal twins, and the server-static pass.
@@ -616,6 +625,10 @@ services only call Mantle's. Validation evidence was kept by the build session.
   organizations' records, through URLs, shared contexts, imports, exports and search.
 - The §13 outputs not built earlier.
 - The inventories' **Implemented in** columns, the design's Impl column, and Remaining-Work.
+
+**Built Oct 29 (P14).** Mantle `82a0e9ad`; BOSS `366f9d1`; mr-moqui docs `bd1eca3c`. Supplier CSV/XLSX and authorized trace export controls; a native resolved effective-price output with explicit list/date/quantity/counterparty scope, blank unavailable prices, per-product failure tolerance and matching HTML/PDF/CSV/XLSX. One report is bounded to 1,000 selected/authorized products and asks for a narrower selection above that limit. The Products-only HTTP walk refuses Accounting, Warehouse, Manufacturing and Purchasing roots and restricted outputs; native/internal probes also refuse cost, posting, unsupported contexts and foreign owners with artifact authorization on and off.
+
+P14 validation: BOSS **1025/1025** (100 specs), including the extended Products server-static compatibility report and terminal twins; standalone Mantle **804 passed, four reproduced baseline failures, 17 skipped** (825 features); native pricing/output focus **14/14**; 11 final browser list/import/output cases plus the saved XLSX export case. The output UI was inspected at 390/1280/1440 in light/dark; the XLSX archive contains the authorized product and resolved price and excludes the foreign product. Screen expression lint has **zero parse failures** (125 existing idiom/hazard sites unchanged). Baseline Mantle failures: InboxThreads, MantleSearch, WorkTimeEntries and WorkTimesheets. `docs/ProductsImplementation.md` records the shipped boundaries. The `plan/` edits remain uncommitted at the user's request.
 
 ## 4. Decisions
 
@@ -780,3 +793,15 @@ P7 committed after validation: Mantle `0716de75`, BOSS `c413cdd`.
 P8 committed after validation: Mantle `4422dd44`, BOSS `8e946df`.
 
 P9 committed after validation: Mantle `5a18970e`, BOSS `2a4abd6`.
+
+P10 committed after validation: Mantle `83a1b96d`, BOSS `100a56e`.
+
+P11 committed after validation: framework `944b3cf0`, `67a1b2f5`, `373fc8e6`; Mantle `11e998b7`, BOSS `ea046d5`.
+
+P13 committed before P12 after validation: Mantle `6f070c9f`, BOSS `042c2e3`.
+
+P12 committed after validation: Mantle `f5d4a419`, BOSS `cc1d5b6`.
+
+Shared app context seam committed before P14: BOSS `d82ed0b`.
+
+P14 committed after validation: Mantle `82a0e9ad`, BOSS `366f9d1`; Remaining-Work `bd1eca3c`.

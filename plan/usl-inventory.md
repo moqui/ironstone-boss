@@ -644,7 +644,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
 | AssetServices | get#AssetDisplayInfo | Warehouse/Inventory/Adjustments; Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
-| AssetServices | get#AvailableInventory | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/InventoryAvailability; CustomerService/Availability/InventoryAvailability; Shared/Product360; Shared/InventoryAvailability; Manufacturing/WorkOrders/NewWorkOrder; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail/BillOfMaterialsExplosion |  |
+| AssetServices | get#AvailableInventory | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/InventoryAvailability; CustomerService/Availability/InventoryAvailability; Shared/Product360; Shared/InventoryAvailability; Manufacturing/WorkOrders/NewWorkOrder; Manufacturing/BillsOfMaterials/BillOfMaterialsDetail/BillOfMaterialsExplosion | Shared/InventoryAvailability/Summary; Shared/Product360/Summary (kits) |
 | AssetServices | get#AvailableForOrder | Warehouse/Inventory/Availability; Shared/InventoryAvailability |  |
 | AssetServices | get#AvailableInventoryMulti | Warehouse/Inventory/Availability; Warehouse/Picking/PickLocationMoves; Purchasing/Replenishment/InventoryAvailability; CustomerService/Availability/InventoryAvailability; Shared/InventoryAvailability |  |
 | AssetServices | update#Asset | Warehouse/Inventory/AssetDetail; Shared/EquipmentDetail |  |
@@ -694,11 +694,11 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | EquipmentServices | create#AssetMaintenanceContent | Shared/RecordFiles | Shared/RecordFiles |
 | EquipmentServices | update#AssetMaintenanceContent |  |  |
 | EquipmentServices | save#AssetMaintenanceContentFile | Shared/RecordFiles |  |
-| InventoryReportServices | get#InventoryProjectedInfo | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/SupplyPlanning; CustomerService/Availability/InventoryAvailability; Shared/InventoryAvailability; Shared/SupplyPlanning |  |
-| InventoryReportServices | get#PriceHistoryInfo | Products/Pricing/PriceHistory |  |
+| InventoryReportServices | get#InventoryProjectedInfo | Products/Products/Product360/Stock; Warehouse/Inventory/Availability; Purchasing/Replenishment/SupplyPlanning; CustomerService/Availability/InventoryAvailability; Shared/InventoryAvailability; Shared/SupplyPlanning | Shared/InventoryAvailability/Projection |
+| InventoryReportServices | get#PriceHistoryInfo | Products/Pricing/PriceHistory | Products/Prices/PriceHistory |
 | PriceServices | modify#ProductPrice | |  |
 | PriceServices | get#ProductPriceByType |  |  |
-| PriceServices | get#ProductPrice | Products/Pricing/PriceLists/PriceListDetail; Products/Pricing/PriceExplain; Purchasing/Suppliers/PriceExplain; Purchasing/Suppliers/SupplierPrices |  |
+| PriceServices | get#ProductPrice | Products/Pricing/PriceLists/PriceListDetail; Products/Pricing/PriceExplain; Purchasing/Suppliers/PriceExplain; Purchasing/Suppliers/SupplierPrices | Shared/PriceExplain |
 | PriceServices | get#OrderProductPrice |  |  |
 | ProductServices | find#ProductByIdValue | Products; Products/Products; Products/Units/Packaging; Products/Settings/IdentificationTypes | Products (guarded exact-ID palette) |
 | ProductServices | clone#Product | Products/Products/Product360; Shared/Product360 |  |
@@ -711,7 +711,7 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ProductServices | get#FeatureByIactnOrAll |  |  |
 | ProductServices | find#VariantProduct |  |  |
 | ProductServices | get#VariantProductsInfo | Products/Products/VariantBuilder |  |
-| ProductServices | create#VariantProducts | Products/Products/VariantBuilder; Shared/Product360 |  |
+| ProductServices | create#VariantProducts | Products/Products/VariantBuilder; Shared/Product360 | Products/Products/VariantBuilder; Products/Products/VariantBuilderTui |
 | ProductServices | create#VariantProduct | Products/Products/VariantBuilder |  |
 | ProductServices | delete#VariantProducts |  |  |
 | ProductServices | delete#Product | Products/Products | Shared/Product360 (guarded unused-draft deletion) |
@@ -1199,3 +1199,93 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | --- | --- | --- | --- |
 | GeneralServices | lookup#ById | Commons/Calendar/EventDetail; Commons/Knowledge; Comms/Inbox; Comms/Chat | Commons; Commons/Calendar/EventDetail; Commons/Knowledge; Commons/Notes; Comms/Chat; Comms/Inbox/Mail; Comms/Inbox/MessageDetail; Shared/Chatter; Projects/Projects/ProjectDetail/Docs; Projects/Requests/RequestDetail |
 | GeneralServices | search#MantleFiltered |  |  |
+
+### Products implementation, Oct 29, 2026
+
+Products uses native guarded replacements for raw catalog writes, bulk assignments, content revisions and variant previews. Legacy service rows above stay blank where no BOSS screen calls that legacy API; a Designed in entry alone is not an implementation claim. Other apps' shared mounts remain later. The following public native entry points are reached by built Products screens; internal per-row workers and calls made only by another Mantle service are not claimed here.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| product/CatalogRecordServices | store#Product |  | Shared/Product360; Products/Products/List; Shared/ProductImport |
+| product/CatalogRecordServices | store#CatalogRow |  | Shared/Product360; Products/Products/List; Shared/ProductImport |
+| product/CatalogRecordServices | ensure#CatalogAssignment |  | Shared/Product360; Products/Products/List; Shared/ProductImport |
+| product/ContentServices | find#CatalogContents |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | get#CatalogContent |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | store#CatalogContent |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | upload#CatalogContents |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | restore#CatalogContent |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | find#CatalogTranslations |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | store#CatalogTranslation |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | get#CatalogContentResource |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ContentServices | get#ProductDatasheet |  | Shared/Documents; Shared/DocumentDetail; Shared/Translations; Products/Categories/CategoryDetail/Content |
+| product/ProductImportServices | get#CatalogImportKinds |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | stage#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | configure#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | validate#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | apply#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | get#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | get#CatalogImportReport |  | Shared/ProductImport; Products/ProductImport |
+| product/ProductImportServices | get#CatalogImportSample |  | Shared/ProductImport; Products/ProductImport |
+| product/CatalogCheckServices | validate#Catalog |  | Shared/CatalogChecks; Products/Settings/CatalogChecks; Products/Home |
+| product/CatalogCheckServices | get#CatalogChecks |  | Shared/CatalogChecks; Products/Settings/CatalogChecks; Products/Home |
+| product/PriceServices | store#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | replace#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | expire#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | find#ProductPriceLists |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | find#ProductPriceRules |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | store#ProductPriceList |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | store#ProductPriceRule |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | get#ProductPriceListPublication |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | publish#ProductPriceList |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | retire#ProductPriceList |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/PriceServices | get#EffectivePriceList |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
+| product/ProductServices | store#ProductPackaging |  | Shared/Packaging; Shared/Product360/Packaging; Shared/Product360/Identifiers |
+| product/ProductServices | find#ProductPackaging |  | Shared/Packaging; Shared/Product360/Packaging; Shared/Product360/Identifiers |
+| product/ProductServices | resolve#ScannedProduct |  | Shared/Packaging; Shared/Product360/Packaging; Shared/Product360/Identifiers |
+| product/ProductServices | validate#ProductIdentifier |  | Shared/Packaging; Shared/Product360/Packaging; Shared/Product360/Identifiers |
+| product/LabelServices | prepare#ProductLabels |  | Shared/Labels; Products/Units/Labels |
+| product/LabelServices | render#ProductLabels |  | Shared/Labels; Products/Units/Labels |
+| product/LabelServices | get#ProductLabels |  | Shared/Labels; Products/Units/Labels |
+| product/LabelServices | get#ProductLabelResource |  | Shared/Labels; Products/Units/Labels |
+| product/LabelServices | get#ProductLabelPrint |  | Shared/Labels; Products/Units/Labels |
+| product/CostServices | find#ProductStandardCosts |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | get#ProductStandardCost |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | store#ProductStandardCost |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | store#StandardCostComponent |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | clone#ProductStandardCost |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | approve#ProductStandardCost |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | preview#ProductCostRollup |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | save#ProductCostRollup |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | get#StandardCostPrint |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/CostServices | get#ProductMargin |  | Shared/StandardCosts; Shared/CostRollup; Shared/CostHistory; Shared/PriceExplain |
+| product/BomServices | find#Boms |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | get#BomDetail |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | store#Bom |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | store#BomItem |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | validate#BomDraft |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | release#BomDraft |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | get#BomExplosion |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | compare#BomDates |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | get#BomWhereUsed |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| product/BomServices | import#LegacyBom |  | Shared/BillOfMaterialsDetail; Shared/BillOfMaterialsExplosion; Shared/BillOfMaterialsCompare; Shared/WhereUsed |
+| work/RoutingServices | find#Routings |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | get#RoutingDetail |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | store#Routing |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | store#RoutingOperation |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | store#RoutingResource |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | validate#RoutingDraft |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | release#RoutingDraft |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | store#WorkCenter |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| work/RoutingServices | store#WorkCenterRate |  | Shared/RoutingDetail; Shared/BillOfMaterialsDetail |
+| facility/FacilityServices | get#ProductFacilityPolicy |  | Shared/InventoryAvailability/Policy; Products/Products/Product360/Stock/Policy |
+| facility/FacilityServices | store#ProductFacilityPolicy |  | Shared/InventoryAvailability/Policy; Products/Products/Product360/Stock/Policy |
+| facility/WarehousePolicyServices | resolve#WarehousePolicy |  | Shared/InventoryAvailability/Policy; Products/Products/Product360/Stock/Policy |
+| facility/WarehousePolicyServices | store#TrackingPolicy |  | Shared/InventoryAvailability/Policy; Products/Products/Product360/Stock/Policy |
+| ledger/AssetBookServices | preview#Revaluation |  | Shared/InventoryValuation (Products mount) |
+| ledger/AssetBookServices | get#RevaluationPreview |  | Shared/InventoryValuation (Products mount) |
+| ledger/AssetBookServices | post#Revaluation |  | Shared/InventoryValuation (Products mount) |
+| ledger/AssetBookServices | get#RevaluationContext |  | Shared/InventoryValuation (Products mount) |
+| product/IdentifierServices | get#IdentifierContext |  | Shared/IdentificationTypes; Products/Settings/IdentificationTypes |
+| product/IdentifierServices | store#IdentifierPolicy |  | Shared/IdentificationTypes; Products/Settings/IdentificationTypes |
+| product/PriceServices | get#PricingSettings |  | Products/Settings/PricingSettings; Shared/Prices; Shared/SupplierPrices |
+| product/PriceServices | store#PricingSettings |  | Products/Settings/PricingSettings; Shared/Prices; Shared/SupplierPrices |

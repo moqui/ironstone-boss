@@ -209,3 +209,12 @@ feature('cost services enforce their own grant with artifact authorization #enab
  return{plain:probe('catalog.reader'),read:probe('catalog.cost.read'),admin:probe('catalog.admin')}
  },then({plain,read,admin}){plain.read==false;plain.count==0;read.read==true;read.count>=1;admin.read==true},
 })
+feature('each owner app administrator holds its app permissions without granting them to Products administration',{
+ when(){
+  const userId=ec.entity.find('moqui.security.UserAccount').condition('username','catalog.reader').disableAuthz().one().userId,date='2000-01-01T00:00:00Z'
+  const add=group=>ec.service.sync().name('create#moqui.security.UserGroupMember').parameters({userId,userGroupId:group,fromDate:date}).disableAuthz().call(),remove=group=>ec.entity.find('moqui.security.UserGroupMember').condition({userId,userGroupId:group,fromDate:date}).disableAuthz().deleteAll()
+  let accounting,purchasing
+  try{add('BOSS_ACCOUNTING_ADMIN');accounting=asCatalog('catalog.reader',()=>call(CATALOG+'get#CatalogAccess').capabilities,false);remove('BOSS_ACCOUNTING_ADMIN');add('BOSS_PURCHASING_ADMIN');purchasing=asCatalog('catalog.reader',()=>call(CATALOG+'get#CatalogAccess').capabilities,false)}finally{remove('BOSS_ACCOUNTING_ADMIN');remove('BOSS_PURCHASING_ADMIN')}
+  return{accounting,purchasing,products:asCatalog('catalog.admin',()=>call(CATALOG+'get#CatalogAccess').capabilities,false)}
+ },then({accounting,purchasing,products}){accounting.glPost==true;accounting.costRead==true;accounting.costEstimate==false;purchasing.stockPlan==true;purchasing.glPost==false;products.glPost==false;products.stockPlan==false;products.methodEdit==false},
+})

@@ -654,4 +654,8 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" userPermissionId="PRODUCT_CATALOG_EDIT" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_CATALOG_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_GL_POST" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PURCHASING_ADMIN" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
 </entity-facade-xml>

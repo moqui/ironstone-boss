@@ -60,7 +60,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="ProductsRowsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddProductsRows" button-text="Add" title="ProductsRows" width="640">
+                                <container-dialog id="AddProductsRows" button-text="Add product" icon="sym_o_add" title="Add a product to the category" width="640">
                                     <form-single name="AddProductsRows" transition="storeProductsRows">
                                         <field name="productCategoryId">
                                             <default-field title="Category">
@@ -103,7 +103,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="ProductsRowsRows" list="detail.products" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditProductsRows_${entry_index}" button-text="Edit ${entry.productId}" title="ProductsRows" width="640">
+                                        <container-dialog id="EditProductsRows_${entry_index}" button-text="Edit ${entry.productId}" title="Edit product membership" width="640">
                                             <form-single name="EditProductsRows" transition="storeProductsRows" map="entry">
                                                 <field name="productCategoryId">
                                                     <default-field title="Category">

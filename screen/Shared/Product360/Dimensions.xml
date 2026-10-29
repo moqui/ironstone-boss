@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="DimensionsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddDimensions" button-text="Add" title="Dimensions &amp; units" width="640">
+                                <container-dialog id="AddDimensions" button-text="Add dimension" icon="sym_o_add" title="Add a dimension" width="640">
                                     <form-single name="AddDimensions" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -102,7 +102,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditDimensionsRows" list="detail.dimensionRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditDimensions_${entry_index}" button-text="Edit ${entry.uomDimensionTypeId}" title="Edit Dimensions &amp; units" width="640">
+                                        <container-dialog id="EditDimensions_${entry_index}" button-text="Edit ${entry.uomDimensionTypeId}" title="Edit dimension" width="640">
                                             <form-single name="EditDimensions" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

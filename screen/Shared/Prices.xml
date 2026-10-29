@@ -73,7 +73,7 @@ along with this software (see the LICENSE.md file). If not, see
         <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression>
     </condition>
     <actions>
-        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="access"/>
+        <set field="access" from="sharedMountContext"/>
         <service-call name="ironstone.products.CatalogServices.get#PriceOptions" out-map="context"/>
         <service-call name="ironstone.products.CatalogServices.find#ProductPrices" in-map="context" out-map="context"/>
         <script><![CDATA[
@@ -218,7 +218,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             </default-field>
                         </field>
                         <field name="fromDate">
-                            <default-field title="Effective from (empty: now)">
+                            <default-field title="Effective from" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -347,7 +347,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             </default-field>
                         </field>
                         <field name="fromDate">
-                            <default-field title="Effective from (empty: now)">
+                            <default-field title="Effective from" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -680,7 +680,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                                             </default-field>
                                         </field>
                                         <field name="thruDate" from="''">
-                                            <default-field title="End date (empty: now)">
+                                            <default-field title="End date" tooltip="Leave empty to start now">
                                                 <date-time/>
                                             </default-field>
                                         </field>

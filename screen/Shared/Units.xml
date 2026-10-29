@@ -24,8 +24,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="storeUnit">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.store#Unit" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -39,8 +37,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="storeConversion">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.store#UnitConversion" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -54,8 +50,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="endConversion">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="unitAppAccess" />
-            <script>if(!unitAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.end#UnitConversion" in-map="context" />
         </actions>
         <default-response url="." />
@@ -188,7 +182,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
             <field name="asOfDate">
-                <default-field title="As of (empty: all dates)">
+                <default-field title="As of" tooltip="Leave empty for every date">
                     <date-time />
                 </default-field>
             </field>
@@ -273,12 +267,12 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="conversionOffset">
-                        <default-field title="Offset (temperature only)">
+                        <default-field title="Offset" tooltip="Temperature only">
                             <text-line />
                         </default-field>
                     </field>
                     <field name="fromDate">
-                        <default-field title="Effective from (empty: now)">
+                        <default-field title="Effective from" tooltip="Leave empty to start now">
                             <date-time />
                         </default-field>
                     </field>
@@ -325,7 +319,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="submitButton">
                         <default-field title="End this conversion">
-                            <submit />
+                            <submit type="danger" confirmation="End this conversion? Quantities stop converting with it from the end date." />
                         </default-field>
                     </field>
                 </form-single>

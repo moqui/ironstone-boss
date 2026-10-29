@@ -428,7 +428,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                     </default-field>
                                                 </field>
                                                 <field name="scrapFactor">
-                                                    <default-field title="Scrap factor (0 to 1)">
+                                                    <default-field title="Scrap factor" tooltip="0 to 1">
                                                         <text-line />
                                                     </default-field>
                                                 </field>
@@ -544,7 +544,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                     </default-field>
                                                 </field>
                                                 <field name="fromDate">
-                                                    <default-field title="Effective start (empty: now)">
+                                                    <default-field title="Effective start" tooltip="Leave empty to start now">
                                                         <date-time />
                                                     </default-field>
                                                 </field>

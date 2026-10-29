@@ -24,8 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="storePolicy">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.catalogAdmin)throw new Error('Catalog administrator access is required')</script>
+            <script>if(!sharedMountContext.capabilities.catalogAdmin)throw new Error('Catalog administrator access is required')</script>
             <service-call name="mantle.product.IdentifierServices.store#IdentifierPolicy" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -169,7 +168,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="fromDate">
-                        <default-field title="Effective from (empty: now)">
+                        <default-field title="Effective from" tooltip="Leave empty to start now">
                             <date-time />
                         </default-field>
                     </field>

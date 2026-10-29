@@ -23,8 +23,6 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="stage">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.stage#CatalogImport" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -34,8 +32,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="mapping">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="ironstone.products.ImportServices.map#CatalogImport" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -45,8 +41,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="validate">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.validate#CatalogImport" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -56,8 +50,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="apply">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.apply#CatalogImport" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -67,8 +59,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="sample" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.get#CatalogImportSample" in-map="{kindId:kindId,organizationPartyId:organizationPartyId}" out-map="report" />
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
         </actions>
@@ -76,8 +66,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="results" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
-            <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.get#CatalogImportReport" in-map="{operationKey:operationKey,errorsOnly:errorsOnly}" out-map="report" />
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
         </actions>
@@ -444,7 +432,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="selectedRowIds">
-                                <default-field title="Row IDs from the preview (empty: all ready rows)">
+                                <default-field title="Row IDs from the preview" tooltip="Leave empty for all ready rows">
                                     <text-line />
                                 </default-field>
                             </field>
@@ -513,7 +501,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="pageIndex">
-                        <default-field title="Page index (50 rows per page)">
+                        <default-field title="Page index" tooltip="50 rows per page">
                             <text-line />
                         </default-field>
                     </field>

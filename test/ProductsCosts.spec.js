@@ -63,7 +63,6 @@ feature("the cost workspace separates cost, pricing, method and GL authority", {
 feature("cost #path renders in #mode with an approved estimate and no other-app launcher", {
     where: [
         "Prices/StandardCosts",
-        "Pricing/StandardCosts",
         "Prices/CostRollup",
         "Prices/CostHistory",
         "Products/Product360/Costs"

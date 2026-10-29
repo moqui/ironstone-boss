@@ -38,7 +38,6 @@ const paths = [
     "Products/Product360",
     "Products/VariantBuilder",
     "SupplierPrices/Supplier360",
-    "Suppliers/Supplier360",
     "Translations",
     "Units/Labels"
 ]

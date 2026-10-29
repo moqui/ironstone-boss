@@ -690,12 +690,8 @@ function run(op, parameters) {
                         priority: task.priority
                     })
             }
-        const soon = Array.from(find(P + "Product").list()).filter(
-            row =>
-                visible(row.productId) &&
-                ms(row.salesDiscontinuationDate) > ms(ec.user.nowTimestamp) &&
-                ms(row.salesDiscontinuationDate) <= ms(ec.user.nowTimestamp) + 30 * 86400000
-        ).length
+        // the same filter as the Products list's discontinuing-soon find, which the card opens
+        const soon = findProducts({list: "discontinuingSoon", pageSize: 1}).productListCount
         const checks = call("mantle.product.CatalogCheckServices.validate#Catalog", {checkIds: ["requiredFields"]}, true)
         const hasPrices = access().capabilities.priceRead
         const priceChecks = hasPrices

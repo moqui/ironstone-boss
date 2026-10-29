@@ -25,7 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <context title="Feature groups"/>
-        <link url="../NewGroup" text="Create feature group" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
+        <link url="../NewGroup" text="Create feature group" link-type="anchor-button" btn-type="primary" icon="sym_o_add" condition="access.capabilities.catalogEdit"/>
         <form-list name="FeatureGroups" list="rows" skip-form="true" paginate="false" header-dialog="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true">
             <field name="text">
                 <header-field title="ID, description or code">

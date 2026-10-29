@@ -642,7 +642,6 @@ along with this software (see the LICENSE.md file). If not, see
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SUPPLIERS" description="Guarded shared supplier offers and supplier records">
         <artifacts artifactName="component://mr-boss/screen/Products/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <artifacts artifactName="component://mr-boss/screen/Products/Suppliers.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Shared/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Shared/Supplier360.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>

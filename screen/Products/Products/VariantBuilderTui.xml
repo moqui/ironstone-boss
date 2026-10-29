@@ -116,17 +116,17 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="productFeatureGroupIds">
-                        <default-field title="Feature groups (JSON array; empty: all)">
+                        <default-field title="Feature groups" tooltip="JSON array; empty: all">
                             <text-line/>
                         </default-field>
                     </field>
                     <field name="filterFeatureIdsJson">
-                        <default-field title="Feature filters (JSON array)">
+                        <default-field title="Feature filters" tooltip="JSON array">
                             <text-line/>
                         </default-field>
                     </field>
                     <field name="copyFieldsJson">
-                        <default-field title="Copy fields (JSON array; empty: policy defaults)">
+                        <default-field title="Copy fields" tooltip="JSON array; empty: policy defaults">
                             <text-line/>
                         </default-field>
                     </field>
@@ -354,7 +354,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="selectedFeatureSetsJson">
-                                <default-field title="Selected feature sets (JSON)">
+                                <default-field title="Selected feature sets" tooltip="JSON">
                                     <text-area/>
                                 </default-field>
                             </field>
@@ -411,7 +411,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="selectedFeatureSetsJson">
-                                <default-field title="Selected feature sets (JSON)">
+                                <default-field title="Selected feature sets" tooltip="JSON">
                                     <text-area/>
                                 </default-field>
                             </field>
@@ -445,7 +445,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="limit">
-                        <default-field title="Combinations to process (1–100)">
+                        <default-field title="Combinations to process" tooltip="1–100">
                             <text-line input-type="number"/>
                         </default-field>
                     </field>

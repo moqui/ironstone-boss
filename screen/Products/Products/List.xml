@@ -53,18 +53,29 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="productListPageMaxIndex" from="Math.max(0, Math.ceil(productListCount / pageSize) - 1)"/>
         <set field="productListPageRangeLow" from="productList.length ? pageIndex * pageSize + 1 : 0"/>
         <set field="productListPageRangeHigh" from="productList.length ? pageIndex * pageSize + productList.length : 0"/>
+        <!-- the curated finds as chips, the one in force highlighted (a Home card opens one of them) -->
+        <script><![CDATA[
+            const lists = [['', 'All'], ['activeSkus', 'Active'], ['virtual', 'Virtual'], ['variants', 'Variants'], ['services', 'Services'],
+                ['stocked', 'Stocked'], ['discontinuingSoon', 'Discontinuing soon'], ['discontinued', 'Discontinued'], ['missingPrice', 'Missing price']]
+            listChips = lists.map(([key, label]) => ({label: ec.l10n.localize(label), on: (list || '') === key, params: {list: key}}))
+        ]]></script>
     </actions>
     <widgets>
         <context title="Products" selection-form="ProductList"/>
         <container style="row items-center q-gutter-sm">
-            <link url="../NewProduct" text="Create product" link-type="anchor-button" condition="access.capabilities.catalogEdit"/>
-            <link url="." text="All" link-type="anchor" parameter-map="{list:''}"/>
-            <link url="." text="Virtual" link-type="anchor" parameter-map="{list:'virtual'}"/>
-            <link url="." text="Variants" link-type="anchor" parameter-map="{list:'variants'}"/>
-            <link url="." text="Services" link-type="anchor" parameter-map="{list:'services'}"/>
-            <link url="." text="Stocked" link-type="anchor" parameter-map="{list:'stocked'}"/>
-            <link url="." text="Discontinued" link-type="anchor" parameter-map="{list:'discontinued'}"/>
-            <link url="." text="Missing price" link-type="anchor" parameter-map="{list:'missingPrice'}"/>
+            <link url="../NewProduct" text="Create product" link-type="anchor-button" btn-type="primary" icon="sym_o_add" condition="access.capabilities.catalogEdit"/>
+            <section-iterate name="ListChip" list="listChips" entry="chip">
+                <widgets>
+                    <section name="ListChipOn" condition="chip.on">
+                        <widgets>
+                            <link url="." link-type="anchor-button" btn-type="primary" text="${chip.label}" parameter-map="chip.params"/>
+                        </widgets>
+                        <fail-widgets>
+                            <link url="." link-type="anchor-button" text="${chip.label}" parameter-map="chip.params"/>
+                        </fail-widgets>
+                    </section>
+                </widgets>
+            </section-iterate>
         </container>
         <section name="SearchMessage" condition="searchMessage">
             <widgets>
@@ -100,7 +111,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="fromDate">
-                                    <default-field title="Existing start (required to end a row)">
+                                    <default-field title="Existing start" tooltip="Required to end a row">
                                         <date-time/>
                                     </default-field>
                                 </field>
@@ -148,7 +159,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="fromDate">
-                                    <default-field title="Existing start (required to end a row)">
+                                    <default-field title="Existing start" tooltip="Required to end a row">
                                         <date-time/>
                                     </default-field>
                                 </field>
@@ -208,8 +219,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="categoryIds">
-                        <header-field title="Category IDs (comma separated)">
-                            <text-line/>
+                        <header-field title="Categories">
+                            <drop-down allow-empty="true" allow-multiple="true">
+                                <list-options list="options.categories" key="${value}" text="${label}"/>
+                            </drop-down>
                         </header-field>
                         <default-field>
                             <ignored/>

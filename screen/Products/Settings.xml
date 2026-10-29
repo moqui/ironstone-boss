@@ -14,16 +14,6 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Settings" default-menu-index="9" menu-image="sym_o_settings" menu-image-type="icon">
     <parameter name="organizationPartyId"/>
-    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
-    <transition name="save">
-        <actions>
-            <service-call name="mantle.product.ProductServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,fromDate:effectiveFromDate,changeReason:changeReason,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
     <subscreens default-item="Index"/>
     <widgets>
         <subscreens-menu id="ProductSettingsTabs" type="tab"/>

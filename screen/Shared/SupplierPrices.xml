@@ -244,7 +244,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="standardLeadTimeDays">
-                            <default-field title="Lead time (days)">
+                            <default-field title="Lead time" tooltip="Days">
                                 <text-line input-type="number"/>
                             </default-field>
                         </field>
@@ -281,7 +281,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="fromDate">
-                            <default-field title="Effective from (empty: now)">
+                            <default-field title="Effective from" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -456,7 +456,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="openSupplier">
                         <default-field title="Supplier record">
-                            <link url="${sharedLinks['Suppliers/Supplier360']}" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['SupplierPrices/Supplier360']}" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
                     <field name="openProduct">
@@ -537,7 +537,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="standardLeadTimeDays">
-                                            <default-field title="Lead time (days)">
+                                            <default-field title="Lead time" tooltip="Days">
                                                 <text-line input-type="number"/>
                                             </default-field>
                                         </field>
@@ -638,7 +638,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="standardLeadTimeDays">
-                                            <default-field title="Lead time (days)">
+                                            <default-field title="Lead time" tooltip="Days">
                                                 <text-line input-type="number"/>
                                             </default-field>
                                         </field>
@@ -693,7 +693,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         </default-field>
                                     </field>
                                     <field name="thruDate">
-                                        <default-field title="End at (empty: now)">
+                                        <default-field title="End at" tooltip="Leave empty to start now">
                                             <date-time/>
                                         </default-field>
                                     </field>

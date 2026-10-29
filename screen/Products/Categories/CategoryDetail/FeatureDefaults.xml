@@ -54,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="FeatureDefaultsRowsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddFeatureDefaultsRows" button-text="Add" title="FeatureDefaultsRows" width="640">
+                                <container-dialog id="AddFeatureDefaultsRows" button-text="Add default feature" icon="sym_o_add" title="Add a default feature" width="640">
                                     <form-single name="AddFeatureDefaultsRows" transition="storeFeatureDefaultsRows">
                                         <field name="productCategoryId">
                                             <default-field title="Category">
@@ -96,7 +96,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="FeatureDefaultsRowsRows" list="detail.groups" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditFeatureDefaultsRows_${entry_index}" button-text="Edit ${entry.productFeatureGroupId}" title="FeatureDefaultsRows" width="640">
+                                        <container-dialog id="EditFeatureDefaultsRows_${entry_index}" button-text="Edit ${entry.productFeatureGroupId}" title="Edit default feature" width="640">
                                             <form-single name="EditFeatureDefaultsRows" transition="storeFeatureDefaultsRows" map="entry">
                                                 <field name="productCategoryId">
                                                     <default-field title="Category">

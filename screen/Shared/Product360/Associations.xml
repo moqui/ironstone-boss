@@ -69,7 +69,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="AssociationsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddAssociations" button-text="Add" title="Associations" width="640">
+                                <container-dialog id="AddAssociations" button-text="Add substitute" icon="sym_o_add" title="Add a substitute" width="640">
                                     <form-single name="AddAssociations" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -120,7 +120,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditAssociationsRows" list="detail.associationRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditAssociations_${entry_index}" button-text="Edit ${entry.toProductId}" title="Edit Associations" width="640">
+                                        <container-dialog id="EditAssociations_${entry_index}" button-text="Edit ${entry.toProductId}" title="Edit substitute" width="640">
                                             <form-single name="EditAssociations" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

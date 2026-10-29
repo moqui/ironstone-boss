@@ -51,7 +51,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="newProductFeatureId">
-                                            <default-field title="ID (empty: generated)">
+                                            <default-field title="ID" tooltip="Leave empty to have one generated">
                                                 <text-line/>
                                             </default-field>
                                         </field>
@@ -151,7 +151,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="FeaturesEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddFeatures" button-text="Add" title="Variants &amp; features" width="640">
+                                <container-dialog id="AddFeatures" button-text="Apply feature" icon="sym_o_add" title="Apply a feature" width="640">
                                     <form-single name="AddFeatures" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -203,7 +203,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditFeaturesRows" list="detail.featureRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditFeatures_${entry_index}" button-text="Edit ${entry.productFeatureId}" title="Edit Variants &amp; features" width="640">
+                                        <container-dialog id="EditFeatures_${entry_index}" button-text="Edit ${entry.productFeatureId}" title="Edit feature application" width="640">
                                             <form-single name="EditFeatures" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

@@ -72,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="IdentifiersEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddIdentifiers" button-text="Add" title="Identifiers" width="640">
+                                <container-dialog id="AddIdentifiers" button-text="Add identifier" icon="sym_o_add" title="Add an identifier" width="640">
                                     <form-single name="AddIdentifiers" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -100,7 +100,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditIdentifiersRows" list="detail.identifierRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditIdentifiers_${entry_index}" button-text="Edit ${entry.productIdTypeEnumId}" title="Edit Identifiers" width="640">
+                                        <container-dialog id="EditIdentifiers_${entry_index}" button-text="Edit ${entry.productIdTypeEnumId}" title="Edit identifier" width="640">
                                             <form-single name="EditIdentifiers" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

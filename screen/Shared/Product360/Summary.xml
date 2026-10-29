@@ -112,7 +112,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         </default-field>
                                     </field>
                                     <field name="salesAllowed">
-                                        <default-field title="Sales allowed (empty: Yes)">
+                                        <default-field title="Sales allowed" tooltip="Leave empty for yes">
                                             <drop-down allow-empty="true">
                                                 <option key="Y" text="Yes"/>
                                                 <option key="N" text="No"/>
@@ -120,7 +120,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         </default-field>
                                     </field>
                                     <field name="purchaseAllowed">
-                                        <default-field title="Purchases allowed (empty: Yes)">
+                                        <default-field title="Purchases allowed" tooltip="Leave empty for yes">
                                             <drop-down allow-empty="true">
                                                 <option key="Y" text="Yes"/>
                                                 <option key="N" text="No"/>

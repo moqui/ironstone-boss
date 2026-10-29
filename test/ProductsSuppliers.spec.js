@@ -254,8 +254,6 @@ feature("supplier contact files require contact authority independently of prici
     }
 })
 const paths = [
-    ["Suppliers/SupplierPrices", {organizationPartyId: "ORG_ZIZI_SERVICES"}],
-    ["Suppliers/Supplier360", {organizationPartyId: "ORG_ZIZI_SERVICES", vendorPartyId: "BOSS_PRD_SUPPLIER"}],
     ["SupplierPrices/List", {organizationPartyId: "ORG_ZIZI_SERVICES"}],
     ["SupplierPrices/Supplier360", {organizationPartyId: "ORG_ZIZI_SERVICES", vendorPartyId: "BOSS_PRD_SUPPLIER"}],
     ["SupplierPrices/Supplier360/Prices", {organizationPartyId: "ORG_ZIZI_SERVICES", vendorPartyId: "BOSS_PRD_SUPPLIER"}],

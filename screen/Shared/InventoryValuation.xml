@@ -85,7 +85,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="eventDate">
-                            <default-field title="Effective date (blank means now)">
+                            <default-field title="Effective date" tooltip="Blank means now">
                                 <date-time/>
                             </default-field>
                         </field>

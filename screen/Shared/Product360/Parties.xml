@@ -75,7 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="PartiesEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddParties" button-text="Add" title="Parties" width="640">
+                                <container-dialog id="AddParties" button-text="Add party" icon="sym_o_add" title="Add a customer, manufacturer or distributor code" width="640">
                                     <form-single name="AddParties" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -132,7 +132,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditPartiesRows" list="detail.partyRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditParties_${entry_index}" button-text="Edit ${entry.partyId}" title="Edit Parties" width="640">
+                                        <container-dialog id="EditParties_${entry_index}" button-text="Edit ${entry.partyId}" title="Edit product party" width="640">
                                             <form-single name="EditParties" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

@@ -72,12 +72,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="BulkPriceSetup" transition="preview">
                     <field name="vendorPartyId"><default-field><hidden/></default-field></field>
                     <field name="productIds">
-                        <default-field title="Product IDs (comma separated)">
+                        <default-field title="Product IDs" tooltip="Separate several with commas">
                             <text-line/>
                         </default-field>
                     </field>
                     <field name="productPriceIds">
-                        <default-field title="Or price row IDs (comma separated)">
+                        <default-field title="Or price row IDs" tooltip="Separate several with commas">
                             <text-line/>
                         </default-field>
                     </field>
@@ -118,7 +118,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="fixedPrice">
-                        <default-field title="Fixed price (empty: adjust each source amount)">
+                        <default-field title="Fixed price" tooltip="Leave empty to change each row's amount by the percent or amount below">
                             <text-line input-type="number"/>
                         </default-field>
                     </field>

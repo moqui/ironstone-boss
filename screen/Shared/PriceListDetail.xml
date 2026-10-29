@@ -433,7 +433,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="fromDate">
-                            <default-field title="Effective from (empty: now)">
+                            <default-field title="Effective from" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -522,7 +522,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="maxQuantity">
-                            <default-field title="Maximum quantity (exclusive)">
+                            <default-field title="Maximum quantity" tooltip="Exclusive">
                                 <text-line input-type="number"/>
                             </default-field>
                         </field>
@@ -534,7 +534,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="fromDate">
-                            <default-field title="Effective from (empty: now)">
+                            <default-field title="Effective from" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -570,7 +570,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="percentChange">
-                            <default-field title="Percentage change (negative: discount)">
+                            <default-field title="Percentage change" tooltip="Negative: discount">
                                 <text-line input-type="number"/>
                             </default-field>
                         </field>
@@ -671,7 +671,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="maxQuantity">
-                                    <default-field title="Maximum quantity (exclusive)">
+                                    <default-field title="Maximum quantity" tooltip="Exclusive">
                                         <text-line input-type="number"/>
                                     </default-field>
                                 </field>
@@ -683,7 +683,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="fromDate">
-                                    <default-field title="Effective from (empty: now)">
+                                    <default-field title="Effective from" tooltip="Leave empty to start now">
                                         <date-time/>
                                     </default-field>
                                 </field>
@@ -719,7 +719,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="percentChange">
-                                    <default-field title="Percentage change (negative: discount)">
+                                    <default-field title="Percentage change" tooltip="Negative: discount">
                                         <text-line input-type="number"/>
                                     </default-field>
                                 </field>
@@ -779,7 +779,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="submitButton">
                                 <default-field title="Publish reviewed list">
-                                    <submit/>
+                                    <submit confirmation="Publish ${priceList.listName} for its organization and counterparties from its start date?"/>
                                 </default-field>
                             </field>
                         </form-single>
@@ -793,7 +793,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field>
                         </field>
                         <field name="thruDate">
-                            <default-field title="Through (empty: now)">
+                            <default-field title="Through" tooltip="Leave empty to start now">
                                 <date-time/>
                             </default-field>
                         </field>
@@ -804,7 +804,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </field>
                         <field name="submitButton">
                             <default-field title="End list">
-                                <submit/>
+                                <submit type="danger" confirmation="End ${priceList.listName}? Orders will stop using it from the end date."/>
                             </default-field>
                         </field>
                     </form-single>
@@ -842,17 +842,17 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="quantity">
-                                <default-field title="Quantity (empty: 1)">
+                                <default-field title="Quantity" tooltip="Leave empty for 1">
                                     <text-line input-type="number"/>
                                 </default-field>
                             </field>
                             <field name="quantityUomId">
-                                <default-field title="Quantity unit (empty: product unit)">
+                                <default-field title="Quantity unit" tooltip="Leave empty for product unit">
                                     <text-line/>
                                 </default-field>
                             </field>
                             <field name="productIds">
-                                <default-field title="Product IDs (empty: authorized catalog, up to 1000)">
+                                <default-field title="Product IDs" tooltip="Leave empty for authorized catalog, up to 1000">
                                     <text-area rows="2"/>
                                 </default-field>
                             </field>

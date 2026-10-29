@@ -23,8 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="storeContent">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <script>if(!sharedMountContext.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.store#CatalogContent" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
         </actions>
@@ -40,8 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="uploadContents">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <script>if(!sharedMountContext.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.upload#CatalogContents" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
             <script>for(const row of result.uploadResults||[]) ec.message.addMessage(row.filename+': '+(row.success?'Uploaded':row.error))</script>
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>

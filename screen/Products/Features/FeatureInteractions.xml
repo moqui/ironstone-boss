@@ -107,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="productId">
-                                    <default-field title="Product scope (empty: global)">
+                                    <default-field title="Product scope" tooltip="Leave empty for a rule on every product">
                                         <drop-down allow-empty="true">
                                             <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',selected:productId}"/>
                                         </drop-down>

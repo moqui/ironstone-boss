@@ -388,7 +388,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="methodPredecessorIds">
-                                            <default-field title="Predecessor operation IDs (comma separated)">
+                                            <default-field title="Predecessor operation IDs" tooltip="Separate several with commas">
                                                 <text-line />
                                             </default-field>
                                         </field>
@@ -557,7 +557,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="fromDate">
-                                            <default-field title="Effective start (empty: now)">
+                                            <default-field title="Effective start" tooltip="Leave empty to start now">
                                                 <date-time />
                                             </default-field>
                                         </field>
@@ -693,7 +693,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="fromDate">
-                                            <default-field title="Effective start (empty: now)">
+                                            <default-field title="Effective start" tooltip="Leave empty to start now">
                                                 <date-time />
                                             </default-field>
                                         </field>

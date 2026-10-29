@@ -79,7 +79,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="productBomId">
-                        <default-field title="BOM ID (optional)">
+                        <default-field title="BOM ID" tooltip="Optional">
                             <text-line/>
                         </default-field>
                     </field>

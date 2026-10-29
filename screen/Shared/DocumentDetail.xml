@@ -23,8 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <script>if(!sharedMountContext.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.store#CatalogContent" in-map="context" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
         </actions>
@@ -40,8 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="restore">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <script>if(!sharedMountContext.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.restore#CatalogContent" in-map="context" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
         </actions>
@@ -57,8 +55,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="download" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ContentServices.get#CatalogContentResource" in-map="context" out-map="result" />
             <script>if(result.contentLocation)ec.web.sendResourceResponse(result.contentLocation,String(inline)==='true'&amp;&amp;result.inlineAllowed,result.filename)</script>
         </actions>
@@ -66,8 +62,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="datasheet" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
-            <script>if(!documentAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ContentServices.get#ProductDatasheet" in-map="context" out-map="result" />
             <script>ec.web.sendTextResponse(result.printHtml,'text/html',null)</script>
         </actions>
@@ -257,7 +251,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="toVersion">
-                        <default-field title="To version (empty: current)">
+                        <default-field title="To version" tooltip="Leave empty for the current version">
                             <text-line />
                         </default-field>
                     </field>

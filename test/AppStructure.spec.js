@@ -91,7 +91,7 @@ const demoRecords = {
     "Products/Prices/List": {parameters: {productId: "BOSS_PRD_OWN"}, text: "Price scope"},
     "Products/Prices/PriceHistory": {parameters: {productId: "BOSS_PRD_OWN"}, text: "Price changes"},
     "Products/Products/BulkPrice": {parameters: {productIds: "BOSS_PRD_OWN"}, text: "Price change setup"},
-    "Products/Home": {text: "Your catalog"},
+    "Products/Home": {text: "Active SKUs"},
     "Products/Products": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
     "Products/Products/List": {parameters: {text: "catalog sample"}, text: "Services catalog sample"},
     "Products/Categories/CategoryDetail": {parameters: {productCategoryId: "BOSS_PRD_CAT"}, text: "Services catalog"},

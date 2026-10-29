@@ -90,7 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="IdentifiersRowsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddIdentifiersRows" button-text="Add" title="IdentifiersRows" width="640">
+                                <container-dialog id="AddIdentifiersRows" button-text="Add identifier" icon="sym_o_add" title="Add a category identifier" width="640">
                                     <form-single name="AddIdentifiersRows" transition="storeIdentifiersRows">
                                         <field name="productCategoryId">
                                             <default-field title="Category">
@@ -135,7 +135,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="IdentifiersRowsRows" list="detail.identifiers" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditIdentifiersRows_${entry_index}" button-text="Edit ${entry.identTypeEnumId}" title="IdentifiersRows" width="640">
+                                        <container-dialog id="EditIdentifiersRows_${entry_index}" button-text="Edit ${entry.identTypeEnumId}" title="Edit category identifier" width="640">
                                             <form-single name="EditIdentifiersRows" transition="storeIdentifiersRows" map="entry">
                                                 <field name="productCategoryId">
                                                     <default-field title="Category">

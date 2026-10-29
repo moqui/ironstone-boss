@@ -54,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="FeaturesRowsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddFeaturesRows" button-text="Add" title="FeaturesRows" width="640">
+                                <container-dialog id="AddFeaturesRows" button-text="Add feature" icon="sym_o_add" title="Add a feature to the group" width="640">
                                     <form-single name="AddFeaturesRows" transition="storeFeaturesRows">
                                         <field name="productFeatureGroupId">
                                             <default-field title="Group">
@@ -92,7 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="FeaturesRowsRows" list="detail.features" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditFeaturesRows_${entry_index}" button-text="Edit ${entry.productFeatureId}" title="FeaturesRows" width="640">
+                                        <container-dialog id="EditFeaturesRows_${entry_index}" button-text="Edit ${entry.productFeatureId}" title="Edit feature membership" width="640">
                                             <form-single name="EditFeaturesRows" transition="storeFeaturesRows" map="entry">
                                                 <field name="productFeatureGroupId">
                                                     <default-field title="Group">

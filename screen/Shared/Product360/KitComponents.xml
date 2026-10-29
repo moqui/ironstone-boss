@@ -64,7 +64,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="KitComponentsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddKitComponents" button-text="Add" title="Kit components" width="640">
+                                <container-dialog id="AddKitComponents" button-text="Add component" icon="sym_o_add" title="Add a kit component" width="640">
                                     <form-single name="AddKitComponents" transition="storeRow">
                                         <field name="productId">
                                             <default-field>
@@ -107,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <section-iterate name="EditKitComponentsRows" list="detail.kitRows" entry="entry">
                                     <widgets>
-                                        <container-dialog id="EditKitComponents_${entry_index}" button-text="Edit ${entry.toProductId}" title="Edit Kit components" width="640">
+                                        <container-dialog id="EditKitComponents_${entry_index}" button-text="Edit ${entry.toProductId}" title="Edit kit component" width="640">
                                             <form-single name="EditKitComponents" transition="storeRow" map="entry">
                                                 <field name="productId">
                                                     <default-field>

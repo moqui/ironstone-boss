@@ -80,7 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="ParentsEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddParents" button-text="Add" title="Parents" width="640">
+                                <container-dialog id="AddParents" button-text="Add parent" icon="sym_o_add" title="Place the category under a parent" width="640">
                                     <form-single name="AddParents" transition="storeParents">
                                         <field name="productCategoryId">
                                             <default-field title="Category">
@@ -155,8 +155,8 @@ along with this software (see the LICENSE.md file). If not, see
                                                 </field>
                                             </form-single>
                                         </container-dialog>
-                                        <link url="endParent" text="End ${entry.parentProductCategoryId}" link-type="hidden-form" confirmation="End this category parent edge now?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate}" condition="Number(entry.fromDate) &lt; Number(ec.user.nowTimestamp) &amp;&amp; (!entry.thruDate || Number(entry.thruDate) &gt; Number(ec.user.nowTimestamp))"/>
-                                        <link url="endParent" text="Remove future ${entry.parentProductCategoryId}" link-type="hidden-form" confirmation="Remove this future category edge?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate,operation:'delete'}" condition="Number(entry.fromDate) &gt; Number(ec.user.nowTimestamp)"/>
+                                        <link url="endParent" text="End ${entry.parentProductCategoryId}" link-type="hidden-form" btn-type="danger" confirmation="End this category parent edge now?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate}" condition="Number(entry.fromDate) &lt; Number(ec.user.nowTimestamp) &amp;&amp; (!entry.thruDate || Number(entry.thruDate) &gt; Number(ec.user.nowTimestamp))"/>
+                                        <link url="endParent" text="Remove future ${entry.parentProductCategoryId}" link-type="hidden-form" btn-type="danger" confirmation="Remove this future category edge?" parameter-map="{productCategoryId:productCategoryId,parentProductCategoryId:entry.parentProductCategoryId,fromDate:entry.fromDate,operation:'delete'}" condition="Number(entry.fromDate) &gt; Number(ec.user.nowTimestamp)"/>
                                     </widgets>
                                 </section-iterate>
                             </widgets>
@@ -238,7 +238,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                         <section name="ChildrenEditor" condition="canEdit">
                             <widgets>
-                                <container-dialog id="AddChildren" button-text="Add" title="Children" width="640">
+                                <container-dialog id="AddChildren" button-text="Add child" icon="sym_o_add" title="Place a category under this one" width="640">
                                     <form-single name="AddChildren" transition="storeChildren">
                                         <field name="childProductCategoryId">
                                             <default-field title="Child">

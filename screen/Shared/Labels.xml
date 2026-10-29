@@ -24,8 +24,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="prepareLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.prepare#ProductLabels" in-map="Object.assign({},context,{productIds:String(productIds || productId || &quot;&quot;).split(/[\s,]+/).filter(Boolean)})" out-map="result" />
         </actions>
         <default-response url=".">
@@ -39,8 +37,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="renderLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.render#ProductLabels" in-map="context" out-map="result" />
             <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
         </actions>
@@ -55,8 +51,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="printLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.print#ProductLabels" in-map="context" out-map="result" />
             <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
         </actions>
@@ -71,8 +65,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="download" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.get#ProductLabelResource" in-map="context" out-map="result" />
             <script>ec.web.sendResourceResponse(result.contentLocation,true,result.filename)</script>
         </actions>
@@ -80,8 +72,6 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="printable" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.get#ProductLabelPrint" in-map="context" out-map="result" />
             <script>ec.web.sendTextResponse(result.printHtml,'text/html',null)</script>
         </actions>
@@ -95,12 +85,12 @@ along with this software (see the LICENSE.md file). If not, see
         <label text="Labels encode existing product or pack identifiers. Prepare a selection, review the decoded result, then render or print it." type="p" />
         <form-single name="LabelSelection" transition="prepareLabels" map="labelDraft">
             <field name="productIds">
-                <default-field title="Product IDs (comma separated)">
+                <default-field title="Product IDs" tooltip="Separate several with commas">
                     <text-line />
                 </default-field>
             </field>
             <field name="productIdTypeEnumId">
-                <default-field title="Existing identifier type (empty: preferred)">
+                <default-field title="Existing identifier type" tooltip="Leave empty for preferred">
                     <drop-down allow-empty="true">
                         <list-options list="identifierTypes" key="${value}" text="${label}" />
                     </drop-down>

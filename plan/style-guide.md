@@ -1005,12 +1005,12 @@ for now.
 ## 10. The archetype gallery
 
 The archetypes of §3 and the widgets of §4 are rendered as real screens in the framework's
-example component, `runtime/base-component/example/`, so a design decision is checked against
+example component, `runtime/dev-component/example/`, so a design decision is checked against
 the actual render mode in light and dark, at the breakpoints of §7, and so a new XML element
-has a screen that shows it. The component is off by default: run with
-`./moq run -D example_disabled=false` and open `/qapps/gallery`.
+has a screen that shows it. It is a dev component (since Oct 29, 2026): `./moq run` loads it,
+and the gallery is at `/qapps/gallery`.
 
-Built Oct 18, 2026 (the example component is on by default since then):
+Built Oct 18, 2026:
 
 | Screen | Shows |
 | --- | --- |

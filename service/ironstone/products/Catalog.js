@@ -878,7 +878,7 @@ function run(op, parameters) {
     // The drop-down options of the catalog forms. Each list is read by its own condition: owners and parties within the
     // user's organizations (all for a system administrator), categories and features of the readable owners, and each
     // enumeration by its type.
-    function options() {
+    function options(p = {}) {
         const a = access()
         if (!a.capabilities.read) throw new Error("Catalog read access is required")
         const admin = a.capabilities.systemAdmin,
@@ -887,41 +887,49 @@ function run(op, parameters) {
             internalIds = list("mantle.party.PartyRole", {roleTypeId: "OrgInternal"}).map(row => row.partyId),
             ownerIds = admin ? internalIds : internalIds.filter(id => a.organizationPartyIds.includes(id)),
             byOwner = entity => (admin ? list(entity) : lib.rowsIn(entity, "ownerPartyId", a.ownerPartyIds))
-        const parties = new Map()
-        for (const row of admin
-            ? list("mantle.party.Party")
-            : lib
-                  .rowsIn("mantle.party.Party", "ownerPartyId", a.ownerPartyIds)
-                  .concat(lib.rowsIn("mantle.party.Party", "partyId", a.organizationPartyIds)))
-            if (!row.privateOwnerUserId || row.privateOwnerUserId === ec.user.userId) parties.set(row.partyId, row)
-        return {
-            options: {
-                owners: lib
+        // each list is built only when asked for (optionNames), as most forms use one or two
+        const builders = {
+            owners: () =>
+                lib
                     .rowsIn("mantle.party.Party", "partyId", ownerIds)
                     .map(option("partyId", "pseudoId"))
                     .concat(admin ? [{value: "_NA_", label: "Shared catalog"}] : []),
-                units: list("moqui.basic.Uom")
+            units: () =>
+                list("moqui.basic.Uom")
                     .filter(row => row.uomTypeEnumId !== "UT_CURRENCY_MEASURE")
                     .map(option("uomId", "description")),
-                categories: byOwner(P + "category.ProductCategory").map(option("productCategoryId", "categoryName")),
-                features: byOwner(P + "feature.ProductFeature").map(option("productFeatureId", "description")),
-                dimensions: list("moqui.basic.UomDimensionType").map(option("uomDimensionTypeId", "description")),
-                productTypes: lib.enumOptions("ProductType"),
-                idTypes: lib.enumOptions("ProductIdentificationType"),
-                parties: [...parties.values()].map(option("partyId", "pseudoId")),
-                featureTypes: lib.enumOptions("ProductFeatureType"),
-                assetTypes: lib.enumOptions("AssetType"),
-                maintenanceTypes: lib.enumOptions("MaintenanceType"),
-                drives: Array.from(call("org.moqui.impl.FileServices.get#UserDrives").driveList || []).map(row => ({
+            categories: () => byOwner(P + "category.ProductCategory").map(option("productCategoryId", "categoryName")),
+            features: () => byOwner(P + "feature.ProductFeature").map(option("productFeatureId", "description")),
+            dimensions: () => list("moqui.basic.UomDimensionType").map(option("uomDimensionTypeId", "description")),
+            productTypes: () => lib.enumOptions("ProductType"),
+            idTypes: () => lib.enumOptions("ProductIdentificationType"),
+            parties: () =>
+                (admin
+                    ? list("mantle.party.Party")
+                    : lib
+                          .rowsIn("mantle.party.Party", "ownerPartyId", a.ownerPartyIds)
+                          .concat(lib.rowsIn("mantle.party.Party", "partyId", a.organizationPartyIds))
+                )
+                    .filter(
+                        (row, index, all) =>
+                            (!row.privateOwnerUserId || row.privateOwnerUserId === ec.user.userId) &&
+                            all.findIndex(other => other.partyId === row.partyId) === index
+                    )
+                    .map(option("partyId", "pseudoId")),
+            featureTypes: () => lib.enumOptions("ProductFeatureType"),
+            assetTypes: () => lib.enumOptions("AssetType"),
+            maintenanceTypes: () => lib.enumOptions("MaintenanceType"),
+            drives: () =>
+                Array.from(call("org.moqui.impl.FileServices.get#UserDrives").driveList || []).map(row => ({
                     value: row.driveId,
                     label: row.driveName || row.driveId
                 })),
-                contentTypes: lib.enumOptions("ProductContentType"),
-                meterTypes: list(P + "maintenance.ProductMeterType").map(option("productMeterTypeId", "description"))
-            }
+            contentTypes: () => lib.enumOptions("ProductContentType"),
+            meterTypes: () => list(P + "maintenance.ProductMeterType").map(option("productMeterTypeId", "description"))
         }
+        const names = p.optionNames?.length ? p.optionNames : Object.keys(builders)
+        return {options: Object.fromEntries(names.filter(name => builders[name]).map(name => [name, builders[name]()]))}
     }
-
     // Server-search options for a drop-down. The selected value keeps its label even when the term does not find it.
     function choiceRows(p) {
         if (p.choice === "products" || p.choice === "virtualProducts")
@@ -936,7 +944,7 @@ function run(op, parameters) {
         const allowed = ["owners", "units", "categories", "features", "parties", "contentTypes"]
         if (!allowed.includes(p.choice)) throw new Error("Unknown catalog choice")
         const term = String(p.term || "").toLowerCase()
-        return options()
+        return options({optionNames: [p.choice]})
             .options[p.choice].filter(
                 row =>
                     !term ||
@@ -952,7 +960,7 @@ function run(op, parameters) {
             if (!product || (p.choice === "virtualProducts" && product.productTypeEnumId !== "PtVirtual")) return null
             return {value: p.selected, label: product.productName ? product.productName + " (" + p.selected + ")" : p.selected}
         }
-        return options().options[p.choice].find(row => row.value === p.selected) || null
+        return options({optionNames: [p.choice]}).options[p.choice].find(row => row.value === p.selected) || null
     }
     function choices(p) {
         const rows = choiceRows(p)

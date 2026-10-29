@@ -1,8 +1,8 @@
 // App routing is local to this invocation, including nested catalog reads.
 function run(op, parameters) {
-    const requestedRoot = parameters.appRoot || "Products"
     // Products capabilities and screen shaping; content storage, revisions and review rules belong to Mantle.
-    const policy = () => ec.resource.script("component://mr-mantle/service/mantle/product/MethodPolicy.js"),
+    const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+        policy = () => ec.resource.script("component://mr-mantle/service/mantle/product/MethodPolicy.js"),
         call = (n, p = {}) => policy().call(n, p),
         S = "mantle.product.ContentServices."
     function check(p, edit = false) {
@@ -19,16 +19,16 @@ function run(op, parameters) {
                 .script("component://mr-mantle/service/mantle/product/Content.js")
                 .config(Object.assign({}, p, {recordKind: kind})),
             out = call(S + "find#CatalogContents", Object.assign({}, p, {recordKind: kind})),
-            date = v => (v ? ec.l10n.format(new Date(policy().ms(v)), "yyyy-MM-dd HH:mm:ss") : "")
+            date = lib.dateText,
+            // the language of the user's locale (en_US is en) is the default source and draft locale
+            userLanguage = String(ec.user.locale || "en").split(/[_-]/)[0]
         Object.assign(out, {
             recordKind: kind,
             appRoot: a.appRoot,
-            sourceLocale: p.sourceLocale || "en",
+            sourceLocale: p.sourceLocale || userLanguage,
             targetLocale: p.targetLocale || "es",
-            contentDraft: {locale: p.locale || "en", [c.owner]: p[c.owner]},
-            contentTypes: policy()
-                .rows("moqui.basic.Enumeration", {enumTypeId: c.enumType})
-                .map(r => ({value: r.enumId, label: r.description || r.enumId})),
+            contentDraft: {locale: p.locale || userLanguage, [c.owner]: p[c.owner]},
+            contentTypes: lib.enumOptions(c.enumType),
             canEdit: a.capabilities.catalogEdit && out.canEdit,
             view: p.view || "list",
             document: null,
@@ -36,8 +36,8 @@ function run(op, parameters) {
             conflictRows: [],
             diff: null
         })
-        const opts = call("ironstone.products.CatalogServices.get#CatalogOptions")
-        out.driveOptions = opts.options?.drives || []
+        out.driveOptions =
+            call("ironstone.products.CatalogServices.get#CatalogOptions", {optionNames: ["drives"]}).options?.drives || []
         const parameters = r => ({recordKind: kind, [c.id]: r.contentId, [c.owner]: r.recordId}),
             query = r =>
                 Object.entries(parameters(r))

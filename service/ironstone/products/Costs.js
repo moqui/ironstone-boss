@@ -1,36 +1,40 @@
-// App routing is local to this invocation, including nested catalog reads.
+// Products mounts for the native, capability-checked standard-estimate services.
+// Each invocation keeps its app route local, including nested catalog reads (ProductsLib.forCall).
 function run(op, parameters) {
-    const requestedRoot = parameters.appRoot || "Products"
-    // Products mounts for the native, capability-checked standard-estimate services.
-    const policy = () => ec.resource.script("component://mr-mantle/service/mantle/product/CostPolicy.js"),
-        call = (n, p = {}) => policy().call(n, p),
-        S = "mantle.product.CostServices."
+    const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+        local = lib.forCall(parameters.appRoot),
+        policy = ec.resource.script("component://mr-mantle/service/mantle/product/CostPolicy.js"),
+        {rows, rowsIn, dateText} = lib
+    const S = "mantle.product.CostServices."
+    const call = (name, p = {}) => policy.call(name, p)
+    // The estimate screens' context: the user's cost access, the product's estimates and the selected one with its
+    // components, the edit defaults and the options.
     function context(p) {
-        const shared = call("ironstone.products.CatalogServices.get#SharedContext", {appRoot: p.appRoot})
+        const shared = local.access()
         if (!shared.capabilities.read) throw new Error("Catalog read access is required")
-        const a = policy().capabilities(),
+        const access = policy.capabilities(),
             out = {
                 appRoot: shared.appRoot,
-                costAccess: a,
+                costAccess: access,
                 standardCostRows: [],
                 componentRows: [],
                 costHistoryRows: [],
                 findings: [],
-                costMessage: a.read ? "" : "Standard-cost read authority is required.",
-                costDraft: {quantity: 1, quantityUomId: "OTH_ea", priceUomId: ec.user.userAccount?.currencyUomId || "USD"},
+                costMessage: access.read ? "" : "Standard-cost read authority is required.",
+                costDraft: {quantity: 1, quantityUomId: "OTH_ea", priceUomId: ec.user.userAccount?.currencyUomId || null},
                 componentDraft: {quantity: 1, rateAmount: 0, quantityUomId: "OTH_ea", componentTypeEnumId: "PccMaterial"}
             }
-        if (!a.read) return out
-        let d = null
+        if (!access.read) return out
+        let selected = null
         if (p.productStandardCostId) {
-            d = call(S + "get#ProductStandardCost", p)
-            if (p.productId && p.productId !== d.standardCost.productId)
+            selected = call(S + "get#ProductStandardCost", p)
+            if (p.productId && p.productId !== selected.standardCost.productId)
                 throw new Error("Estimate does not belong to this product")
         }
-        const s = policy().scope(Object.assign({}, p, d?.standardCost || {}))
-        out.organizationPartyId = s.organizationPartyId
-        out.productId = d?.standardCost.productId || p.productId || null
-        const product = out.productId ? policy().product(out.productId, s) : null
+        const scope = policy.scope(Object.assign({}, p, selected?.standardCost || {}))
+        out.organizationPartyId = scope.organizationPartyId
+        out.productId = selected?.standardCost.productId || p.productId || null
+        const product = out.productId ? policy.product(out.productId, scope) : null
         if (product) out.costDraft.quantityUomId = product.amountUomId || "OTH_ea"
         out.componentDraft.quantityUomId = out.costDraft.quantityUomId
         Object.assign(
@@ -38,144 +42,136 @@ function run(op, parameters) {
             call(
                 S + "find#ProductStandardCosts",
                 Object.assign({}, p, {
-                    organizationPartyId: s.organizationPartyId,
+                    organizationPartyId: scope.organizationPartyId,
                     productId: out.productId,
                     includeHistory: p.includeHistory !== false
                 })
             )
         )
-        out.facilityOptions = policy()
-            .rows("mantle.facility.Facility", {ownerPartyId: s.organizationPartyId})
-            .map(r => ({value: r.facilityId, label: r.facilityName || r.facilityId}))
-        const units = new Set(
-            [
-                "OTH_ea",
-                "TF_hr",
-                "TF_min",
-                "LEN_m",
-                "WT_kg",
-                product?.amountUomId,
-                d?.standardCost.quantityUomId,
-                ...(d?.componentRows || []).map(r => r.quantityUomId)
-            ].filter(Boolean)
-        )
-        out.unitOptions = policy()
-            .rows("moqui.basic.Uom")
-            .filter(r => units.has(r.uomId))
-            .map(r => ({value: r.uomId, label: r.description || r.uomId}))
-        out.currencyOptions = policy()
-            .rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"})
-            .map(r => ({value: r.uomId, label: r.uomId}))
-        out.componentTypes = policy()
-            .rows("moqui.basic.Enumeration", {enumTypeId: "ProductCostComponentType"})
-            .filter(r => r.enumId !== "PccOverheadPercent")
-            .map(r => ({value: r.enumId, label: r.description || r.enumId}))
-        if (!out.componentTypes.length)
-            out.componentTypes = ["Material", "Labor", "Machine", "Overhead", "Outside"].map(t => ({value: "Pcc" + t, label: t}))
-        const date = v => (v ? ec.l10n.format(new Date(policy().ms(v)), "yyyy-MM-dd HH:mm:ss") : "")
-        if (d) {
-            Object.assign(out, d)
-            out.costDraft = Object.assign({}, d.standardCost, {changeReason: ""})
-            out.findings = JSON.parse(d.standardCost.findingsJson || "[]")
-            const component = d.componentRows.find(r => r.productStandardCostComponentId === p.selectedComponentId)
+        out.facilityOptions = rows("mantle.facility.Facility", {ownerPartyId: scope.organizationPartyId}).map(facility => ({
+            value: facility.facilityId,
+            label: facility.facilityName || facility.facilityId
+        }))
+        const units = rowsIn("moqui.basic.Uom", "uomId", [
+            "OTH_ea",
+            "TF_hr",
+            "TF_min",
+            "LEN_m",
+            "WT_kg",
+            product?.amountUomId,
+            selected?.standardCost.quantityUomId,
+            ...(selected?.componentRows || []).map(row => row.quantityUomId),
+            ...out.standardCostRows.map(row => row.quantityUomId),
+            ...out.componentRows.map(row => row.quantityUomId)
+        ])
+        out.unitOptions = units.map(uom => ({value: uom.uomId, label: uom.description || uom.uomId}))
+        out.currencyOptions = rows("moqui.basic.Uom", {uomTypeEnumId: "UT_CURRENCY_MEASURE"}).map(uom => ({
+            value: uom.uomId,
+            label: uom.uomId
+        }))
+        out.componentTypes = lib.enumOptions("ProductCostComponentType").filter(option => option.value !== "PccOverheadPercent")
+        if (selected) {
+            Object.assign(out, selected)
+            out.costDraft = Object.assign({}, selected.standardCost, {changeReason: ""})
+            out.findings = JSON.parse(selected.standardCost.findingsJson || "[]")
+            const component = selected.componentRows.find(row => row.productStandardCostComponentId === p.selectedComponentId)
             if (component) out.componentDraft = Object.assign({}, component, {changeReason: ""})
         }
-        const unitText = id => (id ? policy().one("moqui.basic.Uom", {uomId: id})?.abbreviation || id : "")
-        out.standardCostRows = out.standardCostRows.map(r =>
-            Object.assign({}, r, {
-                fromDateText: r.fromDate ? date(r.fromDate) : "Draft",
-                thruDateText: date(r.thruDate),
-                unitText: unitText(r.quantityUomId)
+        const unitText = new Map(units.map(uom => [uom.uomId, uom.abbreviation || uom.uomId])),
+            typeText = new Map(out.componentTypes.map(option => [option.value, option.label]))
+        out.standardCostRows = out.standardCostRows.map(row =>
+            Object.assign({}, row, {
+                fromDateText: row.fromDate ? dateText(row.fromDate) : "Draft",
+                thruDateText: dateText(row.thruDate),
+                unitText: unitText.get(row.quantityUomId) || row.quantityUomId || ""
             })
         )
-        out.componentRows = out.componentRows.map(r =>
-            Object.assign({}, r, {
-                componentTypeText:
-                    policy().one("moqui.basic.Enumeration", {enumId: r.componentTypeEnumId})?.description ||
-                    r.componentTypeEnumId,
-                unitText: unitText(r.quantityUomId)
+        out.componentRows = out.componentRows.map(row =>
+            Object.assign({}, row, {
+                componentTypeText: typeText.get(row.componentTypeEnumId) || row.componentTypeEnumId,
+                unitText: unitText.get(row.quantityUomId) || row.quantityUomId || ""
             })
         )
         return out
     }
-    function native(op, p) {
-        const out = call(S + op, p)
+    function native(name, p) {
+        const out = call(S + name, p)
         if (out.standardCost) out.productStandardCostId = out.standardCost.productStandardCostId
         return out
     }
-    function execute(op, p) {
-        p = Object.assign({}, p)
-        for (const f of [
-            "productStandardCostId",
-            "productStandardCostComponentId",
-            "facilityId",
-            "productBomId",
-            "expectedRevision"
-        ])
-            if (["null", "undefined", ""].includes(p[f])) p[f] = null
-        if (op === "context") return context(p)
-        if (op === "history") {
-            const c = context(p)
-            if (!c.costAccess.read) return c
-            const result = Object.assign(
-                    c,
-                    native("get#ProductCostHistory", Object.assign({}, p, {organizationPartyId: c.organizationPartyId}))
-                ),
-                groups = {}
-            result.costHistoryRows = result.costHistoryRows.map(r =>
-                Object.assign({}, r, {
-                    dateText: r.date ? ec.l10n.format(new Date(policy().ms(r.date)), "yyyy-MM-dd HH:mm:ss") : "",
-                    unitText: policy().one("moqui.basic.Uom", {uomId: r.quantityUomId})?.abbreviation || r.quantityUomId
-                })
-            )
-            for (const row of result.costHistoryRows) {
-                if (row.unitCost == null || !row.date) continue
-                const key = [row.productId, row.priceUomId, row.quantityUomId].join(" · ")
-                ;(groups[key] || (groups[key] = [])).push(row)
+    // Cost history with one chart per product, currency and unit, a series per cost basis.
+    function history(p) {
+        const result = context(p)
+        if (!result.costAccess.read) return result
+        Object.assign(
+            result,
+            native("get#ProductCostHistory", Object.assign({}, p, {organizationPartyId: result.organizationPartyId}))
+        )
+        const units = new Map(
+            rowsIn(
+                "moqui.basic.Uom",
+                "uomId",
+                result.costHistoryRows.map(row => row.quantityUomId)
+            ).map(uom => [uom.uomId, uom.abbreviation || uom.uomId])
+        )
+        result.costHistoryRows = result.costHistoryRows.map(row =>
+            Object.assign({}, row, {dateText: dateText(row.date), unitText: units.get(row.quantityUomId) || row.quantityUomId})
+        )
+        const groups = {}
+        for (const row of result.costHistoryRows) {
+            if (row.unitCost == null || !row.date) continue
+            const key = [row.productId, row.priceUomId, row.quantityUomId].join(" · ")
+            ;(groups[key] || (groups[key] = [])).push(row)
+        }
+        const json = value => JSON.stringify(value).replace(/'/g, "\\u0027").replace(/</g, "\\u003c"),
+            colors = ["primary", "secondary", "accent"]
+        result.costCharts = Object.entries(groups).map(([title, facts]) => {
+            const labels = [...new Set(facts.map(row => row.dateText))].sort(),
+                bases = [...new Set(facts.map(row => row.basis))],
+                series = bases.map((basis, i) => ({
+                    label: basis,
+                    colorKey: colors[i % colors.length],
+                    data: labels.map(date => {
+                        const row = facts.find(fact => fact.dateText === date && fact.basis === basis)
+                        return row ? toDecimal(row.unitCost).toNumber() : null
+                    })
+                }))
+            return {
+                title: title.split(" · ").slice(0, 2).concat(facts[0].unitText).join(" · "),
+                labelsJson: json(labels),
+                seriesJson: json(series)
             }
-            const json = v => JSON.stringify(v).replace(/'/g, "\\u0027").replace(/</g, "\\u003c"),
-                colors = ["primary", "secondary", "accent"]
-            result.costCharts = Object.entries(groups).map(([title, facts]) => {
-                const labels = [...new Set(facts.map(r => r.dateText))].sort(),
-                    bases = [...new Set(facts.map(r => r.basis))],
-                    series = bases.map((basis, i) => ({
-                        label: basis,
-                        colorKey: colors[i % colors.length],
-                        data: labels.map(date => {
-                            const row = facts.find(r => r.dateText === date && r.basis === basis)
-                            return row ? toDecimal(row.unitCost).toNumber() : null
-                        })
-                    }))
-                return {
-                    title: title.split(" · ").slice(0, 2).concat(facts[0].unitText).join(" · "),
-                    labelsJson: json(labels),
-                    seriesJson: json(series)
-                }
-            })
-            return result
-        }
-        if (op === "rollup") {
-            const c = context(p)
-            if (!c.costAccess.read || !p.calculationId) return Object.assign(c, {calculationId: null, complete: false})
-            const result = native("get#ProductCostRollup", p)
-            return Object.assign(c, result, result.request, {
-                asOfDate: result.request.asOfDate
-                    ? ec.l10n.format(new Date(policy().ms(result.request.asOfDate)), "yyyy-MM-dd HH:mm:ss")
-                    : null
-            })
-        }
-        const ops = {
-            store: "store#ProductStandardCost",
-            component: "store#StandardCostComponent",
-            clone: "clone#ProductStandardCost",
-            approve: "approve#ProductStandardCost",
-            preview: "preview#ProductCostRollup",
-            save: "save#ProductCostRollup",
-            print: "get#StandardCostPrint"
-        }
-        if (!ops[op]) throw new Error("Unknown cost operation")
-        return native(ops[op], p)
+        })
+        return result
     }
-    return execute(op, parameters)
+    function rollup(p) {
+        const screen = context(p)
+        if (!screen.costAccess.read || !p.calculationId) return Object.assign(screen, {calculationId: null, complete: false})
+        const result = native("get#ProductCostRollup", p)
+        return Object.assign(screen, result, result.request, {
+            asOfDate: result.request.asOfDate ? dateText(result.request.asOfDate) : null
+        })
+    }
+    const nativeOperations = {
+        store: "store#ProductStandardCost",
+        component: "store#StandardCostComponent",
+        clone: "clone#ProductStandardCost",
+        approve: "approve#ProductStandardCost",
+        preview: "preview#ProductCostRollup",
+        save: "save#ProductCostRollup",
+        print: "get#StandardCostPrint"
+    }
+    const p = lib.blankToNull(parameters, [
+        "productStandardCostId",
+        "productStandardCostComponentId",
+        "facilityId",
+        "productBomId",
+        "expectedRevision"
+    ])
+    if (op === "context") return context(p)
+    if (op === "history") return history(p)
+    if (op === "rollup") return rollup(p)
+    if (!nativeOperations[op]) throw new Error("Unknown cost operation " + op)
+    return native(nativeOperations[op], p)
 }
 ;({execute: run})

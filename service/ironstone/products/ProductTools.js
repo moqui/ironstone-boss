@@ -1,6 +1,5 @@
 // Each exported screen operation receives a fresh routing scope.
 function scopeFor(parameters) {
-    const requestedRoot = parameters.appRoot || "Products"
     // Products workspace reads and shapes. Mutating transitions call the owning domain service directly.
     const policy = () => ec.resource.script("component://mr-mantle/service/mantle/product/CatalogPolicy.js"),
         call = (n, p = {}) => policy().call(n, p)
@@ -25,11 +24,11 @@ function scopeFor(parameters) {
                 copies: 1,
                 templateId: "product-50x30",
                 symbology: "auto",
-                priceUomId: "USD"
+                priceUomId: ec.user.userAccount?.currencyUomId || null
             }
         }
-        const date = v => (v ? ec.l10n.format(new Date(policy().ms(v)), "yyyy-MM-dd HH:mm:ss") : "")
-        const opts = call("ironstone.products.CatalogServices.get#CatalogOptions")
+        const date = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js").dateText
+        const opts = call("ironstone.products.CatalogServices.get#CatalogOptions", {optionNames: ["owners", "idTypes", "units"]})
         out.ownerOptions = opts.options?.owners || []
         out.identifierTypes = opts.options?.idTypes || []
         out.unitOptions = opts.options?.units || []

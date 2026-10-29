@@ -428,6 +428,7 @@ along with this software (see the LICENSE.md file). If not, see
     <service verb="get" noun="CatalogOptions">
         <in-parameters>
             <parameter name="appRoot"/>
+            <parameter name="optionNames" type="List"><description>The option lists to build; all of them when empty.</description></parameter>
         </in-parameters>
         <out-parameters>
             <parameter name="options" type="Map"/>

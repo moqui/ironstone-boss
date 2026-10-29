@@ -30,7 +30,7 @@ function scopeFor(parameters) {
         return Object.assign({}, result, {
             appRoot: a.appRoot,
             catalogChecksRan,
-            ownerOptions: call("ironstone.products.CatalogServices.get#CatalogOptions").options.owners,
+            ownerOptions: call("ironstone.products.CatalogServices.get#CatalogOptions", {optionNames: ["owners"]}).options.owners,
             checkForm: Object.assign({}, p, {
                 productIds: params.productIds?.join(", ") || "",
                 checkIds: params.checkIds || result.checkOptions.map(r => r.value),

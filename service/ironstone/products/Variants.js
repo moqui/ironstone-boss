@@ -34,47 +34,10 @@ const ids = v => [
 ]
 const parse = (value, fallback) =>
     value == null || value === "" ? fallback : typeof value === "string" ? JSON.parse(value) : value
-const safeCopy = [
-    "description",
-    "comments",
-    "productClassEnumId",
-    "amountUomId",
-    "amountFixed",
-    "amountRequire",
-    "salesAllowed",
-    "purchaseAllowed",
-    "requireInventory",
-    "chargeShipping",
-    "taxable",
-    "returnable",
-    "originGeoId"
-]
-const fieldLabels = {
-    description: "Description",
-    comments: "Comments",
-    productClassEnumId: "Product class",
-    amountUomId: "Stock unit",
-    amountFixed: "Fixed amount",
-    amountRequire: "Require amount",
-    salesAllowed: "Allow sales",
-    purchaseAllowed: "Allow purchases",
-    requireInventory: "Require inventory",
-    chargeShipping: "Charge shipping",
-    taxable: "Taxable",
-    returnable: "Returnable",
-    originGeoId: "Origin"
-}
-const defaultCopy = [
-    "description",
-    "productClassEnumId",
-    "amountUomId",
-    "salesAllowed",
-    "purchaseAllowed",
-    "requireInventory",
-    "chargeShipping",
-    "taxable",
-    "returnable"
-]
+// the variant policy's copyable fields, their labels and the default copy (Mantle's CatalogSettings.js)
+const variantPolicy = ec.resource.script("component://mr-mantle/service/mantle/product/CatalogSettings.js"),
+    fieldLabels = variantPolicy.copyableFields,
+    defaultCopy = variantPolicy.defaultCopyFields
 const access = () => call(C + "get#CatalogAccess")
 function record(id, need = "read", entity = P + "Product") {
     const r = call(C + "get#CatalogRecord", {recordId: id, need, recordEntityName: entity, checkOnly: true}).record
@@ -84,113 +47,13 @@ function record(id, need = "read", entity = P + "Product") {
 function readable(id, entity = P + "Product") {
     return !!call(C + "get#CatalogRecord", {recordId: id, recordEntityName: entity, checkOnly: true}).record
 }
-function organization(id, need = "read") {
-    const a = access()
-    id = id || a.activeOrganizationPartyId || a.organizationPartyIds[0]
-    if (
-        !a.capabilities[need] ||
-        !id ||
-        (!a.capabilities.systemAdmin && !a.organizationPartyIds.includes(id)) ||
-        !one("mantle.party.PartyRole", {partyId: id, roleTypeId: "OrgInternal"})
-    )
-        throw new Error("Organization is not available for this action")
-    return id
-}
-function settings(p) {
-    const organizationPartyId = organization(p.organizationPartyId),
-        at = p.asOfDate == null ? ms(ec.user.nowTimestamp) : ms(p.asOfDate)
-    if (!Number.isFinite(at)) throw new Error("Choose a valid effective date")
-    const row = rows(P + "ProductVariantSetting", {organizationPartyId}).find(r => current(r, at))
-    const out = {
-        batchLimit: Number(row?.batchLimit || 1000),
-        copyFields: row ? ids(row.copyFields) : defaultCopy,
-        copyCategoryMembers: row?.copyCategoryMembers === "Y",
-        identifierPattern: "{base}_{features}"
-    }
-    return {
-        organizationPartyId,
-        fromDate: row?.fromDate || null,
-        thruDate: row?.thruDate || null,
-        asOfDate: at,
-        settings: out,
-        safeCopyFields: safeCopy,
-        copyFieldOptions: safeCopy.map(f => ({value: f, label: fieldLabels[f] || f})),
-        history: rows(P + "ProductVariantSetting", {organizationPartyId})
-            .sort((a, b) => ms(b.fromDate) - ms(a.fromDate))
-            .map(r => ({
-                fromDate: r.fromDate,
-                thruDate: r.thruDate,
-                batchLimit: r.batchLimit,
-                copyFields: r.copyFields,
-                changeReason: r.changeReason,
-                fromDateText: ec.l10n.format(new Date(ms(r.fromDate)), "yyyy-MM-dd HH:mm:ss"),
-                thruDateText: r.thruDate ? ec.l10n.format(new Date(ms(r.thruDate)), "yyyy-MM-dd HH:mm:ss") : ""
-            }))
-    }
-}
-function storeSettings(p) {
-    const organizationPartyId = organization(p.organizationPartyId, "catalogAdmin")
-    find("mantle.party.Party", {partyId: organizationPartyId}).forUpdate(true).one()
-    const old = settings({organizationPartyId}),
-        data = parse(p.settingsJson, p.settings || {}),
-        fromDate = p.fromDate || ec.user.nowTimestamp,
-        at = ms(fromDate)
-    if (!Number.isFinite(at) || at < ms(ec.user.nowTimestamp)) throw new Error("Policy changes must take effect now or later")
-    if (ms(p.expectedFromDate) !== ms(old.fromDate)) throw new Error("Variant policy changed; reload before saving")
-    const batchLimit = Number(data.batchLimit == null ? old.settings.batchLimit : data.batchLimit),
-        copyFields = data.copyFields == null ? old.settings.copyFields : ids(data.copyFields)
-    if (!Number.isInteger(batchLimit) || batchLimit < 1 || batchLimit > 1000)
-        throw new Error("Interactive batch limit must be between 1 and 1000")
-    if (copyFields.some(f => !safeCopy.includes(f)))
-        throw new Error("Identity, prices, costs and transactional fields are never copyable")
-    if (data.identifierPattern && data.identifierPattern !== "{base}_{features}")
-        throw new Error("Use the canonical {base}_{features} identifier pattern")
-    if (data.updateExisting === true || data.updateExisting === "Y")
-        throw new Error("Existing overrides require a separate explicit propagation preview")
-    ec.context.putAll(
-        Object.fromEntries(
-            ["fromDate", "thruDate", "batchLimit", "copyFields", "copyCategoryMembers", "identifierPattern"].map(field => [
-                field + "_changeReason",
-                p.changeReason || data.changeReason || "Variant policy changed"
-            ])
-        )
-    )
-    const all = rows(P + "ProductVariantSetting", {organizationPartyId}).sort((a, b) => ms(a.fromDate) - ms(b.fromDate))
-    if (all.some(r => ms(r.fromDate) === at))
-        throw new Error("A policy already starts at this time; choose a later effective date")
-    const before = all.filter(r => ms(r.fromDate) < at && (!r.thruDate || ms(r.thruDate) > at)).at(-1),
-        after = all.find(r => ms(r.fromDate) > at)
-    if (before)
-        call("update#" + P + "ProductVariantSetting", {
-            organizationPartyId,
-            fromDate: new Date(ms(before.fromDate)).toISOString(),
-            thruDate: new Date(at).toISOString()
-        })
-    call("create#" + P + "ProductVariantSetting", {
-        organizationPartyId,
-        fromDate,
-        thruDate: after?.fromDate || null,
-        batchLimit,
-        copyFields: copyFields.join(","),
-        copyCategoryMembers: (
-            data.copyCategoryMembers == null
-                ? old.settings.copyCategoryMembers
-                : data.copyCategoryMembers === true || data.copyCategoryMembers === "Y" || data.copyCategoryMembers === "true"
-        )
-            ? "Y"
-            : "N",
-        identifierPattern: "{base}_{features}",
-        changeReason: p.changeReason || data.changeReason || "Variant policy changed"
-    })
-    return settings({organizationPartyId, asOfDate: fromDate})
-}
 function scope(p, need = "catalogEdit") {
     const b = record(p.productId, need)
     if (b.productTypeEnumId !== "PtVirtual") throw new Error("Choose a virtual product")
     const cfg =
         b.ownerPartyId === "_NA_"
             ? {fromDate: null, settings: {batchLimit: 1000, copyFields: defaultCopy, copyCategoryMembers: false}}
-            : settings({organizationPartyId: b.ownerPartyId})
+            : call(M + "get#VariantSettings", {organizationPartyId: b.ownerPartyId})
     const groups = ids(parse(p.productFeatureGroupIds, p.productFeatureGroupIdSet)),
         allowedFeatureIds = new Set(),
         allowedCategoryIds = []
@@ -471,6 +334,8 @@ function failItem(p) {
     return {}
 }
 function execute(op, p) {
-    return {settings, storeSettings, preview, generate, startBatch, getBatch, runBatch, runItem, failItem}[op](p)
+    const operations = {preview, generate, startBatch, getBatch, runBatch, runItem, failItem}
+    if (!operations[op]) throw new Error("Unknown variant operation " + op)
+    return operations[op](p)
 }
 ;({execute})

@@ -116,7 +116,7 @@ feature("disabling artifact checks never grants write authority for another dire
 feature("reviewed bulk changes pin rows and stamps, keep independent successes, and retry without duplicates", {
     when() {
         return as("catalog.price.edit", () => {
-            const preview = call(C + "preview#PriceChanges", {
+            const preview = call("mantle.product.PriceServices.preview#PriceChanges", {
                 productIds: ["B5_BULK_A", "B5_BULK_B", "B5_NONE"],
                 organizationPartyId: "ORG_ZIZI_SERVICES",
                 direction: "sales",
@@ -128,16 +128,19 @@ feature("reviewed bulk changes pin rows and stamps, keep independent successes, 
             })
             const b = call(C + "find#ProductPrices", {productId: "B5_BULK_B"}).priceRows[0]
             call(C + "store#ProductPrice", {productPriceId: b.productPriceId, price: 19, changeReason: "Changed after preview"})
-            const wrong = invoke(C + "apply#PriceChanges", {operationKey: preview.operationKey, previewToken: "wrong"}),
-                applied = invoke(C + "apply#PriceChanges", {
+            const wrong = invoke("mantle.product.PriceServices.apply#PriceChanges", {
+                    operationKey: preview.operationKey,
+                    previewToken: "wrong"
+                }),
+                applied = invoke("mantle.product.PriceServices.apply#PriceChanges", {
                     operationKey: preview.operationKey,
                     previewToken: preview.previewToken
                 }),
-                retry = invoke(C + "apply#PriceChanges", {
+                retry = invoke("mantle.product.PriceServices.apply#PriceChanges", {
                     operationKey: preview.operationKey,
                     previewToken: preview.previewToken
                 }),
-                info = call(C + "get#PriceChanges", {operationKey: preview.operationKey})
+                info = call("mantle.product.PriceServices.get#PriceChanges", {operationKey: preview.operationKey})
             return {preview, wrong, applied, retry, info}
         })
     },

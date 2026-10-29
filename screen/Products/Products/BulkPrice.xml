@@ -24,7 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="operationKey"/>
     <transition name="preview">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.preview#PriceChanges" in-map="context" out-map="answer"/>
+            <service-call name="mantle.product.PriceServices.preview#PriceChanges" in-map="context" out-map="answer"/>
             <set field="operationKey" from="answer.operationKey"/>
         </actions>
         <default-response url=".">
@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <message error="true">Confirm the reviewed price changes before applying.</message>
             </if>
             <if condition="!ec.message.hasError()">
-                <service-call name="ironstone.products.CatalogServices.apply#PriceChanges" in-map="context"/>
+                <service-call name="mantle.product.PriceServices.apply#PriceChanges" in-map="context"/>
             </if>
         </actions>
         <default-response url=".">
@@ -61,7 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="results" from="[]"/>
         <set field="readyCount" from="0"/>
         <if condition="operationKey">
-            <service-call name="ironstone.products.CatalogServices.get#PriceChanges" in-map="context" out-map="context"/>
+            <service-call name="mantle.product.PriceServices.get#PriceChanges" in-map="context" out-map="context"/>
         </if>
     </actions>
     <widgets>

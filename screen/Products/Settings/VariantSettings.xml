@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="asOfDate"/>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.SettingsServices.store#VariantSettings" in-map="{organizationPartyId:organizationPartyId,expectedFromDate:expectedFromDate,fromDate:effectiveFromDate,changeReason:changeReason,settings:{batchLimit:batchLimit,copyFields:copyFields,copyCategoryMembers:copyCategoryMembers,identifierPattern:identifierPattern}}"/>
+            <service-call name="mantle.product.ProductServices.store#VariantSettings" in-map="{organizationPartyId:organizationPartyId,expectedFromDate:expectedFromDate,fromDate:effectiveFromDate,changeReason:changeReason,settings:{batchLimit:batchLimit,copyFields:copyFields,copyCategoryMembers:copyCategoryMembers,identifierPattern:identifierPattern}}"/>
         </actions>
         <default-response url=".">
             <parameter name="organizationPartyId"/>
@@ -26,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <actions>
         <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
-        <service-call name="ironstone.products.SettingsServices.get#VariantSettings" in-map="context" out-map="context"/>
+        <service-call name="mantle.product.ProductServices.get#VariantSettings" in-map="context" out-map="context"/>
         <set field="expectedFromDate" from="fromDate"/>
         <set field="copyFields" from="settings.copyFields"/>
         <set field="batchLimit" from="String(settings.batchLimit)"/>
@@ -105,12 +105,12 @@ along with this software (see the LICENSE.md file). If not, see
             <box-header title="Policy history"/>
             <box-body>
                 <form-list name="VariantPolicyHistory" list="history" skip-form="true" paginate="false">
-                    <field name="fromDateText">
+                    <field name="fromDate">
                         <default-field title="Effective from">
                             <display/>
                         </default-field>
                     </field>
-                    <field name="thruDateText">
+                    <field name="thruDate">
                         <default-field title="Through">
                             <display/>
                         </default-field>

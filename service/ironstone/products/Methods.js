@@ -349,19 +349,19 @@ function run(op, parameters) {
                             productId: result.productId,
                             productBomId: result.productBomId,
                             organizationPartyId: result.organizationPartyId,
-                            transientPreview: true
+                            transientPreview: true,
+                            includePathTotals: true
                         })
                     )
                     result.costFindings = cost.findings
                     result.costSummary = cost.standardCost
-                    result.explosionRows = result.explosionRows.map(row => {
-                        const lines = cost.componentRows.filter(c => c.path === row.path || c.path?.startsWith(row.path + "/")),
-                            amount = lines.length ? lines.reduce((v, c) => v.add(c.amount), toDecimal(0)) : null
-                        return Object.assign({}, row, {
-                            estimatedAmount: amount == null ? null : String(amount),
+                    const totals = cost.pathTotals || {}
+                    result.explosionRows = result.explosionRows.map(row =>
+                        Object.assign({}, row, {
+                            estimatedAmount: totals[row.path] ?? null,
                             costCurrency: cost.standardCost.priceUomId
                         })
-                    })
+                    )
                 } catch (e) {
                     ec.logger.error("Explosion cost preview of product " + result.productId + ": " + e)
                     result.costFindings = [{recordId: result.productBomId, message: String(e.message || e)}]

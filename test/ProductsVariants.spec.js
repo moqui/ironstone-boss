@@ -1,5 +1,5 @@
 const V = "ironstone.products.VariantServices.",
-    S = "ironstone.products.SettingsServices.",
+    S = "mantle.product.ProductServices.",
     P = "mantle.product.",
     F = P + "feature.",
     C = "ironstone.products.CatalogServices.",
@@ -209,7 +209,7 @@ feature("variant policies change by effective date, keep old values and reject s
         out.auditCount > 0
         out.now.history[1].thruDate != null
         out.stale.error.includes("changed")
-        denied.error.includes("not available")
+        denied.error.includes("authority")
     }
 })
 feature("large selections use a durable manifest, resume in bounded chunks and bind operation keys to the exact request", {

@@ -29,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
         <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
-        <service-call name="ironstone.products.SettingsServices.get#CatalogSettings" out-map="cfg"/>
+        <service-call name="mantle.product.ProductServices.get#CatalogSettings" out-map="cfg"/>
         <set field="newProduct" from="{ownerPartyId:cfg.settings.defaultOwnerPartyId,productTypeEnumId:cfg.settings.defaultProductTypeEnumId,amountUomId:cfg.settings.defaultAmountUomId}"/>
     </actions>
     <widgets>

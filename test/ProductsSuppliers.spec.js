@@ -316,7 +316,7 @@ feature("a reviewed supplier bulk change pins its buyer and vendor and retries w
                     minQuantity: 333,
                     quantityUomId: "OTH_ea"
                 }),
-                preview = call(C + "preview#PriceChanges", {
+                preview = call("mantle.product.PriceServices.preview#PriceChanges", {
                     organizationPartyId: "ORG_ZIZI_SERVICES",
                     vendorPartyId: "BOSS_PRD_SUPPLIER",
                     direction: "purchase",
@@ -325,12 +325,18 @@ feature("a reviewed supplier bulk change pins its buyer and vendor and retries w
                     effectiveDate: new Date(Date.now() + 3600000).toISOString(),
                     changeReason: "Reviewed supplier increase"
                 }),
-                wrong = invoke(C + "apply#PriceChanges", {operationKey: preview.operationKey, previewToken: "wrong"}),
-                applied = call(C + "apply#PriceChanges", {
+                wrong = invoke("mantle.product.PriceServices.apply#PriceChanges", {
+                    operationKey: preview.operationKey,
+                    previewToken: "wrong"
+                }),
+                applied = call("mantle.product.PriceServices.apply#PriceChanges", {
                     operationKey: preview.operationKey,
                     previewToken: preview.previewToken
                 }),
-                retry = call(C + "apply#PriceChanges", {operationKey: preview.operationKey, previewToken: preview.previewToken}),
+                retry = call("mantle.product.PriceServices.apply#PriceChanges", {
+                    operationKey: preview.operationKey,
+                    previewToken: preview.previewToken
+                }),
                 successor = ec.entity
                     .find(P + "ProductPrice")
                     .condition({productPriceId: applied.results[0].successorProductPriceId})

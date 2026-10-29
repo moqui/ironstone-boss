@@ -18,7 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.SettingsServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,fromDate:effectiveFromDate,changeReason:changeReason,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
+            <service-call name="mantle.product.ProductServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,fromDate:effectiveFromDate,changeReason:changeReason,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>
         </actions>
         <default-response url=".">
             <parameter name="organizationPartyId"/>
@@ -26,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="ironstone.products.SettingsServices.get#CatalogSettings" in-map="context" out-map="context"/>
+        <service-call name="mantle.product.ProductServices.get#CatalogSettings" in-map="context" out-map="context"/>
         <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
         <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
         <set field="asOfDate" from="ec.l10n.format(new Date(Number(String(asOfDate))), &quot;yyyy-MM-dd'T'HH:mm:ss&quot;)"/>
@@ -151,12 +151,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <label text="Each save starts a dated policy and preserves earlier settings. Future policies apply on their start date." type="p"/>
                 <form-list name="CatalogPolicyHistory" list="history" skip-form="true" paginate="false">
-                    <field name="fromDateText">
+                    <field name="fromDate">
                         <default-field title="Effective from">
                             <display/>
                         </default-field>
                     </field>
-                    <field name="thruDateText">
+                    <field name="thruDate">
                         <default-field title="Through">
                             <display/>
                         </default-field>

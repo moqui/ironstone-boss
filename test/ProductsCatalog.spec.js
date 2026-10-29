@@ -1,6 +1,6 @@
 // P2: actual user capabilities stay in force even with artifact authorization disabled for a local service call.
 const C = "ironstone.products.CatalogServices."
-const S = "ironstone.products.SettingsServices."
+const S = "mantle.product.ProductServices."
 function as(user, body) {
     login(user)
     const was = ec.artifactExecution.disableAuthz()
@@ -260,7 +260,7 @@ feature("catalog settings use dated optimistic tokens, reject stale edits and re
         admin.next.versionSeqId > admin.current.versionSeqId
         admin.next.versionSeqId == Number(String(admin.next.fromDate))
         admin.stale.error.includes("changed")
-        editor.error.includes("not available")
+        editor.error.includes("authority")
         reader.error.includes("Catalog editor")
     }
 })

@@ -87,6 +87,55 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <field name="rowActions">
+                                <default-field title="">
+                                    <container-dialog condition="canEdit" id="EditIdentifiersRows" button-text="Edit" icon="sym_o_edit" title="Edit category identifier" width="640">
+                                        <form-single name="EditIdentifiersRows" transition="storeIdentifiersRows">
+                                            <field name="productCategoryId">
+                                                <default-field title="Category">
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productCategoryIdentId">
+                                                <default-field title="Identifier ID">
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="identTypeEnumId">
+                                                <default-field title="Type">
+                                                    <drop-down allow-empty="true">
+                                                        <option key="PcitUrlSlug" text="URL slug"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="idValue">
+                                                <default-field title="Value">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productStoreId">
+                                                <default-field title="Store">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="options.stores" key="${value}" text="${label}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="marketSegmentId">
+                                                <default-field title="Market segment">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save">
+                                                    <submit/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
                         </form-list>
                         <section name="IdentifiersRowsEditor" condition="canEdit">
                             <widgets>
@@ -133,55 +182,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <section-iterate name="IdentifiersRowsRows" list="detail.identifiers" entry="entry">
-                                    <widgets>
-                                        <container-dialog id="EditIdentifiersRows_${entry_index}" button-text="Edit ${entry.identTypeEnumId}" title="Edit category identifier" width="640">
-                                            <form-single name="EditIdentifiersRows" transition="storeIdentifiersRows" map="entry">
-                                                <field name="productCategoryId">
-                                                    <default-field title="Category">
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productCategoryIdentId">
-                                                    <default-field title="Identifier ID">
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="identTypeEnumId">
-                                                    <default-field title="Type">
-                                                        <drop-down allow-empty="true">
-                                                            <option key="PcitUrlSlug" text="URL slug"/>
-                                                        </drop-down>
-                                                    </default-field>
-                                                </field>
-                                                <field name="idValue">
-                                                    <default-field title="Value">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productStoreId">
-                                                    <default-field title="Store">
-                                                        <drop-down allow-empty="true">
-                                                            <list-options list="options.stores" key="${value}" text="${label}"/>
-                                                        </drop-down>
-                                                    </default-field>
-                                                </field>
-                                                <field name="marketSegmentId">
-                                                    <default-field title="Market segment">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="submitButton">
-                                                    <default-field title="Save">
-                                                        <submit/>
-                                                    </default-field>
-                                                </field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section-iterate>
                             </widgets>
                         </section>
                     </box-body>

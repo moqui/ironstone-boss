@@ -10,10 +10,15 @@ feature("a catalog editor creates and activates a draft, then assigns an identif
         page.getByRole("button", {name: "Create draft", exact: true}).click()
         page.waitForURL(/Product360/)
         page.text().includes("Browser catalog product")
+        page.evaluate(() => {
+            window.confirm = () => true
+            return true
+        }) == true
         page.getByRole("button", {name: "Activate", exact: true}).click()
-        page.waitFor(() => document.body.innerText.includes("Discontinue"))
+        // an active product has no Activate action (Discontinue is in its More menu)
+        page.waitFor(() => !Array.from(document.querySelectorAll("button")).some(button => button.innerText.trim() === "Activate"))
         page.goto("/qapps/Products/Products/Product360/Identifiers?productId=" + id)
-        page.getByRole("button", {name: "Add", exact: true}).click()
+        page.getByRole("button", {name: "Add identifier", exact: true}).click()
         const dialog = page.getByRole("dialog")
         dialog.getByLabel("Type", {exact: true}).click()
         page.getByRole("option", {name: "SKU", exact: true}).click()
@@ -22,7 +27,7 @@ feature("a catalog editor creates and activates a draft, then assigns an identif
         page.waitFor(() => !document.querySelector("[role=dialog]"))
         page.text().includes(id + "-SKU")
         page.goto("/qapps/Products/Products/Product360/Parties?productId=" + id)
-        page.getByRole("button", {name: "Add", exact: true}).click()
+        page.getByRole("button", {name: "Add party", exact: true}).click()
         const partyDialog = page.getByRole("dialog")
         partyDialog.getByLabel("Party", {exact: true}).click()
         page.getByRole("option", {name: "ZISER", exact: true}).click()

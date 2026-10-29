@@ -57,6 +57,48 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <field name="rowActions">
+                                <default-field title="">
+                                    <container-dialog condition="canEdit" id="EditEquipment" button-text="Edit" icon="sym_o_edit" title="Edit equipment template" width="640">
+                                        <form-single name="EditEquipment" transition="storeRow">
+                                            <field name="productId">
+                                                <default-field>
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productMeterId">
+                                                <default-field title="Meter ID">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productMeterTypeId">
+                                                <default-field title="Meter type">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="options.meterTypes" key="${value}" text="${label}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="meterUomId">
+                                                <default-field title="Unit">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="options.units" key="${value}" text="${label}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="meterName">
+                                                <default-field title="Name">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save">
+                                                    <submit/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
                         </form-list>
                         <section name="EquipmentEditor" condition="canEdit">
                             <widgets>
@@ -98,48 +140,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <section-iterate name="EditEquipmentRows" list="detail.meterRows" entry="entry">
-                                    <widgets>
-                                        <container-dialog id="EditEquipment_${entry_index}" button-text="Edit ${entry.productMeterTypeId}" title="Edit equipment template" width="640">
-                                            <form-single name="EditEquipment" transition="storeRow" map="entry">
-                                                <field name="productId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productMeterId">
-                                                    <default-field title="Meter ID">
-                                                        <hidden/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productMeterTypeId">
-                                                    <default-field title="Meter type">
-                                                        <drop-down allow-empty="true">
-                                                            <list-options list="options.meterTypes" key="${value}" text="${label}"/>
-                                                        </drop-down>
-                                                    </default-field>
-                                                </field>
-                                                <field name="meterUomId">
-                                                    <default-field title="Unit">
-                                                        <drop-down allow-empty="true">
-                                                            <list-options list="options.units" key="${value}" text="${label}"/>
-                                                        </drop-down>
-                                                    </default-field>
-                                                </field>
-                                                <field name="meterName">
-                                                    <default-field title="Name">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="submitButton">
-                                                    <default-field title="Save">
-                                                        <submit/>
-                                                    </default-field>
-                                                </field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section-iterate>
                             </widgets>
                         </section>
                         <container-box>
@@ -192,6 +192,73 @@ along with this software (see the LICENSE.md file). If not, see
                                         <header-field title="Notes"/>
                                         <default-field>
                                             <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="rowActions">
+                                        <default-field title="">
+                                            <container-dialog condition="canEdit" id="EditMaintenance" button-text="Edit" icon="sym_o_edit" title="Maintenance" width="640">
+                                                <form-single name="EditMaintenance" transition="storeMaintenance">
+                                                    <field name="productId">
+                                                        <default-field>
+                                                            <hidden/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productMaintenanceId">
+                                                        <default-field title="ID">
+                                                            <hidden/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="maintenanceTypeEnumId">
+                                                        <default-field title="Maintenance type">
+                                                            <drop-down allow-empty="true">
+                                                                <list-options list="options.maintenanceTypes" key="${value}" text="${label}"/>
+                                                            </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="description">
+                                                        <default-field title="Description">
+                                                            <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="intervalQuantity">
+                                                        <default-field title="Interval">
+                                                            <text-line input-type="number"/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="intervalUomId">
+                                                        <default-field title="Interval unit">
+                                                            <drop-down allow-empty="true">
+                                                                <list-options list="options.units" key="${value}" text="${label}"/>
+                                                            </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="intervalProductMeterId">
+                                                        <default-field title="Meter ID">
+                                                            <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="repeatCount">
+                                                        <default-field title="Repeat count">
+                                                            <text-line input-type="number"/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="templateWorkEffortId">
+                                                        <default-field title="Work template">
+                                                            <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="comments">
+                                                        <default-field title="Notes">
+                                                            <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="submitButton">
+                                                        <default-field title="Save">
+                                                            <submit/>
+                                                        </default-field>
+                                                    </field>
+                                                </form-single>
+                                            </container-dialog>
                                         </default-field>
                                     </field>
                                 </form-list>
@@ -260,73 +327,6 @@ along with this software (see the LICENSE.md file). If not, see
                                                 </field>
                                             </form-single>
                                         </container-dialog>
-                                        <section-iterate name="EditMaintenanceRows" list="detail.maintenanceRows" entry="entry">
-                                            <widgets>
-                                                <container-dialog id="EditMaintenance_${entry_index}" button-text="Edit ${entry.description}" title="Maintenance" width="640">
-                                                    <form-single name="EditMaintenance" transition="storeMaintenance" map="entry">
-                                                        <field name="productId">
-                                                            <default-field>
-                                                                <hidden/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="productMaintenanceId">
-                                                            <default-field title="ID">
-                                                                <hidden/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="maintenanceTypeEnumId">
-                                                            <default-field title="Maintenance type">
-                                                                <drop-down allow-empty="true">
-                                                                    <list-options list="options.maintenanceTypes" key="${value}" text="${label}"/>
-                                                                </drop-down>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="description">
-                                                            <default-field title="Description">
-                                                                <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="intervalQuantity">
-                                                            <default-field title="Interval">
-                                                                <text-line input-type="number"/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="intervalUomId">
-                                                            <default-field title="Interval unit">
-                                                                <drop-down allow-empty="true">
-                                                                    <list-options list="options.units" key="${value}" text="${label}"/>
-                                                                </drop-down>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="intervalProductMeterId">
-                                                            <default-field title="Meter ID">
-                                                                <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="repeatCount">
-                                                            <default-field title="Repeat count">
-                                                                <text-line input-type="number"/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="templateWorkEffortId">
-                                                            <default-field title="Work template">
-                                                                <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="comments">
-                                                            <default-field title="Notes">
-                                                                <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="submitButton">
-                                                            <default-field title="Save">
-                                                                <submit/>
-                                                            </default-field>
-                                                        </field>
-                                                    </form-single>
-                                                </container-dialog>
-                                            </widgets>
-                                        </section-iterate>
                                     </widgets>
                                 </section>
                             </box-body>

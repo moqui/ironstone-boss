@@ -32,12 +32,16 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="batchLimit" from="String(settings.batchLimit)"/>
         <set field="copyCategoryMembers" from="settings.copyCategoryMembers ? 'Y' : 'N'"/>
         <set field="identifierPattern" from="settings.identifierPattern"/>
+        <entity-find-one entity-name="mantle.party.Organization" value-field="organization" cache="true">
+            <field-map field-name="partyId" from="organizationPartyId"/>
+        </entity-find-one>
+        <set field="organizationName" from="organization?.organizationName || organizationPartyId || ''"/>
     </actions>
     <widgets>
         <container-box>
             <box-header title="Variant policy"/>
             <box-body>
-                <label text="Organization ${organizationPartyId}" type="p"/>
+                <label text="${organizationName}" type="p"/>
                 <label text="Changes take effect on their start date. Each save ends the prior policy and preserves its history." type="p"/>
                 <section name="Administrator" condition="access.capabilities.catalogAdmin">
                     <widgets>

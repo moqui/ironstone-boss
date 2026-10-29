@@ -1,3 +1,26 @@
+// A row's action: the price row is the one whose History link names its productPriceId. An inline action is a button of
+// the row; a More action opens the row's menu first.
+function rowAction(page, id, label, inMenu) {
+    page.evaluate(
+        ([id, label, inMenu]) => {
+            const row = Array.from(document.querySelectorAll(".tr")).find(r => r.querySelector('a[href*="productPriceId=' + id + '"]'))
+            const buttons = Array.from(row.querySelectorAll("button"))
+            const button = inMenu ? buttons.find(b => b.innerText.includes("more_vert")) : buttons.find(b => b.innerText.trim().endsWith(label))
+            button.click()
+            return true
+        },
+        [id, label, inMenu]
+    ) == true
+    if (inMenu) {
+        page.waitFor(label => Array.from(document.querySelectorAll(".q-menu .q-item, .q-menu button")).some(i => i.innerText.trim().endsWith(label)), {arg: label})
+        page.evaluate(label => {
+            Array.from(document.querySelectorAll(".q-menu .q-item, .q-menu button"))
+                .find(i => i.innerText.trim().endsWith(label))
+                .click()
+            return true
+        }, label) == true
+    }
+}
 feature("a price editor creates, corrects, schedules, reviews bulk changes and ends an interval", {
     expect() {
         const page = browser.newPage({user: "catalog.price.edit", viewport: {width: 1280, height: 1000}, timeout: 30})
@@ -11,20 +34,23 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
         dialog.locator("input[name=changeReason]").fill("Browser new tier")
         dialog.getByRole("button", {name: "Create price", exact: true}).click()
         page.waitFor(() => !document.querySelector("[role=dialog]"))
-        page.waitFor(() => Array.from(document.querySelectorAll("button")).some(b => /Correct\s+\d+/.test(b.innerText)))
-        const id = page.evaluate(
-            () =>
-                Array.from(document.querySelectorAll("button"))
-                    .map(b => b.innerText.match(/Correct\s+(\d+)/))
-                    .find(Boolean)[1]
+        // the new tier: the row with a 21 price for 5 or more, and its ID from its History link
+        page.waitFor(() =>
+            Array.from(document.querySelectorAll(".tr")).some(r => /\b21(\.0+)?\b/.test(r.innerText) && r.querySelector('a[href*="productPriceId="]'))
         )
-        page.getByRole("button", {name: "Correct " + id, exact: true}).click()
+        const id = page.evaluate(() => {
+            const row = Array.from(document.querySelectorAll(".tr")).find(
+                r => /\b21(\.0+)?\b/.test(r.innerText) && /\b5(\.0+)?\b/.test(r.innerText) && r.querySelector('a[href*="productPriceId="]')
+            )
+            return new URL(row.querySelector('a[href*="productPriceId="]').href).searchParams.get("productPriceId")
+        })
+        rowAction(page, id, "Correct", false)
         dialog = page.getByRole("dialog")
         dialog.locator("input[name=price]").fill("23")
         dialog.locator("input[name=changeReason]").fill("Browser corrected offer")
         dialog.getByRole("button", {name: "Save correction", exact: true}).click()
         page.waitFor(() => !document.querySelector("[role=dialog]"))
-        page.getByRole("button", {name: "Schedule " + id, exact: true}).click()
+        rowAction(page, id, "Schedule", false)
         dialog = page.getByRole("dialog")
         dialog.locator("input[name=price]").fill("24")
         dialog.locator("input[name=effectiveDate]").fill(next + " 12:00")
@@ -56,7 +82,11 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
         )
         page.screenshot("Prices-reviewed-bulk-results", {fullPage: true})
         page.goto("/qapps/Products/Prices?productId=BOSS_PRD_OWN")
-        page.getByRole("button", {name: "End " + id, exact: true}).click()
+        page.evaluate(() => {
+            window.confirm = () => true
+            return true
+        }) == true
+        rowAction(page, id, "End", false)
         dialog = page.getByRole("dialog")
         dialog.locator("input[name=changeReason]").fill("Browser ended interval")
         dialog.getByRole("button", {name: "End price", exact: true}).click()

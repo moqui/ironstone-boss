@@ -69,6 +69,35 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <field name="rowActions">
+                                <default-field title="">
+                                    <container-dialog condition="canEdit" id="EditIdentifiers" button-text="Edit" icon="sym_o_edit" title="Edit identifier" width="640">
+                                        <form-single name="EditIdentifiers" transition="storeRow">
+                                            <field name="productId">
+                                                <default-field>
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productIdTypeEnumId">
+                                                <default-field>
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="idValue">
+                                                <default-field title="Value">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save">
+                                                    <submit/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
                         </form-list>
                         <section name="IdentifiersEditor" condition="canEdit">
                             <widgets>
@@ -98,35 +127,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <section-iterate name="EditIdentifiersRows" list="detail.identifierRows" entry="entry">
-                                    <widgets>
-                                        <container-dialog id="EditIdentifiers_${entry_index}" button-text="Edit ${entry.productIdTypeEnumId}" title="Edit identifier" width="640">
-                                            <form-single name="EditIdentifiers" transition="storeRow" map="entry">
-                                                <field name="productId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productIdTypeEnumId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="idValue">
-                                                    <default-field title="Value">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="submitButton">
-                                                    <default-field title="Save">
-                                                        <submit/>
-                                                    </default-field>
-                                                </field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section-iterate>
                             </widgets>
                         </section>
                         <container-box>
@@ -155,6 +155,51 @@ along with this software (see the LICENSE.md file). If not, see
                                         <header-field title="Market segment"/>
                                         <default-field>
                                             <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="rowActions">
+                                        <default-field title="">
+                                            <container-dialog condition="canEdit" id="EditOther" button-text="Edit" icon="sym_o_edit" title="Scoped identifier" width="640">
+                                                <form-single name="OtherIdentifications" transition="storeOther">
+                                                    <field name="productId">
+                                                        <default-field>
+                                                        <hidden/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productOtherIdentId">
+                                                        <default-field title="ID">
+                                                        <hidden/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productIdTypeEnumId">
+                                                        <default-field title="Type">
+                                                        <drop-down allow-empty="true">
+                                                        <list-options list="options.idTypes" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="idValue">
+                                                        <default-field title="Value">
+                                                        <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productStoreId">
+                                                        <default-field title="Store">
+                                                        <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="marketSegmentId">
+                                                        <default-field title="Market segment">
+                                                        <text-line/>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="submitButton">
+                                                        <default-field title="Save">
+                                                        <submit/>
+                                                        </default-field>
+                                                    </field>
+                                                </form-single>
+                                            </container-dialog>
                                         </default-field>
                                     </field>
                                 </form-list>
@@ -201,51 +246,6 @@ along with this software (see the LICENSE.md file). If not, see
                                                 </field>
                                             </form-single>
                                         </container-dialog>
-                                        <section-iterate name="OtherRows" list="detail.otherIdentifierRows" entry="entry">
-                                            <widgets>
-                                                <container-dialog id="EditOther_${entry_index}" button-text="Edit ${entry.idValue}" title="Scoped identifier" width="640">
-                                                    <form-single name="OtherIdentifications" transition="storeOther" map="entry">
-                                                        <field name="productId">
-                                                            <default-field>
-                                                            <hidden/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="productOtherIdentId">
-                                                            <default-field title="ID">
-                                                            <hidden/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="productIdTypeEnumId">
-                                                            <default-field title="Type">
-                                                            <drop-down allow-empty="true">
-                                                            <list-options list="options.idTypes" key="${value}" text="${label}"/>
-                                                            </drop-down>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="idValue">
-                                                            <default-field title="Value">
-                                                            <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="productStoreId">
-                                                            <default-field title="Store">
-                                                            <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="marketSegmentId">
-                                                            <default-field title="Market segment">
-                                                            <text-line/>
-                                                            </default-field>
-                                                        </field>
-                                                        <field name="submitButton">
-                                                            <default-field title="Save">
-                                                            <submit/>
-                                                            </default-field>
-                                                        </field>
-                                                    </form-single>
-                                                </container-dialog>
-                                            </widgets>
-                                        </section-iterate>
                                     </widgets>
                                 </section>
                             </box-body>

@@ -73,6 +73,10 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <actions>
         <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context" />
+        <entity-find-one entity-name="mantle.party.Organization" value-field="organization" cache="true">
+            <field-map field-name="partyId" from="organizationPartyId"/>
+        </entity-find-one>
+        <set field="organizationName" from="organization?.organizationName || organizationPartyId || ''"/>
     </actions>
     <widgets>
         <label text="Product import" type="h5" />
@@ -164,7 +168,7 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="ImportWorkspace" condition="hasImport">
             <widgets>
                 <label text="${filename} · ${kindDescription} · ${state}" type="h6" />
-                <label text="Organization ${organizationPartyId} · ${rowCount} rows · ${validCount} ready · ${appliedCount} applied · ${errorCount} need attention" type="p" />
+                <label text="${organizationName} · ${rowCount} rows · ${validCount} ready · ${appliedCount} applied · ${errorCount} need attention" type="p" />
                 <label text="${lastError || &quot;&quot;}" type="p" condition="!!lastError" />
                 <section name="ImportMappingEditor" condition="canEdit">
                     <widgets>

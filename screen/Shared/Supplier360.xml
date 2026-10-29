@@ -27,11 +27,27 @@ along with this software (see the LICENSE.md file). If not, see
     <subscreens default-item="Overview">
         <subscreens-item name="Prices" menu-index="2" location="component://mr-boss/screen/Shared/SupplierPrices.xml" menu-title="Products &amp; prices"/>
     </subscreens>
+    <actions>
+        <entity-find-one entity-name="mantle.party.Organization" value-field="buyerOrganization" cache="true">
+            <field-map field-name="partyId" from="organizationPartyId"/>
+        </entity-find-one>
+        <set field="canOffer" from="sharedMountContext.capabilities.supplierPriceEdit"/>
+    </actions>
     <widgets>
         <context record-entity="mantle.party.Party" record-id="${vendorPartyId}" title="${supplier.supplierName}"/>
-        <label text="${supplier.supplierName}" type="h5"/>
-        <label text="Supplier ${vendorPartyId} · Buyer ${organizationPartyId}" type="p"/>
-        <subscreens-menu id="SupplierTabs" type="tab"/>
-        <subscreens-active/>
+        <!-- the header card (style-guide §3.4): the supplier and the buying organization, with a new offer as the primary action -->
+        <container style="m-record-header">
+            <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                <container style="col-12 col-md m-record-title">
+                    <label text="${supplier.supplierName}" type="h5"/>
+                    <label text="Supplier to ${buyerOrganization?.organizationName || organizationPartyId}" type="p" style="text-caption m-muted q-mb-none"/>
+                </container>
+                <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                    <link url="Prices" text="New supplier offer" link-type="anchor-button" btn-type="primary" icon="sym_o_add" condition="canOffer"
+                            parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId,_openDialog:'NewSupplierOfferDialog'}"/>
+                </container>
+            </container>
+        </container>
+        <subscreens-panel id="SupplierTabs" type="tab"/>
     </widgets>
 </screen>

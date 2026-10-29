@@ -72,6 +72,62 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <field name="rowActions">
+                                <default-field title="">
+                                    <container-dialog condition="canEdit" id="EditParties" button-text="Edit" icon="sym_o_edit" title="Edit product party" width="640">
+                                        <form-single name="EditParties" transition="storeRow">
+                                            <field name="productId">
+                                                <default-field>
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="partyId">
+                                                <default-field>
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="roleTypeId">
+                                                <default-field>
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="fromDate">
+                                                <default-field>
+                                                    <hidden/>
+                                                    <display text="${fromDateText || ''}"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="thruDate">
+                                                <default-field title="Through">
+                                                    <date-time/>
+                                                </default-field>
+                                            </field>
+                                            <field name="otherPartyItemId">
+                                                <default-field title="Party item code">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="otherPartyItemName">
+                                                <default-field title="Party item name">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="comments">
+                                                <default-field title="Notes">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save">
+                                                    <submit/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
                         </form-list>
                         <section name="PartiesEditor" condition="canEdit">
                             <widgets>
@@ -130,62 +186,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <section-iterate name="EditPartiesRows" list="detail.partyRows" entry="entry">
-                                    <widgets>
-                                        <container-dialog id="EditParties_${entry_index}" button-text="Edit ${entry.partyId}" title="Edit product party" width="640">
-                                            <form-single name="EditParties" transition="storeRow" map="entry">
-                                                <field name="productId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="partyId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="roleTypeId">
-                                                    <default-field>
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="fromDate">
-                                                    <default-field>
-                                                        <hidden/>
-                                                        <display text="${fromDateText || ''}"/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="thruDate">
-                                                    <default-field title="Through">
-                                                        <date-time/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="otherPartyItemId">
-                                                    <default-field title="Party item code">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="otherPartyItemName">
-                                                    <default-field title="Party item name">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="comments">
-                                                    <default-field title="Notes">
-                                                        <text-line/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="submitButton">
-                                                    <default-field title="Save">
-                                                        <submit/>
-                                                    </default-field>
-                                                </field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section-iterate>
                             </widgets>
                         </section>
                     </box-body>

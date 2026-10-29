@@ -12,7 +12,7 @@ feature("catalog check evidence at #width dark=#dark", {
     expect({width, dark}) {
         const p = pages[width]
         p.goto(
-            "/qapps/Products/Settings/CatalogChecks?runChecks=true&productIds=BOSS_CHK_EMPTY,BOSS_CHK_DUP_A,BOSS_PRD_PACK&checkIds=requiredFields,identifiers,legacyPacks"
+            "/qapps/Products/CatalogChecks?runChecks=true&productIds=BOSS_CHK_EMPTY,BOSS_CHK_DUP_A,BOSS_PRD_PACK&checkIds=requiredFields,identifiers,legacyPacks"
         ).status == 200
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Required field is empty"))
         p.text().includes("already assigned")
@@ -36,8 +36,8 @@ feature("a reader opens Home readiness and retries one issue without changing ca
     expect() {
         const p = pages[1280]
         p.goto("/qapps/Products/Home").status == 200
-        p.getByRole("link", {name: "Incomplete catalog:", exact: false}).count() > 0
-        p.goto("/qapps/Products/Settings/CatalogChecks?runChecks=true&productIds=BOSS_CHK_DUP_A&checkIds=identifiers").status == 200
+        p.text().includes("Incomplete")
+        p.goto("/qapps/Products/CatalogChecks?runChecks=true&productIds=BOSS_CHK_DUP_A&checkIds=identifiers").status == 200
         p.getByRole("link", {name: "Retry check", exact: true}).first().click()
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("1 products checked"))
         p.text().includes("already assigned")

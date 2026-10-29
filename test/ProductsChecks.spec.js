@@ -28,7 +28,7 @@ spec({
     }
 })
 feature("catalog checks at #path render in #mode with guarded readiness evidence", {
-    where: ["Settings/CatalogChecks"].flatMap(path => ["qvt", "html", "tui"].map(mode => ({path, mode}))),
+    where: ["CatalogChecks"].flatMap(path => ["qvt", "html", "tui"].map(mode => ({path, mode}))),
     expect({path, mode}) {
         const r = as("catalog.admin", () =>
             ec.screen

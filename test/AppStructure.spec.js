@@ -74,7 +74,7 @@ const demoRecords = {
     "Shared/RoutingDetail/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Routing standards"},
     "Shared/InventoryAvailability/": {parameters:{productId:"BOSS_PRD_OWN",facilityId:"BOSS_PRD_WH"},text:"Current inventory"},
     "Shared/SupplierPrices/": {parameters:{organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Supplier offers"},
-    "Shared/Supplier360/": {parameters:{vendorPartyId:"BOSS_PRD_SUPPLIER",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Services Supply"},
+    "Shared/Supplier360/": {parameters:{vendorPartyId:"BOSS_PRD_SUPPLIER",organizationPartyId:"ORG_ZIZI_SERVICES"},text:"Contact information"},
     "Products/SupplierPrices": {text:"Supplier offers"},
     "Products/Suppliers": {text:"Supplier offers"},
     "Shared/PriceLists/": {text:"Find price lists"},

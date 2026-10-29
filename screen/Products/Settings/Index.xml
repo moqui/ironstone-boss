@@ -31,12 +31,19 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
         <set field="asOfDate" from="ec.l10n.format(new Date(Number(String(asOfDate))), &quot;yyyy-MM-dd'T'HH:mm:ss&quot;)"/>
         <script>settings.requiredFields = Array.from(settings.requiredFields).join(','); for (const key of ['variantsEnabled','packagingEnabled','priceListsEnabled','allowCostSelfApproval']) settings[key]=String(settings[key])</script>
+        <entity-find-one entity-name="mantle.party.Organization" value-field="organization" cache="true">
+            <field-map field-name="partyId" from="organizationPartyId"/>
+        </entity-find-one>
+        <set field="organizationName" from="organization?.organizationName || organizationPartyId || ec.l10n.localize('No organization')"/>
     </actions>
     <widgets>
         <container-box>
             <box-header title="Catalog settings"/>
+            <box-toolbar>
+                <link url="../../CatalogChecks" text="Catalog checks" link-type="anchor-button" icon="sym_o_rule"/>
+            </box-toolbar>
             <box-body>
-                <label text="Organization ${organizationPartyId} · Effective from ${fromDate ? ec.l10n.format(new Date(Number(String(fromDate))), 'yyyy-MM-dd HH:mm:ss') : 'default policy'}" type="p"/>
+                <label text="${organizationName} · ${fromDate ? 'effective from ' + ec.l10n.format(new Date(Number(String(fromDate))), 'yyyy-MM-dd HH:mm') : 'the default policy'}" type="p"/>
                 <form-single name="CatalogPolicyDate" transition=".">
                     <field name="organizationPartyId">
                         <default-field>

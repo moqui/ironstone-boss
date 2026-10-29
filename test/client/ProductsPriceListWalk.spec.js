@@ -24,6 +24,10 @@ feature("an editor drafts a policy, adds a fixed rule, publishes the reviewed sc
         dialog.getByRole("button", {name: "Save dated rule", exact: true}).click()
         page.waitFor(() => !document.querySelector("[role=dialog]"))
         page.locator("#PublishPriceList input[name=changeReason]").fill("Browser confirmed scope")
+        page.evaluate(() => {
+            window.confirm = () => true
+            return true
+        }) == true
         page.getByRole("button", {name: "Publish reviewed list", exact: true}).click()
         page.settle()
         page.evaluate(() => document.getElementById("PriceList_stateText_display").value) === "published"

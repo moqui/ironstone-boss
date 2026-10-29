@@ -57,6 +57,56 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
+                            <field name="rowActions">
+                                <default-field title="">
+                                    <container-dialog condition="canEdit" id="EditProductsRows" button-text="Edit" icon="sym_o_edit" title="Edit product application" width="640">
+                                        <form-single name="EditProductsRows" transition="storeProductsRows">
+                                            <field name="productFeatureId">
+                                                <default-field title="Feature">
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="productId">
+                                                <default-field title="Product">
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="fromDate">
+                                                <default-field title="From">
+                                                    <hidden/>
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="thruDate">
+                                                <default-field title="Through">
+                                                    <date-time/>
+                                                </default-field>
+                                            </field>
+                                            <field name="applTypeEnumId">
+                                                <default-field title="Application">
+                                                    <drop-down allow-empty="true">
+                                                        <option key="PfatStandard" text="Standard"/>
+                                                        <option key="PfatSelectable" text="Selectable"/>
+                                                        <option key="PfatDistinguishing" text="Distinguishing"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="amount">
+                                                <default-field title="Amount">
+                                                    <text-line input-type="number"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save">
+                                                    <submit/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
                         </form-list>
                         <section name="ProductsRowsEditor" condition="canEdit">
                             <widgets>
@@ -105,56 +155,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <section-iterate name="ProductsRowsRows" list="detail.products" entry="entry">
-                                    <widgets>
-                                        <container-dialog id="EditProductsRows_${entry_index}" button-text="Edit ${entry.productId}" title="Edit product application" width="640">
-                                            <form-single name="EditProductsRows" transition="storeProductsRows" map="entry">
-                                                <field name="productFeatureId">
-                                                    <default-field title="Feature">
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="productId">
-                                                    <default-field title="Product">
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="fromDate">
-                                                    <default-field title="From">
-                                                        <hidden/>
-                                                        <display/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="thruDate">
-                                                    <default-field title="Through">
-                                                        <date-time/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="applTypeEnumId">
-                                                    <default-field title="Application">
-                                                        <drop-down allow-empty="true">
-                                                            <option key="PfatStandard" text="Standard"/>
-                                                            <option key="PfatSelectable" text="Selectable"/>
-                                                            <option key="PfatDistinguishing" text="Distinguishing"/>
-                                                        </drop-down>
-                                                    </default-field>
-                                                </field>
-                                                <field name="amount">
-                                                    <default-field title="Amount">
-                                                        <text-line input-type="number"/>
-                                                    </default-field>
-                                                </field>
-                                                <field name="submitButton">
-                                                    <default-field title="Save">
-                                                        <submit/>
-                                                    </default-field>
-                                                </field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section-iterate>
                             </widgets>
                         </section>
                     </box-body>

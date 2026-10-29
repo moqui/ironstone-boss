@@ -14,68 +14,73 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Overview &amp; contacts" default-menu-index="1">
     <widgets>
-        <container-box>
-            <box-header title="Supplier overview"/>
-            <box-body>
-                <label text="${supplier.supplierName}" type="h6"/>
-                <label text="${vendorPartyId} · ${supplier.ownerPartyId}" type="p"/>
-                <link url="//Commons/Contacts/ContactDetail" text="Maintain contact" condition="supplier.canEditContact" parameter-map="{partyId:vendorPartyId}"/>
-                <form-list name="SupplierContacts" list="contactRows" skip-form="true" paginate="false">
-                    <field name="kindLabel">
-                        <default-field title="Kind">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                    <field name="value">
-                        <default-field title="Contact">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                    <field name="purposeText">
-                        <default-field title="Purpose">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                </form-list>
-                <form-list name="SupplierAddresses" list="addressRows" skip-form="true" paginate="false">
-                    <field name="address1">
-                        <default-field title="Address">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                    <field name="city">
-                        <default-field title="City">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                    <field name="postalCode">
-                        <default-field title="Postal code">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                </form-list>
-                <form-list name="SupplierRoles" list="roleRows" skip-form="true" paginate="false">
-                    <field name="roleTypeId">
-                        <default-field title="Party role">
-                            <display/>
-                        </default-field>
-                    </field>
-                    
-
-                </form-list>
-            </box-body>
-        </container-box>
+        <container-row>
+            <row-col lg="6">
+                <container-box>
+                    <box-header title="Contact information"/>
+                    <box-toolbar>
+                        <link url="//Commons/Contacts/ContactDetail" text="Maintain contact" link-type="anchor-button" icon="sym_o_edit" condition="supplier.canEditContact"
+                                parameter-map="{partyId:vendorPartyId}"/>
+                    </box-toolbar>
+                    <box-body-nopad>
+                        <form-list name="SupplierContacts" list="contactRows" skip-form="true" skip-header="true" paginate="false">
+                            <field name="kindLabel">
+                                <default-field>
+                                    <display style="m-muted"/>
+                                </default-field>
+                            </field>
+                            <field name="value">
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="purposeText">
+                                <default-field>
+                                    <display style="m-muted"/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <label text="No contact information is recorded." type="p" style="q-pa-md m-muted" condition="!contactRows?.length"/>
+                    </box-body-nopad>
+                </container-box>
+            </row-col>
+            <row-col lg="6">
+                <container-box>
+                    <box-header title="Addresses"/>
+                    <box-body-nopad>
+                        <form-list name="SupplierAddresses" list="addressRows" skip-form="true" skip-header="true" paginate="false">
+                            <field name="address1">
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="city">
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="postalCode">
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                        <label text="No address is recorded." type="p" style="q-pa-md m-muted" condition="!addressRows?.length"/>
+                    </box-body-nopad>
+                </container-box>
+                <container-box>
+                    <box-header title="Roles"/>
+                    <box-body-nopad>
+                        <form-list name="SupplierRoles" list="roleRows" skip-form="true" skip-header="true" paginate="false">
+                            <field name="roleTypeId">
+                                <default-field>
+                                    <display-entity entity-name="mantle.party.RoleType"/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
+            </row-col>
+        </container-row>
     </widgets>
 </screen>

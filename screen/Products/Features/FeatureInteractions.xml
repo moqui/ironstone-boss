@@ -80,6 +80,54 @@ along with this software (see the LICENSE.md file). If not, see
                             <display/>
                         </default-field>
                     </field>
+                    <field name="rowActions">
+                        <default-field title="">
+                            <container-dialog condition="canEdit" id="EditInteraction" button-text="Edit ${productFeatureId} → ${toProductFeatureId}" title="Edit feature rule" width="640">
+                                <form-single name="EditInteraction" transition="saveInteraction">
+                                    <field name="productFeatureId">
+                                        <default-field>
+                                            <hidden/>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="toProductFeatureId">
+                                        <default-field>
+                                            <hidden/>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="productId">
+                                        <default-field>
+                                            <hidden/>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="iactnTypeEnumId">
+                                        <default-field title="Interaction">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="options.interactionTypes" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="quantity">
+                                        <default-field>
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount">
+                                        <default-field>
+                                            <text-line input-type="number"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </container-dialog>
+                        </default-field>
+                    </field>
                 </form-list>
                 <section name="InteractionEditor" condition="canEdit">
                     <widgets>
@@ -130,54 +178,6 @@ along with this software (see the LICENSE.md file). If not, see
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <section-iterate name="InteractionRows" list="rows" entry="entry">
-                            <widgets>
-                                <container-dialog id="EditInteraction_${entry_index}" button-text="Edit ${entry.productFeatureId} → ${entry.toProductFeatureId}" title="Edit feature rule" width="640">
-                                    <form-single name="EditInteraction" transition="saveInteraction" map="entry">
-                                        <field name="productFeatureId">
-                                            <default-field>
-                                                <hidden/>
-                                                <display/>
-                                            </default-field>
-                                        </field>
-                                        <field name="toProductFeatureId">
-                                            <default-field>
-                                                <hidden/>
-                                                <display/>
-                                            </default-field>
-                                        </field>
-                                        <field name="productId">
-                                            <default-field>
-                                                <hidden/>
-                                                <display/>
-                                            </default-field>
-                                        </field>
-                                        <field name="iactnTypeEnumId">
-                                            <default-field title="Interaction">
-                                                <drop-down allow-empty="true">
-                                                    <list-options list="options.interactionTypes" key="${value}" text="${label}"/>
-                                                </drop-down>
-                                            </default-field>
-                                        </field>
-                                        <field name="quantity">
-                                            <default-field>
-                                                <text-line input-type="number"/>
-                                            </default-field>
-                                        </field>
-                                        <field name="amount">
-                                            <default-field>
-                                                <text-line input-type="number"/>
-                                            </default-field>
-                                        </field>
-                                        <field name="submitButton">
-                                            <default-field title="Save">
-                                                <submit/>
-                                            </default-field>
-                                        </field>
-                                    </form-single>
-                                </container-dialog>
-                            </widgets>
-                        </section-iterate>
                     </widgets>
                 </section>
             </box-body>

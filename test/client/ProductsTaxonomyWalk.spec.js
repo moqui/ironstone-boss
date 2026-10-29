@@ -10,7 +10,17 @@ feature("an editor moves one category edge, retains the other parent and manages
         page.locator("#NewCategory").getByRole("button", {name: "Create", exact: true}).click()
         page.waitForURL(/CategoryDetail/)
         page.goto("/qapps/Products/Categories/CategoryDetail/Parents?productCategoryId=BOSS_PRD_CAT")
-        page.getByRole("button", {name: "Move from BOSS_PRD_PARENT_A", exact: true}).click()
+        // the Move action of the BOSS_PRD_PARENT_A row: its nearest ancestor that names that parent and no other
+        page.evaluate(() => {
+            const button = Array.from(document.querySelectorAll("button")).find(candidate => {
+                if (!candidate.innerText.trim().endsWith("Move")) return false
+                let row = candidate.parentElement
+                while (row && !row.innerText.includes("BOSS_PRD_PARENT")) row = row.parentElement
+                return !!row && row.innerText.includes("BOSS_PRD_PARENT_A") && !row.innerText.includes("BOSS_PRD_PARENT_B")
+            })
+            button.click()
+            return true
+        }) == true
         const dialog = page.getByRole("dialog")
         dialog.getByLabel("New parent", {exact: true}).click()
         page.getByRole("option", {name: "Browser destination", exact: true}).click()
@@ -66,7 +76,7 @@ feature("an editor moves one category edge, retains the other parent and manages
         page.locator("#NewFeatureGroup").getByRole("button", {name: "Create", exact: true}).click()
         page.waitForURL(/FeatureGroupDetail/)
         page.goto("/qapps/Products/Features/FeatureGroups/FeatureGroupDetail/Features?productFeatureGroupId=" + groupId)
-        page.getByRole("button", {name: "Add", exact: true}).click()
+        page.getByRole("button", {name: "Add feature", exact: true}).click()
         const groupDialog = page.getByRole("dialog")
         groupDialog.getByLabel("Feature", {exact: true}).click()
         page.getByRole("option", {name: "Browser finish", exact: true}).click()

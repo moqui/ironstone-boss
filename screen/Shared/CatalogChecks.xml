@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Catalog checks" default-menu-include="false">
+    <actions>
+        <service-call name="ironstone.products.CheckServices.get#CheckContext" in-map="context" out-map="context" />
+    </actions>
+    <widgets>
+        <label text="Catalog checks" type="h5" />
+        <label text="Readiness issues include evidence and a suggested correction. Each record is checked independently." type="p" />
+        <form-single name="CheckSelection" transition="." map="checkForm">
+            <field name="runChecks">
+                <default-field title="">
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="productIds">
+                <default-field title="Product IDs (empty: visible catalog)">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="organizationPartyId">
+                <default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <list-options list="ownerOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="checkIds">
+                <default-field title="Checks">
+                    <drop-down allow-empty="true" allow-multiple="true">
+                        <list-options list="checkOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="productCategoryId">
+                <default-field title="Category ID (optional)">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="includeDescendants">
+                <default-field title="Include descendant categories">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="includeInactive">
+                <default-field title="Include discontinued and obsolete products">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Run catalog checks">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <section name="CatalogCheckResults" condition="catalogChecksRan">
+            <widgets>
+                <label text="${checkedCount} products checked · ${issueCount} issues · ${incompleteCount} incomplete products" type="p" />
+                <container style="scroll full-width">
+                    <form-list name="CatalogIssues" list="issueRows" skip-form="true" paginate="false" show-csv-button="true">
+                        <field name="productId">
+                            <default-field title="Product">
+                                <link url="//Products/Products/Product360" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId" />
+                            </default-field>
+                        </field>
+                        <field name="productCategoryId"><default-field title="Category"><link url="//Products/Categories/CategoryDetail" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/></default-field></field>
+                    <field name="checkId">
+                            <default-field title="Check">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="severity">
+                            <default-field title="Severity">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="evidence">
+                            <default-field title="Evidence">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="suggestedAction">
+                            <default-field title="Suggested action">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="retry">
+                            <default-field title="Retry">
+                                <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'" />
+                            </default-field>
+                        </field>
+                    </form-list>
+                </container>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

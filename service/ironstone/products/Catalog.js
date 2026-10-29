@@ -121,10 +121,9 @@ function transition(p) {
     const allowed = {PrdDraft: ['PrdActive'], PrdActive: ['PrdDiscontinued'], PrdDiscontinued: ['PrdActive','PrdObsolete'], PrdObsolete: []}
     if (!(allowed[before] || []).includes(p.statusId)) throw new Error('Product status transition ' + before + ' → ' + p.statusId + ' is not allowed')
     if (p.statusId === 'PrdActive') {
-        const cfg = fresh.ownerPartyId === '_NA_' ? defaults : settings({organizationPartyId: fresh.ownerPartyId}).settings
-        const missing = cfg.requiredFields.filter(k => fresh[k] == null || fresh[k] === '')
-        if (missing.length) throw new Error('Cannot activate product; required: ' + missing.join(', '))
-        if (fresh.amountUomId && one('moqui.basic.Uom', {uomId: fresh.amountUomId})?.uomTypeEnumId === 'UT_CURRENCY_MEASURE') throw new Error('A stock unit cannot be a currency')
+        const checked = call('mantle.product.CatalogCheckServices.validate#Catalog', {productIds:[p.productId],includeInactive:true,checkIds:['requiredFields','identifiers','conversions','kitCycles']}, true)
+        const failures = checked.issueRows.filter(row => row.severity === 'error')
+        if (failures.length) throw new Error('Cannot activate product: ' + failures.map(row => row.evidence).join('; '))
     }
     call('update#' + P + 'Product', {productId: p.productId, statusId: p.statusId}, true)
     return {productId: p.productId, statusId: p.statusId}
@@ -411,7 +410,8 @@ function summary() {
         if(links.some(link=>visible(link.recordId,link.recordEntityName))) activityRows.push({workEffortId:task.workEffortId,workEffortName:task.workEffortName,estimatedCompletionDate:task.estimatedCompletionDate,priority:task.priority})
     }
     const soon=Array.from(find(P+'Product').list()).filter(row=>visible(row.productId) && ms(row.salesDiscontinuationDate)>ms(ec.user.nowTimestamp) && ms(row.salesDiscontinuationDate)<=ms(ec.user.nowTimestamp)+30*86400000).length
-    return {summary:{discontinuingSoon:soon,asOf:ec.l10n.format(new Date(ms(ec.user.nowTimestamp)),'yyyy-MM-dd HH:mm'),active:all.productListCount,virtual:virtual.productListCount,variants:variants.productListCount,total:found.productListCount,missingPrice:null,incomplete:null},recentProducts:found.productList,activityRows}
+    const checks=call('mantle.product.CatalogCheckServices.validate#Catalog',{checkIds:['requiredFields']},true);const hasPrices=access().capabilities.priceRead;const priceChecks=hasPrices?call('mantle.product.CatalogCheckServices.validate#Catalog',{checkIds:['prices']},true):null
+    return {summary:{discontinuingSoon:soon,asOf:ec.l10n.format(new Date(ms(ec.user.nowTimestamp)),'yyyy-MM-dd HH:mm'),active:all.productListCount,virtual:virtual.productListCount,variants:variants.productListCount,total:found.productListCount,missingPrice:priceChecks?.missingPriceCount??null,incomplete:checks.incompleteCount},recentProducts:found.productList,activityRows}
 }
 function palette(p) {
     const found=findProducts({text:p.text,pageSize:Math.max(1,Math.min(20,Number(p.limit||5)))})

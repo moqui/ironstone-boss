@@ -46,6 +46,7 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/CatalogChecks/": {parameters:{runChecks:true,productIds:"BOSS_CHK_EMPTY",checkIds:"requiredFields"},text:"Catalog checks"},
     "Shared/Units/": {text:"Units and conversions"},
     "Shared/Packaging/": {parameters:{baseProductId:"BOSS_PRD_OWN"},text:"Product packaging"},
     "Shared/Labels/": {text:"Product labels"},

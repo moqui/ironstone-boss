@@ -75,4 +75,11 @@
     <mantle.product.ProductContent productContentId="BOSS_CONTENT_SAMPLE" productId="BOSS_PRD_OWN" productContentTypeEnumId="PcntDescriptionLong" locale="en" description="Sample product documentation" fromDate="2000-01-01 00:00:00" contentLocation="dbresource://mantle/content/product/BOSS_PRD_OWN/content_BOSS_CONTENT_SAMPLE/description.txt"/>
     <mantle.product.ProductIdentification productId="BOSS_PRD_PACK" productIdTypeEnumId="PidtSku" idValue="BOSS_PACK_12"/>
     <mantle.product.ProductIdentification productId="BOSS_PRD_OWN" productIdTypeEnumId="PidtSku" idValue="BOSS_SAMPLE"/>
+    <!-- CatalogChecks demonstrations are ordinary legacy/incomplete catalog records, never automatic repairs. -->
+    <mantle.product.Product productId="BOSS_CHK_EMPTY" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" statusId="PrdDraft"/>
+    <mantle.product.Product productId="BOSS_CHK_DUP_A" productName="Identifier review A" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" amountUomId="OTH_ea" statusId="PrdDraft"/>
+    <mantle.product.Product productId="BOSS_CHK_DUP_B" productName="Identifier review B" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" amountUomId="OTH_ea" statusId="PrdDraft"/>
+    <mantle.product.ProductIdentification productId="BOSS_CHK_DUP_A" productIdTypeEnumId="PidtSku" idValue="LEGACY_REVIEW_CODE"/>
+    <mantle.product.ProductIdentification productId="BOSS_CHK_DUP_B" productIdTypeEnumId="PidtSku" idValue="LEGACY_REVIEW_CODE"/>
+    <mantle.product.ProductDimension productId="BOSS_PRD_PACK" dimensionTypeId="QuantityIncluded" value="12" uomId="OTH_ea"/>
 </entity-facade-xml>

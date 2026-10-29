@@ -180,6 +180,7 @@ along with this software (see the LICENSE.md file). If not, see
             <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SERVICES" description="Guarded catalog services">
+        <artifacts artifactName="mantle\.product\.CatalogCheckServices\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <artifacts artifactName="ironstone.commons.PaletteServices.get#RecordLink" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <artifacts artifactName="ironstone\.products\..*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_SYSADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
@@ -335,7 +336,7 @@ along with this software (see the LICENSE.md file). If not, see
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/(Commons|Comms)(\.xml|/.*)"
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
-        <artifacts artifactName="component://mr-boss/screen/Shared/(StandardCosts|CostRollup|CostHistory|InventoryValuation|Documents|DocumentDetail|CategoryContent|Translations|Units|Packaging|Labels|IdentificationTypes)\.xml" artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/(StandardCosts|CostRollup|CostHistory|InventoryValuation|Documents|DocumentDetail|CategoryContent|Translations|Units|Packaging|Labels|IdentificationTypes|CatalogChecks)\.xml" artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <!-- every write of an IronStone app service, by its verb: every verb but the reads (get, find, search, check, clean, decorate,
             describe, list, lookup, match, parse, suggest), which test/ClientWrites.spec.js checks against every service file. The
             pattern names the app packages and any depth under them. A new app directory is not denied until its name is added here.

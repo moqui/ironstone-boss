@@ -15,7 +15,8 @@ along with this software (see the LICENSE.md file). If not, see
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     
 
-    <service verb="find" noun="SupplierPrices" allow-remote="false">
+    <!-- the parameters the services below share: each implements this interface -->
+    <service verb="define" noun="SupplierReadParameters" type="interface">
         <in-parameters>
             <parameter name="appRoot"/>
             <parameter name="organizationPartyId"/>
@@ -51,6 +52,22 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="roleRows" type="List"/>
             <parameter name="relatedContacts" type="List"/>
         </out-parameters>
+    </service>
+    <!-- the parameters the services below share: each implements this interface -->
+    <service verb="define" noun="SupplierWriteParameters" type="interface">
+        <in-parameters>
+            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
+            <parameter name="appRoot"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
+            <parameter name="effectiveDate" type="Timestamp"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="productPriceId"/>
+        </out-parameters>
+    </service>
+    <service verb="find" noun="SupplierPrices" allow-remote="false">
+        <implements service="ironstone.products.SupplierServices.define#SupplierReadParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('offers',context))</script>
         </actions>
@@ -58,41 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <service verb="get" noun="SupplierOptions" allow-remote="false">
-        <in-parameters>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="vendorPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="productId"/>
-            <parameter name="priceUomId"/>
-            <parameter name="supplierItemCode"/>
-            <parameter name="preferredOrderEnumId"/>
-            <parameter name="asOfDate" type="Timestamp"/>
-            <parameter name="includeHistory" type="Boolean"/>
-            <parameter name="groupBy"/>
-            <parameter name="pageIndex" type="Integer"/>
-            <parameter name="pageSize" type="Integer"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="vendorPartyId"/>
-            <parameter name="offerRows" type="List"/>
-            <parameter name="offerRowsCount" type="Integer"/>
-            <parameter name="pageIndex" type="Integer"/>
-            <parameter name="pageSize" type="Integer"/>
-            <parameter name="canSupplierPriceEdit" type="Boolean"/>
-            <parameter name="priceOptions" type="Map"/>
-            <parameter name="pricingDefaults" type="Map"/>
-            <parameter name="defaultOrganizationPartyId"/>
-            <parameter name="preferenceOptions" type="List"/>
-            <parameter name="ratingOptions" type="List"/>
-            <parameter name="supplier" type="Map"/>
-            <parameter name="contactRows" type="List"/>
-            <parameter name="addressRows" type="List"/>
-            <parameter name="roleRows" type="List"/>
-            <parameter name="relatedContacts" type="List"/>
-        </out-parameters>
+        <implements service="ironstone.products.SupplierServices.define#SupplierReadParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('options',context))</script>
         </actions>
@@ -100,41 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <service verb="get" noun="SupplierDetail" allow-remote="false">
-        <in-parameters>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="vendorPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="productId"/>
-            <parameter name="priceUomId"/>
-            <parameter name="supplierItemCode"/>
-            <parameter name="preferredOrderEnumId"/>
-            <parameter name="asOfDate" type="Timestamp"/>
-            <parameter name="includeHistory" type="Boolean"/>
-            <parameter name="groupBy"/>
-            <parameter name="pageIndex" type="Integer"/>
-            <parameter name="pageSize" type="Integer"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="vendorPartyId"/>
-            <parameter name="offerRows" type="List"/>
-            <parameter name="offerRowsCount" type="Integer"/>
-            <parameter name="pageIndex" type="Integer"/>
-            <parameter name="pageSize" type="Integer"/>
-            <parameter name="canSupplierPriceEdit" type="Boolean"/>
-            <parameter name="priceOptions" type="Map"/>
-            <parameter name="pricingDefaults" type="Map"/>
-            <parameter name="defaultOrganizationPartyId"/>
-            <parameter name="preferenceOptions" type="List"/>
-            <parameter name="ratingOptions" type="List"/>
-            <parameter name="supplier" type="Map"/>
-            <parameter name="contactRows" type="List"/>
-            <parameter name="addressRows" type="List"/>
-            <parameter name="roleRows" type="List"/>
-            <parameter name="relatedContacts" type="List"/>
-        </out-parameters>
+        <implements service="ironstone.products.SupplierServices.define#SupplierReadParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('detail',context))</script>
         </actions>
@@ -142,16 +91,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <service verb="store" noun="SupplierPrice" allow-remote="false">
-        <in-parameters>
-            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-            <parameter name="effectiveDate" type="Timestamp"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="productPriceId"/>
-        </out-parameters>
+        <implements service="ironstone.products.SupplierServices.define#SupplierWriteParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('store',context))</script>
         </actions>
@@ -159,16 +99,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <service verb="replace" noun="SupplierPrice" allow-remote="false">
-        <in-parameters>
-            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-            <parameter name="effectiveDate" type="Timestamp"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="productPriceId"/>
-        </out-parameters>
+        <implements service="ironstone.products.SupplierServices.define#SupplierWriteParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('replace',context))</script>
         </actions>
@@ -176,16 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <service verb="expire" noun="SupplierPrice" allow-remote="false">
-        <in-parameters>
-            <auto-parameters entity-name="mantle.product.ProductPrice" include="all"/>
-            <parameter name="appRoot"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="expectedLastUpdatedStamp" type="Timestamp"/>
-            <parameter name="effectiveDate" type="Timestamp"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="productPriceId"/>
-        </out-parameters>
+        <implements service="ironstone.products.SupplierServices.define#SupplierWriteParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Suppliers.js').execute('expire',context))</script>
         </actions>

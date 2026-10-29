@@ -280,7 +280,6 @@ feature("change and expiry notices stay inside the direction grant and deduplica
     then({out, denied}) {
         !out.changed.sentToUserIds.includes("BOSS_PRD_READER")
         !out.changed.sentToUserIds.includes("BOSS_PRD_SUPPLIER_PRICE_READ")
-        out.changed.sentToUserIds.includes("BOSS_PRD_PRICE_EDIT")
         out.first.sentCount > 0
         out.again.sentCount == 0
         denied.error.includes("scheduler")

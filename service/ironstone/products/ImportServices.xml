@@ -13,7 +13,8 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
-    <service verb="get" noun="ImportContext" allow-remote="false">
+    <!-- the parameters the services below share: each implements this interface -->
+    <service verb="define" noun="ImportParameters" type="interface">
         <in-parameters>
             <parameter name="operationKey" type="String" />
             <parameter name="kindId" type="String" />
@@ -79,146 +80,21 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="canEdit" type="Boolean" />
             <parameter name="sent" type="Boolean" />
         </out-parameters>
+    </service>
+    <service verb="get" noun="ImportContext" allow-remote="false">
+        <implements service="ironstone.products.ImportServices.define#ImportParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Imports.js').context(context))</script>
         </actions>
     </service>
     <service verb="map" noun="CatalogImport" allow-remote="false">
-        <in-parameters>
-            <parameter name="operationKey" type="String" />
-            <parameter name="kindId" type="String" />
-            <parameter name="organizationPartyId" type="String" />
-            <parameter name="appRoot" type="String" />
-            <parameter name="mappingAction" type="String" />
-            <parameter name="mappingRevision" type="String" />
-            <parameter name="sourceColumn" type="String" />
-            <parameter name="targetField" type="String" />
-            <parameter name="defaultValue" type="String" />
-            <parameter name="sourceValue" type="String" />
-            <parameter name="targetValue" type="String" />
-            <parameter name="updateMode" type="String" />
-            <parameter name="dateFormat" type="String" />
-            <parameter name="decimalSeparator" type="String" />
-            <parameter name="groupSeparator" type="String" />
-            <parameter name="inputFingerprint" type="String" />
-            <parameter name="pageIndex" type="Integer" />
-            <parameter name="removeValue" type="Boolean" />
-            <parameter name="clearFields" type="List" />
-            <parameter name="attemptedCount" type="Integer" />
-            <parameter name="changedRows" type="Integer" />
-        </in-parameters>
-        <out-parameters>
-            <parameter name="operationKey" type="String" />
-            <parameter name="kindId" type="String" />
-            <parameter name="kindDescription" type="String" />
-            <parameter name="organizationPartyId" type="String" />
-            <parameter name="appRoot" type="String" />
-            <parameter name="state" type="String" />
-            <parameter name="lastError" type="String" />
-            <parameter name="filename" type="String" />
-            <parameter name="fileHash" type="String" />
-            <parameter name="mappingRevision" type="String" />
-            <parameter name="inputFingerprint" type="String" />
-            <parameter name="updateMode" type="String" />
-            <parameter name="dateFormat" type="String" />
-            <parameter name="kindOptions" type="List" />
-            <parameter name="ownerOptions" type="List" />
-            <parameter name="headers" type="List" />
-            <parameter name="columns" type="List" />
-            <parameter name="mappingRows" type="List" />
-            <parameter name="targetOptions" type="List" /><parameter name="clearOptions" type="List"/>
-            <parameter name="importRows" type="List" />
-            <parameter name="previewRows" type="List" />
-            <parameter name="valueMappingRows" type="List" />
-            <parameter name="defaultRows" type="List" />
-            <parameter name="clearFields" type="List" />
-            <parameter name="mapping" type="Map" />
-            <parameter name="defaults" type="Map" />
-            <parameter name="valueMappings" type="Map" />
-            <parameter name="numberFormat" type="Map" />
-            <parameter name="uploadForm" type="Map" />
-            <parameter name="formatForm" type="Map" />
-            <parameter name="rowCount" type="Integer" />
-            <parameter name="validCount" type="Integer" />
-            <parameter name="appliedCount" type="Integer" />
-            <parameter name="errorCount" type="Integer" />
-            <parameter name="pageIndex" type="Integer" />
-            <parameter name="pageSize" type="Integer" />
-            <parameter name="canStage" type="Boolean" />
-            <parameter name="hasImport" type="Boolean" />
-            <parameter name="canEdit" type="Boolean" />
-            <parameter name="sent" type="Boolean" />
-        </out-parameters>
+        <implements service="ironstone.products.ImportServices.define#ImportParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Imports.js').mapping(context))</script>
         </actions>
     </service>
     <service verb="notify" noun="CatalogImport" allow-remote="false">
-        <in-parameters>
-            <parameter name="operationKey" type="String" />
-            <parameter name="kindId" type="String" />
-            <parameter name="organizationPartyId" type="String" />
-            <parameter name="appRoot" type="String" />
-            <parameter name="mappingAction" type="String" />
-            <parameter name="mappingRevision" type="String" />
-            <parameter name="sourceColumn" type="String" />
-            <parameter name="targetField" type="String" />
-            <parameter name="defaultValue" type="String" />
-            <parameter name="sourceValue" type="String" />
-            <parameter name="targetValue" type="String" />
-            <parameter name="updateMode" type="String" />
-            <parameter name="dateFormat" type="String" />
-            <parameter name="decimalSeparator" type="String" />
-            <parameter name="groupSeparator" type="String" />
-            <parameter name="inputFingerprint" type="String" />
-            <parameter name="pageIndex" type="Integer" />
-            <parameter name="removeValue" type="Boolean" />
-            <parameter name="clearFields" type="List" />
-            <parameter name="attemptedCount" type="Integer" />
-            <parameter name="changedRows" type="Integer" />
-        </in-parameters>
-        <out-parameters>
-            <parameter name="operationKey" type="String" />
-            <parameter name="kindId" type="String" />
-            <parameter name="kindDescription" type="String" />
-            <parameter name="organizationPartyId" type="String" />
-            <parameter name="appRoot" type="String" />
-            <parameter name="state" type="String" />
-            <parameter name="lastError" type="String" />
-            <parameter name="filename" type="String" />
-            <parameter name="fileHash" type="String" />
-            <parameter name="mappingRevision" type="String" />
-            <parameter name="inputFingerprint" type="String" />
-            <parameter name="updateMode" type="String" />
-            <parameter name="dateFormat" type="String" />
-            <parameter name="kindOptions" type="List" />
-            <parameter name="ownerOptions" type="List" />
-            <parameter name="headers" type="List" />
-            <parameter name="columns" type="List" />
-            <parameter name="mappingRows" type="List" />
-            <parameter name="targetOptions" type="List" /><parameter name="clearOptions" type="List"/>
-            <parameter name="importRows" type="List" />
-            <parameter name="previewRows" type="List" />
-            <parameter name="valueMappingRows" type="List" />
-            <parameter name="defaultRows" type="List" />
-            <parameter name="clearFields" type="List" />
-            <parameter name="mapping" type="Map" />
-            <parameter name="defaults" type="Map" />
-            <parameter name="valueMappings" type="Map" />
-            <parameter name="numberFormat" type="Map" />
-            <parameter name="uploadForm" type="Map" />
-            <parameter name="formatForm" type="Map" />
-            <parameter name="rowCount" type="Integer" />
-            <parameter name="validCount" type="Integer" />
-            <parameter name="appliedCount" type="Integer" />
-            <parameter name="errorCount" type="Integer" />
-            <parameter name="pageIndex" type="Integer" />
-            <parameter name="pageSize" type="Integer" />
-            <parameter name="canStage" type="Boolean" />
-            <parameter name="hasImport" type="Boolean" />
-            <parameter name="canEdit" type="Boolean" />
-            <parameter name="sent" type="Boolean" />
-        </out-parameters>
+        <implements service="ironstone.products.ImportServices.define#ImportParameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Imports.js').notice(context))</script>
         </actions>

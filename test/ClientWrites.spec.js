@@ -210,7 +210,9 @@ feature("every IronStone write service is in the client's deny pattern, and only
                 const text = String(ref.getText())
                 const clientFile = className === "client.ClientServices"
                 if (className.startsWith("client.") && !clientFile) clientExtra.push(className)
-                for (const match of text.matchAll(/<service verb="([A-Za-z]+)" noun="([A-Za-z]+)"/g)) {
+                for (const match of text.matchAll(/<service verb="([A-Za-z]+)" noun="([A-Za-z]+)"([^>]*)>/g)) {
+                    // an interface only declares parameters for the services that implement it; it cannot be called
+                    if (/type="interface"/.test(match[3])) continue
                     const full = "ironstone." + className + "." + match[1] + "#" + match[2]
                     const denied = patterns.some((pattern) => pattern.test(full))
                     if (clientFile) {

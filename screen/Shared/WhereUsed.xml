@@ -35,7 +35,7 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="ironstone.products.MethodServices.get#BomWhereUsed" in-map="context" out-map="context" />
     </actions>
     <widgets>
-        <label text="Where used" type="h5" />
+        <label text="Where used" type="h5"/>
         <form-single name="WhereUsedParameters" transition=".">
             <field name="productId" from="productId || null">
                 <default-field>
@@ -62,6 +62,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <submit />
                 </default-field>
             </field>
+            <field-layout>
+                <field-row-big><field-ref name="asOfDate"/><field-ref name="submitButton"/></field-row-big>
+                <fields-not-referenced/>
+            </field-layout>
         </form-single>
         <label text="${reportMessage || &quot;&quot;}" type="p" />
         <form-list name="WhereUsedFindings" list="findings || []" skip-form="true" paginate="false" show-csv-button="true">

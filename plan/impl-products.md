@@ -1,6 +1,6 @@
 # IronStone BOSS — Products implementation
 
-Oct 28, 2026 — implementation in progress; P0–P3 built; P4 next
+Oct 28, 2026 — implementation in progress; P0–P9 built; P10 in progress
 
 How [design-products.md](design-products.md) gets built, in phases from the foundation to the catalog checks, each
 ending tested and usable. This file is kept at a high level, as [impl-projects.md](impl-projects.md) was: each phase
@@ -8,10 +8,11 @@ names its scope by the design's sections and §14 needs rather than restating th
 screen and record detail. During the build this file is the log: phase status and what each built, the decisions made,
 open questions, findings against the code, and what is deferred.
 
-At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers, Documents,
-Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed services, entities, fields or
-status items existed in Mantle or BOSS. P1–P3 are now built below; P4–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing,
-Accounting and Purchasing are placeholders too.
+At the start, `screen/Products/` held placeholders only (Home, Products, Categories, Features, Pricing, Suppliers,
+Documents, Settings), and the `BOSS_PRODUCTS` authz was commented out. At that point none of the design's proposed
+services, entities, fields or status items existed in Mantle or BOSS. P1–P9 are now built below, P10 is in progress, and
+P11–P14 remain. Products is the first core ERP app built, so Warehouse, Manufacturing, Accounting and Purchasing are
+placeholders too.
 
 **Inputs.**
 - Designs:
@@ -69,6 +70,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **The Commons rules hold.** These are impl-drawers-commons §4:
   - failure tolerance;
   - the Mantle-free framework;
+  - Mantle stands without BOSS (added Oct 28, a hard rule; §4);
+  - business logic leans to Mantle (added Oct 28; §4);
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
@@ -81,9 +84,15 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   `moqui test-client mr-boss --serve` (F23).
 - **Catalog rows through services.** No entity filter covers a product's prices, associations, parties, content or
   identifiers (F1). Products reads and writes them only through services: `ironstone.products.CatalogServices` checks
-  the product's owner and the grant, then calls the Mantle store service.
+  the product's owner and the Products grant, then the Mantle store service runs (below).
   - `entity` in a design form summary means that guarded path, never a bare entity form (design §14).
   - Grants are checked in the services, so they hold for imports, exports, search, the palette and shared mounts.
+- **Mantle checks for itself** (Oct 28; §4). A Mantle service Products builds checks its Moqui permission through
+  `mantle/product/ProductAccess.js`, and the organization itself (`get#CatalogOwnerScope`, by party relationship). No
+  Mantle service, script, data file or spec names a BOSS group, service, screen or setting. A Products screen or shared
+  mount calls the Mantle service after `ironstone.products.CatalogServices`' check. A new service adds no same-named
+  `ironstone` pass-through; the ones P8 and P9 built (`MethodServices`, `AssetBookServices`' revaluation) keep only
+  the access check and the call. BossSetupData grants the permissions to BOSS groups with `UserGroupPermission` rows.
 - **Restricted values stay on the server.** A service leaves out of its answer any supplier price, cost, margin or trace
   source the user may not read; nothing is fetched and then hidden. An inaccessible price is omitted, not shown as zero
   (design §1.1, PriceExplain).
@@ -95,9 +104,10 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
   Each takes `appRoot` and server-derived capabilities, so another app's context is an addition, not a rewrite (as
   `Shared/WorkItemDetail` takes `app`).
-- **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
-  service names, its Shared screen and its capability groups. A change found while building it is written into the
-  owner's design. The owner's own screens stay with the owner.
+- **Owner contracts.** A contract built here for another app follows that app's design: its record and service names,
+  its Shared screen, and the permissions its services check. Its rules are Mantle services in the package of the records
+  they change; its BOSS part keeps only the owner app's access check, screen context and settings forms (Oct 28; §4).
+  A change found while building it is written into the owner's design. The owner's own screens stay with the owner.
 - **Mantle callers stay compatible.** Existing callers of these services keep working:
   - `get#ProductPrice`
   - `create#VariantProducts`
@@ -126,17 +136,17 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P0 Checks | all (read) | — | checked Oct 28 (§6 F1–F33); review merge b00c2c7 |
 | P1 Foundation | mr-moqui, Mantle, BOSS | the Products root and menu | built Oct 28; mr-moqui f9641cda, Mantle 6d548a3e; BOSS f1c2a37 |
 | P2 Products and Product360 | Mantle, BOSS | Home, Products, Product360 and its catalog tabs, Settings | built Oct 28; Mantle 54e6619a; BOSS 0a06b7d |
-| P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | built Oct 28; commit references below |
-| P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | — |
-| P5 Prices and price lists | Mantle, BOSS | Prices, PriceHistory, PriceLists, PriceListDetail, PriceExplain, PricingSettings | — |
-| P6 Supplier prices | Mantle, BOSS | SupplierPrices, Supplier360 | — |
-| P7 Stock and facility policy | Mantle, BOSS | InventoryAvailability (Product360's Stock tab) | — |
-| P8 Methods | Mantle, BOSS | BillOfMaterialsDetail, BillOfMaterialsExplosion, BillOfMaterialsCompare, WhereUsed, RoutingDetail | — |
-| P9 Standard costs | Mantle, BOSS | StandardCosts, CostRollup, CostHistory | — |
-| P10 Documents and translations | Mantle, BOSS | Documents, DocumentDetail, CategoryContent, Translations | — |
+| P3 Categories and features | mr-moqui, Mantle, BOSS | Categories, CategoryDetail, Features, FeatureDetail, FeatureGroups, FeatureGroupDetail, FeatureInteractions | built Oct 28; mr-moqui df8d2474, Mantle dddc0594; BOSS 774752a |
+| P4 Variants | Mantle, BOSS | VariantBuilder, VariantSettings | built Oct 28; Mantle 2727c0ae; BOSS 86c6f09 |
+| P5 Prices and price lists | Mantle, BOSS | Prices, PriceHistory, PriceLists, PriceListDetail, PriceExplain, PricingSettings | built Oct 28; Mantle 4d146af1 (P5a), d7663ecb (P5b); BOSS 0c78c9e (P5a), 776a73f (P5b) |
+| P6 Supplier prices | Mantle, BOSS | SupplierPrices, Supplier360 | built Oct 28; Mantle 0e886690; BOSS ec0f17a |
+| P7 Stock and facility policy | Mantle, BOSS | InventoryAvailability (Product360's Stock tab) | built Oct 28; Mantle 0716de75; BOSS c413cdd |
+| P8 Methods | Mantle, BOSS | BillOfMaterialsDetail, BillOfMaterialsExplosion, BillOfMaterialsCompare, WhereUsed, RoutingDetail | built Oct 28; Mantle 4422dd44; BOSS 8e946df |
+| P9 Standard costs | Mantle, BOSS | StandardCosts, CostRollup, CostHistory | built Oct 28; Mantle 5a18970e; BOSS 2a4abd6 |
+| P10 Documents and translations | Mantle, BOSS | Documents, DocumentDetail, CategoryContent, Translations | in progress |
 | P11 Units, packaging and labels | mr-moqui, Mantle, BOSS | Units, Packaging, Labels, IdentificationTypes | — |
-| P12 Import | BOSS | ProductImport | — |
-| P13 Catalog checks | BOSS | CatalogChecks | — |
+| P12 Import | Mantle, BOSS | ProductImport | — |
+| P13 Catalog checks | Mantle, BOSS | CatalogChecks | — |
 | P14 Finish | BOSS | — | — |
 
 ### P0 — Checks
@@ -362,6 +372,8 @@ P3 validation evidence:
 - **VariantSettings:** the batch limit (default 1,000) and the copy allowlist.
 - **Usable when:** §12.3 #1.
 
+**Built Oct 28 (P4).** Mantle `2727c0ae`; BOSS `86c6f09`. Validation evidence was kept by the build session.
+
 ### P5 — Prices and price lists
 
 Built in two parts: P5a the price rows, then P5b the lists, rules and resolver.
@@ -396,6 +408,9 @@ Built in two parts: P5a the price rows, then P5b the lists, rules and resolver.
   - The effective price list print.
 - **Usable when:** §12.3 #4, except the standard estimate as a base and the margin, which come in P9.
 
+**Built Oct 28 (P5a, P5b).** P5a: Mantle `4d146af1`, BOSS `0c78c9e`; P5b: Mantle `d7663ecb`, BOSS `776a73f`. Validation
+evidence was kept by the build session.
+
 ### P6 — Supplier prices
 
 - **Screens** (design §8):
@@ -408,6 +423,8 @@ Built in two parts: P5a the price rows, then P5b the lists, rules and resolver.
   - one supplier's offers to two buying organizations show their roles, quantity unit, pack size and lead time on
     Product360, Supplier360 and SupplierPrices (§12.3 #3, without Purchasing's view);
   - a price editor without the supplier-price grants sees none of them.
+
+**Built Oct 28 (P6).** Mantle `0e886690`; BOSS `ec0f17a`. Validation evidence was kept by the build session.
 
 ### P7 — Stock and facility policy
 
@@ -428,6 +445,8 @@ These are Warehouse's contracts (§4), built to design-warehouse StockPolicies a
   - a stock planner without the Warehouse launcher sets a product's minimum stock, reorder quantity and lot-required
     exception from Product360/Stock;
   - a catalog editor is refused.
+
+**Built Oct 28 (P7).** Mantle `0716de75`; BOSS `c413cdd`. Validation evidence was kept by the build session.
 
 ### P8 — Methods
 
@@ -458,6 +477,8 @@ a BOM or routing "version" is its state as of a date, and a release is the decis
     release dates;
   - WhereUsed lists the DEMO_PA kit read only, and the kit is never offered as a BOM (§12.3 #10, second half).
 
+**Built Oct 28 (P8).** Mantle `4422dd44`; BOSS `8e946df`. Validation evidence was kept by the build session.
+
 ### P9 — Standard costs
 
 - **PRD-COST.**
@@ -465,42 +486,79 @@ a BOM or routing "version" is its state as of a date, and a release is the decis
     and product (`fromDate`, `thruDate`), with its amounts audit-logged, and `ProductStandardCostComponent`. Approval
     starts the estimate's row and ends the one before it; no `versionSeqId` (impl-drawers-commons §4). The approved
     estimate's PDF is stored with it.
-  - `mantle.product.CostServices`:
+  - `mantle.product.CostServices`, checking `PRODUCT_COST_VIEW`, `PRODUCT_COST_ESTIMATE` and `PRODUCT_COST_APPROVE`,
+    and `ACCOUNTING_VIEW` for finance values, through `CostPolicy.js`:
     - `find#ProductStandardCosts`;
     - `store#ProductStandardCost` and `store#StandardCostComponent`;
     - `approve#ProductStandardCost`;
     - `preview#ProductCostRollup`, the one cost calculator, and `save#ProductCostRollup`;
     - `get#ProductCostHistory`.
   - The audited self-approval setting (design §16).
+- **The explosion and the roll-up** (§4, Q8).
+  - P8's `get#BomExplosion` changes. The tree still shows every level, but requirements and buildable quantity stop at
+    non-phantom sub-assemblies, so their on-hand counts. Phantoms are blown through with their routing. A
+    `fullBlowThrough` parameter keeps the full blow-through for callers that want it.
+  - The roll-up goes level by level: a non-phantom sub-assembly costs at its approved estimate, or is rolled in the
+    same run in low-level-code order.
+  - Its rules (F40). By-products follow `allocationShare`, else quantity, as Manufacturing P15 does. Overhead percent
+    applies to material plus conversion, single level. The costing lot size is the BOM's `baseQuantity`, and setup is
+    divided by it. Operation cycles round up, and work-center efficiency applies. Components keep `currency-precise`,
+    and the total is rounded once.
 - **Screens and outputs.**
   - Design §7: StandardCosts, CostRollup and CostHistory.
   - Product360's Costs tab.
   - BillOfMaterialsExplosion's cost columns.
   - Margin on Prices, Product360 Prices and PriceExplain, for a user with both price and cost read.
   - The approved estimate as a price-list base.
-  - `OrderItem.standardCost` set from the approved estimate.
+  - `OrderItem.standardCost` set from the approved estimate on sales lines, only when the customer is not an
+    `OrgInternal` party (F41). The spec covers an intercompany order.
   - The cost estimate print.
-- **Accounting's contract** (§4, AC-07).
-  - `ironstone.accounting.AssetBookServices.preview#Revaluation` and `post#Revaluation`: value only, with ledger links,
-    in an open period, and never calling `update#ProductAcquireCost`.
+- **Accounting's contract** (§4, AC-07 and Q7).
+  - `mantle.ledger.AssetBookServices.preview#Revaluation` and `post#Revaluation`: new Mantle services behind their own
+    flag, off by default and tested in both states; the post checks `ACCOUNTING_GL_POST`. `post#Revaluation` changes
+    forward cost. It sets `Asset.acquireCost` on the on-hand assets from the effective date, without reposting history,
+    and splits a partly issued asset. It posts one AcctgTrans for on-hand × delta, with asset links, in an open period,
+    against a new seeded revaluation offset GL account type mapped with Accounting P2's mappings. It refuses negative
+    on-hand, a date before the product's last posted movement and a future date, and never calls
+    `update#ProductAcquireCost`.
   - The ValuationAdjustment and PostRevaluation dialogs of `Shared/InventoryValuation`, which StandardCosts' Request
-    revaluation opens.
+    revaluation opens. They call the Mantle services; `ironstone.accounting.AssetBookServices` keeps only their screen
+    context, `get#RevaluationContext`.
 
   The rest of InventoryValuation stays Accounting's.
+- **Mantle without BOSS** (§2; §4, Q2).
+  - The BOSS group names P5–P8 put in Mantle become permissions, checked through `ProductAccess.js`:
+    `WarehousePolicy.js` checks `STOCK_POLICY_PLAN` and `STOCK_POLICY_MANAGE`; `MethodPolicy.js` the `METHOD_*` ones;
+    `PricePolicy.js`, `PriceResolver.js` and `PriceLists.js` `PRICE_*`, `SUPPLIER_PRICE_*` and `PRODUCT_CATALOG_ADMIN`;
+    cost reads `PRODUCT_COST_VIEW` and `ACCOUNTING_VIEW`. P9's `CostPolicy.js` uses them from the start.
+  - P1's catalog record scope in `mantle.party.CommunicationServices` no longer names `BOSS_PRODUCTS`: as built, it
+    applies the owner scope to every signed-in user. `PRODUCT_CATALOG_VIEW` is seeded and granted for catalog reads.
+  - Mantle's specs that put users in BOSS groups (`ProductMethods`, `WarehousePolicy`, `ProductStandardCosts`) make
+    spec-local groups holding the permissions, so `./moq test mr-mantle` needs no mr-boss data.
+  - BossSetupData grants the permissions with `UserGroupPermission` rows to the Products groups and to the other apps'
+    groups P1 seeded, each `_ADMIN` group holding what its app's groups hold.
+  - P11 builds `resolve#ScannedProduct` in Mantle, which Warehouse's Mantle guards call.
 - **Usable when** (§12.3 #5):
-  - changing an approved estimate leaves asset values and the ledger as they were, until a GL user posts a revaluation
-    from it;
-  - P8's version rolls up with scrap and routing costs;
+  - changing an approved estimate leaves asset values and the ledger as they were until a GL user posts a revaluation,
+    which then changes the forward cost;
+  - P8's version rolls up level by level, with scrap and routing costs;
+  - a BOM with a by-product takes the by-product's share off the main product's cost;
   - a changed input invalidates the preview;
   - an incomplete estimate cannot be approved;
-  - an estimate's drafter cannot approve it unless the setting allows.
+  - an estimate's drafter cannot approve it unless the setting allows;
+  - `./moq test mr-mantle` passes with no BOSS group named in Mantle.
+
+**Built Oct 28 (P9).** Mantle `5a18970e`; BOSS `2a4abd6`. The explosion's planning boundary (Q8) and the permission
+conversion are in it: Mantle names no BOSS group or `ironstone` service, and BOSS's `AssetBookServices` revaluation
+services only call Mantle's. Validation evidence was kept by the build session.
 
 ### P10 — Documents and translations
 
 - **PRD-CONTENT.**
   - Revision guards on Mantle's product and category content update services, with F15's `contentLocation` fix.
   - Translation review against the source version.
-  - `ironstone.products.CatalogServices.store#CatalogTranslation`.
+  - `mantle.product.ContentServices` (new): `store#`, `upload#` and `restore#CatalogContent`, `store#CatalogTranslation`,
+    and their reads. `ironstone.products.DocumentServices` keeps the screens' context and calls Mantle.
 - **Screens and outputs.**
   - Design §9: Documents (list and cards), DocumentDetail and Translations.
   - Design §5: CategoryContent, as CategoryDetail's Content tab.
@@ -521,18 +579,21 @@ a BOM or routing "version" is its state as of a date, and a release is the decis
   - Currency units and rates are excluded on either side.
   - Conversions are validated.
 - **PRD-PACKAGING** (F12).
-  - `ProductAssoc.quantityUomId`, `store#ProductPackaging` and `resolve#ScannedProduct`.
+  - `ProductAssoc.quantityUomId`, `store#ProductPackaging` and `mantle.product.ProductServices.resolve#ScannedProduct`.
   - Design §10 Packaging.
   - Product360's packaging pane (§4, confirmed before implementation).
-- **PRD-IDENTIFIERS policy:** IdentificationTypes, with `ironstone.products.LabelServices.validate#ProductIdentifier`.
+- **PRD-IDENTIFIERS policy:** IdentificationTypes, with `mantle.product.ProductServices.validate#ProductIdentifier`
+  beside `store#ProductIdentifier`.
 - **PRD-LABELS:** Labels, with `prepare#ProductLabels` and `render#ProductLabels`.
 - **Usable when:** §12.3 #7 and #11.
 
 ### P12 — Import
 
 - **PRD-IMPORT.**
-  - The import run and row records, in BOSS's first `entity/` file (F19).
-  - `ironstone.products.ImportServices`: `stage#`, `map#`, `validate#`, `apply#` and `get#CatalogImport`.
+  - The import run and row records are Mantle's `ProductCatalogOperation` and `ProductCatalogOperationItem`, which P4
+    built for this, not a BOSS `entity/` file (F19; review I-PRD-22).
+  - `mantle.product.ProductImportServices` (new): `stage#`, `validate#`, `apply#` and `get#CatalogImport`.
+    `ironstone.products.ImportServices` keeps only the wizard's `map#CatalogImport` and its reads.
   - Each row goes through the domain service of P2–P6, for products, identifiers, category memberships, features,
     prices and supplier prices.
 - **ProductImport:** the wizard, the error CSV, resume, and the completion and failure notices.
@@ -541,8 +602,8 @@ a BOM or routing "version" is its state as of a date, and a release is the decis
 
 ### P13 — Catalog checks
 
-- **PRD-VALIDATION:** `ironstone.products.CatalogServices.validate#Catalog`, with design §11's checks, each record on
-  its own.
+- **PRD-VALIDATION:** `mantle.product.CatalogCheckServices.validate#Catalog` (new), with design §11's checks, each
+  record on its own.
 - **CatalogChecks** and Home's incomplete card.
 - Activation and import call the same checks.
 - **Usable when:** each issue planted in the demo is reported with its evidence, and a record that cannot be read does
@@ -564,12 +625,15 @@ or into the owner's design.
 | Date | Decision | Notes |
 | --- | --- | --- |
 | Oct 28, 2026 | Phase order: the catalog first; then the other apps' contracts that Product360 and the roll-up need; then documents, units, import and checks | The user's call |
-| Oct 28, 2026 | Products builds the parts of other apps' needs it depends on: Warehouse's `store#ProductFacilityPolicy` and TrackingPolicy (P7); Manufacturing's versioned methods, with the five shared method screens and `get#OperationCostBasis` (P8); Accounting's `preview#` and `post#Revaluation`, with their two dialogs (P9). These keep the owner's names, packages and Shared screens. The rest of each need, and the owner's own screens, stay with the owner | The user's call. The alternative was tabs that wait for their apps |
+| Oct 28, 2026 | Products builds the parts of other apps' needs it depends on: Warehouse's `store#ProductFacilityPolicy` and TrackingPolicy (P7); Manufacturing's versioned methods, with the five shared method screens and `get#OperationCostBasis` (P8); Accounting's `preview#` and `post#Revaluation`, with their two dialogs (P9). These keep the owner's names, packages and Shared screens, the packages being Mantle's since the Q2 row below. The rest of each need, and the owner's own screens, stay with the owner | The user's call. The alternative was tabs that wait for their apps |
 | Oct 28, 2026 | The shared screens Products builds first carry the Products context only. Another app's context is added when that app is built, as InvoiceDetail and OrderDetail were in Projects | Follows from the above |
 | Oct 28, 2026 | The shared rules of impl-drawers-commons §4 apply from P4 on: parties by role, and changes by effective date and the audit log. Price lists and rules (P5b) and standard costs (P9) are effective-dated rows with audit-logged key fields, with no version fields; ProductParty, ProductPrice's dates and P5a's audit log already follow them. What was built before (P2's settings) and the methods (P8) are decided below | The user's call, in the Purchasing plan review (impl-purchasing §4) |
-| Oct 28, 2026 | The organization filters of impl-drawers-commons §4 apply to every BOSS root, in one commit after P5 (BossSetupData is in P5's working tree): Commons' and Comms' `ALL_USERS`, Projects' groups and Products' groups move to `MANTLE_USER_ORG`; `BOSS_PRODUCTS_ADMIN` (Catalog administrator) becomes the Products admin group, with `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` on the root; `BOSS_MANUFACTURING_ADMIN` becomes Manufacturing's admin group and the work-center group P8 uses is `BOSS_MANUFACTURING_RESOURCE_ADMIN`; Mantle's three product filters admit `_NA_`. The built apps' specs run with it; crosscut §1.4 was corrected in the Oct 28 design sweep | The user's call (§5 review), reversing the first confirmed decision below. The alternatives were the core apps only, and a separate `_APP_ADMIN` name |
-| Oct 28, 2026 | P2's catalog settings move to the shared form before P9, as their own commit after P5. `ProductCatalogSetting` becomes effective-dated rows by organization with typed, audit-logged fields and a change reason, as P4's `ProductVariantSetting`; `get#` and `store#CatalogSettings` keep their parameters, and the optimistic check compares the current row's from date. P9's self-approval, P12's defaults and P13's required fields read the dated row | The user's call (§5 review). The alternatives were the move at P14 and keeping the JSON revisions. Nothing seeds them, so nothing migrates |
+| Oct 28, 2026 | The organization filters of impl-drawers-commons §4 apply to every BOSS root, in one commit after P5 (BossSetupData is in P5's working tree): Commons' and Comms' `ALL_USERS`, Projects' groups and Products' groups move to `MANTLE_USER_ORG`; `BOSS_PRODUCTS_ADMIN` (Catalog administrator) becomes the Products admin group, with `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` on the root; `BOSS_MANUFACTURING_ADMIN` becomes Manufacturing's admin group and the work-center group P8 uses is `BOSS_MANUFACTURING_RESOURCE_ADMIN`; Mantle's three product filters admit `_NA_`. The built apps' specs run with it; crosscut §1.4 was corrected in the Oct 28 design sweep | The user's call (§5 review), reversing the first confirmed decision below. The alternatives were the core apps only, and a separate `_APP_ADMIN` name. Built Oct 28 after P5: Mantle `1ef146bf`; BOSS `f4c1781` |
+| Oct 28, 2026 | P2's catalog settings move to the shared form before P9, as their own commit after P5. `ProductCatalogSetting` becomes effective-dated rows by organization with typed, audit-logged fields and a change reason, as P4's `ProductVariantSetting`; `get#` and `store#CatalogSettings` keep their parameters, and the optimistic check compares the current row's from date. P9's self-approval, P12's defaults and P13's required fields read the dated row | The user's call (§5 review). The alternatives were the move at P14 and keeping the JSON revisions. Nothing seeds them, so nothing migrates. Built Oct 28 after P5: Mantle `5d984d31`; BOSS `165ae8d` |
 | Oct 28, 2026 | The methods (P8) follow the shared rule with line records of their own. A `ProductBom` header (product, organization and method; the Chatter and Files host) has audit-logged method fields: base quantity and unit, phantom, routing, lead and preparation days. Its `ProductBomItem` lines have a stable `bomItemId`, are effective-dated, and audit-log their key fields: role, product, quantity and unit, scrap, consuming operation and applicability. Routings are Mantle's `WepRouting` templates and `WepRoutingTask` operations, on dated `WeatRoutingComp` rows, with audit-logged standards. A release is an approval decision that stamps the draft lines' from date and the replaced lines' thru date; an explosion reads one date and a comparison two. `ProductBomVersion`, `ProductBomVersionContent`, `RoutingVersion` and `RoutingVersionOperation` are dropped, and `PatMfgBom` stays for kits only (D15) | The user's call (§5 review). ProductAssoc's key cannot hold a component twice, a unit, a draft or a line an issuance references, so the lines are records with an identity (the shared rule's exception). The alternatives were `PatMfgBom` rows with sequence and unit added to the key, and the designed version records. Warehouse P16a's runs follow (impl-warehouse §4); design-manufacturing M3 and M4 and crosscut §3.23 were corrected in the Oct 28 design sweep |
+| Oct 28, 2026 | Mantle stands without BOSS, and business logic leans to Mantle (impl-drawers-commons §4). No Mantle service, SECA, EECA, script, data file or spec calls `ironstone.*`, reads a BOSS screen, entity or setting, or names a BOSS group or enumeration; Mantle checks Moqui permissions, which BOSS grants to its groups with `UserGroupPermission` rows, and offers a flag, a hook in data or a topic where it needs BOSS. Logic not specific to one screen goes in the Mantle package of the records it changes; an `ironstone.products` service keeps the access check, screen reads and shapes, settings forms and the call. What moves: in `mantle.product` and `mantle.facility`, P5–P8's policy scripts check permissions, and P9's cost policy does from the start; in `mantle.party`, P1's catalog record scope; in `mantle.ledger`, Accounting's revaluation (`AssetBookServices`), with BOSS keeping the dialogs' context; Mantle's specs make their own groups; P11's `resolve#ScannedProduct` and `validate#ProductIdentifier` are `mantle.product.ProductServices`; P12's import is `mantle.product.ProductImportServices` over P4's `ProductCatalogOperation` records, with BOSS keeping the wizard's mapping; P13's `validate#Catalog` is `mantle.product.CatalogCheckServices`. The permissions, seeded in Mantle's `ProductAccessData.xml` and granted in BossSetupData by P9 to the Products groups and the other apps' groups P1 seeded: `PRODUCT_CATALOG_VIEW` (new), `PRODUCT_CATALOG_ADMIN`, `PRICE_VIEW`, `PRICE_EDIT`, `SUPPLIER_PRICE_VIEW`, `SUPPLIER_PRICE_EDIT`, `PRODUCT_COST_VIEW`, `PRODUCT_COST_ESTIMATE`, `PRODUCT_COST_APPROVE`, `METHOD_VIEW`, `METHOD_EDIT`, `METHOD_APPROVE`, `METHOD_RESOURCES`, `METHOD_COST_EDIT`, `METHOD_COST_APPROVE`, `STOCK_POLICY_PLAN`, `STOCK_POLICY_MANAGE`, `ACCOUNTING_VIEW` and `ACCOUNTING_GL_POST` | The user's call (plan review Q2, `review-impl-core-apps.md`; I-PRD-02). A hard rule: mr-mantle is deployed without mr-boss. The owner designs' names follow in the design sweep |
+| Oct 28, 2026 | Revaluation changes forward cost (P9, AC-07). `mantle.ledger.AssetBookServices.post#Revaluation` sets `Asset.acquireCost` on the on-hand assets from the effective date, without reposting history, splitting a partly issued asset, and posts one AcctgTrans for on-hand × delta, with asset links, against a new seeded revaluation offset GL account type mapped with Accounting P2's mappings. It is a new Mantle service behind its own flag, off by default, tested in both states. It refuses negative on-hand, a date before the product's last posted movement and a future date, and never calls `update#ProductAcquireCost`. This replaces "value only" | The user's call (plan review Q7, `review-impl-core-apps.md`; I-PRD-05). ERPNext and Odoo work this way. design-accounting's InventoryValuation follows in the design sweep |
+| Oct 28, 2026 | Explosion depth. P9 changes P8's `get#BomExplosion`: the tree still shows every level; requirements and buildable quantity stop at non-phantom sub-assemblies, so their on-hand counts, and phantoms are blown through with their routing; a parameter keeps the full blow-through for callers that want it. P9's roll-up goes level by level: a non-phantom sub-assembly costs at its approved estimate, or is rolled in the same run in low-level-code order. Manufacturing P5's producible-now reads the stopped requirements, and P13's planning nets sub-assembly stock level by level | The user's call (plan review Q8, `review-impl-core-apps.md`; I-PRD-03). Odoo works this way. impl-manufacturing P5 and P13 build on it |
 
 Decisions confirmed with the user before implementation:
 
@@ -634,7 +698,7 @@ is written there too.
 | F29 | P0: view-tree keys by the first key field; existing children/ancestor/move protocols assume record identity | Add optional occurrence/parent-occurrence fields with legacy defaults, keeping category edge identity in move payloads (P3) |
 | F30 | P0: barcode.rs has a reusable linear SVG renderer; script API exposes code128Svg. qrcodegen 1.8.0 declares MIT and datamatrix 0.3.3 Apache-2.0 OR MIT (both allowed by deny.toml) | Add linear encoders, QR/DataMatrix wrappers and shared GS1 parsing in P11; run dependency gate; no printer-driver subsystem |
 | F31 | P0: OrderItem.standardCost is consumed by AssetServices receipt acquisition and CarrierServices; no sales-cost meaning exists | Preserve purchase semantics; approved estimates populate sales snapshots only (P9) |
-| F32 | P0: ProductFacility/Location already own reorder/location fields, with no tracking fields; proposed BOM versions, WorkCenter/Rate and AssetBookEvent do not exist. LedgerServices.post#AcctgTrans checks fiscal periods | P7 uses WarehousePolicy tracking records; P8 uses new immutable versions beside legacy templates; P9 requires configured accounts/open periods and value-only events, never receipt rewrites |
+| F32 | P0: ProductFacility/Location already own reorder/location fields, with no tracking fields; proposed BOM versions, WorkCenter/Rate and AssetBookEvent do not exist. LedgerServices.post#AcctgTrans checks fiscal periods | P7 uses WarehousePolicy tracking records; P8 uses new immutable versions beside legacy templates; P9 requires configured accounts/open periods and revaluation events that change forward cost without reposting (§4, Q7), never receipt rewrites |
 | F33 | P0: Commons tasks already support assigned WetTask rows and generic WorkEffortRecord links | Catalog-review activities are assigned tasks linked to catalog records; no parallel activity model |
 | F34 | P1: the full BOSS run (also on clean baseline sources) exhausts the 64 MiB script heap; a render catches allocation errors before the existing outer recovery clears compiled caches | Reclaim compiled caches under heap pressure before script entry, keep the hard limit and live values, and never retry side-effectful scripts. Add a real-allocation regression and rerun core/BOSS suites |
 | F35 | P2: the existing add-to-cart service updates a matching line without calling create#OrderItem; guarding the create path alone leaves an obsolete-product bypass | Guard add#OrderProductQuantity before price resolution and either create/update path; keep explicit zero-quantity removal ahead of the guard |
@@ -642,6 +706,8 @@ is written there too.
 | F37 | P2: ProductOtherIdentification and ProductUomDimension are outside the legacy delete/clone coverage; equipment maintenance refers to meter IDs | Clean modern children before guarded unused-draft deletion, copy scoped identities safely, and remap cloned maintenance meters |
 | F38 | P3: view-tree already accepts an occurrence as the first key field, with record/edge fields following it | Use the existing qvt/html/tui identity protocol, prove two placements and a one-edge move, and add only optional browser move confirmation |
 | F39 | P3: ProductFeatureGroup had no owner, though groups must obey the catalog owner boundary | Add audited ownerPartyId, retain null/_NA_ legacy groups as shared, extend org filters and record callbacks, and keep shared writes ADMIN-only |
+| F40 | P9 review (I-PRD-06, `review-impl-core-apps/products.md`): the roll-up's rules were unstated. P8's `BmirByproduct` lines carry `allocationShare`; `PccOverheadPercent` has no base; `get#OperationCostBasis` charges the full setup to the quantity asked, uses fractional batches and ignores `WorkCenter.efficiencyPercent`; rounding (per component or on the total) is unstated | P9's roll-up rules: by-products follow `allocationShare`, else quantity (Manufacturing P15); overhead percent on material plus conversion, single level; the costing lot size is the BOM's `baseQuantity`, with setup divided by it; cycles round up and efficiency applies; the total is rounded once. A by-product BOM is in the usable-when |
+| F41 | P9 review (I-PRD-07, `review-impl-core-apps/products.md`): Mantle's receipt takes `OrderItem.standardCost` as the new asset's `acquireCost`, and an intercompany order (vendor and customer both internal) is a sale and a purchase, so a sales standard would become the buyer's receipt cost | P9 sets the sales `standardCost` only when the customer is not an `OrgInternal` party; its spec covers an intercompany order |
 
 ## 7. Later
 
@@ -695,3 +761,22 @@ Designed, not in this build:
 P1 committed after validation: framework `f9641cda`, Mantle `6d548a3e`, BOSS `f1c2a37`.
 
 P2 committed after validation: Mantle `54e6619a`, BOSS `0a06b7d`.
+
+P3 committed after validation: framework `df8d2474`, Mantle `dddc0594`, BOSS `774752a`.
+
+P4 committed after validation: Mantle `2727c0ae`, BOSS `86c6f09`.
+
+P5a committed after validation: Mantle `4d146af1`, BOSS `0c78c9e`.
+
+P5b committed after validation: Mantle `d7663ecb`, BOSS `776a73f`.
+
+The §4 organization filters and dated catalog settings, after P5: Mantle `1ef146bf` and `5d984d31`, BOSS `f4c1781` and
+`165ae8d`.
+
+P6 committed after validation: Mantle `0e886690`, BOSS `ec0f17a`.
+
+P7 committed after validation: Mantle `0716de75`, BOSS `c413cdd`.
+
+P8 committed after validation: Mantle `4422dd44`, BOSS `8e946df`.
+
+P9 committed after validation: Mantle `5a18970e`, BOSS `2a4abd6`.

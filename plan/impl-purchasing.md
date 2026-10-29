@@ -2,7 +2,7 @@
 
 Oct 28, 2026 — plan; P0 partly done (F1–F22, found while writing it); the phase order and the open questions decided
 (§4), on the shared party-role and effective-date rules (impl-drawers-commons §4); the supplier pages in a PASS app in
-mr-pass (§4)
+mr-pass (§4); Purchasing's rules in Mantle, behind Moqui permissions (§4)
 
 How [design-purchasing.md](design-purchasing.md) gets built, in phases from the foundation to the supplier portal, each
 ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md),
@@ -24,7 +24,8 @@ Purchasing is built last (§4), so these are there to extend:
   `import#Bill` (for AP and buyers), `create#InvoiceFromSource`, `approve#Payable`, the holds and
   `request#HoldRelease`, the conditioned receipt-bill SECA, `OrderItem.costCenterId`, and its contexts on InvoiceDetail,
   OrderDetail, Supplier360 and ShipmentDetail (P6); `Shared/InvoiceMatch`, MatchPolicies, `queue#MatchReevaluation` and
-  the legacy match backfill (P7); CX-ORDER-HOLD (P10); LandedCosts (P13); BudgetCommitment and `BudgetServices` (P15);
+  the legacy match backfill (P7); CX-ORDER-HOLD (P10); LandedCosts (P13); BudgetCommitment and
+  `mantle.other.BudgetServices` (P15);
   `settle#Return` and `Shared/ReturnDetail` (P17); CX-PORTALS, and the PASS Supplier app in mr-pass with its BillUpload
   page and the PO's link (P18);
 - from Warehouse: `ensure#PurchaseReceipt`, `adjust#ExpectedReceipt`, `close#ReceiptRemainder`, the receive guard and
@@ -34,7 +35,7 @@ Purchasing is built last (§4), so these are there to extend:
   `receive#SubcontractOutput` (P16);
 - from Manufacturing: CX-PLANNING, with `Shared/SupplyPlanning`, `run#SupplyPlan`, `store#PlanSchedule`, the make
   conversion and held receipts as a pending-release line (P13); the outside-processing buy conversion to draft service
-  PO lines, and `BOSS_PURCHASING_BUYER` (P14);
+  PO lines, and `BOSS_PURCHASING_BUYER` with its permissions (P14, §4);
 - from Projects: `Shared/RequestDetail` (without request items, F6), `Shared/OrderDetail`, `Shared/InvoiceDetail` and
   `complete#RequestFromWork` (F5);
 - from Commons: notification topics with approve and refuse services, Notifications, Chatter, RecordFiles, and the
@@ -139,6 +140,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **The Commons rules hold.** These are impl-drawers-commons §4:
   - failure tolerance;
   - the Mantle-free framework;
+  - Mantle stands without BOSS;
+  - business logic leans to Mantle;
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
@@ -148,10 +151,18 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - builds and commits.
 
   Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2), as `PurchasingShots`.
-- **Purchase rows through services.** Under the organization filters (impl-drawers-commons §4), OrderPart, Shipment, ReturnHeader, Invoice and Party
-  are filtered, but not OrderHeader, OrderItem, Request, RequestItem, Requirement, Agreement, AgreementItem, ProductPrice
-  or AssetReceipt (F2). Purchasing reads and writes them only through services: `ironstone.purchasing.AccessServices`
-  checks the buying organization, the supplier, the record and the capability, then the Mantle service runs.
+- **Rules in Mantle, screens in BOSS** (§4). Purchasing's approvals, policies, supplier profile and check, sends,
+  revisions, acknowledgements, requests, sourcing, agreements and scorecards are Mantle services in the package of their
+  records (`mantle.order`, `mantle.request`, `mantle.party`). Each checks its Moqui permission (§4) and the organization
+  by party relationship itself, so SECAs, other apps, the PASS pages and plain Mantle callers meet the same rule.
+  `ironstone.purchasing` keeps `AccessServices`, Home, the worklists' and find screens' reads, the report reads, saved
+  views and the settings forms. A Purchasing screen or mount calls the Mantle service after `AccessServices`, with no
+  same-named `ironstone` pass-through; other apps call the Mantle name.
+- **Purchase rows through services.** Under the organization filters (impl-drawers-commons §4), OrderPart, Shipment,
+  ReturnHeader, Invoice and Party are filtered, but not OrderHeader, OrderItem, Request, RequestItem, Requirement,
+  Agreement, AgreementItem, ProductPrice or AssetReceipt (F2). Purchasing reads and writes them only through services:
+  `ironstone.purchasing.AccessServices` checks the buying organization, the supplier, the record and the capability
+  group, then the screen calls the Mantle service, which checks its permission and the organization.
   - `entity` in a design form summary means that guarded path, never a bare entity form.
   - Grants are checked in the services, so they hold for exports, search, the palette, shared mounts and the supplier
     pages. The `BOSS_PURCHASING_*` groups get no artifact authorization for the raw Mantle order, request, agreement and
@@ -173,10 +184,11 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     against, and the time.
   - Records of their own stay where a fact has its own identity: an approval decision, a scorecard evaluation, an
     agreement release allocation.
-- **One approval gate.** In BOSS a purchase part reaches OrderApproved only through `decide#PurchaseApproval`, and
-  Mantle's `autoApprove#Order` meets `check#PurchaseApprovalRequired`'s warning (design §6, D8). The SECA applies where the
-  organization's buying policy turns its flag on (impl-accounting §4), and Mantle's
-  `approve#Order` itself is unchanged, so the flow specs' direct approval keeps working (F9).
+- **One approval gate.** Where the organization's buying policy turns its flag on (impl-accounting §4), a purchase part
+  reaches OrderApproved only through `mantle.order.PurchaseServices.decide#PurchaseApproval`, and Mantle's
+  `autoApprove#Order` meets the warning of `check#PurchaseApprovalRequired`, a SECA in mr-mantle on
+  `check#OrderPreApprove` (design §6, D8). Mantle's `approve#Order` itself is unchanged, so the flow specs' direct
+  approval keeps working (F9).
 - **Revisions and operations.** Every approval, conversion, award, release, revision, send, reminder and portal
   submission names its source revision and an operation identity. A retry answers the first result, and a stale
   revision is refused naming the current one. The operation record is Accounting P2's CX-POSTING record
@@ -184,7 +196,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   evaluations, import rows. One award, conversion or revision with its links commits atomically.
 - **Restricted values stay on the server.** A service leaves out of its answer any supplier price, cost, budget,
   bank, payment or competing-quote value the user may not read. An inaccessible amount is omitted or said to be
-  withheld, never shown as zero; a supplier sees its own documents only (design §13).
+  withheld, never shown as zero; a supplier sees its own documents only (design §13). A Mantle answer decides it by
+  permission: `SUPPLIER_PRICE_VIEW`, `PRODUCT_COST_VIEW` and `ACCOUNTING_VIEW`, which their owners grant.
 - **Shared screens.** Purchasing builds none. It adds its context to the shared screens of §1, each taking `appRoot` and
   server-derived capabilities on `Shared/RequestDetail`'s pattern, and its context adds no right a borrowed capability
   does not give (design §1).
@@ -195,11 +208,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   pages call only Mantle services through `pass.Facade.call#Operation`, so the same pages work with a local or remote
   authority; PASS's request contract and media; links are pages taking their tokens, not `<token-route>`s.
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
-  service names, its Shared screen and its capability groups. A change found while building it is written into the
-  owner's design. The owner's own screens stay with the owner.
+  service names, its Shared screen, its permissions and its capability groups. A change found while building it is
+  written into the owner's design. The owner's own screens stay with the owner.
 - **Mantle rule changes keep Mantle's default.** A new refusal or condition in a Mantle service or SECA sits behind
   its own flag, off by default (impl-accounting §4), and ships with a test of its condition and of its unchanged default
-  (crosscut §7.1). A new `enable-audit-log` changes no behavior and needs no setting.
+  (crosscut §7.1). A new Mantle service checks its permission; an existing one gains a refusal only behind its flag. A
+  new `enable-audit-log` changes no behavior and needs no setting.
 - **Mantle callers stay compatible.** Existing callers of these keep working:
   - `create#PurchaseRequestOrder`, which BOSS never calls but CrmMiscServices does (F4);
   - `create#Order`, `add#OrderProductQuantity`, `place#Order` and `approve#Order`, and the quote transitions;
@@ -212,7 +226,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Done for a phase** means all of these:
   - impl-projects §2 "Done":
     - cargo tests for the touched crates, with goldens reviewed;
-    - the new Mantle specs passing under `./moq test mr-mantle`;
+    - the new Mantle specs passing under `./moq test mr-mantle`, their users in spec-local groups holding the
+      permissions, never a `BOSS_*` group;
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Purchasing in its non-placeholder
       list (F16);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
@@ -259,7 +274,8 @@ check:
 - **The other apps' state.** Which of Products P5, P6, P7, P11 and P12, Accounting P6, P7, P10, P13, P15, P17 and P18,
   Warehouse P7, P8, P14 and P16, and Manufacturing P13 and P14 are built when the phases that use them start, and
   whether each built its Purchasing part as its plan says: `close#PurchaseRemainders` (with its `release#Commitment`
-  call), `find#ReturnableReceipts`, `accept#ServiceItem`, `BOSS_PURCHASING_BUYER`, the outside-processing conversion,
+  call), `find#ReturnableReceipts`, `accept#ServiceItem`, `BOSS_PURCHASING_BUYER` with its permissions (§4), the
+  outside-processing conversion,
   SupplierProfile's finance fields, the buyer's `import#Bill`, the match backfill, and the PASS Supplier app with the
   PO's link and how its pages register (impl-accounting P18).
 - **Service-line matching.** Whether Accounting P7 or Manufacturing P14 made `evaluate#InvoiceMatch` read
@@ -268,8 +284,6 @@ check:
   `change#OrderPartsStatus`, and which raw writes the mr-marble Order, Request, Agreement and Supplier screens make.
 - **The rule flags.** That a buying-policy flag (impl-accounting §4) can condition `check#PurchaseApprovalRequired`,
   and what the demo organizations have.
-- **Approval handlers.** What Commons passes to a topic's approve and refuse services (recordEntityName, recordId, the
-  message JSON), against design §1's `sourceRevision`, `policyVersion` (here the policy row) and `decisionStepId`.
 - **The quote statuses** (F19). What Mantle's services and SECAs do with a purchase part in OrderRequested and
   OrderProposed (reservation, emails, auto-approval, totals), and whether Not awarded needs a Proposed → Rejected
   transition beside Cancel Quote.
@@ -294,11 +308,18 @@ check:
   - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
     impl-drawers-commons §4 (`MANTLE_USER_ORG` for the groups, `MANTLE_ACTIVE_ORG` for `BOSS_PURCHASING_ADMIN`) and
     the service checks of §2.
+  - The `UserGroupPermission` rows in BossSetupData for the Mantle permissions of §4: `PURCHASE_APPROVE` and
+    `ORDER_APPROVE` to `BOSS_PURCHASING_APPROVE`; `STOCK_POLICY_PLAN` and `SUPPLY_PLAN_RUN` to
+    `BOSS_PURCHASING_PLANNER`; `PURCHASE_ORDER_EDIT`, `SUPPLIER_PROFILE_EDIT`, `SUPPLIER_SCORECARD_EDIT`,
+    `PAYABLE_IMPORT` and `RETURN_AUTHORIZE` to `BOSS_PURCHASING_BUYER`, those not granted where Manufacturing P14 seeds
+    the group; all of them and `PURCHASE_POLICY_EDIT` to `BOSS_PURCHASING_ADMIN`. The requester and reader groups hold
+    none. The `UserPermission` rows not seeded yet go beside `ORDER_APPROVE` in mr-mantle's MantleSetupData.
   - `ironstone.purchasing.AccessServices`: the user's buying organizations, their capabilities, own and borrowed, and
     the suppliers they may work with: any Supplier-role party whose owner passes the organization filter, that is owned
     by the active organization or, with none active, by one of the user's organizations, or shared `_NA_` (§4). Every
-    later Purchasing service and shared mount calls it. A supplied organization, supplier, order, request, RFQ, quote,
-    agreement or return is checked against it. A requester sees their own and assigned requests only.
+    Purchasing screen and shared mount calls it before the Mantle service (§2). A supplied organization, supplier,
+    order, request, RFQ, quote, agreement or return is checked against it. A requester sees their own and assigned
+    requests only.
   - No artifact authorization for the raw services, REST paths or bulk status change of F9.
 - **The Purchasing root.**
   - The menu of design §1: the placeholders renamed, Quotes as Sourcing, and Agreements, Receiving, Bills, Approvals
@@ -306,8 +327,8 @@ check:
   - `<shell-providers>` (PUR-SHELL): the palette types, quick create, Today sources and notification topics grow phase
     by phase, as their records are built.
   - The `purchasing` key scope.
-  - `get#RecordLinkInfo` opens POs, quotes, requests, RFQs, agreements and supplier returns under Purchasing for its
-    users.
+  - `ironstone.commons.PaletteServices.get#RecordLink` opens POs, quotes, requests, RFQs, agreements and supplier
+    returns under Purchasing for its users.
 - **Home** (design §3): BuyerCounters over `ironstone.purchasing.BuyerServices.get#Home`, with the counts of later phases
   null; BuyerWork over `find#BuyerWork` with no sources yet; SpendSummary unavailable until P15.
 - **Purchasing demo data.**
@@ -319,8 +340,8 @@ check:
     Warehouse receive group, and a Purchasing reader with no other launcher.
 - **Specs.**
   - `PurchasingShell`: the menu per group, the palette, record links, quick create.
-  - `PurchasingAccess`: started, covering organization and supplier scope and the groups through the services, and the
-    refused REST and bulk paths.
+  - `PurchasingAccess`: started, covering organization and supplier scope, the groups through the services and their
+    permissions, and the refused REST and bulk paths.
 - **Usable when:** the menu renders for each group, and quick create offers only what the group may create. A reader
   sees their organization's POs and suppliers but not another organization's, in lists, the palette and record links,
   and sees shared suppliers too. A forged order or supplier ID is refused.
@@ -332,16 +353,17 @@ check:
   - the default currency, the incoterm, the dated purchase block with its reason, and `approvalStatus` with its seeded
     Pending, Approved, Rejected and Suspended, audit-logged. Deciding it is P4;
   - the buyer as a dated PartyRelationship from the buyer (Buyer) to the supplier (Supplier), not a profile field;
-  - the buyer fields of `ironstone.purchasing.SupplierServices.store#SupplierProfile`, beside Accounting's finance
-    check, ending the current row and starting the next;
-  - `SupplierServices.find#Suppliers`, over the supplier scope of P1;
+  - the buyer fields of `mantle.party.SupplierServices.store#SupplierProfile` under `SUPPLIER_PROFILE_EDIT`, beside
+    Accounting's finance fields under `SUPPLIER_TERMS_EDIT`, ending the current row and starting the next;
+  - `ironstone.purchasing.SupplierServices.find#Suppliers`, over the supplier scope of P1;
   - the supplier-category classification type `PcltSupplierCategory` (F11).
 - **PUR-SETTINGS.**
   - `mantle.order.purchase.PurchasePolicy`, effective-dated rows by organization with their key fields audit-logged:
     the buying defaults and controls of design PurchasePolicy, among them the RFQ response days, quote-expiry warning
     days, reminder days, supplier approval required and the unapproved-supplier Warn or Stop.
-  - `ironstone.purchasing.SettingsServices` `store#PurchasePolicy`, `get#PurchasingSettings` and `store#RequestPurpose`.
-    A change starts a row from its date; a document keeps the row it was evaluated against until revalidated.
+  - `mantle.order.PurchaseServices.store#PurchasePolicy` under `PURCHASE_POLICY_EDIT`. A change starts a row from its
+    date; a document keeps the row it was evaluated against until revalidated.
+  - `ironstone.purchasing.SettingsServices` `get#PurchasingSettings` and `store#RequestPurpose`, for the forms.
 - **Screens** (design §3, §12):
   - Suppliers: SupplierFind, SupplierList, CreateSupplierPerson and CreateSupplierOrganization with the duplicate search
     first. Create adds the Supplier role, owned by the active organization, and the profile starts Pending when the
@@ -374,25 +396,29 @@ check:
   - Create, place, update, clone and cancel through guarded calls of the Mantle order services of design OrderDetail,
     one purchase part per PO (§4, F7). Each line's product passes `check#ProductUsable` for buying (Products P2), and a
     pack is ordered as its pack product (crosscut §4.1). Each line carries its cost centre in Accounting P6's
-    `OrderItem.costCenterId` (AC-22). An unapproved or blocked supplier gets the policy's Warn or Stop.
+    `OrderItem.costCenterId` (AC-22). An unapproved or blocked supplier gets the policy's Warn or Stop from
+    `mantle.order.PurchaseServices.check#SupplierUsable`, beside `check#ProductUsable`.
   - The audit log (§2, F18) on the PO's key fields that Mantle does not log yet: `OrderHeader.orderRevision`, and
     OrderItem's unit, cancelled quantity, description and cost centre.
-  - `send#PurchaseOrder` (R-PUR-02): the PO rendered as of its revision, to the vendor's `EmailOrder` address, then
-    `EmailPrimary`, through an EmailMessage and `send#EmailDraft` on Projects' `send#Invoice` pattern (F13). The PDF is
-    stored as OrderContent stamped with the revision and its time. It dedupes on order, revision and recipient, records
-    each recipient's outcome, and moves the part OrderApproved → OrderSent.
+  - `mantle.order.OrderServices.send#PurchaseOrder` (R-PUR-02; `PURCHASE_ORDER_EDIT`, as for the PO verbs of later
+    phases): the PO rendered as of its revision, to the vendor's `EmailOrder` address, then `EmailPrimary`, through an
+    EmailMessage and `send#EmailDraft` on Projects' `send#Invoice` pattern (F13). The PDF is stored as OrderContent
+    stamped with the revision and its time. It dedupes on order, revision and recipient, records each recipient's
+    outcome, and moves the part OrderApproved → OrderSent.
   - The PO print takes an effective date and time, read back from the audit log (§2).
   - A buyer's hold and its release through Accounting P10's `hold#Order` and `release#OrderHold`, with a Purchase
     reason. A Sent PO un-sends to OrderApproved first (D7).
-  - ClosePurchaseOrders over `close#PurchaseRemainders` (Warehouse P7), a result per order.
-  - RecordServiceAcceptance over `accept#ServiceItem` (Warehouse P16), its evidence on the order's OrderContent.
+  - ClosePurchaseOrders over `mantle.order.OrderServices.close#PurchaseRemainders` (Warehouse P7), a result per order.
+  - RecordServiceAcceptance over `mantle.order.OrderServices.accept#ServiceItem` (Warehouse P16), its evidence on the
+    order's OrderContent.
 - **PUR-APPROVAL, the default step.**
   - `mantle.order.purchase.PurchaseApprovalDecision`, a fact of its own (§2): source entity, ID and revision, the policy
     row (none yet), approver, decision, time and reason.
-  - `ironstone.purchasing.ApprovalServices.decide#PurchaseApproval` with design ApprovalPolicies' no-policy rule: one
-    step by `BOSS_PURCHASING_APPROVE`, self-approval refused unless PurchasePolicy allows it. It then calls
-    `approve#Order`.
-  - The SECA `check#PurchaseApprovalRequired` on `check#OrderPreApprove` (§2).
+  - `mantle.order.PurchaseServices.decide#PurchaseApproval` with design ApprovalPolicies' no-policy rule: one step by a
+    holder of `PURCHASE_APPROVE`, self-approval refused unless PurchasePolicy allows it. It then calls `approve#Order`,
+    which checks `ORDER_APPROVE`.
+  - `mantle.order.PurchaseServices.check#PurchaseApprovalRequired`, the SECA in mr-mantle on `check#OrderPreApprove`
+    behind the buying policy's flag (§2).
 - **Screens** (design §6):
   - PurchaseOrders: OrderFind, PurchaseOrderList with its saved views, CreatePurchaseOrder, ApprovePurchaseOrders and
     ClosePurchaseOrders.
@@ -419,19 +445,22 @@ check:
   - `mantle.order.purchase.PurchaseApprovalPolicy`, effective-dated rows with their key fields audit-logged:
     organization, source type, amount band and currency, category or facility, sequence, approver role or user, quorum,
     self-approval and expiry. Activation refuses ambiguous bands and a band with no eligible approver.
-  - `ApprovalServices` `find#PurchaseApprovalPolicies`, `store#PurchaseApprovalPolicy` and `preview#PurchaseApproval`;
-    `decide#PurchaseApproval` with steps, quorum and separation. A decision keeps the policy row and the time it was
-    evaluated. A change to an audit-logged key field of a placed source after its decision invalidates the decision and
-    resubmits.
-  - The topics `PurchaseOrderApproval` and `PurchaseSupplierApproval`, with `approve#PurchaseSource` and
-    `refuse#PurchaseSource`, which refuse a stale revision naming the current one. Refusal moves a PO OrderPlaced →
-    OrderRejected and sets a supplier Rejected. P10 seeds `PurchaseRequestApproval` and P12 `PurchaseAwardApproval`;
-    agreements reuse the PO topic (P13). The seeds' note goes into design-drawers-commons §4.
+  - `mantle.order.PurchaseServices` `store#PurchaseApprovalPolicy` (`PURCHASE_POLICY_EDIT`) and
+    `preview#PurchaseApproval`; `decide#PurchaseApproval` with steps, quorum and separation. A decision keeps the policy
+    row and the time it was evaluated. A change to an audit-logged key field of a placed source after its decision
+    invalidates the decision and resubmits. `ironstone.purchasing.ApprovalServices.find#PurchaseApprovalPolicies` for
+    the list.
+  - The topics `PurchaseOrderApproval` and `PurchaseSupplierApproval`, seeded in mr-mantle's data with
+    `mantle.order.PurchaseServices` `approve#PurchaseSource` and `refuse#PurchaseSource` (`PURCHASE_APPROVE`) as the
+    framework's approve and refuse services (F23), which refuse a stale revision naming the current one. Refusal moves
+    a PO OrderPlaced → OrderRejected and sets a supplier Rejected. P10 seeds `PurchaseRequestApproval` and P12
+    `PurchaseAwardApproval` the same way; agreements reuse the PO topic (P13). The seeds' note goes into
+    design-drawers-commons §4.
   - Supplier onboarding (R-PUR-15): submit a Pending supplier, decide it, and Suspended as a dated block with its reason.
-- **PUR-BUDGET, the PO commitments** (D10), through Accounting P15's `BudgetServices`:
+- **PUR-BUDGET, the PO commitments** (D10), through Accounting P15's `mantle.other.BudgetServices`:
   - `check#Budget` in the approval preview, with Warn shown and Stop refused;
   - `reserve#Commitment` at the approval of a PO with no request, keyed by its revision;
-  - `release#Commitment` on a cancel or a closed remainder.
+  - `release#Commitment` on a cancel or a closed remainder, the latter from Mantle's `close#PurchaseRemainders`.
 
   P10 adds the request reservation and its conversion at PO approval.
 - **Screens:**
@@ -482,11 +511,13 @@ Purchasing's worklists and mounts over what Warehouse built (P7, P8): it posts n
 
 Purchasing's mounts over Accounting's intake, holds and match (P6, P7), with the service lines and the buyer's actions.
 
-- **Accounting's contract** (§4, PUR-MATCH), unless built (P0): `evaluate#InvoiceMatch` reads ServiceAcceptance under
-  the match policy's service-acceptance rule, so a service line matches against its accepted quantity (R-PUR-09).
+- **Accounting's contract** (§4, PUR-MATCH), unless built (P0):
+  `mantle.account.InvoiceMatchServices.evaluate#InvoiceMatch` reads ServiceAcceptance under the match policy's
+  service-acceptance rule, so a service line matches against its accepted quantity (R-PUR-09).
 - **Screens** (design §10):
   - Bills: BillFind, BillList over `find#BillExceptions` and an authorized invoice find, and UploadSupplierBill over
-    `import#Bill`, which takes a buyer's upload as it takes AP intake's (§4; impl-accounting P6).
+    `mantle.account.InvoiceServices.import#Bill`, which takes a buyer's upload under `PAYABLE_IMPORT` as it takes AP
+    intake's (§4; impl-accounting P6).
   - InvoiceDetail: Projects' `Shared/InvoiceDetail` with the Purchasing row of crosscut §3.16. Buyers investigate; a
     match operator applies; finance holds, approves and pays through Accounting's actions. "Allocate to receipts" opens
     Accounting's LandedCosts.
@@ -529,23 +560,24 @@ P7 ports it into mr-mantle and finishes it.
   - `finalize#DropShipPurchaseOrder`, on the supplier's confirmation: the confirmed quantities and tracking code on the
     PO's shipment, shipped; then, through `parentOrderId`, the sales order's shipment found or created, packed with
     that tracking code and shipped, so Mantle's pack SECA invoices the customer.
-- **BOSS on the port**, where the approval gate's flag is on (§2):
-  - the PO is placed and goes through P4's approval gate, where the branch approves it at once (Mantle's default
-    stays for other organizations);
-  - a drop-ship facility with no remote sends its PO by P3's `send#PurchaseOrder`;
+- **Mantle's additions to the port**, where the approval gate's flag is on (§2); none calls BOSS:
+  - the PO is placed and goes through P4's approval gate in `mantle.order.PurchaseServices`, where the branch approves
+    it at once (Mantle's default stays for other organizations);
+  - a drop-ship facility with no remote sends its PO by P3's `mantle.order.OrderServices.send#PurchaseOrder`;
   - a sales line the service passes over (no drop-ship reservation, an internal owner, two reservations) is named in
     its result, not only logged; a retry answers the first PO;
-  - the buyer enters a confirmation from OrderDetail, the supplier's integration calls `finalize#DropShipPurchaseOrder`
-    itself, and P16 lets the supplier report it for the buyer's review;
+  - the buyer enters a confirmation from OrderDetail, which calls `finalize#DropShipPurchaseOrder`; the supplier's
+    integration calls it itself, and P16 lets the supplier report it for the buyer's review;
   - the supplier bill comes through Accounting's intake and matches against the shipped drop-ship delivery
-    (Accounting's contract, §4, PUR-MATCH).
+    (Accounting's contract in `mantle.account.InvoiceMatchServices`, §4, PUR-MATCH).
 - **Routing a line to a supplier:** "Drop-ship from supplier" on a customer order line, offered where the supplier's
-  price `canDropShip`, moves the line to that supplier's drop-ship facility and reserves there, so the same service makes
-  the PO. P10's RequestSourcing and P14's SupplyPlanning route customer demand the same way.
+  price `canDropShip`, moves the line to that supplier's drop-ship facility and reserves there, in Mantle under
+  `PURCHASE_ORDER_EDIT`, so the same service makes the PO. P10's RequestSourcing and P14's SupplyPlanning route customer
+  demand the same way.
 - **Screens:**
   - OrderDetail, in any app's context: on a customer order, each line's drop-ship state, its child PO and "Drop-ship
-    from supplier" for a holder of `BOSS_PURCHASING_BUYER`; on the PO, the customer, the parent sales order and
-    "Confirm delivery".
+    from supplier" for a holder of `PURCHASE_ORDER_EDIT` (`BOSS_PURCHASING_BUYER`); on the PO, the customer, the parent
+    sales order and "Confirm delivery".
   - PurchaseOrders: the Drop-ship view, with confirmation pending.
   - Supplier360's drop-ship setup: the supplier's drop-ship facility and its remote, for a purchase administrator.
 - **Outputs:** the drop-ship PO print, with the customer's ship-to address and no buyer receiving address.
@@ -560,9 +592,11 @@ P7 ports it into mr-mantle and finishes it.
 
 ### P8 — Supplier returns
 
-- **PUR-RETURN, the rest.** Warehouse P14 built `find#ReturnableReceipts` and the receipt link. Here:
+- **PUR-RETURN, the rest.** Warehouse P14 built `mantle.order.ReturnServices.find#ReturnableReceipts` and the receipt
+  link. Here:
   - `ironstone.purchasing.ReturnServices.find#SupplierReturns`;
-  - `create#ReplacementOrder`: a linked PO, and its expected receipt through `ensure#PurchaseReceipt`.
+  - `mantle.order.ReturnServices.create#ReplacementOrder` (`PURCHASE_ORDER_EDIT`): a linked PO, and its expected
+    receipt through `ensure#PurchaseReceipt`.
 - **Screens** (design §9):
   - Returns: ReturnFind, SupplierReturnList, and NewSupplierReturn over `find#ReturnableReceipts` and
     `create#ReturnFromOrder`, eligible quantities by receipt and lot.
@@ -580,11 +614,12 @@ P7 ports it into mr-mantle and finishes it.
 ### P9 — Revisions and acknowledgements
 
 - **PUR-ORDER, the revision**, on the audit-log rule (§2): no revision record.
-  - `OrderServices.preview#PurchaseRevision` and `apply#PurchaseRevision` (design OrderChanges). Start locks with a
-    Change hold. Apply, in one transaction, writes the changes to the audit-logged fields with the reason, calls
-    `increment#OrderRevision`, Warehouse's `adjust#ExpectedReceipt` (a ReceiptInProgress fails the revision by name),
-    Accounting's `convert#` or `release#Commitment` for the delta and `queue#MatchReevaluation`. Decreases below
-    received, billed or returned quantities are refused, and so is a supplier or currency change on a progressed part.
+  - `mantle.order.OrderServices.preview#PurchaseRevision` and `apply#PurchaseRevision` (design OrderChanges). Start
+    locks with a Change hold. Apply, in one transaction, writes the changes to the audit-logged fields with the reason,
+    calls `increment#OrderRevision`, Warehouse's `adjust#ExpectedReceipt` (a ReceiptInProgress fails the revision by
+    name), Accounting's `convert#` or `release#Commitment` for the delta and `queue#MatchReevaluation`, all Mantle's.
+    Decreases below received, billed or returned quantities are refused, and so is a supplier or currency change on a
+    progressed part.
   - The approval of the new revision, then `release#OrderHold` and a resend through `send#PurchaseOrder`, which stores
     the new revision's PDF.
 - **PUR-ORDER, the acknowledgement**, on the same rule: no acknowledgement record.
@@ -592,8 +627,8 @@ P7 ports it into mr-mantle and finishes it.
     revision and its outcome on OrderPart, and the promised date on each line, all audit-logged (F17, F18; the new
     field names at P9 start). The evidence is OrderContent in the supplier's role. Each acknowledgement's history is the
     audit log.
-  - `OrderServices` `find#Acknowledgements`, `record#Acknowledgement` and `send#PurchaseReminder`, deduped on revision,
-    template and occurrence, a result per recipient.
+  - `mantle.order.OrderServices` `record#Acknowledgement` and `send#PurchaseReminder`, deduped on revision, template
+    and occurrence, a result per recipient; `ironstone.purchasing.OrderServices.find#Acknowledgements` for the list.
 - **Screens** (design §6):
   - OrderChanges: ProposedChange, RevisionEffects (old and new values beside the received, billed and returned
     quantities) and ApplyRevision.
@@ -618,20 +653,20 @@ P7 ports it into mr-mantle and finishes it.
     Manufacturing P13 added `Requirement.quantityUomId`.
   - The audit log on RequestItem's product, quantity, unit, required date, supplier and cost centre (F18). A request's
     revision is the time of its last change to them; a decision is refused if the request changed after it.
-  - `ironstone.purchasing.RequestServices`:
-    - `find#PurchaseRequests` and `get#PurchaseRequestProgress`;
-    - `preview#PurchaseSourcing` and `convert#PurchaseSourcing`, on design RequestSourcing's result envelope. Each
-      supplier group commits its PO, RequestItemOrder and RequirementSupply under a lock on the Requirement's remaining
-      quantity. A group fails by name and the others go on; a retry repeats only the failures. It never passes
-      `placeAndApproveOrders`, and it refuses quantity already sourced (R-PUR-01; F4). Customer demand may take P7's
-      drop-ship route, moving the sales line to the supplier's drop-ship facility.
-  - The `PurchaseRequestApproval` topic. Approval creates or links one Requirement through RequirementRequestItem
-    (RqTpProduct or RqTpInternal, RqmtStApproved), with its organization as a RequirementParty in the OrgInternal role
-    (Manufacturing P13), and calls `reserve#Commitment`; refusal leaves ReqSubmitted; a cancel releases the unsourced
-    demand and its commitment.
+  - `ironstone.purchasing.RequestServices.find#PurchaseRequests`, and `mantle.request.RequestServices`:
+    - `get#PurchaseRequestProgress`;
+    - `preview#PurchaseSourcing` and `convert#PurchaseSourcing` (`PURCHASE_ORDER_EDIT`), on design RequestSourcing's
+      result envelope. Each supplier group commits its PO, RequestItemOrder and RequirementSupply under a lock on the
+      Requirement's remaining quantity. A group fails by name and the others go on; a retry repeats only the failures.
+      It never passes `placeAndApproveOrders`, and it refuses quantity already sourced (R-PUR-01; F4). Customer demand
+      may take P7's drop-ship route, moving the sales line to the supplier's drop-ship facility.
+  - The `PurchaseRequestApproval` topic, seeded as P4's are. Approval creates or links one Requirement through
+    RequirementRequestItem (RqTpProduct or RqTpInternal, RqmtStApproved), with its organization as a RequirementParty
+    in the OrgInternal role (Manufacturing P13), and calls `reserve#Commitment`; refusal leaves ReqSubmitted; a cancel
+    releases the unsourced demand and its commitment.
   - PO approval converts a request-sourced line's reservation with `convert#Commitment`.
 - **CX-REQUEST** (§4; F5): `complete#RequestFromWork` leaves RqtPurchase alone, and RqtInventory unless Warehouse P15
-  did so; progress comes from `get#PurchaseRequestProgress`.
+  did so; progress comes from `mantle.request.RequestServices.get#PurchaseRequestProgress`.
 - **Projects' contract** (§4; F6): RequestDetail's Items tab in every app's context, the base RequestItems of crosscut
   §3.11, on Marble's EditRequestItems. Its "Create purchase order" opens RequestSourcing, for the buyer group only.
 - **Screens** (design §4):
@@ -676,15 +711,16 @@ P7 ports it into mr-mantle and finishes it.
       `apply#OrderPromotions` on every change. Mantle finds promotions through the order's ProductStore, which a PO
       lacks, so P0 checks how Moqui Java scopes them for purchases (F22).
   - Quotes and requested quotes are never supply.
-- **`ironstone.purchasing.SourcingServices`:**
-  - `find#QuoteRequests`, `create#QuoteRequest`, `store#QuoteRequest`, `store#QuoteRequestItem` and `get#QuoteRequest`;
+- **`mantle.order.SourcingServices`** (`PURCHASE_ORDER_EDIT`, but the price publish):
+  - `create#QuoteRequest`, `store#QuoteRequest` and `store#QuoteRequestItem`;
   - `store#QuoteInvitation`: the supplier's quote order in OrderRequested;
   - `send#QuoteRequest`: the published RFQ to each invited supplier, InvitationDeliveryFailed for a failed contact while
     the others send. P16 adds the response link;
-  - `find#SupplierQuotes` over the purchase orders in the quote statuses, `store#SupplierQuote` for an on-behalf entry
-    with its channel and evidence, and `get#SupplierQuote`;
+  - `store#SupplierQuote` for an on-behalf entry with its channel and evidence;
   - `publish#SupplierQuotePrice` (R-PUR-21; Products §7): a quoted price to an effective supplier price through
-    `store#ProductPrice`, with the source order and line, for the supplier-price editor only.
+    `store#ProductPrice`, with the source order and line, under `SUPPLIER_PRICE_EDIT` only.
+- **`ironstone.purchasing.SourcingServices`:** `find#QuoteRequests` and `get#QuoteRequest`; `find#SupplierQuotes` over
+  the purchase orders in the quote statuses, and `get#SupplierQuote`.
 - **Screens** (design §5):
   - QuoteRequests: QuoteRequestFind, QuoteRequestList and NewQuoteRequest.
   - QuoteRequestDetail: QuoteRequestHeader, QuoteRequestItems, QuoteRequestSuppliers (the quote orders),
@@ -708,14 +744,14 @@ P7 ports it into mr-mantle and finishes it.
 ### P12 — Comparison and award
 
 - **PUR-RFQ, the award** (§4; F19). No award record: an award is the placed quote order with its links.
-  - `SourcingServices.compare#SupplierQuotes`: the RFQ's quote lines in the demand's unit, through Products'
-    conversions and pack products, priced at the compared quantity by the resolver's tier rows and any promotion child
-    items, in a display currency at Accounting's dated rates. A missing rate, freight or unit is
+  - `mantle.order.SourcingServices.compare#SupplierQuotes`: the RFQ's quote lines in the demand's unit, through
+    Products' conversions and pack products, priced at the compared quantity by the resolver's tier rows and any
+    promotion child items, in a display currency at Accounting's dated rates. A missing rate, freight or unit is
     Unknown or Not comparable, never zero or cheapest; committed price and estimated landed cost stay apart.
-  - `preview#Award` (validity, supplier status, `check#ProductUsable`, `check#Budget`, substitutes) and `commit#Award`:
-    per supplier group, it sets each chosen quote line's quantity to its allocation (audit-logged) and places the quote
-    ("Place from Quote") with RequirementSupply, under lock, a result per group, never approving or sending. The
-    `PurchaseAwardApproval` topic, where policy needs it, decides before the placing.
+  - `preview#Award` (validity, `check#SupplierUsable`, `check#ProductUsable`, `check#Budget`, substitutes) and
+    `commit#Award`: per supplier group, it sets each chosen quote line's quantity to its allocation (audit-logged) and
+    places the quote ("Place from Quote") with RequirementSupply, under lock, a result per group, never approving or
+    sending. The `PurchaseAwardApproval` topic, where policy needs it, decides before the placing.
   - `close#QuoteRequest`: the remaining quotes cancelled as Not awarded (F19), their capabilities revoked once P16
     issues them, and a reviewed regret notice with a result per recipient (R-PUR-35).
 - **Screens** (design §5): QuoteComparison (CompareBasis, OfferComparison, SelectOffer) and Award (AwardPreview,
@@ -739,10 +775,10 @@ P7 ports it into mr-mantle and finishes it.
     agreement stores its PDF as AgreementContent; the agreement prints as of a date. Signers and other parties are
     AgreementParty rows.
   - Release allocations, a record of their own (§2): order, line, quantity, value and the agreement's revision time.
-  - `ironstone.purchasing.AgreementServices` `store#PurchaseAgreement`, `store#AgreementItem`, `get#ReleaseBalance` and
-    `release#PurchaseAgreement`. A release over the remaining quantity or value is refused beyond the tolerance, under a
-    lock. Activation is approved as a PO is, through `decide#PurchaseApproval` on the PurchaseOrderApproval topic with
-    the agreement as source (§4).
+  - `mantle.party.AgreementServices` `store#PurchaseAgreement`, `store#AgreementItem`, `get#ReleaseBalance` and
+    `release#PurchaseAgreement` (`PURCHASE_ORDER_EDIT`). A release over the remaining quantity or value is refused
+    beyond the tolerance, under a lock. Activation is approved as a PO is, through `decide#PurchaseApproval` on the
+    PurchaseOrderApproval topic with the agreement as source (§4).
 - **Screens** (design §7):
   - Agreements: AgreementFind, AgreementList and NewAgreement, a template cloned without releases.
   - AgreementDetail: AgreementHeader, AgreementTerms, AgreementItems, AgreementReleases, ReleaseAgreement, History, and
@@ -760,14 +796,16 @@ P7 ports it into mr-mantle and finishes it.
 ### P14 — Replenishment
 
 - **CX-PLANNING, the buy conversion** (§4). Manufacturing P13 built the run, the schedule and the make conversion, and
-  P14 the outside-processing lines. Here, in `convert#PlanningSuggestions`: an ordinary buy suggestion to a draft PO
-  per supplier group, to an approved purchase request as policy says (crosscut §4.2), or for customer demand to P7's
-  drop-ship route (the sales line moved to the supplier's drop-ship facility), with RequirementSupply and
-  `check#ProductUsable`; a competing conversion leaves DemandAlreadyCovered
-  by name. Customer-order demand keeps its sales line, and the receipt on Purchasing's ShipmentDetail offers
-  `reserve#AssetForOrderItem` for it (R-PUR-37). Held receipts show as Manufacturing decided (its §4): a pending-release
-  line, left out of netting unless the organization's plan schedule includes held quantity due within the lead time.
-- **Warehouse's contract** (§4, CX-FACILITY-POLICY), through `store#ProductFacilityPolicy`, audit-logged:
+  P14 the outside-processing lines. Here, in `mantle.product.SupplyPlanningServices.convert#PlanningSuggestions` under
+  `PURCHASE_ORDER_EDIT`: an ordinary buy suggestion to a draft PO per supplier group, to an approved purchase
+  request as policy says (crosscut §4.2), or for customer demand to P7's drop-ship route (the sales line moved to the
+  supplier's drop-ship facility), with RequirementSupply and `check#ProductUsable`; a competing conversion leaves
+  DemandAlreadyCovered by name. Customer-order demand keeps its sales line, and the receipt on Purchasing's
+  ShipmentDetail offers `reserve#AssetForOrderItem` for it (R-PUR-37). Held receipts show as Manufacturing decided (its
+  §4): a pending-release line, left out of netting unless the organization's plan schedule includes held quantity due
+  within the lead time.
+- **Warehouse's contract** (§4, CX-FACILITY-POLICY), through `store#ProductFacilityPolicy` (`STOCK_POLICY_PLAN`),
+  audit-logged:
   - the snooze, with its thru date and reason. It stops automatic conversion, not the shortage;
   - `ProductFacility.maximumStock` and `reorderMethodEnumId` (a fixed quantity, or up to the maximum), read by
     `run#SupplyPlan` (R-PUR-19).
@@ -779,7 +817,7 @@ P7 ports it into mr-mantle and finishes it.
   - InventoryAvailability: Products' shared screen with the Purchasing row of crosscut §3.7.
   - ReorderRules: ReorderFind; ReorderRuleList over `store#ProductFacilityPolicy`; SuggestLevels, which previews the
     minimum and maximum from average daily demand × lead time + safety stock and applies them per row with named
-    failures; and PlanSchedule over `store#PlanSchedule` with a preview run.
+    failures; and PlanSchedule over `store#PlanSchedule` (`SUPPLY_PLAN_RUN`) with a preview run.
 - **Shell:** Home's shortfall count with the plan's date.
 - **Usable when** (design §14.4 #2 and #3, the buy part):
   - a shortage of a purchased component shows as a buy suggestion; a buyer converts it to a draft PO, and a planner's
@@ -798,13 +836,15 @@ P7 ports it into mr-mantle and finishes it.
     `SupplierScorecard` and `SupplierScorecardMeasure`, an evaluation each, a fact of its own (§2): period, the policy
     row, evidence IDs with numerators and denominators, missing data and the risk response. A recalculation is a new
     evaluation, and the earlier one stays. `SupplierRisk`, effective-dated.
+  - `mantle.party.SupplierServices`:
+    - `store#ScorecardPolicy`, `store#ScorecardCriterion` and `store#ScorecardAction` (`PURCHASE_POLICY_EDIT`);
+    - `evaluate#SupplierScorecard` (`SUPPLIER_SCORECARD_EDIT`), a result per supplier;
+    - `store#SupplierRisk` (`SUPPLIER_PROFILE_EDIT`).
   - `ironstone.purchasing.ReportServices`:
-    - `store#ScorecardPolicy`, `store#ScorecardCriterion` and `store#ScorecardAction`;
-    - `evaluate#SupplierScorecard`, a result per supplier, and `find#` and `get#SupplierScorecard`;
+    - `find#` and `get#SupplierScorecard`;
     - `get#PurchaseSpend`, `get#PurchaseCommitments` over BudgetCommitment, `get#ProcurementTracker`,
       `get#PurchaseHistory` and `get#SupplierStatement`. Each checks the organization and its fields, and answers its
       snapshot time and what it left out.
-  - `SupplierServices.store#SupplierRisk`.
 - **Screens** (design §11, §12): Scorecards, ScorecardDetail, Spend, Commitments, ProcurementTracker, PurchaseHistory,
   SupplierStatement (financial reader) and ScorecardPolicies. Product360's Purchase history tab; Supplier360's
   Performance tab; OfferComparison's on-time rate (R-PUR-39); ScoreActions' warning on an RFQ or PO.
@@ -830,13 +870,13 @@ These are Purchasing's pages in the PASS Supplier app Accounting P18 started in 
     `acknowledge#PurchaseOrder`. A quote response moves the supplier's quote order to OrderProposed, and its quantity
     tiers become price rows only when a buyer publishes them (P11); an acknowledgement writes P9's audit-logged fields.
     Both are claims for internal review, and a repeat answers its receipt.
-  - What they call is Mantle's too: where P9's acknowledgement or P11's quote response is a BOSS service, its core
-    moves into Mantle and the BOSS service calls it, since PASS reaches no BOSS service (impl-customer-service F41).
+  - What they call is Mantle's too: P9's `mantle.order.OrderServices.record#Acknowledgement` and P11's
+    `mantle.order.SourcingServices.store#SupplierQuote`, since PASS reaches no BOSS service (impl-drawers-commons §4).
 - **PUR-PORTAL, the PASS side.**
   - Each of those as an operation in `Schema.js` and `Routes.js`, served by Mantle's PassApi to a remote frontend.
   - The RFQ link: QuoteResponse taking its token, checked by `check#AccessToken`; and on Accounting's PO link (§4),
     OrderAcknowledgement beside BillUpload. PASS's throttling limits the posts.
-  - `send#QuoteRequest` and `send#PurchaseOrder` create the quote order's or revision's capability through
+  - Mantle's `send#QuoteRequest` and `send#PurchaseOrder` create the quote order's or revision's capability through
     `create#AccessCapability` and mail its link, the Supplier app's page on the buying organization's site; the PO's
     capability covers acknowledgement and bill upload. A new revision, a cancel and `close#QuoteRequest` revoke it.
   - A signed-in supplier contact is a PASS public account invited from Supplier360 through a PASS invitation bound to
@@ -903,6 +943,7 @@ design-purchasing.md, or into the owner's design.
 | Oct 28, 2026 | P3 approves with the design's no-policy rule, the decision record and the auto-approval SECA; P4 adds the policies, topics and the Approvals list | The plan's choice: no placed PO is approved without a decision from the first phase that places one |
 | Oct 28, 2026 | A PO has one purchase part. Revisions, sends and acknowledgements key on the order header's revision | The plan's choice (F7); `create#PurchaseRequestOrder` already makes one order per supplier |
 | Oct 28, 2026 | Internal entry first: quotes and acknowledgements are entered on the supplier's behalf from P9 and P11, and the supplier pages come in P16 | The plan's choice; design §18's "internal on-behalf-of entry remains complete" |
+| Oct 28, 2026 | Mantle stands without BOSS, and business logic leans to Mantle (impl-drawers-commons §4). Purchasing's rules are Mantle services by package: approvals, the buying and approval policies, the topic handlers, the approval SECA and the supplier check in a new `mantle.order.PurchaseServices`; the PO send, revisions, acknowledgements and reminders, with Warehouse's remainder close and service acceptance, in `mantle.order.OrderServices`; RFQs, quotes, comparison and award in a new `mantle.order.SourcingServices`; returnable receipts and the replacement order in `mantle.order.ReturnServices`; request progress and sourcing in `mantle.request.RequestServices`; agreements in `mantle.party.AgreementServices`; the supplier profile, risk and scorecards in a new `mantle.party.SupplierServices`. Each checks its permission and the organization itself, and its topics are Mantle data (F23). `ironstone.purchasing` keeps `AccessServices`, Home, the worklists' and find screens' reads, the report reads and the settings forms, and its screens call the Mantle name with no pass-through. P1 grants `PURCHASE_ORDER_EDIT`, `SUPPLIER_PROFILE_EDIT`, `SUPPLIER_SCORECARD_EDIT`, `PAYABLE_IMPORT` and `RETURN_AUTHORIZE` to `BOSS_PURCHASING_BUYER`; `PURCHASE_APPROVE` and `ORDER_APPROVE` to `BOSS_PURCHASING_APPROVE`; `STOCK_POLICY_PLAN` and `SUPPLY_PLAN_RUN` to `BOSS_PURCHASING_PLANNER`; and all of them with `PURCHASE_POLICY_EDIT` to `BOSS_PURCHASING_ADMIN` | The user's call (plan review Q2). Applied in §2 and P1–P16, with one name for each contract the other plans build or use; the owner designs' names follow in the design sweep |
 
 ## 5. Open questions
 
@@ -941,6 +982,7 @@ is written there too.
 | F21 | P7: Moqui Java's drop-ship lives on the `dropship-moqui` branch of mantle-udm (Facility `dropShipRemoteId`, `FcTpDropShip`, the `CustomerShipFrom` and `VendorShipTo` roles) and mantle-usl (`send#DropShipPurchaseOrderPart`, `create#DropShipPurchaseOrder`, `finalize#DropShipPurchaseOrder`, the SECA after `reserve#AssetsForOrder`, a README setup), Aug 2024 to May 2025, never merged into master. It links by cloning the sales order: `parentOrderId`, a `CustomerShipTo` OrderPartParty and the ship-to contact mechs; lines match by product, and two lines of one product refuse to finalize. It places and approves the PO itself. Mantle's `reserve#AssetForOrderItem` with no stock creates a shell asset with negative availability, owned by the selling organization, so a drop-ship facility needs no supplier stock feed | P7 ports it into mr-mantle, with BOSS's approval gate behind its flag |
 | F22 | P11: Mantle's promotions are ProductStorePromotion rows whose `apply#Promotion` services (`apply#BuyGetDiscount`, `apply#FlatDiscount` and others) add `isPromo` child OrderItems with `parentItemSeqId` and `promoQuantity`, removed and reapplied by `apply#OrderPromotions` on order changes. They are found through the order's ProductStore. The resolver picks purchase price rows by date and minimum quantity | Both tier ways in P11; P0 checks the promotion's purchase scope |
 | F20 | P0: Mantle has a dated RoleType association for most records: RequestParty, RequirementParty, ProductParty, FacilityParty, WorkEffortParty and others, and undated OrderPartParty, OrderItemParty, AgreementParty, AgreementItemParty, InvoiceParty, ShipmentParty and BudgetParty. The Buyer, Supplier and OrgInternal roles exist, Buyer in the order role group. RequestContent and AgreementContent exist | The party roles of §2 |
+| F23 | P0: a topic's approve and refuse services are the framework's, not Commons': NotificationTopic's `approveServiceName`, `refuseServiceName` and `refuseReasonRequired`, called by `approve#` and `refuse#NotificationMessage` as the user with recordEntityName, recordId, the messageJson map and notificationMessageId, and a refuse's reason. Mantle already seeds NotificationTopic rows in MantleSetupData | P4's, P10's and P12's topics are seeded in mr-mantle's data with the Mantle handlers, so the gate works without BOSS. `decide#PurchaseApproval` puts the source revision, the policy row and the decision step in the message map, which answers P0's handler check |
 
 ## 7. Later
 

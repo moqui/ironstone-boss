@@ -82,6 +82,31 @@ Each finding was verified in the code. Each resolution is now part of the design
   record visibility (R5) and private-contact filters (R7).
 - **Mantle-free framework.** The framework reaches BOSS only through theme values and service names. It never reads a
   Mantle entity, and Mantle merges framework data (`find#InboxThreads`).
+- **Mantle stands without BOSS** (decided Oct 28, 2026, a hard rule for every app). mr-mantle is deployed without
+  mr-boss, for example with mr-marble alone, so it has no dependency on mr-boss of any kind:
+  - No Mantle service, SECA, EECA, script or data file calls an `ironstone.*` service.
+  - None reads a BOSS screen, entity or setting.
+  - None names a BOSS user group, artifact group or enumeration.
+
+  Mantle authorizes with Moqui permissions (`ec.user.hasPermission`, as `ORDER_APPROVE` and `PROJECT_CLIENT` do now).
+  BOSS grants them to its groups with `UserGroupPermission` rows in its own data.
+  - A Mantle service that another Mantle entry point calls inside its own operation runs under that entry point's
+    check, not its own. For example, a receipt closes a PO remainder, and a subcontract receipt accepts the service
+    line.
+  - A Mantle spec makes its own users and groups holding the permissions, so `./moq test mr-mantle` needs no BOSS data. When a Mantle rule needs something
+  that only BOSS provides, Mantle offers an extension point instead: a flag or setting, a hook named in data (as
+  `ProductPriceModify` is), or a notice or SystemMessage topic BOSS subscribes to.
+- **Business logic leans to Mantle** (decided Oct 28, 2026). Logic that is not specific to one BOSS screen, and fits
+  Mantle's existing structure, is built in mr-mantle, in the package of the records it changes (`mantle.order`,
+  `mantle.shipment`, `mantle.ledger`, `mantle.request` and so on). That covers status rules and transitions,
+  validation, calculation, matching, posting, policies and their resolution, and jobs. An `ironstone.<app>` service
+  holds only what is BOSS's own:
+  - the app's capability check, from its groups;
+  - a screen's reads, shapes and saved views;
+  - the app's settings forms;
+  - the call to the Mantle service.
+
+  When in doubt, the logic goes in Mantle.
 - **A new XML element** follows style-guide §8.1. That means the XSD, `ScreenQvt.js` with its `ScreenQvtStatic.js`
   mirror and a `ScreenHtml.js` fallback, the `ScreenSupport.js` element tables (a missing entry is an error), the
   `m-*` wrapper, a regenerated `WebrootVue.qvt.render.js`, CSS, goldens, a `js/README.md` row and a gallery screen.

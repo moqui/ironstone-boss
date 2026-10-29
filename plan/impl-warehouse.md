@@ -1,7 +1,7 @@
 # IronStone BOSS — Warehouse implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F32, found while writing it); its open questions, the shared party-role and
-effective-date rules, and the organization filters decided (§4)
+Oct 28, 2026 — plan; P0 partly done (F1–F34); its open questions, the shared party-role and effective-date rules, the
+organization filters and the Mantle boundary decided (§4)
 
 How [design-warehouse.md](design-warehouse.md) gets built, in phases from the foundation to the reports, each ending
 tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md) and
@@ -10,9 +10,10 @@ than restating them, and the design stays the place for screen and record detail
 log: phase status and what each built, the decisions made, open questions, findings against the code, and what is
 deferred.
 
-Today `screen/Warehouse/` holds seven placeholders, and the root mounts only Chatter and RecordFiles. The
-`BOSS_WAREHOUSE` authz is in BossSetupData's commented not-yet-implemented block (F1). None of the design's proposed
-services, entities, fields or status items exist in Mantle or BOSS beyond what Products and Accounting build first.
+Today `screen/Warehouse/` holds seven placeholders, and the root mounts only Chatter and RecordFiles. BossSetupData has
+the root's admin authz and the admin, stock planner, manager and facility admin groups, but no root user group (F1,
+F33). None of the design's proposed services, entities, fields or status items exist in Mantle or BOSS beyond what
+Products and Accounting build first.
 Warehouse is built after both (§4), so these are there to extend:
 - from Products: Product360, Supplier360 and InventoryAvailability; `store#ProductFacilityPolicy` and the TrackingPolicy
   records (its P7); the kit components (P2); the released BOM and routing versions (P8) and approved standard costs
@@ -73,8 +74,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
       `release#ProductionOrder`, and the run's own material and output lines (§4);
     - Manufacturing's production stock guards (M2): `issue#ProductionMaterial`, `return#UnusedMaterial`,
       `receive#ProductionOutput` and `receive#SubcontractOutput`, with the CX-PRODUCTION movement fields;
-    - Purchasing's `accept#ServiceItem` over `ServiceAcceptance`, `close#PurchaseRemainders`, and
-      `find#ReturnableReceipts` with its receipt link.
+    - Purchasing's `mantle.order` contracts (§4): `accept#ServiceItem` over `ServiceAcceptance`,
+      `close#PurchaseRemainders`, and `find#ReturnableReceipts` with its receipt link.
   - The shared screens no app has built, with the Warehouse context only: FacilityDetail, MaterialIssueReceipt,
     QualityInspection, InspectionTemplates and StockAtDate (F29).
   - Warehouse's context on shared screens other apps built:
@@ -103,6 +104,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **The Commons rules hold.** These are impl-drawers-commons §4:
   - failure tolerance;
   - the Mantle-free framework;
+  - Mantle stands without BOSS;
+  - business logic leans to Mantle;
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
@@ -113,26 +116,31 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
   Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2).
 - **Stock rows through services.** `MANTLE_USER_ORG` filters Facility by owner, but nothing filters Asset, AssetDetail
-  or PhysicalInventory, and nothing filters by facility (F2). Warehouse reads and writes them only through services:
-  `ironstone.warehouse.AccessServices` checks the user's organizations, the facility and owner, and the capability, then
-  the Mantle service runs.
+  or PhysicalInventory, and nothing filters by facility (F2). Warehouse reads and writes them only through services.
+  A Warehouse screen or mount calls `ironstone.warehouse.AccessServices`, which checks the user's organizations, the
+  facility and owner, and the capability group, and then calls the Mantle service itself; no same-named ironstone
+  pass-through is built. The Mantle service checks its own permission (§4) through Products P9's `ProductAccess.js`
+  `has()`, and the organization by party relationship (`mantle.party.PartyServices.get#PartyOrganizationInfo`): a
+  facility is in scope when its owner is. Products P7's `WarehousePolicy.js` already checks `STOCK_POLICY_PLAN` and
+  `STOCK_POLICY_MANAGE` (Products P9's conversion).
   - `entity` in a design form summary means that guarded path, never a bare entity form (the design's service
     notation).
-  - Grants are checked in the services, so they hold for exports, search, the palette, handheld mounts and shared
-    mounts. The `BOSS_WAREHOUSE_*` groups get no artifact authorization for the raw Mantle stock services or their REST
-    paths (F3).
+  - Permissions are checked in the Mantle services, so they hold for exports, search, the palette, handheld mounts and
+    shared mounts. The `BOSS_WAREHOUSE_*` groups get no artifact authorization for the raw Mantle stock services or
+    their REST paths (F3).
 - **One posting guard.** Every stock mutation is a `mantle.shipment.WarehouseTaskServices` entry point or another
   proposed guard of the design, never the Mantle primitive alone (WH-POST). Each takes an operation identity and
-  answers the first result on a retry, rechecks capability, facility, status, expiry, policy and the open period, and
-  writes its dependent movements atomically. A batch names each failure and goes on. The operation record is Accounting P2's
-  one CX-POSTING record (impl-accounting §4); the period check is Accounting's AC-06 guard
-  inside `post#AcctgTrans`.
+  answers the first result on a retry, checks its permission (a `STOCK_*` or `SHIPMENT_*` one, §4), the facility,
+  status, expiry, policy and the open period, and writes its dependent movements atomically. A batch names each failure
+  and goes on. The operation record is Accounting P2's one CX-POSTING record (impl-accounting §4); the period check is
+  Accounting's AC-06 guard inside `post#AcctgTrans`. A contract another entry point calls in its operation, such as
+  `close#PurchaseRemainders` from `close#ReceiptRemainder`, takes that entry point's check.
 - **Held stock stays held.** `move#Asset` and `receive#Asset` apply the destination location type's `autoStatusId`
   (F8). So the guard refuses a move that would change a quarantined asset's status: only `dispose#Inspection` releases
   it (P8).
 - **Restricted values stay on the server.** A service leaves out of its answer any cost, value or invoice amount the
-  user may not read. Financial read is Accounting's `BOSS_ACCOUNTING_READ`, not a Warehouse grant (design §1). Blind
-  count quantities never reach a counter, and nothing is fetched and then hidden.
+  user may not read. Financial read is the `ACCOUNTING_VIEW` permission, which Accounting's groups hold, not a
+  Warehouse grant (design §1). Blind count quantities never reach a counter, and nothing is fetched and then hidden.
 - **Shared screens.** Warehouse builds these with the Warehouse context only:
   - `Shared/FacilityDetail` and `Shared/MaterialIssueReceipt`;
   - `Shared/QualityInspection` and `Shared/InspectionTemplates`;
@@ -140,12 +148,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
   It adds its context to the shared screens of §1. Each takes `appRoot` and server-derived capabilities, on
   `Shared/RequestDetail`'s pattern.
-- **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
-  service names, its Shared screen and its capability groups. A change found while building it is written into the
-  owner's design. The owner's own screens stay with the owner.
+- **Owner contracts.** A contract built here for another app follows that app's design: its record and service names,
+  in the Mantle package of its records (§4), its Shared screen and its permissions. A change found while building it is
+  written into the owner's design. The owner's own screens stay with the owner.
 - **Mantle rule changes keep Mantle's default.** A new refusal in a Mantle service, such as the expiry gate (F12),
-  sits behind its own WarehousePolicy flag, off by default (impl-accounting §4).
-  Each ships with a test of its condition and of its unchanged default.
+  sits behind its own WarehousePolicy flag, off by default (impl-accounting §4). A permission check goes on a new Mantle
+  entry point only. Each ships with a test of its condition and of its unchanged default.
 - **Mantle callers stay compatible.** Existing callers of these keep working:
   - `record#PhysicalInventoryQuantity`, which stays an immediate posting (design §15.2);
   - `receive#ShipmentProduct`, `receive#EntireShipment`, `move#Asset` and `reserve#AssetForOrderItem`;
@@ -157,7 +165,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Done for a phase** means all of these:
   - impl-projects §2 "Done":
     - cargo tests for the touched crates, with goldens reviewed;
-    - the new Mantle specs passing under `./moq test mr-mantle`;
+    - the new Mantle specs passing under `./moq test mr-mantle`, their users in spec-local groups that hold the
+      permissions, never a BOSS group;
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Warehouse in its non-placeholder
       list;
     - `moqui lint --screens` clean for BOSS with the Debug binary;
@@ -171,7 +180,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
-| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F32) |
+| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F34) |
 | P1 Foundation | Mantle, BOSS | the Warehouse root and menu, Home | — |
 | P2 Facilities and locations | Mantle, BOSS | Facilities, FacilityDetail, EquipmentDetail | — |
 | P3 Policies | Mantle, BOSS | Settings, StockPolicies, ReservationPolicies, AssetPools | — |
@@ -194,8 +203,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 ### P0 — Checks
 
 Verify the design's riskiest assumptions against the code before building. Each result is a row in §6 and, where it
-changes the design, an edit there. F1–F32 were found on Oct 28 while writing this plan. The design edits that F9, F10
-and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct 28 design sweep. Still to check:
+changes the design, an edit there. F1–F34 were found on Oct 28 while writing this plan. The design edits that F9, F10
+and F13 call for, and those of §4's earlier Oct 28 decisions, were made in the Oct 28 design sweep. Still to check:
 
 - **An empty organization list.** What the Facility filter answers for a user in no organization whose authz has the
   filter: no facility, or every one (§4).
@@ -218,16 +227,29 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 
 - **Access** (design §1, crosscut CX-ACCESS).
   - The groups of design §1, with `BOSS_WAREHOUSE` as the root user group and `BOSS_WAREHOUSE_ADMIN` as the admin
-    group (§4). `BOSS_WAREHOUSE_STOCK_PLANNER` and `BOSS_WAREHOUSE_MANAGER` exist from Products P1, and
-    `BOSS_ACCOUNTING_READ` from Accounting P1.
-  - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
+    group (§4). `BOSS_WAREHOUSE_STOCK_PLANNER` and `BOSS_WAREHOUSE_MANAGER` exist from Products P1,
+    `BOSS_WAREHOUSE_FACILITY_ADMIN` from Products P9 (F33), and `BOSS_ACCOUNTING_READ` from Accounting P1.
+  - The root user group's authz joins the admin rows BossSetupData already has (F33), with the organization filters of
     impl-drawers-commons §4 and the service checks of §2 (F2).
+  - The grants (§4): BossSetupData's `UserGroupPermission` rows for the Mantle permissions that Warehouse's services
+    check, with their `UserPermission` rows in mr-mantle's MantleSetupData, beside `ORDER_APPROVE`:
+    - `STOCK_RECEIVE`, `STOCK_ISSUE`, `STOCK_MOVE`, `STOCK_ADJUST`, `STOCK_COUNT`, `SHIPMENT_PICK`, `SHIPMENT_PACK`,
+      `SHIPMENT_SHIP` and `QUALITY_INSPECT` to the receive, issue, move, adjust, count, pick, pack, ship and inspect
+      groups;
+    - `STOCK_COUNT_REVIEW` to the count reviewer, `SHIPMENT_LOAD_EDIT` to the pick supervisor and `FACILITY_EDIT` to
+      the facility admin;
+    - `QUALITY_VERIFY`, `QUALITY_DISPOSE`, `QUALITY_TEMPLATE_EDIT` and `LOT_EXPIRY_EXTEND` to the quality manager;
+    - every one of them to `BOSS_WAREHOUSE_ADMIN`.
+
+    Products P9 already grants `STOCK_POLICY_PLAN` and `STOCK_POLICY_MANAGE` (F33). Financial read is
+    `ACCOUNTING_VIEW` through Accounting's groups, and `SUPPLY_PLAN_RUN` comes with CX-PLANNING (§7).
   - Facility scope as Moqui has it (§4): `MANTLE_USER_ORG`'s Facility filter, `ownerPartyId` in `filterOrgIds`, on
     the Warehouse groups. The admin group's `MANTLE_ACTIVE_ORG` has no Facility filter, so it works in every facility
     of every organization.
   - `ironstone.warehouse.AccessServices`: the user's organizations, the facilities they may work in (read through
-    that filter), and their capabilities. Every later Warehouse service and shared mount calls it. A supplied facility,
-    asset, shipment, count or return is checked against it, and stock rows are scoped by their facility.
+    that filter), and their capabilities. Every later Warehouse screen and shared mount calls it before the Mantle
+    service (§2). A supplied facility, asset, shipment, count or return is checked against it, and stock rows are
+    scoped by their facility.
   - No artifact authorization for the raw stock services or their REST paths (F3).
 - **The Warehouse root.**
   - The menu of design §1: the placeholders renamed, and Inspection, Counts, Transfers, Picking, Handheld and Reports
@@ -236,7 +258,8 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
   - `<shell-providers>` (WH-SHELL): the palette types and quick create grow phase by phase, as their records are built,
     and so do the Today sources and notification topics.
   - The `warehouse` key scope.
-  - `get#RecordLinkInfo` opens shipments, assets, lots, containers, counts and returns under Warehouse for its users.
+  - `ironstone.commons.PaletteServices.get#RecordLink` opens shipments, assets, lots, containers, counts and returns
+    under Warehouse for its users.
 - **Home** (design §3): QueueFilters and OperationQueues, with the counts of later phases null; MyWork with no sources
   yet; ScanOrPack over `get#ScannedIdGeneral`, as a lookup only.
 - **Warehouse demo data.**
@@ -266,6 +289,7 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
     assignments, availability and the maintenance summary. Its Files tab comes with P4's AssetContent.
 - **WH-POLICY, the location part:** the shipping-dock location type (F8).
 - A location with stock or open work is not closed (P0 names the open work). Relocate (P5) is how it is emptied.
+- The facility and location saves, with the cycle and close checks, are Mantle services that check `FACILITY_EDIT`.
 - **Usable when:**
   - a facility admin builds a facility with an area, receiving, quarantine, staging and pick locations and their
     statuses;
@@ -275,7 +299,9 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 
 ### P3 — Policies
 
-- **WH-POLICY, the rest.** Products P7 built the tracking records and `store#TrackingPolicy`. Here:
+- **WH-POLICY, the rest.** Products P7 built the tracking records and `store#TrackingPolicy`. Here, in
+  `mantle.facility.WarehousePolicyServices` beside them, each write checking `STOCK_POLICY_MANAGE` as
+  `WarehousePolicy.js` does:
   - the operation policy: receipt and delivery steps 1–3 (design StockPolicies), default locations, over-receipt and
     over-shipment tolerances defaulting to zero, the backorder choice, blind counts and auto-print, through
     `store#OperationPolicy`;
@@ -303,7 +329,8 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 - **Screens** (design §6), all reading through AccessServices (F2):
   - Assets: AssetFind and AssetList, grouped by product, lot, location or owner;
   - AssetDetail: AssetHeader with the metadata allowlist over `update#Asset`, Reservations, AssetLedger and AssetAudit;
-  - Movements: MovementFind and MovementList with each source and correction chain, and export;
+  - Movements: MovementFind and MovementList with each source, correction chain and revaluation split (F34), and
+    export;
   - Lots: LotList, LotStock, and LotMetadata for a new lot. Correcting a posted lot is P6;
   - Containers (ContainerList, NewContainer), and ContainerDetail's header and contents. Its moves are P5.
   - Availability: Products' `Shared/InventoryAvailability` with the Warehouse row of crosscut §3.7. That is Summary,
@@ -314,8 +341,9 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 - **WH-RECORD-HOSTS, the asset part:** `mantle.product.asset.AssetContent`, registered in `get#RecordLinkInfo`, for
   Files and Chatter on AssetDetail and EquipmentDetail (F22).
 - **WH-TRACE:** `mantle.product.TraceabilityServices.get#Traceability`, bounded and cycle-safe, with pages of nodes and
-  edges, Unknown provenance for a gap, and fields filtered by permission. Traceability shows it as a list and a tree,
-  on Products P3's `view-tree` occurrence keys (F26).
+  edges, Unknown provenance for a gap, a revaluation split crossed by its `otherAssetId` link (F34), and cost fields
+  only with `ACCOUNTING_VIEW`. Traceability shows it as a list and a tree, on Products P3's `view-tree` occurrence keys
+  (F26).
 - **Palette:** lots, assets and containers.
 - **Usable when:**
   - an operator finds a lot's assets across locations and follows one asset's ledger to its receipt;
@@ -337,6 +365,7 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
     and ShipmentItemSource (F7).
   - The held-stock rule of §2 (F8), and container attachment that never moves stock (F9).
   - `attach#AssetToContainer`, `detach#AssetFromContainer` and `move#Container`.
+  - The move guard and the container services check `STOCK_MOVE`.
 - **WH-EXPIRY, the gate,** inside Mantle behind its WarehousePolicy flag (§4; F12): reservation skips expired stock
   and names a shortfall, and issue refuses it, while quarantine, return and disposal still work; near-expiry warnings
   show the date.
@@ -361,19 +390,19 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 - **Adjustments** (design §6): AdjustmentScope for an exact bucket (None differs from Any) and Adjustment, a delta or a
   count with a before-and-after preview. Both go through the guard to `record#PhysicalInventoryQuantity` or
   `record#PhysicalInventoryChange`. A movement after the preview invalidates it, a closed period fails, and a repeated
-  operation answers the first adjustment.
-- **WH-SCRAP:** `scrap#Asset`, `PhysicalInventory.scrapIndicator`, and the InVrScrap and InVrExpired reasons (F6). It
-  may move the stock to a morgue location first. Scrap posts by its reason, through Accounting P13's poster change (§4; F5).
-  AssetDetail, Move and the Lots expiry list open it.
+  operation answers the first adjustment. The guard checks `STOCK_ADJUST`.
+- **WH-SCRAP:** `scrap#Asset` (`STOCK_ADJUST`), `PhysicalInventory.scrapIndicator`, and the InVrScrap and InVrExpired
+  reasons (F6). It may move the stock to a morgue location first. Scrap posts by its reason, through Accounting P13's
+  poster change (§4; F5). AssetDetail, Move and the Lots expiry list open it.
 - **WH-EXPIRY, the corrections:** `correct#LotMetadata`, with old and new values, reason and actor. Extending an expiry
-  needs the quality manager and releases no quarantine.
-- **Repack** (design §8): RepackSource and RepackConfirm over `repack#Asset`, in an organization-owned WepAssembling
-  WorkEffort.
+  needs `LOT_EXPIRY_EXTEND` (the quality manager's) and releases no quarantine.
+- **Repack** (design §8): RepackSource and RepackConfirm over `repack#Asset` (`STOCK_MOVE`), in an organization-owned
+  WepAssembling WorkEffort.
   - The issue and the receipt net to zero through the existing GL SECAs.
   - The lot carries over. The receipt links to its source issuance through CX-PRODUCTION's
     `AssetReceipt.sourceAssetIssuanceId`, added here.
-  - The pack direction is Products' PRD-PACKAGING, and a scan resolves through `resolve#ScannedProduct` (Products
-    P11).
+  - The pack direction is Products' PRD-PACKAGING, and a scan resolves through Products P11's
+    `mantle.product.ProductServices.resolve#ScannedProduct`.
 - **Usable when:**
   - an adjuster previews and posts a count of one lot bucket with a reason;
   - a backdated adjustment into a closed period is refused;
@@ -383,21 +412,23 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
 
 ### P7 — Receiving
 
-- **WH-POST, the receipt entry points:**
+- **WH-POST, the receipt entry points,** each checking `STOCK_RECEIVE` (`ensure#PurchaseReceipt` also admits
+  `PURCHASE_ORDER_EDIT`, for Purchasing's PrepareReceipt):
   - `ensure#PurchaseReceipt`: one open receipt per PO part.
   - `adjust#ExpectedReceipt`: Purchasing's revision call, refused with ReceiptInProgress while a receive holds the
     source.
-  - `close#ReceiptRemainder`. Close calls Purchasing's `close#PurchaseRemainders`. Backorder calls
+  - `close#ReceiptRemainder`. Close calls Purchasing's Mantle `close#PurchaseRemainders` (below). Backorder calls
     `ensure#PurchaseReceipt` and `update#ShipmentItem`. Only then does it call `deliver#Shipment`.
 - **Purchasing's contract** (§4, design-purchasing ClosePurchaseOrders):
-  `ironstone.purchasing.OrderServices.close#PurchaseRemainders`. Per item, the remainder is the quantity less what was
-  cancelled and received (accepted and rejected). It records that through `cancel#OrderItem` with an explicit
-  cancelQuantity, releases the Requirement allocation, calls Accounting's `release#Commitment` where the PO has a
+  `mantle.order.OrderServices.close#PurchaseRemainders`, checking `PURCHASE_ORDER_EDIT`, or inside
+  `close#ReceiptRemainder` that service's check (§2). Per item, the remainder is the quantity less what was cancelled
+  and received (accepted and rejected). It records that through `cancel#OrderItem` with an explicit cancelQuantity,
+  releases the Requirement allocation, calls `mantle.other.BudgetServices.release#Commitment` where the PO has a
   commitment (impl-accounting P15), and completes the order when nothing is open. Purchasing's ClosePurchaseOrders
   screen stays Purchasing's.
   - `generate#TrackingIdentities`, with the TrackingPolicy pattern and a uniqueness preview.
   - The receive guard over `receive#ShipmentProduct`. It keeps the entered unit and converts a PO line's unit. A pack
-    scan resolves through `resolve#ScannedProduct`.
+    scan resolves through Products' Mantle `resolve#ScannedProduct` (P6).
   - AdHocReceipt over `receive#Asset`.
 - **Receipt steps** (P3): step 1 posts to the product's default location until P9's rules, step 2 to receiving, step 3
   to quarantine (P8).
@@ -411,7 +442,8 @@ and F13 call for, and those of the Oct 28 decisions in §4, were made in the Oct
     Returns, rejections, Files and Chatter.
   - HandheldReceive.
 - **Around the receipt:** the incoming bill SECA runs only for a self-billing supplier, as Accounting conditioned it in
-  its P6, and the AssetReceipt EECA queues match re-evaluation (its P7).
+  its P6, and the AssetReceipt EECA, in mr-mantle, calls `mantle.account.InvoiceMatchServices.queue#MatchReevaluation`
+  (its P7).
 - **Outputs and shell:** the receipt and rejected-goods receipt; the receipt exception notification; the shipment
   palette type; quick create receipt.
 - **Usable when** (design §19, short receipt):
@@ -434,10 +466,12 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
     created, and reads the items as of then; Revision history reads the rows and the audit log, and the template
     prints as of a date.
 - **`mantle.product.QualityServices`:**
-  - `store#InspectionTemplate`, `create#Inspection`, `save#InspectionReading`, `submit#Inspection` and
-    `verify#Inspection`, which a separate role runs;
-  - `dispose#Inspection`. Release first reserves stock that has customer demand to its order item, then sets
-    AstAvailable. Scrap goes through P6's `scrap#Asset`. Each disposition queues match re-evaluation;
+  - `store#InspectionTemplate` (`QUALITY_TEMPLATE_EDIT`); `create#Inspection`, `save#InspectionReading` and
+    `submit#Inspection` (`QUALITY_INSPECT`); and `verify#Inspection`, which a separate permission, `QUALITY_VERIFY`,
+    runs;
+  - `dispose#Inspection` (`QUALITY_DISPOSE`). Release first reserves stock that has customer demand to its order item,
+    then sets AstAvailable. Scrap goes through P6's `scrap#Asset`. Each disposition calls
+    `mantle.account.InvoiceMatchServices.queue#MatchReevaluation`;
   - `get#SourceInspectionStatus`: held, match-eligible and rejected. It replaces the reading Accounting used before
     CX-QUALITY existed (F31).
 - **On receipt:** when TrackingPolicy or a published template applies, Receive posts the accepted quantity as
@@ -460,7 +494,8 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 
 - **WH-PUTAWAY:**
   - `mantle.facility.PutawayRule`, with storage-type applicability;
-  - `mantle.facility.PutawayServices.store#PutawayRule`;
+  - `mantle.facility.PutawayServices.store#PutawayRule`, checking `FACILITY_EDIT`; putaway itself is a move
+    (`STOCK_MOVE`);
   - `resolve#Destination`. It tries the ProductFacilityLocation default first, within the rules, and checks compatible
     units, owner, status and capacity with incoming reservations. It explains each chosen and rejected destination;
   - `get#Capacity`, which the resolver uses. The Capacity screen is §7.
@@ -489,12 +524,14 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - the count mode (full, cycle or spot), the blind default and the assignee, with effective dates.
 
   `FacilityLocation.lastCountDate` and `ProductFacility.lastCountDate` are written by `post#Count`.
-  `ProductFacility.abcClassEnumId` (the `AbcClass` enumeration: A, B, C; §4) is set by hand through `store#ProductFacilityPolicy`.
+  `ProductFacility.abcClassEnumId` (the `AbcClass` enumeration: A, B, C; §4) is set by hand through
+  `store#ProductFacilityPolicy`. The schedule's rows are written with `STOCK_POLICY_MANAGE`.
   `find#DueCounts` gives each location, or product at a facility, its next date: the last count plus the frequency,
   or the annual date, whichever is earlier, as Odoo does. Ad hoc dues are the short-pick recount (P11) and Request a
   count. That is Odoo's wizard: on selected Assets or Availability rows it opens NewCount with that scope, a date, an
   assignee and the blind flag.
-- **`mantle.product.InventoryCountServices`:**
+- **`mantle.product.InventoryCountServices`,** checking `STOCK_COUNT` to create, start, record and submit,
+  `STOCK_COUNT_REVIEW` to review, recount and resolve, and `STOCK_ADJUST` to post:
   - `create#`, `update#` and `start#Count`, which snapshots the scope;
   - `record#CountLine`, which saves an observation only;
   - `submit#`, `review#` and `recount#Count`, and `resolve#CountConflict`;
@@ -530,6 +567,9 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
   - `find#PickFaceReplenishment`, the first reader of the pick-face levels (F19);
   - the flag on a ShipmentItemSource whose balance was cancelled through `cancel#OrderItem` and
     `reduce#AssetReservation`. Customer Service's `apply#OrderChange` uses the same path later.
+
+  The preview and the guarded wave create check `SHIPMENT_LOAD_EDIT`, the pick services `SHIPMENT_PICK`, and a
+  pick-face move `STOCK_MOVE`.
 - **Screens** (design §9, §10):
   - Shipments: ShipmentFind with drop shipments read-only under the type filter, ShipmentList, NewOutgoing.
   - ShipmentDetail: Accounting's `Shared/ShipmentDetail` with crosscut §3.8's outbound row.
@@ -554,9 +594,11 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 - **Pack** (design §10): PackScan, PackageEditor, PackageContents, PackOptions, PackAssembly and CompletePack.
   - CompletePack calls `complete#ShipmentPack` with getLabels and getReturnLabels false (F17). The pack SECA creates
     the sales invoice, which BOSS keeps.
-  - ReopenPackage calls Accounting's `release#ShipmentDraftInvoice` first (impl-accounting P17), then
+  - ReopenPackage calls the entry point `mantle.shipment.WarehouseTaskServices.reopen#ShipmentPackage`. It calls
+    Accounting's `mantle.account.InvoiceServices.release#ShipmentDraftInvoice` first (impl-accounting P17), then
     `unpack#ShipmentItemIssuance` (F11). Behind D3's flag the pack invoice stays in process until the shipment ships
     (impl-accounting §4), so the release succeeds. The same steps put back a reduced line that is already packed.
+  - CompletePack's guard, `reopen#ShipmentPackage` and PackAssembly's guard check `SHIPMENT_PACK`.
 - **`Shared/MaterialIssueReceipt`** (crosscut §3.9) with the Warehouse context, first with the shipment-assembly source.
   PackAssembly runs `produce#AvailableAssemblies` through the guard. The kit receipt carries the issued component cost
   ÷ kit quantity, from Products P2's kit components, so no WIP remains. P16 adds the work-effort source.
@@ -585,7 +627,7 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
     `print#Document` and NetworkPrinter (F16);
   - PDF labels only, through Products P11's barcodes. ZPL, with FacilityPrinter's `labelFormatEnumId`, is §7 (§4).
 - **WH-POST, shipping:** `record#PackageDelivery`. Dispatch requires tracking totals, inspection release and unexpired
-  lots.
+  lots. Labels, delivery and ship check `SHIPMENT_SHIP`, and the printer bindings `FACILITY_EDIT`.
 - **Screens** (design §10, §12):
   - Ship: ShipmentAddress, RateOptions, Labels, ManualCarrier and ShipConfirm.
   - PackageTracking: TrackingFind, TrackingList and RecordDelivery.
@@ -605,19 +647,20 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
 ### P14 — Returns
 
 - **WH-RETURN.**
-  - ReturnReceipt runs Accounting P17's `receive#ReturnItems`. Quarantine and inspection are P8's.
+  - ReturnReceipt runs Accounting P17's `receive#ReturnItems` (`STOCK_RECEIVE`). Quarantine and inspection are P8's.
   - `ship#SupplierReturn` sets ReturnShipped.
-  - A supplier return issues the specific quarantined asset through `issue#AnyAssetForShipmentItemSource`, under
-    disposition authority. Purchasing's `find#ReturnableReceipts` gives the returnable receipts and lots.
-- **Purchasing's contract** (§4, PUR-RETURN): `ironstone.purchasing.ReturnServices.find#ReturnableReceipts`, with
+  - A supplier return issues the specific quarantined asset through `issue#AnyAssetForShipmentItemSource`, with
+    `QUALITY_DISPOSE`. Purchasing's `find#ReturnableReceipts` gives the returnable receipts and lots.
+- **Purchasing's contract** (§4, PUR-RETURN): `mantle.order.ReturnServices.find#ReturnableReceipts`, with
   PUR-RETURN's link from a ReturnItem to the AssetReceipt and asset it returns (F32). Eligibility is the accepted plus
   quarantined quantity less earlier supplier returns, locked per receipt and lot. Warehouse's NewReturn uses it for a
   supplier return; Purchasing's NewSupplierReturn and `create#ReplacementOrder` stay Purchasing's.
-  - `request#ReturnLabel`, for Customer Service's "Issue return label".
+  - `mantle.shipment.WarehouseTaskServices.request#ReturnLabel`, for Customer Service's "Issue return label".
 - **WH-RECORD-HOSTS, the return part:** `mantle.order.return.ReturnContent`, registered in `get#RecordLinkInfo`.
 - **Screens** (design §11):
   - Returns: ReturnFind, ReturnList, and NewReturn over `create#Return` and `create#ReturnFromOrder`. Authorization is a
-    separate right, and `receive#ReturnWithoutShipment` is not offered.
+    separate right, `RETURN_AUTHORIZE`, which no Warehouse group holds, and `receive#ReturnWithoutShipment` is not
+    offered.
   - ReturnDetail: Accounting's `Shared/ReturnDetail` with the Warehouse row of crosscut §3.18: Overview, Eligible items,
     Shipments/receipts, Inspection/disposition, Settlement (read only), Files and Chatter.
   - ReturnReceipt and SupplierReturnShipment: `Shared/ShipmentDetail` with their crosscut §3.8 rows.
@@ -638,8 +681,9 @@ These are crosscut CX-QUALITY (§4), built to crosscut §3.19 and WH-QUALITY.
     readiness checks `transferGlAccountId` (F21).
 - **WH-REQUEST:**
   - RqtInventory validation on `create#Request`;
-  - `RequestServices.get#InventoryRequestProgress`;
-  - `WarehouseTaskServices.allocate#InventoryRequest`: a transfer, or a guarded move within one facility;
+  - `mantle.request.RequestServices.get#InventoryRequestProgress`;
+  - `WarehouseTaskServices.allocate#InventoryRequest` (`STOCK_MOVE`): a transfer, or a guarded move within one
+    facility;
   - the Requirement link through the existing RequirementRequestItem (F22). RequirementSupply waits for CX-PLANNING
     (§7).
 - **Screens:**
@@ -675,11 +719,13 @@ Built in two parts: P16a the runs and their lines, then P16b the stock guards. U
     are audit-logged; the lines are written at create and frozen at release. They are records of their own because
     issuances and receipts reference them (the shared rule's exception).
   - Each operation child WorkEffort carries its routing operation, sequence and work center, audit-logged.
-  - `mantle.work.ProductionServices`:
+  - `mantle.work.ProductionServices`, whose create and release check `PRODUCTION_PLAN` and whose read
+    `PRODUCTION_VIEW` or `STOCK_ISSUE` (Manufacturing P1 grants the production permissions):
     - `create#ProductionOrder`, to design-manufacturing §12's contract. It calls `create#ProductionRun` without the
       legacy consume and produce products, so no `PatMfgBom` row is read or written. It sets the run's
       `ownerPartyId` to the organization, writes the draft lines and `WeptConsume`/`WeptProduce` rows from the BOM
-      and routing as of the chosen date, and calls `check#ProductUsable` with usage Produce;
+      and routing as of the chosen date, and calls `check#ProductUsable` with usage Produce. The lines stop at
+      non-phantom sub-assemblies and blow phantoms through with their routing (§4);
     - `release#ProductionOrder`: it freezes the lines, stamps the release time and revalidates against any later
       release of the method. It creates the operation children with their owner, and rewrites the
       WorkEffortProduct rows from the lines;
@@ -690,7 +736,7 @@ Built in two parts: P16a the runs and their lines, then P16b the stock guards. U
 - **P16b, the stock guards (M2).**
   - CX-PRODUCTION's fields: `AssetIssuance.productionMaterialLineId`, `AssetReceipt.productionOutputLineId`, and
     `operationWorkEffortId` on both (F7), each a run line or operation. `sourceAssetIssuanceId` came with P6.
-  - `mantle.work.ProductionServices`:
+  - `mantle.work.ProductionServices`, each guard checking `STOCK_ISSUE`:
     - `issue#ProductionMaterial`: a new AssetIssuance per operation key and material line. It refuses an asset that
       is not AstAvailable, or whose owner is not the run's owner;
     - `return#UnusedMaterial`: a new receipt fact at the original acquireCost. It never calls
@@ -701,8 +747,8 @@ Built in two parts: P16a the runs and their lines, then P16b the stock guards. U
     - `receive#SubcontractOutput`. In one transaction it issues the run's material lines from the vendor-custody
       facility, receives the output with the run's workEffortId and no transfer shipment, and calls
       `accept#ServiceItem`.
-  - Purchasing: `ironstone.purchasing.ReceiptServices.accept#ServiceItem`, over
-    `mantle.order.purchase.ServiceAcceptance`.
+  - Purchasing: `mantle.order.OrderServices.accept#ServiceItem`, over `mantle.order.purchase.ServiceAcceptance`,
+    checking `PURCHASE_ORDER_EDIT` or `STOCK_RECEIVE`, or inside `receive#SubcontractOutput` that service's check (§2).
 - **Screens:**
   - `Shared/MaterialIssueReceipt` gains the work-effort source: Source, Material lines, Tracking, Posted
     issues/receipts, Unused returns and Files;
@@ -721,13 +767,14 @@ Built in two parts: P16a the runs and their lines, then P16b the stock guards. U
 
 - **WH-REPORT:** `mantle.product.InventoryReportServices.get#InventoryAtDate`, beside the existing
   `get#InventoryProjectedInfo` (F23). It reads the AssetDetail ledger by effective date, with facility, location, lot
-  and owner scope, and flags history that is incomplete.
+  and owner scope, reads a revaluation split's pair of rows as one (F34), and flags history that is incomplete.
 - **Screens** (design §14):
   - Reports;
   - StockAtDate: `Shared/StockAtDate` (crosscut §3.26). Customer Service mounts it later;
   - OperationsHistory;
   - InventoryValuation: Accounting's `Shared/InventoryValuation`, with the Warehouse row of crosscut §3.25. It shows
-    values with financial read, and revaluation stays in Accounting's context.
+    values with financial read, and revaluation (`mantle.ledger.AssetBookServices.preview#Revaluation` and
+    `post#Revaluation`, §4) stays in Accounting's context.
 - **Exports:** stock at date, and quantities, movements, history and lineage, each with its screen's filters.
 - **Home complete:** every card and MyWork source of design §3.
 - **Usable when:**
@@ -755,7 +802,7 @@ design-warehouse.md, or into the owner's design.
 | --- | --- | --- |
 | Oct 28, 2026 | Warehouse is built after Accounting. It adds its context to Accounting's ShipmentDetail, ReturnDetail, EquipmentDetail and InventoryValuation, and uses Accounting's `receive#ReturnItems`, `release#ShipmentDraftInvoice`, `queue#MatchReevaluation`, posting guard and conditioned SECAs | The user's call. The alternative was Warehouse first, building those screens, with impl-accounting changed to extend them |
 | Oct 28, 2026 | Phase order: the stock ledger first. That is the foundation, facilities and policy, and inventory with the posting guard; then receiving, inspection, putaway, counts, picking, packing, shipping, returns, transfers and requests, production stock and reports | The user's call. The alternatives were the outbound flow first, and the inbound flow first |
-| Oct 28, 2026 | Warehouse builds the parts of other needs it depends on: crosscut CX-QUALITY with its two shared screens (P8); Manufacturing's production stock guards with the CX-PRODUCTION fields (P16); Purchasing's `accept#ServiceItem` (P16). These keep the owner's names, packages and Shared screens. Supply planning (CX-PLANNING) waits for its owner, so SupplyPlanning and RequirementSupply are §7 | The user's call, as Products and Accounting decided for theirs |
+| Oct 28, 2026 | Warehouse builds the parts of other needs it depends on: crosscut CX-QUALITY with its two shared screens (P8); Manufacturing's production stock guards with the CX-PRODUCTION fields (P16); Purchasing's `accept#ServiceItem` (P16). These keep the owner's names and Shared screens, in Mantle's packages (the boundary row below). Supply planning (CX-PLANNING) waits for its owner, so SupplyPlanning and RequirementSupply are §7 | The user's call, as Products and Accounting decided for theirs |
 | Oct 28, 2026 | The shared screens Warehouse builds first carry the Warehouse context only. Another app's context is added when that app is built | Follows from the above, as in Products and Accounting |
 | Oct 28, 2026 | Each task phase brings its handheld mount, on P5's `scan-input` and `density="handheld"` | The plan's choice: a handheld phase at the end would test each task twice |
 | Oct 28, 2026 | Facility scope follows Moqui's organization filters. A user works in the facilities their organizations own (`Facility.ownerPartyId`): the active organization's when one is set, or else those of every organization they belong to (`filterOrgIds`, with direct child organizations). A user whose Warehouse authz has no organization filter works in every facility of every organization. Facilities owned by a third party that hold the organization's stock are §7 | The user's call. Vendor-custody facilities are organization-owned, so they are in scope (F2) |
@@ -772,6 +819,9 @@ design-warehouse.md, or into the owner's design.
 | Oct 28, 2026 | ABC classes (P10) are per product at a facility: an audit-logged `ProductFacility.abcClassEnumId` over a new `AbcClass` enumeration seeded A, B and C, extended as data. An unclassed product is counted by the schedule's other scopes | The user's call (§5 review). The alternatives were a class on Product, and a Product default with a facility override |
 | Oct 28, 2026 | A Mantle test carrier for specs and demos (P13; F14): `mantle.shipment.carrier.TestGatewayServices`, a seeded ShippingGatewayConfig implementing every carrier interface deterministically: rates by weight and a zone table, a PDF label with a tracking number, refund, tracking and address validation. Reserved ship-to postal codes set off a timeout (the label exists when asked later), a refused label and an invalid address. It keeps its own record of the labels it issued, so ask-before-retry and refunds check something real. Real carriers are later gateways | The user's call (§5 review). The alternatives were a carrier's sandbox, which needs keys and network, and stubs in the specs only |
 | Oct 28, 2026 | Production runs under the shared rule (P16a): the run's revision, release time and frozen standard are audit-logged fields of the run, its material and output lines are `ProductionRunLine` records with stable IDs, written at create and frozen at release, and its operation children carry their routing operation, sequence and work center. ProductionRunSnapshot, ProductionMaterialSnapshot and ProductionOperationSnapshot are dropped | The user's call, with Products' methods (impl-products §4). The lines stay records because issuances and receipts reference them; WorkEffortProduct, keyed by run, product and date with no unit (impl-manufacturing F11), stays the per-product aggregate. The alternatives were WorkEffortProduct rows with a sequence and unit added, and the designed snapshots |
+| Oct 28, 2026 | The Mantle boundary. Warehouse's stock, quality, count, putaway, print and production services were Mantle already and stay so; each new entry point checks its own Moqui permission and the organization by party relationship (§2). Purchasing's three contracts built here move to `mantle.order`: `OrderServices.close#PurchaseRemainders` (P7) and `accept#ServiceItem` (P16b), and `ReturnServices.find#ReturnableReceipts` (P14). Mantle's own calls take Mantle names: `mantle.other.BudgetServices.release#Commitment` (P7), `mantle.account.InvoiceMatchServices.queue#MatchReevaluation` from the AssetReceipt EECA and `dispose#Inspection` (P7, P8), `mantle.account.InvoiceServices.release#ShipmentDraftInvoice` from the new `WarehouseTaskServices.reopen#ShipmentPackage` (P12), and `mantle.product.ProductServices.resolve#ScannedProduct` (P6, P7). `ironstone.warehouse` keeps AccessServices, the screens' reads and shapes and the settings forms; Commons' `PaletteServices.get#RecordLink` routes the records (P1). P1 grants the Warehouse groups `STOCK_RECEIVE`, `STOCK_ISSUE`, `STOCK_MOVE`, `STOCK_ADJUST`, `STOCK_COUNT`, `STOCK_COUNT_REVIEW`, `LOT_EXPIRY_EXTEND`, `SHIPMENT_PICK`, `SHIPMENT_LOAD_EDIT`, `SHIPMENT_PACK`, `SHIPMENT_SHIP`, `FACILITY_EDIT`, `QUALITY_INSPECT`, `QUALITY_VERIFY`, `QUALITY_DISPOSE` and `QUALITY_TEMPLATE_EDIT`; Products P9 grants `STOCK_POLICY_PLAN` and `STOCK_POLICY_MANAGE`, and financial read is Accounting's `ACCOUNTING_VIEW`. A contract another entry point calls in its operation takes that entry point's check, so a receiver closes a PO remainder and an issuer accepts a subcontract line | The user's call (plan review Q2): Mantle stands without BOSS, so no Mantle service, SECA, EECA, script, data file or spec calls `ironstone.*`, reads a BOSS screen, entity or setting, or names a BOSS group; and business logic leans to Mantle, in the package of the records it changes (impl-drawers-commons §4). The owner designs' names follow in the design sweep |
+| Oct 28, 2026 | Revaluation changes forward cost (Products P9 builds Accounting's AC-07 `mantle.ledger.AssetBookServices.post#Revaluation`): it sets the on-hand assets' `acquireCost` from the effective date and splits a partly issued asset, without reposting history. Warehouse's Movements, AssetLedger and `get#Traceability` (P4) and `get#InventoryAtDate` (P17) follow the split (F34); revaluation itself stays in Accounting's context | The user's call (plan review Q7), as ERPNext and Odoo work. It replaces "value only" |
+| Oct 28, 2026 | A run's lines (P16a) stop at non-phantom sub-assemblies, whose on-hand counts, and blow phantoms through with their routing, as `get#BomExplosion`'s requirements do; the full blow-through stays a parameter of the explosion | The user's call (plan review Q8), with Products P8's explosion |
 
 ## 5. Open questions
 
@@ -820,6 +870,8 @@ is written there too.
 | F30 | P0: Delivery has no status and no driver; ShipmentRouteSegment links to it | WH-TRIP is §7 |
 | F31 | P0: Accounting reads "open inspection" with a stand-in before CX-QUALITY exists (impl-accounting P0) | P8's `get#SourceInspectionStatus` replaces it |
 | F32 | P0: ReturnItem has an order item but no AssetReceipt, asset or lot, so nothing says which receipt a supplier return sends back | P14 adds PUR-RETURN's receipt link with `find#ReturnableReceipts` |
+| F33 | P0: BossSetupData has no commented Warehouse block any more. The `BOSS_WAREHOUSE` artifact group has its ADMIN and `BOSS_WAREHOUSE_ADMIN` authz with the organization filters, and no root user group. Products P9's working tree adds `BOSS_WAREHOUSE_FACILITY_ADMIN` and grants `STOCK_POLICY_PLAN` to the stock planner, and both it and `STOCK_POLICY_MANAGE` to the manager, facility admin and admin groups, the permissions `WarehousePolicy.js` now checks | P1 adds the root user group and the other groups and grants the rest (§4) |
+| F34 | P0: Products P9's `ForwardInventoryCosts.js` splits a partly issued asset at revaluation. A new Asset takes the on-hand quantity through a pair of AssetDetail rows linked by `otherAssetId`, copies the source's AssetTypeGlAccount rows, and takes over its open reservations | Movements, AssetLedger and `get#Traceability` follow the link (P4), and `get#InventoryAtDate` reads the pair as one (P17; §4) |
 
 ## 7. Later
 

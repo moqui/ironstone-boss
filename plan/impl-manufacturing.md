@@ -1,7 +1,8 @@
 # IronStone BOSS — Manufacturing implementation
 
 Oct 28, 2026 — plan; P0 partly done (F1–F21, found while writing it); the phase order, supply planning, held quantity,
-the shared party-role and effective-date rules, the organization filters and its open questions decided (§4)
+the shared party-role and effective-date rules, the organization filters, the Mantle boundary, the explosion depth and
+its open questions decided (§4)
 
 How [design-manufacturing.md](design-manufacturing.md) gets built, in phases from the foundation to the reports, each
 ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md),
@@ -17,7 +18,8 @@ first. Manufacturing is built after all three and before Purchasing (§4), so th
 - from Products: the four Manufacturing groups its P1 seeds; `check#ProductUsable` and the kit components (P2);
   Product360, Supplier360 and InventoryAvailability; the dated methods of M3 (impl-products §4), `WorkCenter`, `WorkCenterRate`,
   `get#OperationCostBasis` and the five shared method screens with the Products context (P8); approved standard costs
-  and CostRollup (P9); the barcodes, GS1 parse and labels (P11);
+  and CostRollup, the explosion's requirements and buildable quantity, and the method and cost permissions on the
+  Manufacturing groups (P9; F22, F24); the barcodes, GS1 parse and labels (P11);
 - from Accounting: the AC-06 guard in `post#AcctgTrans` and `repost#AssetIssuance`'s dated reversing delta (P2a); the
   CX-POSTING operation record (P2); EquipmentDetail and ShipmentDetail; InventoryValuation; the production GL account
   types and the scrap account (P13); Setup's WIP account check (P19);
@@ -83,10 +85,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - Every `parity` and `new` row of design §2, and the §12 needs they use: M1–M8, M10 and M11. M9 (batches) is
     `later`.
   - The parts of other apps' needs that Manufacturing depends on (§4):
-    - Accounting's ProductionCostClose and CostingPolicies: `ironstone.accounting.ProductionCostServices`,
-      `ProductionAllocationPolicy`, and the ProductionCostReview notice (impl-accounting §4);
-    - Projects' side of the labor cost: the production approver rule in `get#TimesheetApprovers`, and the hook on
-      `approve#Timesheet` that calls `record#ProductionCostEvent`;
+    - Accounting's ProductionCostClose and CostingPolicies: `mantle.ledger.ProductionCostServices` with BOSS's queue
+      read `ironstone.accounting.ProductionCostServices.find#CostCloseQueue`, `ProductionAllocationPolicy`, and the
+      ProductionCostReview notice topic in mr-mantle's data (impl-accounting §4);
+    - Projects' side of the labor cost, in mr-mantle: the production approver rule in
+      `mantle.work.TimesheetServices.get#TimesheetApprovers`, and the hook on its `approve#Timesheet` that calls
+      `mantle.work.ProductionServices.record#ProductionCostEvent`;
     - crosscut CX-PLANNING (§4): PlanningRun, PlanningSuggestion and RequirementSupply,
       `mantle.product.SupplyPlanningServices` with the make conversion and the buy conversion of an outside-processing
       requirement, and `Shared/SupplyPlanning`. Purchasing's and Warehouse's mounts, and their other buy and transfer
@@ -124,6 +128,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **The Commons rules hold.** These are impl-drawers-commons §4:
   - failure tolerance;
   - the Mantle-free framework;
+  - Mantle stands without BOSS;
+  - business logic leans to Mantle;
   - the new XML element checklist of style-guide §8.1;
   - libraries through `libs/refresh.mjs`, and crates against `deny.toml`;
   - the `.qvue` gallery pattern;
@@ -136,12 +142,15 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Production rows through services.** No entity filter covers WorkEffort, so nothing scopes a run, operation or
   routing by organization (F3). Manufacturing reads and writes them only through services:
   `ironstone.manufacturing.AccessServices` checks the user's organizations, the plant facility (through Warehouse's
-  facility scope), the run's owner and the capability, then the `mantle.work.ProductionServices`, `BomServices` or
-  `RoutingServices` verb runs.
+  facility scope), the run's owner and the capability group, then the screen or mount calls the
+  `mantle.work.ProductionServices`, `BomServices` or `RoutingServices` verb, which checks its own permission, the
+  organization by party relationship and the facility by its owner. No same-named ironstone service passes it
+  through, and other apps call the Mantle name.
   - `entity` in a design form summary means that guarded path, never a bare entity form (design §1.1).
   - Grants are checked in the services, so they hold for exports, search, the palette, the shop floor, handheld mounts
     and shared mounts. `appRoot=Manufacturing`, an assignment or a hidden column is never authorization (design §1.1).
-  - A stock action also needs Warehouse's stock capability for the facility; an operator's assignment grants none.
+  - A stock action also needs `STOCK_ISSUE`, which Warehouse grants and its guards check with the facility; an
+    operator's assignment grants none.
 - **One guarded path for each production fact.**
   - Stock moves only through the guards Warehouse P16 built and WH-POST. BOSS never calls
     `set#ProducedProductQuantity`, `create#ProductionRun` with a produce or consume product, `cancel#AssetIssuance` on a
@@ -156,18 +165,20 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   causes it, keyed by source, component and revision. Issues and receipts post through the existing hooks once; labor,
   machine, overhead and outside processing reach the GL only through `post#CostClose` (D12, §12.2).
 - **Restricted values stay on the server.** A service leaves out any cost, rate, value, supplier price or person's
-  rate the user may not read. Money columns need Accounting's `BOSS_ACCOUNTING_READ`; frozen estimates need
-  `BOSS_MANUFACTURING_COST`. Nothing is fetched and then hidden, and a value withheld is omitted, never zero (design
-  §1.1).
+  rate the user may not read. Money columns need `ACCOUNTING_VIEW`, which Accounting grants its groups; frozen
+  estimates need `PRODUCT_COST_VIEW`, which `BOSS_MANUFACTURING_COST` holds. Nothing is fetched and then hidden, and a
+  value withheld is omitted, never zero (design §1.1).
 - **Shared screens.** Manufacturing builds `Shared/ProductionCostClose` with the Accounting and Manufacturing contexts,
   and `Shared/SupplyPlanning` with the Manufacturing context. It adds its context to the shared screens
   of §1. Each takes `appRoot` and server-derived capabilities, on `Shared/RequestDetail`'s pattern.
-- **Owner contracts.** A contract built here for another app follows that app's design: its package, its record and
-  service names, its Shared screen and its capability groups. A change found while building it is written into the
-  owner's design. The owner's own screens stay with the owner.
+- **Owner contracts.** A contract built here for another app follows that app's design: its record and service names,
+  its Shared screen and its capability groups, with its logic in the Mantle package of its records (the rules above)
+  and its permissions granted to the owner's groups. A change found while building it is written into the owner's
+  design. The owner's own screens stay with the owner.
 - **Mantle rule changes keep Mantle's default.** A change to an existing Mantle service, such as the production approver
   rule in `get#TimesheetApprovers`, sits behind its own ProductionPolicy flag, off by default (impl-accounting §4).
-  Each ships with a test of its condition and of its unchanged default.
+  Each ships with a test of its condition and of its unchanged default. A new permission check goes on a new Mantle
+  service only; an existing one gains a refusal only behind its flag.
 - **Mantle callers stay compatible.** Existing callers of these keep working:
   - `mantle.work.ManufacturingServices`, unchanged (R-MFG-35): `create#ProductionRun`, `get#ProductBomDetail` for kits
     and migration comparison, `breakDown#Assembly` and the display and pick queries;
@@ -179,7 +190,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Done for a phase** means all of these:
   - impl-projects §2 "Done":
     - cargo tests for the touched crates, with goldens reviewed;
-    - the new Mantle specs passing under `./moq test mr-mantle`;
+    - the new Mantle specs passing under `./moq test mr-mantle` without mr-boss, their users in spec-local groups that
+      hold the permissions;
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Manufacturing in its
       non-placeholder list;
     - `moqui lint --screens` clean for BOSS with the Debug binary;
@@ -241,14 +253,26 @@ decisions call for were made in the Oct 28 design sweep. Still to check:
 
 - **Access** (design §1.1, crosscut §1.4 and CX-ACCESS).
   - The groups of design §1.1. `BOSS_MANUFACTURING_READ`, `_METHOD`, `_METHOD_APPROVE` and `_RESOURCE_ADMIN` exist
-    from Products P1 and its organization-filter commit; their descriptions become the design's (F2). The new ones are
-    `_PLAN`, `_SCHEDULE`, `_OPERATE`, `_SUPERVISE`, `_QUALITY_INSPECT`, `_QUALITY_VERIFY`, `_QUALITY_ADMIN`, `_COST` and
-    `_DISPLAY`, with `BOSS_MANUFACTURING` as the root user group and `BOSS_MANUFACTURING_ADMIN` as the admin group (§4).
+    from Products P1 and its organization-filter commit, and `_COST` from Products P9 (F22); their descriptions become
+    the design's (F2). The new ones are `_PLAN`, `_SCHEDULE`, `_OPERATE`, `_SUPERVISE`, `_QUALITY_INSPECT`,
+    `_QUALITY_VERIFY`, `_QUALITY_ADMIN` and `_DISPLAY`, with `BOSS_MANUFACTURING` as the root user group and
+    `BOSS_MANUFACTURING_ADMIN` as the admin group (§4).
+  - The permissions (§2). mr-mantle seeds `PRODUCTION_VIEW`, `PRODUCTION_PLAN`, `PRODUCTION_SCHEDULE`,
+    `PRODUCTION_OPERATE`, `PRODUCTION_SUPERVISE`, `PRODUCTION_COST_REVIEW`, `PRODUCTION_POLICY_EDIT` and
+    `SUPPLY_PLAN_RUN` beside `ORDER_APPROVE`. BossSetupData grants them with `UserGroupPermission` rows:
+    `PRODUCTION_VIEW` to every Manufacturing group but `_DISPLAY`; `PRODUCTION_PLAN` and `SUPPLY_PLAN_RUN` to `_PLAN`;
+    `PRODUCTION_SCHEDULE`, `PRODUCTION_OPERATE` and `PRODUCTION_SUPERVISE` to the group of that name;
+    `PRODUCTION_COST_REVIEW` to `_COST`; `PRODUCTION_POLICY_EDIT` to `_RESOURCE_ADMIN`. It grants `METHOD_VIEW` to the
+    new groups but `_DISPLAY`, and Warehouse P8's `QUALITY_INSPECT` to `_QUALITY_INSPECT`, `QUALITY_VERIFY` and
+    `QUALITY_DISPOSE` to `_QUALITY_VERIFY`, and `QUALITY_TEMPLATE_EDIT` to `_QUALITY_ADMIN`. `BOSS_MANUFACTURING_ADMIN`
+    holds every one. The method and cost permissions of the method groups, `_COST` and the admin are Products P9's
+    grants (F22). `STOCK_ISSUE` and `ACCOUNTING_VIEW` stay Warehouse's and Accounting's grants.
   - The root's authz comes out of BossSetupData's commented block (F1), with the organization filters of
     impl-drawers-commons §4. `MANTLE_USER_ORG`'s Facility filter is the plant scope, as Warehouse's facility scope.
-  - `ironstone.manufacturing.AccessServices`: the user's organizations, the plants they may work in, their capabilities,
-    and a run's or method's owner and facility. Every later Manufacturing service and shared mount calls it. A supplied
-    run, operation, method, work center or asset is checked against it (F3).
+  - `ironstone.manufacturing.AccessServices`: the user's organizations, the plants they may work in, their capability
+    groups, and a run's or method's owner and facility. Every Manufacturing screen, mount and shared mount calls it
+    before the Mantle verb, which checks its permission and organization again. A supplied run, operation, method,
+    work center or asset is checked against it (F3).
   - No artifact authorization for the raw ManufacturingServices verbs or their REST paths, nor for `update#WorkEffort`
     on a run (F9, F10).
 - **The Manufacturing root.**
@@ -258,7 +282,8 @@ decisions call for were made in the Oct 28 design sweep. Still to check:
   - `<shell-providers>` (M1, CX-SHELL): the palette types (runs, product and method IDs, scoped equipment), quick
     create, the Today sources and the notification topics grow phase by phase, as their records are built.
   - The `manufacturing` key scope.
-  - `get#RecordLinkInfo` opens runs, BOM versions, routings and work centers under Manufacturing for its users.
+  - `ironstone.commons.PaletteServices.get#RecordLink` opens runs, BOM versions, routings and work centers under
+    Manufacturing for its users.
 - **Home** (design §3): Summary and Queue, with the counts of later phases null; Kpis comes with P16.
 - **Manufacturing demo data.**
   - `BossManufacturingDemoData.xml` builds on Products P8's released methods for DEMO_1_1, Warehouse P16's demo runs,
@@ -270,7 +295,8 @@ decisions call for were made in the Oct 28 design sweep. Still to check:
     display user.
 - **Specs.**
   - `ManufacturingShell`: the menu per group, the palette, record links, quick create.
-  - `ManufacturingAccess`: started, covering organization and plant scope and the groups through the services.
+  - `ManufacturingAccess`: started, covering organization and plant scope and the groups' permissions through the
+    services.
 - **Usable when:** the menu renders for each group, and quick create offers only what the group may create. A reader
   sees their organization's runs and methods but not another organization's, in lists, the palette and record links. A
   forged run, facility or asset ID is refused.
@@ -285,6 +311,9 @@ The rest of M3 and CX-METHOD (design §5, crosscut §3.23), over Products P8's r
   (§4); `WorkEffortContent` gains audit-logged `fromDate` and `thruDate`. The required evidence and the quality
   template are audit-logged template fields. Copy operations from another routing makes draft copies with their
   source identity.
+- **Permissions:** the method verbs, Products' and these, check `METHOD_VIEW`, `METHOD_EDIT` and `METHOD_APPROVE`, and
+  cost read for the estimate (`PRODUCT_COST_VIEW` or `ACCOUNTING_VIEW`), through `MethodPolicy.js`, which Products P9
+  moved from group names to permissions (F22).
 - **Screens:**
   - BillsOfMaterials: Find, the list over `find#Boms` with kits left out (D15), and NewBillOfMaterials. Clone revision,
     and the legacy import Products P8 built.
@@ -321,8 +350,9 @@ The rest of M5 and CX-WORKCENTER (design §6), over Products P8's `WorkCenter` a
 - **Records:** `WorkCenterCapacity` (by product or type, quantity and unit per duration, or parallel slots, dated) and
   `WorkCenterAlternate`, with the WorkCenter fields P8 left out: plant, calendar, efficiency, OEE target and scheduling
   policy. Facility.capacity stays people capacity.
-- **Services:** `store#WorkCenter` extended; `mantle.work.ProductionPlanningServices.get#WorkCenterLoad`, first from
-  capacity and released operations only; P12 adds the calendar, downtime and the schedule.
+- **Services:** `store#WorkCenter` extended, under `METHOD_RESOURCES`, and its rate under `METHOD_COST_EDIT` and
+  `METHOD_COST_APPROVE`, as built; `mantle.work.ProductionPlanningServices.get#WorkCenterLoad` (`PRODUCTION_VIEW`),
+  first from capacity and released operations only; P12 adds the calendar, downtime and the schedule.
 - **Screens** (design §6):
   - WorkCenters: Find, Centers and NewCenter, on an existing facility or a new FcTpLine;
   - FacilityDetail: Warehouse's `Shared/FacilityDetail` with the Manufacturing context: the WorkCenter extension,
@@ -348,8 +378,8 @@ The rest of M5 and CX-WORKCENTER (design §6), over Products P8's `WorkCenter` a
   release policy, calendar, lead-time basis, freshness limit). The production reason codes (design ReasonCodes), with
   category, equipment fault, planned stop and approval threshold, effective-dated. A run keeps the policy row it was
   released under.
-- **Services:** `store#ProductionPolicy`, `get#ProductionPolicy` with the source of each value, and
-  `store#ProductionReasons`.
+- **Services:** `store#ProductionPolicy` and `store#ProductionReasons` under `PRODUCTION_POLICY_EDIT`, and
+  `get#ProductionPolicy` with the source of each value.
 - **Screens:** ProductionSettings (Consumption, TimeAndCost with a read-only link to CostingPolicies, Planning) and
   ReasonCodes. The shortage release policy defaults to all components usable, with staged release by supervisor
   approval (design §13).
@@ -367,12 +397,14 @@ materials and stock.
 
 - **P5a, the runs.**
   - `mantle.work.ProductionServices`:
-    - `find#ProductionOrders`, `store#ProductionOrder` (the draft header) and `store#ProductionEquipment`;
+    - `find#ProductionOrders` (`PRODUCTION_VIEW`), and `store#ProductionOrder` (the draft header) and
+      `store#ProductionEquipment` (`PRODUCTION_PLAN`);
     - people through the existing `add#` and `remove#WorkEffortParty`, behind a guarded assignment;
     - `transition#ProductionOrder`: release through P16a's `release#ProductionOrder`, whose release time now reads
       the P4 policy rows as of it; unrelease while no fact exists; start; hold and resume; cancel of an unposted draft. Complete needs P7's
       reconciliation and close is P15's. Each guard checks its design state, refuses the generic `WeInPlanning` →
-      `WeComplete` and `WeClosed` transitions, and needs its own capability (R-MFG-11);
+      `WeComplete` and `WeClosed` transitions, and checks its own permission (R-MFG-11): `PRODUCTION_PLAN` to release
+      and unrelease, `PRODUCTION_SUPERVISE` to start, hold, resume, cancel and complete;
     - the release gate: a valid method, `check#ProductUsable`, a later release of the method found with a re-explosion
       offered,
       and the shortage policy, with staged release by supervisor approval (design §13);
@@ -385,8 +417,9 @@ materials and stock.
     - WorkOrders: Find, the list, Selection, `view-board` by status or facility whose move calls
       `transition#ProductionOrder`, `view-calendar` over the estimated dates, and the saved finds Ready, Late, Blocked,
       Mine and By product;
-    - NewWorkOrder: Identity, Method and Review, with the producible-now column over `get#BomExplosion` and
-      `get#AvailableInventory` (R-MFG-30);
+    - NewWorkOrder: Identity, Method and Review, with the producible-now column from `get#BomExplosion`'s buildable
+      quantity at the run's facility, over `get#AvailableInventory` (R-MFG-30; F24). Its requirements stop at
+      non-phantom sub-assemblies, so their stock counts, and phantoms are blown through (§4, Q8);
     - WorkOrderDetail: Header, the Lifecycle dialog with its impact preview, Overview, Operations (no Reschedule until
       P12) and Notes and files;
     - Product360's Open runs link.
@@ -394,7 +427,7 @@ materials and stock.
     material and lot needs and a QR identity from Products P11; the release notice.
   - **Shell:** the run palette type; quick create draft work order.
 - **P5b, materials and stock.**
-  - `get#ProductionMaterials`, and `store#ProductionMaterial` for manual draft lines under the planner's authority.
+  - `get#ProductionMaterials`, and `store#ProductionMaterial` for manual draft lines under `PRODUCTION_PLAN`.
   - Components: the list and AddMaterial. Stage opens Warehouse's Move with the run fixed; there is no WIP location
     (R-MFG-03). Substitute is P9.
   - MaterialIssueReceipt: Warehouse's `Shared/MaterialIssueReceipt` with the Manufacturing row of crosscut §3.9, over
@@ -412,8 +445,8 @@ materials and stock.
   - a board move to Released runs the same guard, and a bulk release of three runs names the blocked one;
   - a released run is held before start and resumes as released; an unrelease after an issue is refused; an unposted
     draft is cancelled;
-  - two components are issued at two operations through the Manufacturing mount, an operator without the facility's
-    stock capability is refused, and a backflush preview shows its lots and issues once.
+  - two components are issued at two operations through the Manufacturing mount, an operator without `STOCK_ISSUE`
+    for the facility is refused, and a backflush preview shows its lots and issues once.
 
 ### P6 — Cost evidence
 
@@ -428,10 +461,11 @@ steps 19 and 20).
     event references the hook's transaction and posts nothing again. An output or return receipt without
     `acquireCost` would post nothing (F13), so the guard refuses it. Later phases add loss (P7), labor and machine
     (P10), and outside processing (P14);
-  - `get#ProductionCosts` and `review#ProductionCosts`, which sets the review status and notifies Accounting. The queue
-    that reads it is P15's.
-- **Screens:** ProductionCosts: Costs and CloseReview. The frozen estimate shows with `BOSS_MANUFACTURING_COST`, actual
-  values and ledger links with `BOSS_ACCOUNTING_READ`.
+  - `get#ProductionCosts`, and `review#ProductionCosts` under `PRODUCTION_COST_REVIEW`, which sets the review status
+    and notifies Accounting on the `ProductionCostReview` NotificationTopic, seeded in mr-mantle's data. Accounting
+    Home and the queue that read it are P15's.
+- **Screens:** ProductionCosts: Costs and CloseReview. The frozen estimate shows with `PRODUCT_COST_VIEW`, actual
+  values and ledger links with `ACCOUNTING_VIEW`.
 - **Usable when:**
   - two issues, a return of one unused component and an output receipt each write one event linked to the hook's
     transaction, and a retried issue writes none;
@@ -455,10 +489,12 @@ Design §3 Quantities and ByProducts, §6 ScrapLoss and §12.2; M2, M4, M6 and M
   - `find#ProductionLosses`;
   - complete in `transition#ProductionOrder`: the reconciliation of §12.2, the settled operations and material
     disposition. Where ProductionPolicy's flag allows it (§4), the final output receipt reconciles and completes in
-    the same service. Partial completion offers Finish remainder with approved loss; Backorder is P9's.
+    the same service. Partial completion offers Finish remainder with approved loss; Backorder is P9's;
+  - `record#ProductionQuantity` and `record#ProductionLoss` check `PRODUCTION_OPERATE`, `change#ProductionQuantity`
+    `PRODUCTION_PLAN`, and complete `PRODUCTION_SUPERVISE`.
 - **Screens:** Quantities (OutputPlan, AddOutput, Reconcile, ChangeQuantity), ByProducts (with AllocationReview's
   estimate; its actual allocation is P15's), and ScrapLoss (Find, Losses, RecordLoss).
-- **Approvals:** exceptional loss and overproduction above the policy.
+- **Approvals:** exceptional loss and overproduction above the policy, by `PRODUCTION_SUPERVISE`.
 - **Outputs:** finished, secondary and WIP labels on Products P11's label contract; no label claims acceptance before
   disposition.
 - **Usable when** (design §10.3, partial production):
@@ -473,7 +509,7 @@ Design §3 Quantities and ByProducts, §6 ScrapLoss and §12.2; M2, M4, M6 and M
 ### P8 — Quality
 
 Design §3 QualityGates and §6 Inspections, QualityInspection and InspectionTemplates; M6's inspection part, over
-Warehouse P8's CX-QUALITY.
+Warehouse P8's CX-QUALITY and its `QUALITY_*` permissions, which P1 grants to the quality groups.
 
 - **Gates:** `get#SourceInspectionStatus` answers for the run, operation and output-line sources; the start and
   complete guards and dependent operations read it. Each released operation keeps its template as of its release time.
@@ -499,11 +535,13 @@ BillOfMaterialsCompare's amendment action; M4.
 
 - **`mantle.work.ProductionServices`:**
   - `substitute#ProductionMaterial`: a candidate from the BOM item's substitution rule (Products' PatEquivalent rows
-    only when the rule allows), with supervisor approval. It adds a WeptConsume row and reduces the original's; after
-    release it is an amendment;
+    only when the rule allows), with supervisor approval (`PRODUCTION_SUPERVISE`). It adds a WeptConsume row and
+    reduces the original's; after release it is an amendment;
   - `amend#ProductionOrder` (design §12.1): an audit-logged change that remaps only unexecuted lines and operations and
-    keeps the original facts' links, under the amendment policy (§4);
-  - `preview#ProductionSplit` and `split#ProductionOrder`, split and backorder, conserving remaining demand;
+    keeps the original facts' links, under the amendment policy (§4), checking `METHOD_APPROVE` and
+    `PRODUCTION_SUPERVISE`;
+  - `preview#ProductionSplit` and `split#ProductionOrder` (`PRODUCTION_PLAN`), split and backorder, conserving
+    remaining demand;
   - cancellation after postings as a reviewed reversal or residual plan; clone through `create#ProductionOrder`;
   - `reverse#SupportedAssembly` over `breakDown#Assembly`, for a PtPickAssembly kit only. The kit receipt's reduction is
     a dated reversing delta in an open period, not `repost#Asset`'s unpost and re-post (§4; F15). Both reposts change
@@ -534,13 +572,15 @@ Design §4 ShopFloor, OperationExecution and Instructions, §3 ProductionTime; M
     `TimeEntry.pieceCount` under the piece-rate policy (R-MFG-28);
   - `record#MachineRuntime`, whose closed interval writes the machine cost event at the effective WorkCenterRate. With
     no effective rate it is recorded unvalued and listed for review, and P15's close refuses the run until it is
-    valued (§4).
-- **Projects' side** (§4):
+    valued (§4);
+  - `complete#ProductionOperation`, `record#MachineRuntime` and `record#InstructionStep` check `PRODUCTION_OPERATE`.
+- **Projects' side** (§4), in mr-mantle's `mantle.work.TimesheetServices`, calling no ironstone service:
   - the production approver rule in `get#TimesheetApprovers`: the run's supervisor or the person's line manager
     (R-MFG-22). Its project rule already takes an item's root, or the item itself, as the project, so the operations
     carry the run as their root and the supervisor's assignment counts as a manager's (F17);
-  - the hook on `approve#Timesheet`: a labor event per entry under a WepProductionRun, at hours × `vendorHourRate`
-    with `vendorRateAmountId`. Reopening writes a reversal, and a rate change after approval a delta (R-SA-09).
+  - the hook on `approve#Timesheet`, calling `record#ProductionCostEvent`: a labor event per entry under a
+    WepProductionRun, at hours × `vendorHourRate` with `vendorRateAmountId`. Reopening writes a reversal, and a rate
+    change after approval a delta, caught on the TimeEntry in Mantle, not in BOSS's rate form (F23; R-SA-09).
 - **Screens:**
   - ShopFloor: the `.qvue` manager board and operator card (Station, Queue, Actions) with its `tui` twin;
   - OperationExecution (Work, PersonTimer, MachineRuntime, CompleteStep) and Instructions (Steps, Evidence), at
@@ -566,8 +606,10 @@ Design §6 Downtime, Equipment, RequestDetail and WorkItemDetail; M6's downtime 
 - **Records and seeds:** `mantle.work.production.ProductionDowntime`, with its correction chain; the request type
   `RqtMaintenance` and the maintenance type `MntTpCorrective` (F18).
 - **`mantle.work.ProductionServices`:** `store#ProductionDowntime` (open, close, correct), `find#ProductionDowntime`,
-  and `request#ProductionMaintenance`: an AssetMaintenance through `EquipmentServices.create#AssetMaintenance`, and
-  when wanted a Request linked to the downtime and the asset through `link#RequestRecord`.
+  and `request#ProductionMaintenance`: an AssetMaintenance through
+  `mantle.product.EquipmentServices.create#AssetMaintenance`, and when wanted a Request linked to the downtime and the
+  asset through `mantle.request.RequestServices.link#RequestRecord`, not Commons' same-named service. Recording checks
+  `PRODUCTION_OPERATE`, and a correction `PRODUCTION_SUPERVISE`.
 - **Screens:** Downtime (the list, ReportStop, Maintenance); OperationExecution's Pause opens it; EquipmentDetail's
   Request maintenance action and downtime (design §14's missing pane; §4); RequestDetail and WorkItemDetail, Projects'
   shared screens, with the Manufacturing context.
@@ -583,9 +625,10 @@ Design §6 Downtime, Equipment, RequestDetail and WorkItemDetail; M6's downtime 
 
 Design §7 ProductionSchedule and Capacity, §3 Operations' Reschedule; M5, the scheduling part of M10, and M11.
 
-- **`mantle.work.ProductionPlanningServices`:** `get#ProductionSchedule`; `schedule#ProductionOperation`, a preview,
-  then a commit that rechecks calendar, skills and equipment, capacity, predecessors, quantity and version, with a
-  conflict override only by a supervisor; and `get#WorkCenterLoad` completed with the calendar, downtime and bookings.
+- **`mantle.work.ProductionPlanningServices`:** `get#ProductionSchedule`; `schedule#ProductionOperation`
+  (`PRODUCTION_SCHEDULE`), a preview, then a commit that rechecks calendar, skills and equipment, capacity,
+  predecessors, quantity and version, with a conflict override only by `PRODUCTION_SUPERVISE`; and
+  `get#WorkCenterLoad` completed with the calendar, downtime and bookings.
 - **M11:** the Projects WorkItems Timeline component extended with resource lanes, offline shading and a preview-only
   drag, whose commit is the Move form (F4). Projects' own Timeline keeps its behavior and specs.
 - **Screens:** ProductionSchedule, the `.qvue` timeline with its `tui` twin (Preview, Apply, Unschedule, Show
@@ -608,17 +651,19 @@ and service names, and `Shared/SupplyPlanning`, which Purchasing mounts when it 
   requirement's organization (R-SA-15) is a RequirementParty in the OrgInternal role, not a new field
   (impl-drawers-commons §4); `Requirement.quantityUomId` (crosscut §3.20).
 - **`mantle.product.SupplyPlanningServices`:**
-  - `run#SupplyPlan`: one current run per organization and facility set; it nets `get#InventoryProjectedInfo`, drafts'
-    WeptConsume and WeptProduce rows included, by the run's line and its parent warehouse, with kit assemblies told
-    apart from production (F16); it explodes make demand through `get#BomExplosion`, dates releases from the
-    version's lead and preparation days (R-MFG-31), shows held receipts and output as a pending-release line with
+  - `run#SupplyPlan`, under `SUPPLY_PLAN_RUN`: one current run per organization and facility set; it nets
+    `get#InventoryProjectedInfo`, drafts' WeptConsume and WeptProduce rows included, by the run's line and its parent
+    warehouse, with kit assemblies told apart from production (F16); it explodes make demand through
+    `get#BomExplosion`'s requirements and nets level by level (§4, Q8; F24): a non-phantom sub-assembly nets against
+    its own stock and supply before its shortage is exploded, and a phantom is blown through; it dates releases from
+    the version's lead and preparation days (R-MFG-31), shows held receipts and output as a pending-release line with
     the inspection's due date, left out of netting (§4), and calls `check#ProductUsable`;
-  - `get#SupplyPlan` and `store#PlanSchedule`, the one schedule. The schedule carries the organization's option to
-    net held quantity whose inspection is due within the lead time (§4); off by default;
-  - `convert#PlanningSuggestions`: make through `create#ProductionOrder` with the method as of the plan date, the RequirementSupply
-    link and WorkRequirementFulfillment `WrfDelivers`, under lock and operation identity, a result per group. P14 adds
-    the outside-processing buy conversion; ordinary buy and transfer suggestions are shown with their links, and their
-    conversion waits for Purchasing and Warehouse (§7).
+  - `get#SupplyPlan`, and `store#PlanSchedule` under `SUPPLY_PLAN_RUN`, the one schedule. The schedule carries the
+    organization's option to net held quantity whose inspection is due within the lead time (§4); off by default;
+  - `convert#PlanningSuggestions`: make through `create#ProductionOrder`, under `PRODUCTION_PLAN`, with the method as
+    of the plan date, the RequirementSupply link and WorkRequirementFulfillment `WrfDelivers`, under lock and
+    operation identity, a result per group. P14 adds the outside-processing buy conversion; ordinary buy and transfer
+    suggestions are shown with their links, and their conversion waits for Purchasing and Warehouse (§7).
 - **Screens:** `Shared/SupplyPlanning` (PlanParameters, PlanSuggestions, DemandSupply, PlanSchedule,
   ConvertSuggestions) with the Manufacturing row of crosscut §3.20, at `Manufacturing/Planning/SupplyPlanning`. Home's
   shortages open it with the same organization, plant and date.
@@ -634,19 +679,21 @@ Design §7 SubcontractOperations, SubcontractDetail, Supplier360, OrderDetail an
 CX-SUBCONTRACT; review §4.1 steps 26–31.
 
 - **Records:** `ProductionSubcontract`.
-- **`mantle.work.ProductionServices`:** `request#SubcontractService` (an `RqTpProduct` Requirement for the service
-  product, with a RequirementSupply demand link to the operation), `store#ProductionSubcontract`,
+- **`mantle.work.ProductionServices`:** `request#SubcontractService` (`PRODUCTION_PLAN`; an `RqTpProduct` Requirement
+  for the service product, with a RequirementSupply demand link to the operation), `store#ProductionSubcontract`,
   `get#SubcontractMaterials`, `get#SubcontractStatus` and `find#SubcontractOperations`. P16b's
   `receive#SubcontractOutput` gains the outside-processing accrual event at service acceptance; the bill match writes
-  the price-variance event through Accounting's match.
+  the price-variance event through Accounting's match, `mantle.account.InvoiceMatchServices.evaluate#InvoiceMatch`.
 - **The outside-processing buy conversion** (§4), in P13's `convert#PlanningSuggestions`, to design-purchasing's
   Subcontracting and SupplyPlanning rules (R-PUR-22): a draft PO per supplier group, with the service OrderItem at the
   requirement's quantity and unit and the supplier price from Products' resolver, its `OrderItemWorkEffort` to the
   operation (`requiredWork` Y), and a RequirementSupply row. Conversion never places or approves the PO; that stays
   Purchasing's, and until Purchasing is built the walk's demo service places it.
-  - The action needs `BOSS_PURCHASING_BUYER`, seeded here without Purchasing's launcher, as Products P1 seeded the
-    other apps' groups. It shows on the Manufacturing mount to a holder of that group, which crosscut §3.20's
-    Manufacturing row gains.
+  - The conversion checks `PURCHASE_ORDER_EDIT`, which P14 seeds in mr-mantle. BossSetupData grants it to
+    `BOSS_PURCHASING_BUYER`, seeded here without Purchasing's launcher, as Products P1 seeded the other apps' groups,
+    with the group's other permissions (`PAYABLE_IMPORT`, `SUPPLIER_PROFILE_EDIT` and `RETURN_AUTHORIZE`), and all
+    four to `BOSS_PURCHASING_ADMIN`. The action shows on the Manufacturing mount to a holder of that group, which
+    crosscut §3.20's Manufacturing row gains.
 - **Screens:**
   - SubcontractOperations and SubcontractDetail (Agreement, Materials, Acceptance);
   - Supplier360: Products' screen with the Manufacturing row of crosscut §3.3, its subcontract orders filtered (design
@@ -669,23 +716,25 @@ CX-SUBCONTRACT; review §4.1 steps 26–31.
 Accounting's contracts (§4), built to design-accounting ProductionCostClose and AC-07 and crosscut §3.24; review §4.1
 steps 20–23.
 
-- **Records:** `ProductionAllocationPolicy`, effective-dated rows with their key fields audit-logged; a cost close
-  keeps the row it applied.
-- **`ironstone.accounting.ProductionCostServices`:**
-  - `store#AllocationPolicy`: the overhead basis and the co-product method, defaulting to work-center hours and
-    normalized quantity (§4);
-  - `find#CostCloseQueue`, the runs P6's review request queued;
-  - `preview#CostClose`: the absorption of the events not yet in the GL (Dr WIP; Cr applied labor, applied machine and
-    overhead, and the outside-processing accrual), overhead from the policy, the co-product reallocation, and the
-    residual WIP to variance. It blocks while an entry on the run is on an unapproved timesheet, and needs an open
-    period;
-  - `post#CostClose`: one run-level transaction that calls `transition#ProductionOrder` (Close). After close a late
-    event is an adjustment, which `preview#CostClose` picks up in adjustment mode (R-SA-11).
+- **Records:** `mantle.work.production.ProductionAllocationPolicy`, effective-dated rows with their key fields
+  audit-logged; a cost close keeps the row it applied.
+- **`mantle.ledger.ProductionCostServices`** (new), each checking its permission and the organization:
+  - `store#AllocationPolicy` (`ACCOUNTING_ADMIN`): the overhead basis and the co-product method, defaulting to
+    work-center hours and normalized quantity (§4);
+  - `preview#CostClose` (`ACCOUNTING_GL_POST`): the absorption of the events not yet in the GL (Dr WIP; Cr applied
+    labor, applied machine and overhead, and the outside-processing accrual), overhead from the policy, the co-product
+    reallocation, and the residual WIP to variance. It blocks while an entry on the run is on an unapproved timesheet,
+    and needs an open period;
+  - `post#CostClose` (`PRODUCTION_COST_POST`, which P15 seeds in mr-mantle and grants to `BOSS_ACCOUNTING_APPROVE`
+    and `BOSS_ACCOUNTING_ADMIN`): one run-level transaction that calls `transition#ProductionOrder` (Close). After
+    close a late event is an adjustment, which `preview#CostClose` picks up in adjustment mode (R-SA-11).
+- **`ironstone.accounting.ProductionCostServices.find#CostCloseQueue`**, BOSS's read for the queue: the runs P6's
+  review request queued.
 - **Screens:** `Shared/ProductionCostClose`, mounted at `Accounting/Inventory/ProductionCostClose` and
   `Manufacturing/WorkOrders/WorkOrderDetail/ProductionCostClose`, the second needing the finance groups and not the
   Accounting launcher;
   CostingPolicies at `Accounting/Settings/CostingPolicies`; ByProducts' actual allocation; the queue on Accounting Home
-  and CloseChecks; the ProductionCostReview notice.
+  and CloseChecks, which read P6's ProductionCostReview topic.
 - **Usable when** (design-accounting §16.3 production-to-GL, the cost close):
   - a completed run with material, labor, machine and outside-processing events previews its absorption, co-product
     split and variance, and posts once, closing the run in the same transaction;
@@ -698,9 +747,9 @@ steps 20–23.
 Design §9; the reporting part of M10.
 
 - **`mantle.work.ProductionReportServices`:** the eight report services of design §9, and `get#ProductionDashboard`.
-  Each returns its scope, as-of time, units and currency, and the partitions it could not read; money columns need
-  financial read. OEE is availability × performance × quality, with downtime unioned and reworked units counted once,
-  and "Not calculable" where data is missing.
+  Each checks `PRODUCTION_VIEW` and returns its scope, as-of time, units and currency, and the partitions it could not
+  read; money columns need `ACCOUNTING_VIEW`. OEE is availability × performance × quality, with downtime unioned and
+  reworked units counted once, and "Not calculable" where data is missing.
 - **Screens:** Reports, and WorkOrderStatusReport, MaterialReport, OperationPerformanceReport, LossReport,
   QualityReport, ProductionCostReport, BillOfMaterialsVarianceReport and PlanningReport (over P13's runs). Home
   complete, its Kpis as dashboard widget providers (crosscut §3.17) opening their reports with the same filters.
@@ -715,7 +764,7 @@ Design §9; the reporting part of M10.
 - The terminal twins, and the server-static pass.
 - The design §10.3 acceptance review and crosscut §6 standalone operation. A Manufacturing user with no other launcher
   plans, makes and receives through the shared mounts. That user is refused cost, finance, other organizations' runs and
-  stock actions without the stock capability, through URLs, shared contexts, the shop floor, exports, the palette and
+  stock actions without `STOCK_ISSUE`, through URLs, shared contexts, the shop floor, exports, the palette and
   search.
 - The §11 outputs not built earlier.
 - The inventories' **Implemented in** columns, the design's Impl column, and Remaining-Work.
@@ -753,7 +802,9 @@ Made for this plan:
 | Oct 28, 2026 | The default allocation (P15): overhead at a rate per work-center hour, from WorkCenterRate's overhead component, times the run's actual setup and run hours; co-products by quantity normalized to a common unit. CostingPolicies also offers fixed shares on the BOM's output lines and relative sales value for co-products, and a percentage of direct labor or none for overhead | The user's call (§5 review): the review's recommendation, with the alternatives selectable. It is in crosscut §8 and design-accounting since the Oct 28 design sweep. The alternatives were the defaults alone, and relative sales value by default |
 | Oct 28, 2026 | Held quantity in planning (design §14, crosscut §9): a pending-release line with the inspection's due date, left out of netting by default; the plan schedule's organization option nets held quantity whose inspection is due within the lead time (P13) | The user's call, in the Purchasing plan review (impl-purchasing §4, answer 12); the design's recommendation |
 | Oct 28, 2026 | Phase order: methods, work centers and the production policy first; then the runs and their materials; cost evidence early, so each later fact writes its event as it is built; then quantities and quality, controlled changes, the shop floor and downtime, scheduling, supply planning, subcontracting, the cost close and reports | The user's call. The alternative was the run first (P5 before P2–P4), on Products P8's methods and a default policy |
-| Oct 28, 2026 | Manufacturing builds crosscut CX-PLANNING (P13): PlanningRun, PlanningSuggestion and RequirementSupply, `run#SupplyPlan`, `get#SupplyPlan`, `store#PlanSchedule` and `convert#PlanningSuggestions`, and `Shared/SupplyPlanning` with the Manufacturing context. It converts make suggestions (P13) and outside-processing requirements to draft service PO lines (P14), the second for `BOSS_PURCHASING_BUYER` on the Manufacturing mount, which crosscut §3.20's Manufacturing row gains. Purchasing adds its mount and buy conversion when it is built, and Warehouse its mount and transfer conversion from its §7 | The user's call. The alternative was to wait for Purchasing, with SupplyPlanning, make conversion and the service PO conversion in §7. Warehouse had left CX-PLANNING for its owner (impl-warehouse §4) |
+| Oct 28, 2026 | Manufacturing builds crosscut CX-PLANNING (P13): PlanningRun, PlanningSuggestion and RequirementSupply, `run#SupplyPlan`, `get#SupplyPlan`, `store#PlanSchedule` and `convert#PlanningSuggestions`, and `Shared/SupplyPlanning` with the Manufacturing context. It converts make suggestions (P13) and outside-processing requirements to draft service PO lines (P14), the second for `BOSS_PURCHASING_BUYER` on the Manufacturing mount, which crosscut §3.20's Manufacturing row gains; the Mantle service checks `PURCHASE_ORDER_EDIT`, which that group holds (the plan review Q2 row below). Purchasing adds its mount and buy conversion when it is built, and Warehouse its mount and transfer conversion from its §7 | The user's call. The alternative was to wait for Purchasing, with SupplyPlanning, make conversion and the service PO conversion in §7. Warehouse had left CX-PLANNING for its owner (impl-warehouse §4) |
+| Oct 28, 2026 | Mantle stands without BOSS, and business logic leans to Mantle. No Mantle service, SECA, EECA, script, data file or spec here calls `ironstone.*`, reads a BOSS screen, entity or setting, or names a BOSS group; each checks its Moqui permission and the organization itself, and a BOSS screen calls it after `ironstone.manufacturing.AccessServices`, with no pass-through. Moved: Accounting's cost close core to `mantle.ledger.ProductionCostServices` (`store#AllocationPolicy`, `preview#CostClose`, `post#CostClose`), with only `find#CostCloseQueue` left in `ironstone.accounting`; the ProductionCostReview topic to mr-mantle's data. `mantle.work`'s production, planning and report services and the timesheet hook, `mantle.product`'s methods and supply planning, and `mantle.request`'s requirement records stay Mantle, checking permissions in place of BOSS groups; record links route through Commons' `get#RecordLink`. P1 seeds the seven `PRODUCTION_*` permissions and `SUPPLY_PLAN_RUN`, and grants them, with `METHOD_VIEW` and the `QUALITY_*` permissions, to the Manufacturing groups; P14 grants `BOSS_PURCHASING_BUYER` its four, and P15 `PRODUCTION_COST_POST` to Accounting's approvers | The user's call (plan review Q2): both rules are in impl-drawers-commons §4. The owner designs' names follow in the design sweep |
+| Oct 28, 2026 | Explosion depth (P5, P13): the tree shows every level, but requirements and buildable quantity stop at a non-phantom sub-assembly, so its stock counts, and a phantom is blown through with its routing. P5's producible-now reads `get#BomExplosion`'s buildable quantity at the run's facility; P13 nets level by level, a sub-assembly's stock and supply before its own shortage is exploded. `fullBlowThrough` keeps the full depth for a caller that wants it; neither phase passes it | The user's call (plan review Q8), as Odoo does. Products P9 built it (F24) |
 
 ## 5. Open questions
 
@@ -791,6 +842,9 @@ is written there too.
 | F19 | P0: Mantle's demo has no production run, routing, line, work center, product maintenance or asset maintenance. ZIRET_WH (owner ORG_ZIZI_RETAIL) is the only facility. PatMfgBom rows exist for DEMO_1_1 and DEMO_3_1 (DEMO_SA_1, DEMO_SA_2, DEMO_RM_1) and DEMO_PA, the only PtPickAssembly kit (DEMO_1_1, DEMO_2_1). EQUIP_AB4 "Assembly Bot 4000" has two assets at ZIRET_WH | P1's demo builds on them |
 | F20 | P0: Mantle's `ManufacturingServices.spec.js` (seven features) creates an ownerless run with a produce product, sets the produced quantity, issues, unissues, cancels and breaks down an assembly; it asserts no GL, transition or exact consume quantity. OrderToCashBasicFlow packs DEMO_PA through the pick-assembly services | Both pass unchanged, since ManufacturingServices keeps its behavior (§2) |
 | F21 | P0: Marble's Manufacturing has 12 screen files and 23 forms (16 single, 7 list), matching ss-inventory; RunPickDocument is the print. `addRunProduct` calls `add#WorkEffortProduct` | Each maps to design §10.2's destination (P5, P7, P17) |
+| F22 | P0: `MethodPolicy.js` reads only permissions, through `ProductAccess.js` (Products P9). Products P9's BossSetupData seeds `BOSS_MANUFACTURING_COST` and grants `METHOD_VIEW` to `_READ`, `_METHOD`, `_METHOD_APPROVE`, `_RESOURCE_ADMIN` and `_COST`; `METHOD_EDIT` to `_METHOD`, `METHOD_APPROVE` to `_METHOD_APPROVE`, `METHOD_RESOURCES` to `_RESOURCE_ADMIN`; `PRODUCT_COST_VIEW` and `METHOD_COST_EDIT` to `_COST`; and all of them with `METHOD_COST_APPROVE` to `BOSS_MANUFACTURING_ADMIN` | P1 adds only the new groups' grants and the production permissions. A cost estimator's cost read and the admin's method rights are these grants, so review I-MFG-09 needs no script change |
+| F23 | P0: Projects' timesheet approval is Mantle's (`mantle.work.TimesheetServices` `get#TimesheetApprovers`, `approve#`, `return#` and `reopen#Timesheet`), which `ironstone.projects.TimeServices` calls. A rate changes through BOSS's `store#TimeEntryRates`, a plain `update#mantle.work.time.TimeEntry`, or `get#TimeEntryRate` with reset, so no Mantle timesheet service sees it | P10's hooks are in mr-mantle, the rate delta on the TimeEntry itself; nothing calls `ironstone.projects` |
+| F24 | P0: Products P9's `get#BomExplosion` (`Boms.js` `explode`) returns `requirements` that stop at a non-phantom sub-assembly (`planningBoundary`) and, given a facility, a `buildableQuantity` from `get#AvailableInventory` for the BOM's organization; `fullBlowThrough` blows through every level. The tree rows still show every level | P5's producible-now reads `buildableQuantity`; P13 nets from `requirements` level by level (§4) |
 
 ## 7. Later
 

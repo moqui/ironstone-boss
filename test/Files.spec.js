@@ -502,14 +502,14 @@ feature("a PDF previews as its first page with the page count when there is a PD
         const path = "Spec previews/Movers quote.pdf"
         const preview = get("preview", { driveId: personalDriveId, path, size: "320" })
         const thumb = ec.screen.makeTest().rootScreen(commons).render("Files/thumb", { driveId: personalDriveId, path, size: "320" }, null)
-        return { preview, thumb, again: get("preview", { driveId: personalDriveId, path, size: "320" }) }
+        return { preview, thumb, mimeIsImage: String(thumb.header("Content-Type") || "").startsWith("image/png"), again: get("preview", { driveId: personalDriveId, path, size: "320" }) }
     },
-    then({ preview, thumb, again }) {
+    then({ preview, thumb, mimeIsImage, again }) {
         preview.status == 200
         preview.errors == ""
         preview.json.kind == "pdf"
         preview.json.hasImage ? preview.json.pages == 1 : preview.json.pages == null
-        String(thumb.header("Content-Type") || "").startsWith("image/png") == preview.json.hasImage
+        mimeIsImage == preview.json.hasImage
         again.json.hasImage == preview.json.hasImage
     },
 })

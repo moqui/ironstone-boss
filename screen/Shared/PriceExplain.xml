@@ -221,7 +221,22 @@
                                     <display />
                                 </default-field>
                             </field>
-                        </form-single>
+                                            <field name="standardCostAmount">
+                                <conditional-field condition="pricingAccess.canCostRead &amp;&amp; pricingAccess.canPriceRead" title="Standard estimate">
+                                    <display />
+                                </conditional-field>
+                            </field>
+                    <field name="marginAmount">
+                                <conditional-field condition="pricingAccess.canCostRead &amp;&amp; pricingAccess.canPriceRead" title="Margin">
+                                    <display />
+                                </conditional-field>
+                            </field>
+                    <field name="marginPercent">
+                                <conditional-field condition="pricingAccess.canCostRead &amp;&amp; pricingAccess.canPriceRead" title="Margin %">
+                                    <display />
+                                </conditional-field>
+                            </field>
+</form-single>
                     </box-body>
                 </container-box>
                 <label text="Order promotions and final tax calculation are excluded." type="p" />

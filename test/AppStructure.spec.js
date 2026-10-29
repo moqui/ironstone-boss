@@ -46,6 +46,14 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/StandardCosts/": {parameters:{productId:"BOSS_PRD_OWN",productStandardCostId:"BOSS_COST_SAMPLE"},text:"Standard costs"},
+    "Shared/CostRollup/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Cost roll-up"},
+    "Shared/CostHistory/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Cost history"},
+    "Shared/InventoryValuation/": {parameters:{productId:"BOSS_PRD_OWN",productStandardCostId:"BOSS_COST_SAMPLE"},text:"Inventory revaluation"},
+    "Products/InventoryValuation": {parameters:{productId:"BOSS_PRD_OWN",productStandardCostId:"BOSS_COST_SAMPLE"},text:"Inventory revaluation"},
+    "Products/Prices/StandardCosts": {text:"m-subscreens-active"},
+    "Products/Prices/CostRollup": {text:"m-subscreens-active"},
+    "Products/Prices/CostHistory": {text:"m-subscreens-active"},
     "Shared/BillOfMaterialsDetail/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Method header"},
     "Shared/BillOfMaterialsExplosion/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"BOM explosion"},
     "Shared/BillOfMaterialsCompare/": {parameters:{productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},text:"Compare method dates"},

@@ -47,6 +47,12 @@ along with this software (see the LICENSE.md file). If not, see
         </in-parameters>
         <out-parameters><parameter name="url"/><parameter name="icon"/></out-parameters>
         <actions><script><![CDATA[
+            if (recordEntityName === 'mantle.product.cost.ProductStandardCost') {
+                const access=ec.service.sync().name('mantle.product.CostServices.get#StandardCostAccess').parameters({productStandardCostId:id}).disableAuthz().call() || {}
+                url=access.recordVisible?'/qapps/Products/Prices/StandardCosts?productId='+encodeURIComponent(access.record.productId)+'&productStandardCostId='+encodeURIComponent(id):null
+                icon='sym_o_request_quote'
+                return
+            }
             if (recordEntityName === 'mantle.product.bom.ProductBom') {
                 const access = ec.service.sync().name('mantle.product.BomServices.get#BomAccess').parameters({productBomId:id}).disableAuthz().call() || {}
                 const product = access.recordVisible ? ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord')

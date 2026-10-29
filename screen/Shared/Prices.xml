@@ -531,7 +531,22 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                             <link url="history" text="History" parameter-map="{productId:productId,productPriceId:productPriceId}"/>
                         </default-field>
                     </field>
-                </form-list>
+                                    <field name="standardCostAmount">
+                        <conditional-field condition="access.capabilities.marginRead" title="Standard estimate">
+                            <display />
+                        </conditional-field>
+                    </field>
+                    <field name="marginAmount">
+                        <conditional-field condition="access.capabilities.marginRead" title="Margin">
+                            <display />
+                        </conditional-field>
+                    </field>
+                    <field name="marginPercent">
+                        <conditional-field condition="access.capabilities.marginRead" title="Margin %">
+                            <display />
+                        </conditional-field>
+                    </field>
+</form-list>
             </box-body>
         </container-box>
         <section-iterate name="PriceActions" list="priceRows" entry="entry">

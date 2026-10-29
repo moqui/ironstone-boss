@@ -202,3 +202,10 @@ feature('P7 stock policy remains Warehouse-controlled through Products shared ca
 feature('method reads and writes require Manufacturing roles independently of all Products grants',{
  when(){return asCatalog('catalog.admin',()=>{const failures=[];for(const name of ['store#Bom','store#BomItem','release#BomDraft','get#BomExplosion','store#Routing','store#RoutingOperation','release#RoutingDraft','store#WorkCenter','store#WorkCenterRate']){let refused=false;try{call('ironstone.products.MethodServices.'+name,{productId:'BOSS_PRD_OWN',componentProductId:'BOSS_PRD_OWN',changeReason:'Guard probe'});refused=ec.message.hasError()}catch(e){refused=true}finally{ec.message.clearErrors()}if(!refused)failures.push(name)}return{failures}},false)},then({failures}){failures.length==0},
 })
+
+feature('cost services enforce their own grant with artifact authorization #enabled',{
+ where:[{enabled:true},{enabled:false}],when({enabled}){
+ const probe=user=>asCatalog(user,()=>{const r=call('ironstone.products.CostServices.get#CostContext',{productId:'BOSS_PRD_OWN'});return{read:r.costAccess.read,count:r.standardCostRows.length}},enabled)
+ return{plain:probe('catalog.reader'),read:probe('catalog.cost.read'),admin:probe('catalog.admin')}
+ },then({plain,read,admin}){plain.read==false;plain.count==0;read.read==true;read.count>=1;admin.read==true},
+})

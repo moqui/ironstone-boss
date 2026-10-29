@@ -9,6 +9,7 @@
     <parameter name="quantity" />
     <parameter name="quantityUomId" />
     <parameter name="facilityId" />
+    <parameter name="fullBlowThrough"/>
     <parameter name="leftDate" />
     <parameter name="rightDate" />
     <actions>
@@ -56,6 +57,7 @@
                     </drop-down>
                 </default-field>
             </field>
+            <field name="fullBlowThrough"><default-field title="Requirements"><drop-down allow-empty="false"><option key="false" text="Stop at stocked subassemblies"/><option key="true" text="Full blow-through to leaves"/></drop-down></default-field></field>
             <field name="submitButton">
                 <default-field title="Show report">
                     <submit />
@@ -127,12 +129,21 @@
                     <display />
                 </default-field>
             </field>
+            <field name="planningBoundary"><default-field title="Stocked subassembly"><display/></default-field></field>
+            <field name="requiredForProduction"><default-field title="Requirement"><display/></default-field></field>
             <field name="complete">
                 <default-field title="Complete">
                     <display />
                 </default-field>
             </field>
+            <field name="estimatedAmount"><conditional-field condition="canCostRead" title="Standard estimate"><display/></conditional-field></field>
+            <field name="costCurrency"><conditional-field condition="canCostRead" title="Cost currency"><display/></conditional-field></field>
         </form-list>
+        <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; !!costSummary"><widgets>
+            <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p"/>
+            <form-list name="ExplosionCostFindings" list="costFindings || []" skip-form="true" paginate="false"><field name="recordId"><default-field title="Cost input"><display/></default-field></field><field name="message"><default-field title="Finding"><display/></default-field></field></form-list>
+            <link url="//${appRoot}/Prices/CostRollup" text="Roll up estimate" parameter-map="{productId:productId,productBomId:productBomId,asOfDate:asOfDate,quantity:quantity,quantityUomId:quantityUomId,organizationPartyId:organizationPartyId}"/>
+        </widgets></section>
         <label text="Buildable from selected facility: ${buildableQuantity == null ? &quot;Unavailable&quot; : buildableQuantity}" type="p" />
         <label text="Quantities only. The report creates no supply and does not post stock." type="p" />
     </widgets>

@@ -1,0 +1,823 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="CostContext" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('context',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CostHistory" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('history',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CostRollup" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('rollup',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="StandardCost" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('store',context))</script>
+        </actions>
+    </service>
+    <service verb="store" noun="CostComponent" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('component',context))</script>
+        </actions>
+    </service>
+    <service verb="clone" noun="StandardCost" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('clone',context))</script>
+        </actions>
+    </service>
+    <service verb="approve" noun="StandardCost" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('approve',context))</script>
+        </actions>
+    </service>
+    <service verb="preview" noun="CostRollup" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('preview',context))</script>
+        </actions>
+    </service>
+    <service verb="save" noun="CostRollup" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('save',context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CostPrint" allow-remote="false">
+        <in-parameters>
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="productStandardCostComponentId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="facilityId" type="String" />
+            <parameter name="state" type="String" />
+            <parameter name="quantity" type="BigDecimal" />
+            <parameter name="quantityUomId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="productBomId" type="String" />
+            <parameter name="methodAsOfDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="materialBasis" type="String" />
+            <parameter name="overheadBasis" type="String" />
+            <parameter name="overheadPercent" type="BigDecimal" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="changeReason" type="String" />
+            <parameter name="componentTypeEnumId" type="String" />
+            <parameter name="description" type="String" />
+            <parameter name="rateAmount" type="BigDecimal" />
+            <parameter name="amount" type="BigDecimal" />
+            <parameter name="sequenceNum" type="Integer" />
+            <parameter name="sourceEntityName" type="String" />
+            <parameter name="sourceId" type="String" />
+            <parameter name="need" type="String" />
+            <parameter name="methodMode" type="String" />
+            <parameter name="productFeatureIds" type="List" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="price" type="BigDecimal" />
+            <parameter name="productIds" type="List" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="selectedComponentId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="allocationRows" type="List"/>
+            <parameter name="costCharts" type="List"/>
+            <parameter name="standardCost" type="Map" />
+            <parameter name="componentRows" type="List" />
+            <parameter name="estimateRevision" type="String" />
+            <parameter name="costAccess" type="Map" />
+            <parameter name="standardCostRows" type="List" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="costAvailable" type="Boolean" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="recordVisible" type="Boolean" />
+            <parameter name="record" type="Map" />
+            <parameter name="canChange" type="Boolean" />
+            <parameter name="request" type="Map" />
+            <parameter name="findings" type="List" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="calculationId" type="String" />
+            <parameter name="costHistoryRows" type="List" />
+            <parameter name="marginAvailable" type="Boolean" />
+            <parameter name="standardCostAmount" type="BigDecimal" />
+            <parameter name="marginAmount" type="BigDecimal" />
+            <parameter name="marginPercent" type="BigDecimal" />
+            <parameter name="productStandardCostId" type="String" />
+            <parameter name="priceUomId" type="String" />
+            <parameter name="marginMessage" type="String" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="calculationRows" type="List" />
+            <parameter name="productId" type="String" />
+            <parameter name="costMessage" type="String" />
+            <parameter name="costDraft" type="Map" />
+            <parameter name="componentDraft" type="Map" />
+            <parameter name="facilityOptions" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="currencyOptions" type="List" />
+            <parameter name="componentTypes" type="List" />
+            <parameter name="asOfDate" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Costs.js').execute('print',context))</script>
+        </actions>
+    </service>
+</services>

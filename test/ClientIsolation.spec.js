@@ -141,7 +141,7 @@ const REFUSED = ["Code/Compare", "Code/GitAccess", "Code/RepositoryDetail/Activi
     "Projects/EstimatePrint", "Projects/StatusReport", "Projects/ProjectDetail/Files", "Projects/ProjectDetail/Money",
     "Projects/ProjectDetail/Settings", "Projects/ProjectDetail/Team", "Projects/ProjectDetail/Plan/Calendar", "Projects/ProjectDetail/Plan/CalendarTui",
     "WorkItems/Backlog", "WorkItems/BacklogTui", "WorkItems/Import", "WorkItems/ImportProgress", "WorkItems/SprintDetail", "WorkItems/SprintReport",
-    "Shared/OrderDetail", "Shared/Product360", "Shared/Prices", "Shared/PriceLists", "Shared/PriceListDetail", "Shared/PriceExplain", "Shared/SupplierPrices", "Shared/Supplier360", "Shared/InventoryAvailability", "Shared/BillOfMaterialsDetail", "Shared/BillOfMaterialsExplosion", "Shared/BillOfMaterialsCompare", "Shared/WhereUsed", "Shared/RoutingDetail"]
+    "Shared/OrderDetail", "Shared/Product360", "Shared/Prices", "Shared/PriceLists", "Shared/PriceListDetail", "Shared/PriceExplain", "Shared/SupplierPrices", "Shared/Supplier360", "Shared/InventoryAvailability", "Shared/BillOfMaterialsDetail", "Shared/BillOfMaterialsExplosion", "Shared/BillOfMaterialsCompare", "Shared/WhereUsed", "Shared/RoutingDetail", "Shared/StandardCosts", "Shared/CostRollup", "Shared/CostHistory", "Shared/InventoryValuation"]
 const refusedPath = (path) => REFUSED.some((prefix) => path === prefix || path.startsWith(prefix + "/"))
 
 spec({

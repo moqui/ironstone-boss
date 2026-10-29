@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Cost history" default-menu-include="false">
+    <parameter name="productId" />
+    <parameter name="organizationPartyId" />
+    <parameter name="facilityId" />
+    <parameter name="productStandardCostId" />
+    <parameter name="selectedComponentId" />
+    <parameter name="state" />
+    <parameter name="priceUomId" />
+    <parameter name="asOfDate" />
+    <parameter name="fromDate" />
+    <parameter name="thruDate" />
+    <parameter name="calculationId" />
+    <parameter name="productBomId" />
+    <actions>
+        <service-call name="ironstone.products.CostServices.get#CostHistory" in-map="context" out-map="context" />
+    </actions>
+    <widgets>
+        <label text="Cost history" type="h5" />
+        <label text="${costMessage || &quot;&quot;}" type="p" />
+        <section name="CostAccess" condition="costAccess.read">
+            <widgets>
+                <form-single name="CostHistoryFind" transition=".">
+                    <field name="productId" from="productId || null">
+                        <default-field title="Product ID">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="organizationPartyId" from="organizationPartyId || null">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="facilityId">
+                        <default-field title="Facility">
+                            <drop-down allow-empty="true">
+                                <list-options list="facilityOptions" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="priceUomId">
+                        <default-field title="Unit currency">
+                            <drop-down allow-empty="true">
+                                <list-options list="currencyOptions" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="From">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Through">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Show history">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+                <label text="Standard estimates, receipt acquisition costs and valuation adjustments are separate bases. Currencies and units are shown for each fact." type="p" />
+                <section-iterate name="ComparableCostCharts" list="costCharts || []" entry="costChart"><widgets>
+                    <container-box><box-header title="Unit costs · ${costChart.title}"/><box-body>
+                        <render-mode><text type="qvt"><![CDATA[
+<m-chart height="240px" :config='((tc, cv) => ({type: "line", data: {labels: ${costChart.labelsJson}, datasets: ${costChart.seriesJson}.map(s => ({...s, borderColor: cv(s.colorKey), backgroundColor: cv(s.colorKey), spanGaps: true}))}, options: {animation: false, maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {color: tc}}}, scales: {x: {ticks: {color: tc}, grid: {display: false}}, y: {ticks: {color: tc}, grid: {display: false}}}}}))((c) => c.chart.canvas.ownerDocument.defaultView.getComputedStyle(c.chart.canvas).color, (name) => (c) => c.chart.canvas.ownerDocument.defaultView.getComputedStyle(c.chart.canvas).getPropertyValue("--q-" + name).trim())'></m-chart>
+                        ]]></text><text type="tui"><![CDATA[{"t":"component","id":"CostHistoryChart","name":"chart","props":{"labels":${costChart.labelsJson},"series":${costChart.seriesJson}}}]]></text></render-mode>
+                    </box-body></container-box>
+                </widgets></section-iterate>
+                <form-list name="CostHistory" list="costHistoryRows" skip-form="true" paginate="false" show-csv-button="true">
+                    <field name="basis">
+                        <default-field title="Cost basis">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="dateText">
+                        <default-field title="Date">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="productId">
+                        <default-field title="Product">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="quantity">
+                        <default-field title="Quantity">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="unitText">
+                        <default-field title="Unit">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="unitCost">
+                        <default-field title="Unit cost">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="amount">
+                        <default-field title="Amount">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="priceUomId">
+                        <default-field title="Unit currency">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="amountUomId"><default-field title="Amount currency"><display/></default-field></field>
+                    <field name="sourceId">
+                        <default-field title="Source">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="acctgTransId">
+                        <default-field title="Accounting transaction">
+                            <display />
+                        </default-field>
+                    </field>
+                </form-list>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

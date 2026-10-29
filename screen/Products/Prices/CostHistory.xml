@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Cost history" default-menu-include="true">
+    <subscreens default-item="Index">
+        <subscreens-item name="Index" location="component://mr-boss/screen/Shared/CostHistory.xml" />
+    </subscreens>
+    <widgets>
+        <subscreens-active />
+    </widgets>
+</screen>

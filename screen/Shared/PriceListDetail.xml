@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Price list" default-menu-index="1">
     <parameter name="appRoot" />
     <parameter name="priceListId" />
@@ -505,9 +505,7 @@
                         <field name="baseType">
                             <default-field title="Base">
                                 <drop-down allow-empty="false">
-                                    <option key="typed" text="Typed price" />
-                                    <option key="fixed" text="Fixed amount" />
-                                    <option key="list" text="Another list" />
+                                    <list-options list="pricingOptions.bases" key="${value}" text="${label}" />
                                 </drop-down>
                             </default-field>
                         </field>
@@ -656,9 +654,7 @@
                                 <field name="baseType">
                                     <default-field title="Base">
                                         <drop-down allow-empty="false">
-                                            <option key="typed" text="Typed price" />
-                                            <option key="fixed" text="Fixed amount" />
-                                            <option key="list" text="Another list" />
+                                            <list-options list="pricingOptions.bases" key="${value}" text="${label}" />
                                         </drop-down>
                                     </default-field>
                                 </field>

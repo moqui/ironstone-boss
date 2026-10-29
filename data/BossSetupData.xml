@@ -185,6 +185,7 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_SYSADMIN" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_READ" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL"/>
     <authz artifactAuthzId="BOSS_PRODUCTS_SERVICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_READ" description="Accounting financial reader"/>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_PRICES" description="Products Prices capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/Shared/Prices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_READ" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_SUPPLIER_EDIT" userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
@@ -193,7 +194,7 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_READ" userGroupId="BOSS_PRODUCTS_COST_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_ESTIMATE" userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_COST_APPROVE" userGroupId="BOSS_PRODUCTS_COST_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-    <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
+    <authz artifactAuthzId="BOSS_PRODUCTS_PRICES_APPADMIN" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_FIN_0" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/><authz artifactAuthzId="BOSS_PRODUCTS_PRICES_FIN_1" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/></artifactGroups>
     <artifactGroups artifactGroupId="BOSS_PRODUCTS_SUPPLIERPRICES" description="Products SupplierPrices capabilities">
         <artifacts artifactName="component://mr-boss/screen/Products/SupplierPrices.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERPRICES_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
@@ -334,12 +335,13 @@ along with this software (see the LICENSE.md file). If not, see
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/(Commons|Comms)(\.xml|/.*)"
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/(StandardCosts|CostRollup|CostHistory|InventoryValuation)\.xml" artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <!-- every write of an IronStone app service, by its verb: every verb but the reads (get, find, search, check, clean, decorate,
             describe, list, lookup, match, parse, suggest), which test/ClientWrites.spec.js checks against every service file. The
             pattern names the app packages and any depth under them. A new app directory is not denied until its name is added here.
             The client's own writes are ironstone.client.ClientServices (impl-projects.md P10b), and client is not in the list, so
             not in this pattern: each checks the client's access itself -->
-        <artifacts artifactName="ironstone\.(commons|comms|projects|products|shared)(\.[A-Za-z]+)+\.(add|apply|approve|archive|attach|book|bulk|cancel|change|claim|clockIn|clockOut|clone|close|comment|complete|compare|convert|copy|create|decide|delete|discard|drop|duplicate|edit|end|expire|export|fail|fetch|file|finish|follow|generate|import|invoice|join|link|load|log|make|mark|merge|migrate|move|notify|open|place|post|prepare|preview|publish|quickAdd|raise|rank|reassign|record|refuse|release|remove|rename|reopen|replace|reply|request|reschedule|resolve|respond|restore|retire|return|run|save|schedule|send|set|setup|share|staff|start|stop|store|submit|sync|test|toggle|transition|trash|triage|turnOn|unfollow|unlink|unsubscribe|update|upload|use|validate)#.*"
+        <artifacts artifactName="ironstone\.(commons|comms|projects|products|accounting|shared)(\.[A-Za-z]+)+\.(add|apply|approve|archive|attach|book|bulk|cancel|change|claim|clockIn|clockOut|clone|close|comment|complete|compare|convert|copy|create|decide|delete|discard|drop|duplicate|edit|end|expire|export|fail|fetch|file|finish|follow|generate|import|invoice|join|link|load|log|make|mark|merge|migrate|move|notify|open|place|post|prepare|preview|publish|quickAdd|raise|rank|reassign|record|refuse|release|remove|rename|reopen|replace|reply|request|reschedule|resolve|respond|restore|retire|return|run|save|schedule|send|set|setup|share|staff|start|stop|store|submit|sync|test|toggle|transition|trash|triage|turnOn|unfollow|unlink|unsubscribe|update|upload|use|validate)#.*"
                 artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
         <!-- and the searches of the edit forms (people, records, work items and plan items to pick), which list beyond the client's part -->
         <artifacts artifactName="ironstone\.(comms\.InboxServices\.search#LinkRecords|shared\.ChatterServices\.search#Users|commons\.TaskServices\.search#Assignees|projects\.ProjectRequestServices\.search#WorkItemOptions|projects\.WorkItemServices\.search#ParentOptions|projects\.PlanningServices\.search#PlanItemCandidates)"
@@ -569,4 +571,82 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERS_2" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_PRODUCTS_SUPPLIERS_3" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
     </artifactGroups>
+
+    <artifactGroups artifactGroupId="BOSS_PRODUCTS_COSTS" description="Shared standard estimates">
+        <artifacts artifactName="component://mr-boss/screen/Shared/StandardCosts.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices/StandardCosts.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/CostRollup.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices/CostRollup.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/CostHistory.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Products/Prices/CostHistory.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_0" userGroupId="BOSS_PRODUCTS_COST_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_1" userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_2" userGroupId="BOSS_PRODUCTS_COST_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_3" userGroupId="BOSS_PRODUCTS_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_4" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_5" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_PRODUCTS_COSTS_6" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_SHARED_REVALUATION" description="Accounting inventory revaluation">
+        <artifacts artifactName="component://mr-boss/screen/Shared/InventoryValuation.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <artifacts artifactName="ironstone.accounting.AssetBookServices.*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_SHARED_REVALUATION_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_SHARED_REVALUATION_0" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <authz artifactAuthzId="BOSS_SHARED_REVALUATION_1" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+
+    <!-- Shared Mantle permissions; launcher and organization scope remain separate. -->
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_COST_ESTIMATE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_COST_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="SUPPLIER_PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="SUPPLIER_PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_CATALOG_ADMIN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_COST_READ" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_COST_ESTIMATE" userPermissionId="PRODUCT_COST_ESTIMATE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_COST_APPROVE" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_COST_APPROVE" userPermissionId="PRODUCT_COST_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_PRICE_READ" userPermissionId="PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_PRICE_EDIT" userPermissionId="PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_PRICE_EDIT" userPermissionId="PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_READ" userPermissionId="SUPPLIER_PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" userPermissionId="SUPPLIER_PRICE_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT" userPermissionId="SUPPLIER_PRICE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_GL_POST" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_READ" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_METHOD" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_METHOD" userPermissionId="METHOD_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_METHOD_APPROVE" userPermissionId="METHOD_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_RESOURCE_ADMIN" userPermissionId="METHOD_RESOURCES" fromDate="0"/>
+    <moqui.security.UserGroup userGroupId="BOSS_MANUFACTURING_COST" description="Manufacturing cost"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_COST" userPermissionId="METHOD_COST_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_RESOURCES" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_COST_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_MANUFACTURING_ADMIN" userPermissionId="METHOD_COST_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_STOCK_PLANNER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_MANAGER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_MANAGER" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
+    <moqui.security.UserGroup userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" description="Warehouse facility admin"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_FACILITY_ADMIN" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_ADMIN" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_ADMIN" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PURCHASING_PLANNER" description="Purchasing planner"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PURCHASING_PLANNER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
 </entity-facade-xml>

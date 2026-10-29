@@ -24,6 +24,10 @@ After the review (impl-products R), on Oct 29, 2026:
   MantleSearch); new ProductCatalogSettings, ProductStockTotals and bulk price-change features.
 - Browser: the Products shots at 390, 1280 and 1440 and the walks pass, except ProductsCostWalk and ProductsToolsWalk,
   which fail the same way at the P14 commits on a machine without Chromium.
+
+After the deferred review items (R7), the same day: BOSS 992 passed, 21 skipped; Mantle as above; browser 571 of 573
+(the one `ProductsShots` spec, every Products walk, ProductsChecks, ProductsCatalogSettings and ProductsFinish),
+the two failures being ProductsFinish's PDF without Chromium and a walk assertion since fixed and rerun.
 - Screen expression lint: zero parse failures.
 
 Validation on Oct 29, 2026:

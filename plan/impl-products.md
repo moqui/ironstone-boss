@@ -147,7 +147,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P12 Import | Mantle, BOSS | ProductImport | built Oct 29; Mantle f5d4a419; BOSS cc1d5b6 |
 | P13 Catalog checks | Mantle, BOSS | CatalogChecks | built Oct 29 before P12; Mantle 6f070c9f; BOSS 042c2e3 |
 | P14 Finish | Mantle, BOSS, mr-moqui docs | — | built Oct 29; Mantle 82a0e9ad; BOSS 366f9d1; mr-moqui bd1eca3c |
-| R Review | Mantle, BOSS | all Products screens | reviewed and revised Oct 29 (R0–R6 below); Mantle c75836c3–2eac1b16, BOSS 82b0d3b–c51070d |
+| R Review | Mantle, BOSS | all Products screens | reviewed and revised Oct 29 (R0–R7 below); Mantle c75836c3–2eac1b16, 49fd190f; BOSS 82b0d3b–c51070d, 1f07783, c00881b |
 
 ### P0 — Checks
 
@@ -663,9 +663,22 @@ passing (BOSS 992 passed, 21 skipped; Mantle with only the InboxThreads and Mant
   steps; one primary at a time; confirmations and danger styling on status changes and ends.
 - **R6** this record, the design's routes and service names, and the inventories.
 
-Not done in the review, and listed in §7: the method, routing and document detail headers; the stock tab across all
-facilities; bulk price as a Products list selection action; Connections links into other apps' lists; locale
-choices on Translations; consolidating the twelve `*Shots` client specs.
+- **R7 Deferred items** (Mantle 49fd190f; BOSS 1f07783, c00881b), done the same day:
+  - Record headers on BillOfMaterialsDetail (Approve method or New method primary; Validate, Edit, Import legacy and
+    Cost estimate in More), RoutingDetail (a header row; its single-button boxes folded into it and the draft
+    operations box) and DocumentDetail (Edit document primary, version choices as drop-downs).
+  - The Stock tab lists every authorized facility that holds or expects the product, with incoming quantities
+    (`get#ProductStockTotals` `incomingQuantity`: open purchase order parts, ordered less accepted) and the lots on
+    hand. Lots and movements are not links yet: Warehouse's Lots and Movements screens are placeholders (§7).
+  - Prices is a row-selection action of the Products list that opens BulkPrice with the selected products. The
+    transition has an action so its form posts the selected rows (a transition without actions renders as a link).
+  - Connections shows a count per type and up to 25 records each, linked through Commons' `get#RecordLink` where an
+    app opens the record; Sales, Purchasing, Accounting and Warehouse have no lists to link a type into yet (§7).
+  - Translations choose languages from a list; the target defaults to another language already in use, and Mantle
+    no longer assumes Spanish.
+  - One table-driven `ProductsShots` spec replaces the twelve. The old specs' checks sat in `if` blocks, which the
+    spec runner does not assert (F46); run here, they found phone columns without names or amounts on the Products,
+    price, supplier offer and combination lists, now fixed.
 
 ## 4. Decisions
 
@@ -759,9 +772,10 @@ is written there too.
 | F40 | P9 review (I-PRD-06, `review-impl-core-apps/products.md`): the roll-up's rules were unstated. P8's `BmirByproduct` lines carry `allocationShare`; `PccOverheadPercent` has no base; `get#OperationCostBasis` charges the full setup to the quantity asked, uses fractional batches and ignores `WorkCenter.efficiencyPercent`; rounding (per component or on the total) is unstated | P9's roll-up rules: by-products follow `allocationShare`, else quantity (Manufacturing P15); overhead percent on material plus conversion, single level; the costing lot size is the BOM's `baseQuantity`, with setup divided by it; cycles round up and efficiency applies; the total is rounded once. A by-product BOM is in the usable-when |
 | F41 | P9 review (I-PRD-07, `review-impl-core-apps/products.md`): Mantle's receipt takes `OrderItem.standardCost` as the new asset's `acquireCost`, and an intercompany order (vendor and customer both internal) is a sale and a purchase, so a sales standard would become the buyer's receipt cost | P9 sets the sales `standardCost` only when the customer is not an `OrgInternal` party; its spec covers an intercompany order |
 | F42 | Review: `ec.user.context` lives for one request, so the bulk results stored there before a redirect were always empty | Messages, which the render saves across the redirect |
-| F43 | Review: a `container-dialog` inside a `button-menu` in a form-list cell does not open from its menu item (probably closed with the menu; not investigated in the framework, nor checked in a header) | Row actions are inline dialogs (Schedule, Correct, End); menus in rows hold links only |
+| F43 | Review: a `container-dialog` inside a `button-menu` in a form-list cell seemed not to open from its menu item. In R7 a dialog in a header menu opens when its own button is clicked; the walk helper had clicked the q-item row around the button, so the row finding is probably that test artifact (not re-checked) | Row actions are inline dialogs (Schedule, Correct, End); walks click the menu item's button (ProductsMethodWalk `menuAction`) |
 | F44 | Review: `always-actions` of a parent run for a standalone tab render (the terminal, a reloaded tab), its `actions` do not, so Product360's detail reads stay in always-actions | The costly reads moved to the tabs that show them (connections, stock) |
-| F45 | Review: ProductsCostWalk and ProductsToolsWalk fail on this machine at the P14 commits too (the labels walk needs Chromium for its PDF) | Not changed by the review; to be rerun where Chromium is installed |
+| F45 | Review: ProductsCostWalk and ProductsToolsWalk fail on this machine at the P14 commits too (the labels walk needs Chromium for its PDF); in R7 ProductsFinish's resolved price PDF fails the same way | Not changed by the review; to be rerun where Chromium is installed |
+| F46 | R7: an assertion inside an `if` block of a spec's expect is not asserted (the runner asserts top-level statements); the Products shots' page checks never ran | The consolidated shots spec computes a problem string per page and asserts it at the top level |
 
 ## 7. Later
 
@@ -786,10 +800,9 @@ Designed, not in this build:
     - WorkCenter capacity, alternates and load;
     - its BillsOfMaterials, Routings and OperationTemplates screens.
   - Accounting: the InventoryValuation report, and CostDataRepair.
-- **From the review (R):** the BillOfMaterialsDetail, RoutingDetail and DocumentDetail header cards; the stock tab
-  across all authorized facilities with incoming quantities and lot links; BulkPrice offered as a row-selection action
-  of the Products list; Connections links into each type's list once Sales, Purchasing and Accounting have them;
-  locale choices on Translations; one table-driven client shots spec.
+- **From the review (R):** lot and movement links on the Stock tab once Warehouse's Lots and Movements screens exist;
+  Connections links into each type's list once Sales, Purchasing, Accounting and Warehouse have them (records link
+  through `get#RecordLink` today).
 - **Other:** a GS1 company-prefix provider (§16); pivot and graph views (design §3); a global matrix widget
   (PRD-VARIANT-UI).
 

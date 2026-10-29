@@ -230,7 +230,7 @@ find use the same row selection and action definitions; there is no separate Sea
 | NewProduct | dialog | Create the smallest valid master | ID, name, product type, asset type, owner, stock/amount UOM | type-aware field visibility | entity create behind proposed catalog validation | Catalog `FindProduct` `NewProductForm` |
 | BulkCategory | list, bulk | Apply or end selected category memberships | category, from/thru, selection | lookup and affected-count confirmation | `mantle.product.ProductServices.add#ProductsToCategory`, `mantle.product.ProductServices.remove#ProductsFromCategory` | Catalog `Search` `AddCategoryForm`, `RemoveCategoryForm`, `AddCategoryFormSelection`, `RemoveCategoryFormSelection` |
 | BulkFeature | list, bulk | Apply or remove selected features | feature, application type, selection | lookup and confirmation | `mantle.product.ProductServices.add#FeatureToProducts`, `mantle.product.ProductServices.remove#FeatureFromProducts` | Catalog `Search` `AddFeatureForm`, `RemoveFeatureForm`, `AddFeatureFormSelection`, `RemoveFeatureFormSelection` |
-| BulkPrice | list, bulk | Stage a reviewed price update | purpose, currency, effective date, selected products | preview before write | `mantle.product.PriceServices.preview#PriceChanges`, `apply#PriceChanges` | ERPNext Item Price; Prices (§7) |
+| BulkPrice | list, bulk | Stage a reviewed price update (opened by the Products list's Prices selection action) | purpose, currency, effective date, selected products | preview before write | `mantle.product.PriceServices.preview#PriceChanges`, `apply#PriceChanges` | ERPNext Item Price; Prices (§7) |
 
 **Actions.** Create is primary. Open record, clone via Product360, export current filter or
 selected rows, and print labels are secondary. Lifecycle actions revalidate each product
@@ -295,7 +295,9 @@ authorized per-type counts and links for sales and purchase order items (`OrderI
 part direction), invoices (`InvoiceItem`), shipments (`ShipmentItem`), production runs
 (`WorkEffortProduct`), BOM where-used, requests (`RequestItem`) and agreements
 (`AgreementItem`). The Products context shows every type the user may read and links into
-that type's list with the product fixed.
+that type's list with the product fixed. Until Sales, Purchasing, Accounting and Warehouse have
+those lists, the pane lists the first records of each type, each linked through Commons'
+`get#RecordLink` where an app the user has opens it (impl-products R7).
 
 **Products-owned panes.** These forms are defined here and embedded by crosscut §3.5, as
 SupplierPrices is:
@@ -926,7 +928,7 @@ Warehouse converts to base units at receipt through the proposed `resolve#Scanne
 | SupplierPriceFind | find | Compare vendor offers | product, supplier, supplier code, buyer, currency, date, preferred | supplier/product lookup | none | Odoo supplierinfo list; Catalog price find |
 | SupplierPrices | list, editable rows | Maintain supply facts | product, supplier item ID/name, price/currency, min quantity/increment, quantity UOM, pack size (contained quantity of a pack product), agreement/item, lead time, preference, dropship | price-break rows; cost permission | proposed `mantle.product.PriceServices.store#ProductPrice` | Catalog `EditPrices` `PricesForm`; Carbon SupplierParts |
 | NewSupplierPrice | dialog | Add a supplier offer | supplier, buyer, product or pack product, supplier code, amount/currency, dates, quantity basis and UOM, agreement/item | role-aware lookups | proposed `mantle.product.PriceServices.store#ProductPrice` | Catalog `EditPrices` `NewPriceForm`; Odoo supplierinfo |
-| SupplierPriceBulk | list, bulk | Apply reviewed dated updates | supplier, selected rows, effective date, adjustment, reason | preview | proposed `ironstone.products.CatalogServices.preview#PriceChanges` and `apply#PriceChanges`, which call `replace#ProductPrice` per row | Odoo supplierinfo; Products BulkPrice |
+| SupplierPriceBulk | list, bulk | Apply reviewed dated updates | supplier, selected rows, effective date, adjustment, reason | preview | proposed `mantle.product.PriceServices.preview#PriceChanges` and `apply#PriceChanges`, which call `replace#ProductPrice` per row | Odoo supplierinfo; Products BulkPrice |
 
 **Actions.** New offer; schedule change; import through ProductImport with fixed supplier
 kind; explain selected price; open Supplier360. Supplier rating is a recorded sourcing datum,

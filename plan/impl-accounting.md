@@ -207,7 +207,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
-| P0 Checks | all (read) | — | partly done Oct 28 (§6 F1–F47) |
+| P0 Checks | all (read) | — | checked Oct 29 (§6 F48–F55); access regressions accompany P1 |
 | P1 Foundation | Mantle, BOSS | the Accounting root and menu, Home | — |
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | — |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | — |
@@ -963,6 +963,15 @@ design, it is written there too.
 | F46 | P0: Projects' invoices check no currency (impl-projects F91), and its approve finalizes and posts | P4's `change#InvoiceState` applies D18 to them too |
 | F47 | P0, Products' state: Products P9 (mr-mantle 5a18970e, mr-boss 2a4abd6) built parts this plan proposes. `mantle.ledger.transaction.PostingOperation` is §4's CX-POSTING record (key, type, organization, user, request hash, preview fingerprint, status, result). `mantle.product.asset.AssetBookEvent` is create-only, with ledger and reversal links. `mantle.ledger.AssetBookServices` holds the revaluation, behind `PartyAcctgPreference.inventoryRevaluationEnabled`, posting `AttInventoryRevaluation` against `GatInventoryRevaluation`, read from `GlAccountTypeDefault` and mapped only for `ORG_ZIZI_SERVICES` in BOSS's Products demo. BOSS's `ironstone.accounting.AssetBookServices` passes its four services through to Mantle's, and InventoryValuation's dialogs call those | P2a and P5 post through PostingOperation; P12 adds its event types to AssetBookEvent and its services to AssetBookServices; P3 maps the offset type for Accounting's demo organization. The dialogs call Mantle directly, and BOSS keeps only `get#RevaluationContext` (Products' fix) |
 
+| F48 | P0 Oct 29: `mantle.rest.xml` exposes invoice and payment create/update/apply/cancel/gateway operations and GL create/update/delete/post/reverse/period mutators. Accounting root authorization does not grant the REST screen. | AccountingAccess exercises REST with authorization enabled; no Accounting REST grant is added. |
+| F49 | P0 Oct 29: `MantleInvoice` exists in MantleDocumentData; payment, GL account and accounting transaction documents do not. | P1 adds the three documents and access-checked palette sources. Global accounts are visible only through an authorized organization's assignment. |
+| F50 | P0 Oct 29: there is no inspection quantity model or source-inspection service in Mantle. | P7 must not invent a successful zero-inspection result: CX-QUALITY is a future owner contract, with received/accepted quantity as existing evidence and an explicit unavailable inspection check. |
+| F51 | P0 Oct 29: AccountConfigData installs TEST_APPROVE and TEST_DECLINE; PaymentTestServices also has card/expiry/NSF failures, but no durable pending-provider fixture. | P18 adds a deterministic pending/completion fixture; no gateway runtime change in P0–P3. |
+| F52 | P0 Oct 29: PublicSiteApp has targetId, but Forum's mount writer accepts only forum/account/members/sites and does not persist targetId. Readiness and URL builders are Forum-specific. PASS uses Schema/Routes and Mantle PassRoutes allowlists; invitations bind a verified recipient, not employee groups. Media is staged/scanned before record finalization. | P18 adds Billing/Supplier mounts, typed organization targets, operation schemas, readiness, record finalizers and canonical page URL builders; its contract is recorded in mr-pass/design-forum. |
+| F53 | P0 Oct 29: Pass.xml has form-action self and frame-ancestors none. Hosted gateway form posts therefore need a reviewed provider-specific policy; return URLs must remain local validated paths. | P18 retains the CSP by default and tests hosted redirect, pending and decline paths without arbitrary return URLs. |
+| F54 | P0 Oct 29: Products' Product360, Supplier360, standard costs, PostingOperation and native forward revaluation exist. Its old BOSS AssetBook wrappers still exist in this checkout. | Reuse native operations and the shared posting record; extend the Accounting contexts in their assigned later phases. |
+| F55 | P0 Oct 29: move#AcctgTransEntry refuses drafts and creates a correction transaction for posted entries. | P2 adds move#DraftLine; the draft editor must not expose the posted adjustment primitive. |
+
 ## 7. Later
 
 Designed, not in this build:
@@ -1010,3 +1019,7 @@ Designed, not in this build:
 | Access | `AccountingAccess` in every phase; P18 (customer token); P21 (the full walk) |
 
 - **Screenshots** through the BOSS client spec of §2, light and dark.
+
+### P0 verification — Oct 29, 2026
+
+Source contracts checked against this checkout. Existing AccountingActivities, LedgerMaintenance and PartyTimePeriods: **18/18 passed**, using `./moq test --nobuild mr-mantle --spec LedgerMaintenance,PartyTimePeriods,AccountingActivities` with a disposable database. P1 includes minimal scoped document lists, draft creation and read-only detail routes to fulfill its shell acceptance criteria; complete document workflows remain P4–P5.

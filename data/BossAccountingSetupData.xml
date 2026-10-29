@@ -1,157 +1,172 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
 <entity-facade-xml type="seed-initial">
-    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_MANAGER" description="Project manager"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING" description="Accounting application"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_AR" description="Accounting Ar"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AR" userPermissionId="RECEIVABLE_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AR" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_AP" description="Accounting Ap"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="PAYABLE_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="PAYABLE_IMPORT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="INVOICE_HOLD" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="INVOICE_MATCH" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="SUPPLIER_TERMS_EDIT" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_MATCH" description="Accounting Match"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_MATCH" userPermissionId="INVOICE_MATCH" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_TREASURY" description="Accounting Treasury"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TREASURY" userPermissionId="PAYMENT_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TREASURY" userPermissionId="BANK_RECONCILE" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_GL" description="Accounting Gl"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_GL_POST" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="BUDGET_EDIT" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_TAX" description="Accounting Tax"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TAX" userPermissionId="TAX_STATEMENT_EDIT" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_READ" description="Accounting Read"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_APPROVE" description="Accounting Approve"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="INVOICE_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="INVOICE_HOLD_RELEASE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="PAYMENT_RUN_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="FISCAL_CLOSE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="CREDIT_HOLD_RELEASE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="BUDGET_OVERRIDE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="RETURN_CREDIT_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="PRODUCTION_COST_POST" fromDate="0"/>
-    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_ADMIN" description="Accounting Admin"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_ADMIN" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_GL_POST" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BANK_RECONCILE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BUDGET_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BUDGET_OVERRIDE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="CREDIT_HOLD_RELEASE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="FISCAL_CLOSE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="FISCAL_REOPEN" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_HOLD" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_HOLD_RELEASE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_MATCH" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYABLE_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYABLE_IMPORT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYMENT_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYMENT_RUN_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PRODUCTION_COST_POST" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PRODUCT_COST_VIEW" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="RECEIVABLE_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="RETURN_CREDIT_APPROVE" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="SUPPLIER_TERMS_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="TAX_STATEMENT_EDIT" fromDate="0"/>
-    <moqui.security.UserGroupPermission userGroupId="BOSS_PROJECT_MANAGER" userPermissionId="RECEIVABLE_EDIT" fromDate="0"/>
+    <moqui.security.UserGroup userGroupId="BOSS_PROJECT_MANAGER" description="Project manager" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING" description="Accounting application" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_AR" description="Accounting Ar" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AR" userPermissionId="RECEIVABLE_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AR" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_AP" description="Accounting Ap" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="PAYABLE_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="PAYABLE_IMPORT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="INVOICE_HOLD" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="INVOICE_MATCH" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_AP" userPermissionId="SUPPLIER_TERMS_EDIT" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_MATCH" description="Accounting Match" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_MATCH" userPermissionId="INVOICE_MATCH" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_TREASURY" description="Accounting Treasury" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TREASURY" userPermissionId="PAYMENT_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TREASURY" userPermissionId="BANK_RECONCILE" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_GL" description="Accounting Gl" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="ACCOUNTING_GL_POST" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="PRODUCT_COST_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_GL" userPermissionId="BUDGET_EDIT" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_TAX" description="Accounting Tax" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_TAX" userPermissionId="TAX_STATEMENT_EDIT" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_READ" description="Accounting Read" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="ACCOUNTING_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="PRODUCT_COST_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_READ" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_APPROVE" description="Accounting Approve" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="ACCOUNTING_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="INVOICE_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="INVOICE_HOLD_RELEASE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="PAYMENT_RUN_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="FISCAL_CLOSE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="CREDIT_HOLD_RELEASE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="BUDGET_OVERRIDE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="RETURN_CREDIT_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_APPROVE" userPermissionId="PRODUCTION_COST_POST" fromDate="0" />
+    <moqui.security.UserGroup userGroupId="BOSS_ACCOUNTING_ADMIN" description="Accounting Admin" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_ADMIN" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_GL_POST" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="ACCOUNTING_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BANK_RECONCILE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BUDGET_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="BUDGET_OVERRIDE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="CREDIT_HOLD_RELEASE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="CUSTOMER_CREDIT_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="FISCAL_CLOSE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="FISCAL_REOPEN" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_HOLD" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_HOLD_RELEASE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="INVOICE_MATCH" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYABLE_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYABLE_IMPORT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYMENT_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PAYMENT_RUN_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PRODUCTION_COST_POST" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="PRODUCT_COST_VIEW" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="RECEIVABLE_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="RETURN_CREDIT_APPROVE" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="SUPPLIER_TERMS_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_ACCOUNTING_ADMIN" userPermissionId="TAX_STATEMENT_EDIT" fromDate="0" />
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PROJECT_MANAGER" userPermissionId="RECEIVABLE_EDIT" fromDate="0" />
     <artifactGroups artifactGroupId="BOSS_ACCOUNTING_ACCESS" description="Accounting root and guarded services">
-        <artifacts artifactName="component://mr-boss/screen/Accounting.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <artifacts artifactName="ironstone\.accounting\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
-        <artifacts artifactName="mantle\.ledger\.(AccountingServices|JournalServices|CloseServices|SetupServices|CurrencyServices|AccountServices|FinanceReportServices|JournalContentServices)\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <artifacts artifactName="ironstone\.accounting\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y" />
+        <artifacts artifactName="mantle\.ledger\.(AccountingServices|JournalServices|CloseServices|SetupServices|CurrencyServices|AccountServices|FinanceReportServices|JournalContentServices)\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y" />
         <authz artifactAuthzId="BOSS_ACCT_ROOT" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_USER_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/>
+            <filters entityFilterSetId="MANTLE_USER_ORG" />
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT" />
         </authz>
         <authz artifactAuthzId="BOSS_ACCT_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL">
-            <filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/>
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG" />
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT" />
         </authz>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_RECORD_LINK">
-        <artifacts artifactName="ironstone.commons.PaletteServices.get#RecordLink" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_RECORD_LINK" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_VIEW"><filters entityFilterSetId="MANTLE_USER_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
-        <authz artifactAuthzId="BOSS_ACCT_RECORD_LINK_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_VIEW"><filters entityFilterSetId="MANTLE_ACTIVE_ORG"/><filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/></authz>
+        <artifacts artifactName="ironstone.commons.PaletteServices.get#RecordLink" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_RECORD_LINK" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_VIEW">
+            <filters entityFilterSetId="MANTLE_USER_ORG" />
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT" />
+        </authz>
+        <authz artifactAuthzId="BOSS_ACCT_RECORD_LINK_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_VIEW">
+            <filters entityFilterSetId="MANTLE_ACTIVE_ORG" />
+            <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT" />
+        </authz>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_RECEIVABLES">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/Receivables.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_Receivables_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Receivables_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Receivables_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Receivables_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Receivables.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_Receivables_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Receivables_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Receivables_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Receivables_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_RECEIVABLES_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_RECEIVABLES_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_PAYABLES">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/Payables.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payables_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payables_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payables_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payables_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Payables.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_Payables_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payables_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payables_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payables_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_PAYABLES_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_PAYABLES_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_PAYMENTS">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/Payments.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_TREASURY" userGroupId="BOSS_ACCOUNTING_TREASURY" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Payments_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Payments.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_TREASURY" userGroupId="BOSS_ACCOUNTING_TREASURY" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Payments_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_PAYMENTS_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_PAYMENTS_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_GENERALLEDGER">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/GeneralLedger.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/GeneralLedger.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_GeneralLedger_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_READ_GENERALLEDGER_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_PERIODCLOSE">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/PeriodClose.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/PeriodClose.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_PeriodClose_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_REPORTS">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/Reports.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_Reports_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Reports_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Reports_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Reports_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Reports_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Reports.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_Reports_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Reports_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Reports_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Reports_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Reports_READ" userGroupId="BOSS_ACCOUNTING_READ" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_SETTINGS">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/Settings.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_Settings_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_Settings_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Settings.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_Settings_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_Settings_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_NewInvoice">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewInvoice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewInvoice.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewInvoice_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_NewBill">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewBill.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewBill_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewBill_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewBill_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewBill.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_NewBill_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewBill_AP" userGroupId="BOSS_ACCOUNTING_AP" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewBill_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_NewPayment">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewPayment.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewPayment_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewPayment_TREASURY" userGroupId="BOSS_ACCOUNTING_TREASURY" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewPayment_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewPayment.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_NewPayment_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewPayment_TREASURY" userGroupId="BOSS_ACCOUNTING_TREASURY" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewPayment_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_NewEntry">
-        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewEntry.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewEntry_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewEntry_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
-        <authz artifactAuthzId="BOSS_ACCT_NewEntry_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+        <artifacts artifactName="component://mr-boss/screen/Accounting/QuickCreate/NewEntry.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y" />
+        <authz artifactAuthzId="BOSS_ACCT_NewEntry_DENY" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewEntry_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
+        <authz artifactAuthzId="BOSS_ACCT_NewEntry_ADMIN" userGroupId="BOSS_ACCOUNTING_ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL" />
     </artifactGroups>
 </entity-facade-xml>

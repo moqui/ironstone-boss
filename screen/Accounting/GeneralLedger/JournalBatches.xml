@@ -80,7 +80,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -103,7 +103,7 @@
             </field>
             <field name="glJournalName">
                 <default-field title="Name">
-                    <text-line />
+                    <display />
                 </default-field>
             </field>
             <field name="isPosted">
@@ -122,7 +122,7 @@
             </columns>
         </form-list>
         <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Newjournalbatch" button-text="New journal batch">
+        <container-dialog id="Newjournalbatch" button-text="New journal batch" condition="accounting.capabilities.glPost">
             <form-single name="NewBatch" transition="saveBatch" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -141,7 +141,7 @@
                 </field>
             </form-single>
         </container-dialog>
-        <container-dialog id="Reviewbatch" button-text="Review batch">
+        <container-dialog id="Reviewbatch" button-text="Review batch" condition="accounting.capabilities.glPost">
             <form-single name="ValidateBatch" transition="validateBatch" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -151,7 +151,7 @@
                 <field name="glJournalId">
                     <default-field title="Batch">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:glJournalId}" />
                         </drop-down>
                     </default-field>
                 </field>
@@ -162,7 +162,7 @@
                 </field>
             </form-single>
         </container-dialog>
-        <container-dialog id="Postreviewedbatch" button-text="Post reviewed batch">
+        <container-dialog id="Postreviewedbatch" button-text="Post reviewed batch" condition="accounting.capabilities.glPost">
             <form-single name="PostBatch" transition="postBatch" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -172,7 +172,7 @@
                 <field name="glJournalId">
                     <default-field title="Batch">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:glJournalId}" />
                         </drop-down>
                     </default-field>
                 </field>

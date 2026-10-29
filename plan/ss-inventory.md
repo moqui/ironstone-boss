@@ -88,13 +88,13 @@ that parity.
 | FinancialAccountTrans | TransactionList | Accounting/Banking/FinancialAccountDetail |  |
 | FindFinancialAccount | NewFinancialAccountForm | Accounting/Banking/FinancialAccounts |  |
 | FindFinancialAccount | FinancialAccountList | Accounting/Banking/FinancialAccounts |  |
-| FindJournal | CreateGlJournal | Accounting/GeneralLedger/JournalBatches |  |
-| FindJournal | TransactionList | Accounting/GeneralLedger/JournalBatches |  |
-| EditGlAccount | EditGlAccountForm | Accounting/GeneralLedger/AccountDetail |  |
-| EditGlAccount | NewGlAccountOrgForm | Accounting/GeneralLedger/AccountDetail |  |
-| EditGlAccount | GlAccountOrgList | Accounting/GeneralLedger/AccountDetail |  |
-| FindGlAccount | NewGlAccountForm | Accounting/GeneralLedger/ChartOfAccounts |  |
-| FindGlAccount | GlAccountListForm | Accounting/GeneralLedger/ChartOfAccounts |  |
+| FindJournal | CreateGlJournal | Accounting/GeneralLedger/JournalBatches | Accounting/GeneralLedger/JournalBatches#NewBatch |
+| FindJournal | TransactionList | Accounting/GeneralLedger/JournalBatches | Accounting/GeneralLedger/JournalBatches#Records |
+| EditGlAccount | EditGlAccountForm | Accounting/GeneralLedger/AccountDetail | Accounting/GeneralLedger/AccountDetail#AccountHeader |
+| EditGlAccount | NewGlAccountOrgForm | Accounting/GeneralLedger/AccountDetail | Accounting/GeneralLedger/AccountDetail#RequiredDimensions; Accounting/GeneralLedger/ChartOfAccounts#AssignExistingAccount |
+| EditGlAccount | GlAccountOrgList | Accounting/GeneralLedger/AccountDetail | Accounting/GeneralLedger/AccountDetail#RequiredDimensions |
+| FindGlAccount | NewGlAccountForm | Accounting/GeneralLedger/ChartOfAccounts | Accounting/GeneralLedger/ChartOfAccounts#NewAccount |
+| FindGlAccount | GlAccountListForm | Accounting/GeneralLedger/ChartOfAccounts | Accounting/GeneralLedger/ChartOfAccounts#Records |
 | Aging | ReportOptions | Accounting/Reports/Aging |  |
 | Aging | InvoiceAgingList | Accounting/Reports/Aging |  |
 | EditInvoice | AdjustInvoice | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
@@ -126,8 +126,8 @@ that parity.
 | EditInvoiceItemShipments | ItemSourceList | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItems | CreateInvoiceItem | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItems | EditInvoiceItems | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| FindInvoice | NewPayableForm | Accounting/Payables/Bills |  |
-| FindInvoice | NewReceivableForm | Accounting/Receivables/Invoices |  |
+| FindInvoice | NewPayableForm | Accounting/Payables/Bills | Accounting/QuickCreate/NewBill#CreateDraft (draft only) |
+| FindInvoice | NewReceivableForm | Accounting/Receivables/Invoices | Accounting/QuickCreate/NewInvoice#CreateDraft (draft only) |
 | FindInvoice | NewCustCreditForm | Accounting/Receivables/Invoices |  |
 | FindInvoice | NewSupCreditForm | Accounting/Payables/Bills |  |
 | FindInvoice | ProjectInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Projects/Billing/Unbilled |
@@ -135,16 +135,16 @@ that parity.
 | FindInvoice | WorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue |  |
 | FindInvoice | CustomerStatementForm | Accounting/Receivables/Statements |  |
 | FindInvoice | MainOptions | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
-| FindInvoice | InvoiceList | Purchasing/Bills; Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
+| FindInvoice | InvoiceList | Purchasing/Bills; Accounting/Receivables/Invoices; Accounting/Payables/Bills | Accounting/Receivables/Invoices#Records; Accounting/Payables/Bills#Records |
 | FindInvoice | AgingSummaryList | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
-| AcctgPreference | EditPapForm | Accounting/Settings/AccountingPreferences |  |
-| AcctgPreference | CloneAcctgSettingsForm | Accounting/Settings/AccountingPreferences |  |
+| AcctgPreference | EditPapForm | Accounting/Settings/AccountingPreferences | Accounting/Settings/AccountingPreferences#Preferences |
+| AcctgPreference | CloneAcctgSettingsForm | Accounting/Settings/AccountingPreferences | Accounting/Settings/AccountingPreferences#ClonePreferences |
 | AssetTypes | AddConfigForm | Accounting/Settings/PostingDefaults |  |
 | AssetTypes | AllConfigList | Accounting/Settings/PostingDefaults |  |
 | FinAcctReasons | AllTypesList | Accounting/Settings/PostingDefaults |  |
 | FinAcctTypes | AllTypesList | Accounting/Settings/PostingDefaults |  |
-| GlAccounts | NewGlAccountOrgForm | Accounting/Settings/PostingDefaults |  |
-| GlAccounts | GlAccountOrgList | Accounting/Settings/PostingDefaults |  |
+| GlAccounts | NewGlAccountOrgForm | Accounting/Settings/PostingDefaults | Accounting/GeneralLedger/ChartOfAccounts#AssignExistingAccount |
+| GlAccounts | GlAccountOrgList | Accounting/Settings/PostingDefaults | Accounting/Settings/PostingDefaults#PostingMappings |
 | InvoiceTypes | AddConfigForm | Accounting/Settings/PostingDefaults |  |
 | InvoiceTypes | MissingConfigForm | Accounting/Settings/PostingDefaults |  |
 | InvoiceTypes | AllConfigList | Accounting/Settings/PostingDefaults |  |
@@ -177,10 +177,10 @@ that parity.
 | EditPayment | UpdateContentForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | GatewayResponseList | Accounting/Payments/PaymentDetail |  |
 | FindPayment | NewInPaymentForm | Accounting/Payments/Payments |  |
-| FindPayment | NewOutPaymentForm | Accounting/Payments/Payments |  |
-| FindPayment | PaymentList | Accounting/Payments/Payments |  |
+| FindPayment | NewOutPaymentForm | Accounting/Payments/Payments | Accounting/QuickCreate/NewPayment#CreateDraft (draft only) |
+| FindPayment | PaymentList | Accounting/Payments/Payments | Accounting/Payments/Payments#Records |
 | AccountBalance | AccountBalanceHistory | Accounting/Reports/AccountBalance |  |
-| AccountLedger | AccountLedger | Accounting/Reports/GeneralLedger |  |
+| AccountLedger | AccountLedger | Accounting/Reports/GeneralLedger | Accounting/Reports/GeneralLedger#ReportRows |
 | ArAgingSummary | ReportOptions | Accounting/Reports/Aging |  |
 | ArAgingSummary | InvoiceAgingList | Accounting/Reports/Aging |  |
 | AssetOnHand | AssetOnHandSummary | Warehouse/Inventory/Availability; Accounting/Reports/StockTransactions |  |
@@ -226,20 +226,20 @@ that parity.
 | EditTimePeriod | CreatePreviousPeriod | Accounting/PeriodClose/Periods |  |
 | EditTimePeriod | ViewTimePeriod | Accounting/PeriodClose/Periods |  |
 | EditTimePeriod | CreateChild | Accounting/PeriodClose/Periods |  |
-| EditTimePeriod | TimePeriodList | Accounting/PeriodClose/Periods |  |
+| EditTimePeriod | TimePeriodList | Accounting/PeriodClose/Periods | Accounting/PeriodClose/Periods#Records |
 | FindTimePeriod | CreatePeriod | Accounting/PeriodClose/Periods |  |
-| FindTimePeriod | TimePeriodList | Accounting/PeriodClose/Periods |  |
+| FindTimePeriod | TimePeriodList | Accounting/PeriodClose/Periods | Accounting/PeriodClose/Periods#Records |
 | ViewPeriodGlAccounts | ClosingTransForm | Accounting/PeriodClose/PeriodCloseDetail |  |
 | ViewPeriodGlAccounts | PeriodGlAccountList | Accounting/PeriodClose/PeriodCloseDetail |  |
-| EditTransaction | UpdateAcctgTrans | Accounting/GeneralLedger/JournalEntryDetail |  |
+| EditTransaction | UpdateAcctgTrans | Accounting/GeneralLedger/JournalEntryDetail | Accounting/GeneralLedger/JournalEntryDetail#DraftHeader |
 | EditTransaction | UpdateAcctgTransPosted | Accounting/GeneralLedger/JournalEntryDetail |  |
-| EditTransaction | AddEntryForm | Accounting/GeneralLedger/JournalEntryDetail |  |
-| EditTransaction | EntryListForm | Accounting/GeneralLedger/JournalEntryDetail |  |
-| EditTransaction | AuditLogList | Accounting/GeneralLedger/JournalEntryDetail |  |
-| MoveEntry | ReceiveForm | Accounting/GeneralLedger/JournalEntryDetail |  |
-| FindTransaction | CreateAcctgTrans | Accounting/GeneralLedger/JournalEntries |  |
-| FindTransaction | TransactionList | Accounting/GeneralLedger/JournalEntries |  |
-| FindTransactionEntry | TransactionEntryList | Accounting/GeneralLedger/TransactionEntries |  |
+| EditTransaction | AddEntryForm | Accounting/GeneralLedger/JournalEntryDetail | Accounting/GeneralLedger/JournalEntryDetail#AddLine |
+| EditTransaction | EntryListForm | Accounting/GeneralLedger/JournalEntryDetail | Accounting/GeneralLedger/JournalEntryDetail#TransactionLines |
+| EditTransaction | AuditLogList | Accounting/GeneralLedger/JournalEntryDetail | Accounting/GeneralLedger/JournalEntryDetail#Audit |
+| MoveEntry | ReceiveForm | Accounting/GeneralLedger/JournalEntryDetail | Accounting/GeneralLedger/JournalEntryDetail#MoveDraftLine (draft move; posted adjustment is not exposed) |
+| FindTransaction | CreateAcctgTrans | Accounting/GeneralLedger/JournalEntries | Accounting/QuickCreate/NewEntry#CreateDraft |
+| FindTransaction | TransactionList | Accounting/GeneralLedger/JournalEntries | Accounting/GeneralLedger/JournalEntries#Records |
+| FindTransactionEntry | TransactionEntryList | Accounting/GeneralLedger/TransactionEntries | Accounting/GeneralLedger/TransactionEntries#Records |
 | OrgInternalSummary | OrgInternalForm | Accounting/Home |  |
 
 ## Asset (65 forms)
@@ -983,3 +983,8 @@ that parity.
 | QuickSearch | SearchOptions | — | — |
 | QuickSearch | SearchResults | — | — |
 | QuickLookup | QuickLookupForm | — | — |
+
+Accounting P0–P3 (Oct 29): foundation lists/drafts, ledger/configuration editors, reports, batches/templates and files
+are implemented. Coverage above names the built forms. Posted financial rewrite, arbitrary period editing/close,
+full invoice/bill/payment workflows, gateway operations and banking remain outside this phase; those parity cells
+remain blank. Numbering/templates, due-only terms and masked method metadata are documented in AccountingImplementation.

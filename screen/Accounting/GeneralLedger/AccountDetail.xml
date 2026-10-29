@@ -86,6 +86,8 @@
         <set from="0" field="accountClassesGroupRowsPageMaxIndex" />
         <set from="accountClassesGroupRowsCount ? 1 : 0" field="accountClassesGroupRowsPageRangeLow" />
         <set from="accountClassesGroupRowsCount" field="accountClassesGroupRowsPageRangeHigh" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+accountClassesCategoryRows = dateLabels.formatDates(accountClassesCategoryRows,[["fromDate", "yyyy-MM-dd"], ["thruDate", "yyyy-MM-dd"]])</script>
     </actions>
     <widgets>
         <link parameter-map="{organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate,glAccountId:glAccountId}" url="//Accounting/Reports/${reportReturn === 'TrialBalance' ? 'TrialBalance' : 'GeneralLedger'}" text="Back to report" condition="['TrialBalance','GeneralLedger'].includes(reportReturn)" />
@@ -96,125 +98,133 @@
         </container>
         <section name="AccountEditor" condition="accounting.capabilities.glPost">
             <widgets>
-                <form-single name="AccountHeader" transition="save" map="record">
-                    <field name="recordId" from="glAccountId">
-                        <default-field title="Record id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="organizationPartyId" from="organizationPartyId">
-                        <default-field title="Organization party id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="lastUpdatedStamp" from="record.lastUpdatedStamp">
-                        <default-field title="Last updated stamp">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="accountCode">
-                        <default-field title="Code">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="accountName">
-                        <default-field title="Name">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="parentGlAccountId">
-                        <default-field title="Parent">
-                            <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="glAccountClassEnumId">
-                        <default-field title="Class">
-                            <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="glAccountTypeEnumId">
-                        <default-field title="Type">
-                            <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="disallowPosting">
-                        <default-field title="Posting disabled">
-                            <drop-down allow-empty="true">
-                                <option key="N" text="No" />
-                                <option key="Y" text="Yes" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="changeReason">
-                        <default-field title="Reason">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="submit">
-                        <default-field title="Submit">
-                            <submit text="Save account" type="primary" />
-                        </default-field>
-                    </field>
-                </form-single>
-                <form-single name="RequiredDimensions" transition="assignment" map="record">
-                    <field name="recordId" from="glAccountId">
-                        <default-field title="Record id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="organizationPartyId" from="organizationPartyId">
-                        <default-field title="Organization party id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="lastUpdatedStamp" from="record.assignmentLastUpdatedStamp">
-                        <default-field title="Last updated stamp">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="fromDate">
-                        <default-field title="From">
-                            <date-time />
-                        </default-field>
-                    </field>
-                    <field name="thruDate">
-                        <default-field title="Through">
-                            <date-time />
-                        </default-field>
-                    </field>
-                    <field name="facilityRequired">
-                        <default-field title="Facility required">
-                            <drop-down allow-empty="true">
-                                <option key="N" text="No" />
-                                <option key="Y" text="Yes" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="costCenterRequired">
-                        <default-field title="Cost centre required">
-                            <drop-down allow-empty="true">
-                                <option key="N" text="No" />
-                                <option key="Y" text="Yes" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="changeReason">
-                        <default-field title="Reason">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="submit">
-                        <default-field title="Submit">
-                            <submit text="Save requirements" type="primary" />
-                        </default-field>
-                    </field>
-                </form-single>
+                <section name="AccountHeaderPermission" condition="accounting.capabilities.glPost">
+                    <widgets>
+                        <form-single name="AccountHeader" transition="save" map="record">
+                            <field name="recordId" from="glAccountId">
+                                <default-field title="Record id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="Organization party id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="lastUpdatedStamp" from="record.lastUpdatedStamp">
+                                <default-field title="Last updated stamp">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="accountCode">
+                                <default-field title="Code">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="accountName">
+                                <default-field title="Name">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="parentGlAccountId">
+                                <default-field title="Parent">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="glAccountClassEnumId">
+                                <default-field title="Class">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="glAccountTypeEnumId">
+                                <default-field title="Type">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="disallowPosting">
+                                <default-field title="Posting disabled">
+                                    <drop-down allow-empty="true">
+                                        <option key="N" text="No" />
+                                        <option key="Y" text="Yes" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="Submit">
+                                    <submit text="Save account" type="primary" />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <section name="RequiredDimensionsPermission" condition="accounting.capabilities.glPost">
+                    <widgets>
+                        <form-single name="RequiredDimensions" transition="assignment" map="record">
+                            <field name="recordId" from="glAccountId">
+                                <default-field title="Record id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="Organization party id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="lastUpdatedStamp" from="record.assignmentLastUpdatedStamp">
+                                <default-field title="Last updated stamp">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <default-field title="From">
+                                    <date-time />
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <default-field title="Through">
+                                    <date-time />
+                                </default-field>
+                            </field>
+                            <field name="facilityRequired">
+                                <default-field title="Facility required">
+                                    <drop-down allow-empty="true">
+                                        <option key="N" text="No" />
+                                        <option key="Y" text="Yes" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="costCenterRequired">
+                                <default-field title="Cost centre required">
+                                    <drop-down allow-empty="true">
+                                        <option key="N" text="No" />
+                                        <option key="Y" text="Yes" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="Submit">
+                                    <submit text="Save requirements" type="primary" />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
             </widgets>
         </section>
         <label text="Account details" type="h6" />
@@ -229,12 +239,12 @@
             </field>
             <field name="fromDate">
                 <default-field title="From">
-                    <display format="yyyy-MM-dd" />
+                    <display text="${fromDateText}" />
                 </default-field>
             </field>
             <field name="thruDate">
                 <default-field title="Through">
-                    <display format="yyyy-MM-dd" />
+                    <display text="${thruDateText}" />
                 </default-field>
             </field>
             <columns type="mobile">
@@ -267,7 +277,7 @@
                 </column>
             </columns>
         </form-list>
-        <container-dialog id="Setaccountclassification" button-text="Set account classification" condition="accounting.capabilities.admin">
+        <container-dialog id="Setaccountclassification" button-text="Set account classification" condition="(accounting.capabilities.admin) &amp;&amp; accounting.capabilities.glPost">
             <form-single name="AccountClassification" transition="classification" map="context">
                 <field name="recordId" from="glAccountId">
                     <default-field title="Record id">
@@ -282,14 +292,14 @@
                 <field name="glAccountCategoryId">
                     <default-field title="Category">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountCategories',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountCategories',organizationPartyId:organizationPartyId,selected:glAccountCategoryId}" />
                         </drop-down>
                     </default-field>
                 </field>
                 <field name="glAccountGroupId">
                     <default-field title="Report group">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountGroups',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountGroups',organizationPartyId:organizationPartyId,selected:glAccountGroupId}" />
                         </drop-down>
                     </default-field>
                 </field>

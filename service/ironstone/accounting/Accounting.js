@@ -41,6 +41,9 @@ function summary(p) {
         summary = {
             asOf: ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd HH:mm:ss"),
             unposted: null,
+            posted: null,
+            accounts: null,
+            periods: null,
             arDue: null,
             arOverdue: null,
             apDue: null,
@@ -49,29 +52,42 @@ function summary(p) {
         },
         findings = []
     if (a.capabilities.reportRead || a.capabilities.glPost) {
-        ec.message.pushErrors()
-        try {
-            const out = ec.service
-                .sync()
-                .name("mantle.ledger.AccountingServices.find#Records")
-                .parameters({
-                    kind: "journals",
-                    isPosted: "N",
-                    organizationPartyId: a.organizationPartyId,
-                    pageSize: 1,
-                })
-                .disableAuthz()
-                .requireNewTransaction(true)
-                .call()
-            if (ec.message.hasError())
-                throw new Error(ec.message.getErrorsString())
-            summary.unposted = out.recordCount
-        } catch (error) {
-            ec.logger.error("Accounting Home unposted count: " + error.message)
-            findings.push("Unposted count is unavailable")
-        } finally {
-            ec.message.clearErrors()
-            ec.message.popErrors()
+        for (const [counter, kind, extra] of [
+            ["unposted", "journals", { isPosted: "N" }],
+            ["posted", "journals", { isPosted: "Y" }],
+            ["accounts", "accounts", {}],
+            ["periods", "periods", {}],
+        ]) {
+            ec.message.pushErrors()
+            try {
+                const out = ec.service
+                    .sync()
+                    .name("mantle.ledger.AccountingServices.find#Records")
+                    .parameters(
+                        Object.assign(
+                            {
+                                kind,
+                                organizationPartyId: a.organizationPartyId,
+                                pageSize: 1,
+                            },
+                            extra,
+                        ),
+                    )
+                    .disableAuthz()
+                    .requireNewTransaction(true)
+                    .call()
+                if (ec.message.hasError())
+                    throw new Error(ec.message.getErrorsString())
+                summary[counter] = out.recordCount
+            } catch (error) {
+                ec.logger.error(
+                    "Accounting Home " + counter + " count: " + error.message,
+                )
+                findings.push(counter + " count is unavailable")
+            } finally {
+                ec.message.clearErrors()
+                ec.message.popErrors()
+            }
         }
     }
     ec.message.pushErrors()
@@ -135,7 +151,7 @@ function choices(p) {
         "GlAccountClass",
         "GlAccountType",
         "InvoiceType",
-        "InvoiceItemType",
+        "ItemType",
         "AcctgTransType",
         "PaymentType",
         "PaymentInstrument",
@@ -144,7 +160,7 @@ function choices(p) {
         "AssetClass",
         "GlAccountGroupType",
         "FinancialAccountTransReason",
-        "PhysicalInventoryVarianceReason",
+        "InventoryVarianceReason",
     ]
     if (
         p.choice?.startsWith("enum:") &&
@@ -319,6 +335,39 @@ function choices(p) {
                 )
                 .list(),
         ).map((r) => ({ value: r.partyId, label: r.organizationName }))
+    } else if (p.choice === "unassignedAccounts") {
+        const scope = native.organization(p, "glPost"),
+            cf = ec.entity.conditionFactory
+        const assigned = native
+            .organizationChain(scope.organizationPartyId)
+            .flatMap((id) =>
+                native
+                    .rows("mantle.ledger.account.GlAccountOrganization", {
+                        organizationPartyId: id,
+                    })
+                    .map((row) => row.glAccountId),
+            )
+        let q = native.find("mantle.ledger.account.GlAccount")
+        if (assigned.length) q = q.condition("glAccountId", "not-in", assigned)
+        q = q.condition(
+            cf.makeCondition(
+                [
+                    cf.makeCondition("accountName", "like", "%" + term + "%"),
+                    cf.makeCondition("accountCode", "like", "%" + term + "%"),
+                    cf.makeCondition("glAccountId", "like", "%" + term + "%"),
+                ],
+                "or",
+            ),
+        )
+        options = Array.from(q.orderBy("accountCode").limit(30).list()).map(
+            (row) => ({
+                value: row.glAccountId,
+                label:
+                    (row.accountCode || row.glAccountId) +
+                    " — " +
+                    row.accountName,
+            }),
+        )
     } else if (["accounts", "accountParents"].includes(p.choice)) {
         const cf = ec.entity.conditionFactory
         let q = native.query({
@@ -337,7 +386,28 @@ function choices(p) {
             )
         options = Array.from(
             q
-                .condition("accountName", "like", "%" + term + "%")
+                .condition(
+                    cf.makeCondition(
+                        [
+                            cf.makeCondition(
+                                "accountName",
+                                "like",
+                                "%" + term + "%",
+                            ),
+                            cf.makeCondition(
+                                "accountCode",
+                                "like",
+                                "%" + term + "%",
+                            ),
+                            cf.makeCondition(
+                                "glAccountId",
+                                "like",
+                                "%" + term + "%",
+                            ),
+                        ],
+                        "or",
+                    ),
+                )
                 .limit(30)
                 .list(),
         ).map((r) => ({
@@ -374,16 +444,148 @@ function choices(p) {
             .rows("moqui.basic.Uom", { uomTypeEnumId: "UT_CURRENCY_MEASURE" })
             .map((r) => ({ value: r.uomId, label: r.description || r.uomId }))
     }
-    if (p.selected && !options.some((r) => r.value === p.selected)) {
-        // Selected labels go through the same authorization path.
+    const needle = term.trim().toLowerCase()
+    if (needle)
+        options = options.filter(
+            (option) =>
+                String(option.value || "")
+                    .toLowerCase()
+                    .includes(needle) ||
+                String(option.label || "")
+                    .toLowerCase()
+                    .includes(needle),
+        )
+    if (p.selected && !options.some((row) => row.value === p.selected)) {
+        let selected
         if (["accounts", "accountParents"].includes(p.choice)) {
-            const row = native.record({
-                kind: "accounts",
-                recordId: p.selected,
-                organizationPartyId: p.organizationPartyId,
+            let row
+            if (
+                p.choice === "accountParents" &&
+                native
+                    .query({
+                        kind: "accounts",
+                        organizationPartyId: p.organizationPartyId,
+                    })
+                    .q.condition("parentGlAccountId", p.selected)
+                    .count()
+            )
+                row = native.one("mantle.ledger.account.GlAccount", {
+                    glAccountId: p.selected,
+                })
+            else
+                row = native.record({
+                    kind: "accounts",
+                    recordId: p.selected,
+                    organizationPartyId: p.organizationPartyId,
+                })
+            selected = {
+                value: row.glAccountId,
+                label:
+                    (row.accountCode || row.glAccountId) +
+                    " — " +
+                    row.accountName,
+            }
+        } else if (p.choice === "unassignedAccounts") {
+            native.organization(p, "glPost")
+            const row = native.one("mantle.ledger.account.GlAccount", {
+                glAccountId: p.selected,
             })
-            options.push({ value: row.glAccountId, label: row.accountName })
+            if (row)
+                selected = {
+                    value: row.glAccountId,
+                    label:
+                        (row.accountCode || row.glAccountId) +
+                        " — " +
+                        row.accountName,
+                }
+        } else if (
+            p.choice?.startsWith("enum:") &&
+            enumTypes.includes(p.choice.slice(5))
+        ) {
+            const row = native.one("moqui.basic.Enumeration", {
+                enumId: p.selected,
+                enumTypeId: p.choice.slice(5),
+            })
+            if (row) selected = { value: row.enumId, label: row.description }
+        } else if (["currencies", "timeUnits"].includes(p.choice)) {
+            const row = native.one("moqui.basic.Uom", {
+                uomId: p.selected,
+                uomTypeEnumId:
+                    p.choice === "currencies"
+                        ? "UT_CURRENCY_MEASURE"
+                        : "UT_TIME_FREQ_MEASURE",
+            })
+            if (row) selected = { value: row.uomId, label: row.description }
+        } else if (
+            [
+                "batches",
+                "templates",
+                "journals",
+                "locks",
+                "periods",
+                "drafts",
+            ].includes(p.choice)
+        ) {
+            const kind = p.choice === "drafts" ? "journals" : p.choice,
+                row = native.record({
+                    kind,
+                    recordId: p.selected,
+                    organizationPartyId: p.organizationPartyId,
+                })
+            if (p.choice === "drafts" && row.isPosted === "Y")
+                throw new Error("Choose a draft")
+            selected = {
+                value: row[native.kinds[kind][1]],
+                label:
+                    row.glJournalName ||
+                    row.templateName ||
+                    row.description ||
+                    row.changeReason ||
+                    row[native.kinds[kind][1]],
+            }
+        } else if (["organizations", "allOrganizations"].includes(p.choice)) {
+            const ids =
+                p.choice === "allOrganizations"
+                    ? a.organizationPartyIds
+                    : a.allowedOrganizationPartyIds
+            if (!ids.includes(p.selected))
+                throw new Error("Organization is not available")
+            const row = native.one("mantle.party.Organization", {
+                partyId: p.selected,
+            })
+            if (row)
+                selected = { value: row.partyId, label: row.organizationName }
+        } else if (p.choice === "facilities") {
+            const scope = native.organization(p)
+            native.dimensions(scope.organizationPartyId, {
+                facilityId: p.selected,
+            })
+            const row = native.one("mantle.facility.Facility", {
+                facilityId: p.selected,
+            })
+            if (row)
+                selected = { value: row.facilityId, label: row.facilityName }
+        } else if (p.choice === "costCenters") {
+            const scope = native.organization(p)
+            native.dimensions(scope.organizationPartyId, {
+                costCenterId: p.selected,
+            })
+            const row = native.one("mantle.party.Organization", {
+                partyId: p.selected,
+            })
+            if (row)
+                selected = { value: row.partyId, label: row.organizationName }
+        } else if (p.choice === "terms") {
+            const row = native.one("mantle.account.invoice.SettlementTerm", {
+                settlementTermId: p.selected,
+            })
+            if (row)
+                selected = {
+                    value: row.settlementTermId,
+                    label: row.description,
+                }
         }
+        if (selected) options.push(selected)
     }
     return { options }
 }
@@ -396,8 +598,39 @@ function selectOrganization(p) {
     call("mantle.party.PartyServices.setup#UserOrganizationInfo")
     return { organizationPartyId: id }
 }
+// Format safe response maps before JSON serialization removes date types. Raw values remain available to writers.
+function formatDates(value, fields) {
+    const values = (Array.isArray(value) ? value : [value]).map((row) =>
+        row ? native.map(row) : null,
+    )
+    for (const row of values) {
+        if (!row) continue
+        for (const [field, pattern] of fields) {
+            const date = row[field]
+            try {
+                if (date == null || date === "") row[field + "Text"] = ""
+                else if (/^\d{4}-\d{2}-\d{2}$/.test(String(date)))
+                    row[field + "Text"] =
+                        String(date) +
+                        (pattern.includes("HH:mm") ? " 00:00" : "")
+                else
+                    row[field + "Text"] = ec.l10n.format(
+                        new Date(native.ms(date)),
+                        pattern,
+                    )
+            } catch (error) {
+                ec.logger.error(
+                    "Accounting date " + field + ": " + error.message,
+                )
+                row[field + "Text"] = "Unavailable"
+            }
+        }
+    }
+    return Array.isArray(value) ? values : values[0]
+}
 const operations = { selectOrganization, access, summary, search, choices }
 ;({
+    formatDates,
     execute: (op, p) => {
         if (!operations[op])
             throw new Error("Unknown Accounting operation " + op)

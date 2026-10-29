@@ -32,6 +32,8 @@
     <actions>
         <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'periods'})" out-map="context" />
         <set field="recordsCount" from="recordCount" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+records = dateLabels.formatDates(records,[["lastUpdatedStamp", "yyyy-MM-dd HH:mm"]])</script>
     </actions>
     <widgets>
         <label text="Fiscal periods" type="h5" />
@@ -39,7 +41,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -62,12 +64,12 @@
             </field>
             <field name="description">
                 <default-field title="Name">
-                    <text-line />
+                    <display />
                 </default-field>
             </field>
             <field name="lastUpdatedStamp">
                 <default-field title="Updated">
-                    <display format="yyyy-MM-dd HH:mm" />
+                    <display text="${lastUpdatedStampText}" />
                 </default-field>
             </field>
             <columns type="mobile">
@@ -81,7 +83,7 @@
             </columns>
         </form-list>
         <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Generatefiscalperiods" button-text="Generate fiscal periods" condition="accounting.capabilities.glPost">
+        <container-dialog id="Generatefiscalperiods" button-text="Generate fiscal periods" condition="(accounting.capabilities.glPost) &amp;&amp; accounting.capabilities.glPost">
             <form-single name="GeneratePeriods" transition="generate" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">

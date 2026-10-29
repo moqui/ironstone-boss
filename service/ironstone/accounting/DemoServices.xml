@@ -32,6 +32,10 @@
                     }
                 }
                 lib.call('update#mantle.ledger.config.PartyAcctgPreference',{organizationPartyId:org,postingGuardEnabled:'Y',requiredLedgerDimensionsEnabled:'Y',forwardIssuanceRepostEnabled:'Y'})
+                create('mantle.ledger.account.GlAccountOrganization',{organizationPartyId:org,glAccountId:'BOSS_INVENTORY_REVALUATION'},{fromDate:0})
+                const offset = lib.call('mantle.ledger.LedgerServices.get#DefaultGlAccountByType',{organizationPartyId:org,glAccountTypeEnumId:'GatInventoryRevaluation'})
+                if(!offset.glAccountId)lib.call('create#mantle.ledger.config.GlAccountTypeDefault',{organizationPartyId:org,glAccountTypeEnumId:'GatInventoryRevaluation',glAccountId:'BOSS_INVENTORY_REVALUATION'})
+                for(const paymentGatewayConfigId of ['TEST_APPROVE','TEST_DECLINE'])create('mantle.account.method.PaymentGatewayOrganization',{organizationPartyId:org,paymentGatewayConfigId},{fromDate:0,isEnabled:'Y'})
                 complete=true
             } finally {
                 if(!disabled)ec.artifactExecution.enableAuthz()

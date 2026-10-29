@@ -1,8 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
-Oct 28, 2026 — plan; P0 partly done (F1–F46, found while writing it); the shared party-role and effective-date
-rules applied (§4); the customer and supplier pages as PASS apps in mr-pass (§4); its open questions decided (§4);
-Mantle without BOSS, and forward-cost revaluation (§4)
+Oct 29, 2026 — P0, P1, P2a/P2b and P3 built and verified. Later phases remain planned.
+The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -11,12 +10,10 @@ rather than restating them, and the design stays the place for screen and record
 file is the log: phase status and what each built, the decisions made, open questions, findings against the
 code, and what is deferred.
 
-Today `screen/Accounting/` holds nine placeholders, and the root has only the Chatter and RecordFiles mounts.
-The `BOSS_ACCOUNTING` authz is in BossSetupData's commented not-yet-implemented block (F1). None of the design's
-proposed services, entities, fields or status items exist yet in Mantle or BOSS. Two shared screens it reuses
-exist, with the Projects context only: `Shared/InvoiceDetail` and `Shared/OrderDetail` (F2). Accounting is built
-after Products (§4), so Product360, Supplier360, ProductStandardCost, and the revaluation services and dialogs
-of Products P2, P6 and P9 are there to extend.
+Before P0, `screen/Accounting/` held nine placeholders and its root grant was inactive. P0–P3 now provide the
+scoped shell and minimal document routes, guarded ledger, reports and settings. Products' existing costing and
+revaluation contracts remain the integration baseline. Full document workflows and shared customer/supplier
+screens follow in their later phases.
 
 **Inputs.**
 - Designs:
@@ -208,9 +205,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 29 (§6 F48–F55); access regressions accompany P1 |
-| P1 Foundation | Mantle, BOSS | the Accounting root and menu, Home |built Oct 29; see build record below |
-| P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger |built Oct 29; see build record below |
-| P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | — |
+| P1 Foundation | Mantle, BOSS | root/menu, Home, minimal invoice/bill/payment lists and read-only details, draft quick create | built Oct 29; see build record below |
+| P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
+| P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | — |
 | P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | — |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
@@ -237,7 +234,7 @@ where it changes the design, an edit there. F1–F46 were found on Oct 28 while 
 edits that F17, F25, F27 and F40 call for, and those of §4's decisions in design-accounting and crosscut (among
 them InvoicePay and SupplierBillUpload, and the audience roots of crosscut §2, §5 and D5 with their groups in §1.4),
 were made in the Oct 28 design sweep. The Billing and Supplier apps in design-forum §1 and §13 are added when P0
-closes. Still to check:
+closes. Completed checks (findings F48–F60; verification below):
 
 - **REST.** Which Mantle REST mutators reach invoices, payments and accounting transactions, and what the BOSS
   groups would reach through them (F6, F11).
@@ -972,6 +969,12 @@ design, it is written there too.
 | F54 | P0 Oct 29: Products' Product360, Supplier360, standard costs, PostingOperation and native forward revaluation exist. Its old BOSS AssetBook wrappers still exist in this checkout. | Reuse native operations and the shared posting record; extend the Accounting contexts in their assigned later phases. |
 | F55 | P0 Oct 29: move#AcctgTransEntry refuses drafts and creates a correction transaction for posted entries. | P2 adds move#DraftLine; the draft editor must not expose the posted adjustment primitive. |
 
+| F56 | P2: PostingOperation keys are existing 40-character identifiers. | Reviewed external keys are bounded at 40; derived batch/source identities use deterministic hashes that fit the existing record. No parallel operation table was introduced. |
+| F57 | P2: invoice/payment missing-mapping branches bypassed post#AcctgTrans; operational posters could set AtrSuccess without a posted transaction. | Adopted direct financial posts refuse missing mappings atomically. Adopted stock/financial-account sources retain the unposted error journal and AtrPostingFailed, with a stable failure code. Legacy defaults remain unchanged. |
+| F58 | P3: invoice item enums use ItemType; variance reasons use InventoryVarianceReason. Product invoice mapping resolves category before product, then asset-type and item defaults. | Server choices and mapping-precedence text use the installed native contracts; missing item defaults are checked through get#InvoiceItemGlAccount. |
+| F59 | P3: PaymentGatewayConfig is global and contains executable service names. | PaymentGatewayOrganization is an audited external provisioning boundary. Finance returns only active organization-permitted gateway IDs/descriptions, and no credentials or executable fields. Existing method identifiers remain masked. |
+| F60 | P3 browser verification: the remote choice widget discarded loaded options when a parent form rerendered its empty seed array, then cleared a selection outside the first search page. | The existing widget preserves the loaded selection across renders/search pages; a changed dependency still clears it. QvtKeys and the Accounting mapping-repair walk exercise the contract. |
+
 ## 7. Later
 
 Designed, not in this build:
@@ -1040,3 +1043,25 @@ calendar, chart/journal/period editors, trial balance/general ledger, independen
 versions, dimensions and journal files. Reviewed retries recheck authoritative inputs under lock. No closed-period
 bypass or unrestricted posted rewrite was granted. Accounting explicitly adopts the new flags on ORG_ZIZI_CORP;
 standalone Mantle retains the legacy defaults. Native controls and the original 18-check ledger baseline pass.
+
+### P3 build — Oct 29, 2026
+
+Implemented native preferences, conflict-preview cloning, all mapping kinds, due terms, dated rates/CSV results,
+masked payment methods and organization-approved gateway bindings, numbering and approved document previews.
+PostingDefaults identifies missing item defaults through the native invoice resolver as well as missing GL types.
+Existing chart accounts can be assigned from ChartOfAccounts. Configuration retains posted accounting meaning and
+issued document identities. Installment/discount lines, provider refresh and conversion remain P8/P20.
+
+### P0–P3 integration verification — Oct 29, 2026
+
+See [AccountingImplementation](../docs/AccountingImplementation.md) for native contracts, routes, reproduction
+commands, result counts and the baseline comparison. Every implemented XML route renders in QVT and TUI. Browser
+coverage includes all 31 destinations at 390/1280/1440 pixels in light/dark, reviewed posting/reversal, and the P3
+assignment/mapping/terms/rates/preferences walk. Screenshots were visually inspected. Screen lint writes to a
+separate report: zero parse failures and the existing 125 flagged sites, with no new Accounting hazard.
+
+The original AccountingActivities, LedgerMaintenance and PartyTimePeriods remain 18/18 passing. The standalone
+runtime excludes BOSS demo adoption settings; BOSS explicitly opts ORG_ZIZI_CORP into the new guard and dimensions.
+No ADMIN exemption, closed-period permission or unrestricted rewrite authorization was added. Full standalone
+Mantle retains four pre-existing failures reproduced against archived commit b48e696c: InboxThreads, MantleSearch,
+WorkTimeEntries and WorkTimesheets. They are unrelated to the new finance controls.

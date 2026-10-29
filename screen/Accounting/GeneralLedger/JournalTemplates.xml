@@ -114,6 +114,8 @@ ec.context.putAll({amounts})</script>
         <set from="0" field="templateAmountParametersPageMaxIndex" />
         <set from="templateAmountParametersCount ? 1 : 0" field="templateAmountParametersPageRangeLow" />
         <set from="templateAmountParametersCount" field="templateAmountParametersPageRangeHigh" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+records = dateLabels.formatDates(records,[["lastUpdatedStamp", "yyyy-MM-dd HH:mm"]])</script>
     </actions>
     <widgets>
         <label text="Journal templates" type="h5" />
@@ -121,7 +123,7 @@ ec.context.putAll({amounts})</script>
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -144,12 +146,12 @@ ec.context.putAll({amounts})</script>
             </field>
             <field name="templateName">
                 <default-field title="Name">
-                    <text-line />
+                    <display />
                 </default-field>
             </field>
             <field name="lastUpdatedStamp">
                 <default-field title="Updated">
-                    <display format="yyyy-MM-dd HH:mm" />
+                    <display text="${lastUpdatedStampText}" />
                 </default-field>
             </field>
             <columns type="mobile">
@@ -163,7 +165,7 @@ ec.context.putAll({amounts})</script>
             </columns>
         </form-list>
         <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Newjournaltemplate" button-text="New journal template">
+        <container-dialog id="Newjournaltemplate" button-text="New journal template" condition="accounting.capabilities.glPost">
             <form-single name="TemplateHeader" transition="saveTemplate" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -178,14 +180,14 @@ ec.context.putAll({amounts})</script>
                 <field name="amountUomId">
                     <default-field title="Currency">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}" />
                         </drop-down>
                     </default-field>
                 </field>
                 <field name="acctgTransTypeEnumId">
                     <default-field title="Type">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}" />
                         </drop-down>
                     </default-field>
                 </field>
@@ -206,7 +208,7 @@ ec.context.putAll({amounts})</script>
                 </field>
             </form-single>
         </container-dialog>
-        <container-dialog id="Createdraftfromtemplate" button-text="Create draft from template">
+        <container-dialog id="Createdraftfromtemplate" button-text="Create draft from template" condition="accounting.capabilities.glPost">
             <form-single name="FromTemplate" transition="fromTemplate" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -216,7 +218,7 @@ ec.context.putAll({amounts})</script>
                 <field name="acctgTransTemplateId">
                     <default-field title="Template">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId,selected:acctgTransTemplateId}" />
                         </drop-down>
                     </default-field>
                 </field>
@@ -241,7 +243,7 @@ ec.context.putAll({amounts})</script>
             <field name="acctgTransTemplateId">
                 <default-field title="Template">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId,selected:acctgTransTemplateId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -254,7 +256,7 @@ ec.context.putAll({amounts})</script>
         <section name="TemplateEditor" condition="acctgTransTemplateId">
             <widgets>
                 <label text="Template lines" type="h6" />
-                <container-dialog id="Newtemplateversion" button-text="New template version" condition="selectedTemplate.record.isPublished === 'Y'">
+                <container-dialog id="Newtemplateversion" button-text="New template version" condition="(selectedTemplate.record.isPublished === 'Y') &amp;&amp; accounting.capabilities.glPost">
                     <form-single name="NewTemplateVersion" transition="saveTemplate" map="context">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="Organization party id">
@@ -288,7 +290,7 @@ ec.context.putAll({amounts})</script>
                         </field>
                     </form-single>
                 </container-dialog>
-                <container-dialog id="Addtemplateline" button-text="Add template line" condition="selectedTemplate.record.isPublished !== 'Y'">
+                <container-dialog id="Addtemplateline" button-text="Add template line" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost">
                     <form-single name="AddTemplateLine" transition="line" map="context">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="Organization party id">
@@ -303,7 +305,7 @@ ec.context.putAll({amounts})</script>
                         <field name="glAccountId">
                             <default-field title="Account">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
                                 </drop-down>
                             </default-field>
                         </field>
@@ -328,14 +330,14 @@ ec.context.putAll({amounts})</script>
                         <field name="facilityId">
                             <default-field title="Facility">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="costCenterId">
                             <default-field title="Cost centre">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
                                 </drop-down>
                             </default-field>
                         </field>
@@ -362,9 +364,9 @@ ec.context.putAll({amounts})</script>
                             <display />
                         </default-field>
                     </field>
-                    <field name="amount">
+                    <field name="amount" align="right">
                         <default-field title="Amount">
-                            <display />
+                            <display currency-unit-field="selectedTemplate.record.amountUomId" />
                         </default-field>
                     </field>
                     <field name="amountParameter">
@@ -374,7 +376,7 @@ ec.context.putAll({amounts})</script>
                     </field>
                     <field name="lineActions">
                         <default-field title="Actions">
-                            <container-dialog id="EditTemplateLine" button-text="Edit line" condition="selectedTemplate.record.isPublished !== 'Y'">
+                            <container-dialog id="EditTemplateLineDialog" button-text="Edit line" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost">
                                 <form-single name="EditTemplateLine" transition="line" map="context">
                                     <field from="lastUpdatedStamp" name="lastUpdatedStamp">
                                         <default-field title="lastUpdatedStamp">
@@ -399,7 +401,7 @@ ec.context.putAll({amounts})</script>
                                     <field name="glAccountId">
                                         <default-field title="Account">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
                                             </drop-down>
                                         </default-field>
                                     </field>
@@ -424,14 +426,14 @@ ec.context.putAll({amounts})</script>
                                     <field name="facilityId">
                                         <default-field title="Facility">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId}" />
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
                                             </drop-down>
                                         </default-field>
                                     </field>
                                     <field name="costCenterId">
                                         <default-field title="Cost centre">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId}" />
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
                                             </drop-down>
                                         </default-field>
                                     </field>
@@ -442,7 +444,7 @@ ec.context.putAll({amounts})</script>
                                     </field>
                                 </form-single>
                             </container-dialog>
-                            <link link-type="hidden-form-link" btn-type="danger" confirmation="Remove this draft template line?" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,entrySeqId:entrySeqId,lastUpdatedStamp:lastUpdatedStamp}" url="removeTemplateLine" text="Remove" condition="selectedTemplate.record.isPublished !== 'Y'" />
+                            <link link-type="hidden-form-link" btn-type="danger" confirmation="Remove this draft template line?" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,entrySeqId:entrySeqId,lastUpdatedStamp:lastUpdatedStamp}" url="removeTemplateLine" text="Remove" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost" />
                         </default-field>
                     </field>
                     <columns type="mobile">
@@ -458,31 +460,35 @@ ec.context.putAll({amounts})</script>
                         </column>
                     </columns>
                 </form-list>
-                <form-single name="PublishTemplate" transition="publish" map="context">
-                    <field from="selectedTemplate.record.lastUpdatedStamp" name="lastUpdatedStamp">
-                        <default-field title="Revision">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="organizationPartyId" from="organizationPartyId">
-                        <default-field title="Organization party id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="acctgTransTemplateId" from="acctgTransTemplateId">
-                        <default-field title="Acctg trans template id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="submit">
-                        <default-field title="Submit">
-                            <submit text="Validate and publish" type="primary" />
-                        </default-field>
-                    </field>
-                </form-single>
+                <section name="PublishTemplatePermission" condition="accounting.capabilities.glPost">
+                    <widgets>
+                        <form-single name="PublishTemplate" transition="publish" map="context">
+                            <field from="selectedTemplate.record.lastUpdatedStamp" name="lastUpdatedStamp">
+                                <default-field title="Revision">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="Organization party id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="acctgTransTemplateId" from="acctgTransTemplateId">
+                                <default-field title="Acctg trans template id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="Submit">
+                                    <submit text="Validate and publish" type="primary" />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
                 <section name="TemplateAmounts">
                     <condition>
-                        <expression>selectedTemplate.record.isPublished === 'Y' &amp;&amp; templateAmountParameters.length</expression>
+                        <expression>(selectedTemplate.record.isPublished === 'Y' &amp;&amp; templateAmountParameters.length) &amp;&amp; accounting.capabilities.glPost</expression>
                     </condition>
                     <widgets>
                         <label text="Create draft with amounts" type="h6" />

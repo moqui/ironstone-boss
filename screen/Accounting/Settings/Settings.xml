@@ -19,7 +19,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -30,6 +30,12 @@
             </field>
         </form-single>
         <label text="Choose an organization before changing finance settings." type="p" />
+        <link url="../AccountingPreferences" text="Accounting Preferences" link-type="anchor-button" />
+        <link url="../PostingDefaults" text="Posting Defaults" link-type="anchor-button" />
+        <link url="../PaymentTerms" text="Payment Terms" link-type="anchor-button" />
+        <link url="../Currencies" text="Currencies" link-type="anchor-button" />
+        <link url="../PaymentMethods" text="Payment Methods" link-type="anchor-button" />
+        <link url="../DocumentSettings" text="Document Settings" link-type="anchor-button" />
         <form-list name="Readiness" list="readinessFindings" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
             <field name="code">
                 <default-field title="Check">

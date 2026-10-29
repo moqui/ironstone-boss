@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Posting defaults" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId" />
+    <parameter name="recordId" />
+    <parameter name="acctgTransId" />
+    <parameter name="glAccountId" />
+    <parameter name="glJournalId" />
+    <parameter name="acctgTransTemplateId" />
+    <parameter name="previewId" />
+    <parameter name="inputFingerprint" />
+    <parameter name="operationKey" />
+    <parameter name="text" />
+    <parameter name="pageIndex" />
+    <parameter name="pageSize" />
+    <parameter name="mappingKind" />
+    <parameter name="mappingToken" />
+    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <transition name="save">
+        <actions>
+            <service-call name="mantle.ledger.SetupServices.store#PostingDefault" in-map="Object.assign({},context,{mapping:context})" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId" />
+            <parameter name="recordId" />
+            <parameter name="previewId" />
+            <parameter name="inputFingerprint" />
+            <parameter name="operationKey" />
+            <parameter name="glJournalId" />
+            <parameter name="acctgTransTemplateId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <actions>
+        <set from="mappingKind || 'type'" field="mappingKind" />
+        <service-call name="mantle.ledger.SetupServices.get#PostingDefaults" in-map="context" out-map="context" />
+        <set from="(missingMappings || []).length" field="missingMappingsCount" />
+        <set from="(errorTransactions || []).length" field="errorTransactionsCount" />
+        <set from="25" field="mappingRowsPageSize" />
+        <set from="Number(pageIndex || 0)" field="mappingRowsPageIndex" />
+        <set from="Math.max(0,Math.ceil(mappingRowsCount/25)-1)" field="mappingRowsPageMaxIndex" />
+        <set from="mappingRowsCount ? Number(pageIndex || 0)*25+1 : 0" field="mappingRowsPageRangeLow" />
+        <set from="Math.min(mappingRowsCount,(Number(pageIndex || 0)+1)*25)" field="mappingRowsPageRangeHigh" />
+        <set from="missingMappingsCount || 1" field="missingMappingsPageSize" />
+        <set from="0" field="missingMappingsPageIndex" />
+        <set from="0" field="missingMappingsPageMaxIndex" />
+        <set from="missingMappingsCount ? 1 : 0" field="missingMappingsPageRangeLow" />
+        <set from="missingMappingsCount" field="missingMappingsPageRangeHigh" />
+        <set from="errorTransactionsCount || 1" field="errorTransactionsPageSize" />
+        <set from="0" field="errorTransactionsPageIndex" />
+        <set from="0" field="errorTransactionsPageMaxIndex" />
+        <set from="errorTransactionsCount ? 1 : 0" field="errorTransactionsPageRangeLow" />
+        <set from="errorTransactionsCount" field="errorTransactionsPageRangeHigh" />
+    </actions>
+    <widgets>
+        <label text="Posting defaults" type="h5" />
+        <form-single name="SelectOrganization" transition="selectOrganization" map="context">
+            <field name="organizationPartyId">
+                <default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submit">
+                <default-field title="Submit">
+                    <submit text="Choose organization" type="primary" />
+                </default-field>
+            </field>
+        </form-single>
+        <container-dialog id="Addpostingmapping" button-text="Add posting mapping">
+            <form-single name="PostingMapping" transition="save" map="context">
+                <field name="organizationPartyId" from="organizationPartyId">
+                    <default-field title="Organization party id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="mappingKind">
+                    <default-field title="Mapping kind">
+                        <drop-down allow-empty="true">
+                            <option key="type" text="type" />
+                            <option key="item" text="item" />
+                            <option key="invoice" text="invoice" />
+                            <option key="payment" text="payment" />
+                            <option key="instrument" text="instrument" />
+                            <option key="asset" text="asset" />
+                            <option key="financialType" text="financialType" />
+                            <option key="financialReason" text="financialReason" />
+                            <option key="variance" text="variance" />
+                            <option key="product" text="product" />
+                            <option key="category" text="category" />
+                            <option key="account" text="account" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="glAccountTypeEnumId">
+                    <default-field title="Account type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="itemTypeEnumId">
+                    <default-field title="Item type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:ItemType',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="invoiceTypeEnumId">
+                    <default-field title="Invoice type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InvoiceType',organizationPartyId:organizationPartyId,selected:invoiceTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="acctgTransTypeEnumId">
+                    <default-field title="Transaction type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="paymentTypeEnumId">
+                    <default-field title="Payment type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:PaymentType',organizationPartyId:organizationPartyId,selected:paymentTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="paymentInstrumentEnumId">
+                    <default-field title="Instrument">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:PaymentInstrument',organizationPartyId:organizationPartyId,selected:paymentInstrumentEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="productId">
+                    <default-field title="Product">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="productCategoryId">
+                    <default-field title="Product category">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'categories',organizationPartyId:organizationPartyId,selected:productCategoryId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="partyId">
+                    <default-field title="Party">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:partyId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="isPayable">
+                    <default-field title="Payable">
+                        <drop-down allow-empty="true">
+                            <option key="Y" text="Yes" />
+                            <option key="N" text="No" />
+                            <option key="E" text="Either" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="isApplied">
+                    <default-field title="Applied">
+                        <drop-down allow-empty="true">
+                            <option key="Y" text="Yes" />
+                            <option key="N" text="No" />
+                            <option key="E" text="Either" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="direction">
+                    <default-field title="Direction">
+                        <drop-down allow-empty="true">
+                            <option key="I" text="Incoming" />
+                            <option key="O" text="Outgoing" />
+                            <option key="E" text="Either" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="glAccountId">
+                    <default-field title="Posting account">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="assetTypeEnumId">
+                    <default-field title="Asset type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AssetType',organizationPartyId:organizationPartyId,selected:assetTypeEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="classEnumId">
+                    <default-field title="Asset class">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AssetClass',organizationPartyId:organizationPartyId,selected:classEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="assetId">
+                    <default-field title="Specific asset">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'assets',organizationPartyId:organizationPartyId,selected:assetId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="finAccountTypeId">
+                    <default-field title="Financial account type">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'financialTypes',organizationPartyId:organizationPartyId,selected:finAccountTypeId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="reasonEnumId">
+                    <default-field title="Financial transaction reason">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:FinancialAccountTransReason',organizationPartyId:organizationPartyId,selected:reasonEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="varianceReasonEnumId">
+                    <default-field title="Variance reason">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InventoryVarianceReason',organizationPartyId:organizationPartyId,selected:varianceReasonEnumId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="roleTypeId">
+                    <default-field title="Party role">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'roles',organizationPartyId:organizationPartyId,selected:roleTypeId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="assetGlAccountId">
+                    <default-field title="asset Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:assetGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="wipAssetGlAccountId">
+                    <default-field title="wip Asset Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:wipAssetGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="receiptGlAccountId">
+                    <default-field title="receipt Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:receiptGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="issuanceGlAccountId">
+                    <default-field title="issuance Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:issuanceGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="transferGlAccountId">
+                    <default-field title="transfer Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:transferGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="accDepreciationGlAccountId">
+                    <default-field title="acc Depreciation Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:accDepreciationGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="depreciationGlAccountId">
+                    <default-field title="depreciation Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:depreciationGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="profitGlAccountId">
+                    <default-field title="profit Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:profitGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="lossGlAccountId">
+                    <default-field title="loss Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:lossGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="shrinkageGlAccountId">
+                    <default-field title="shrinkage Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:shrinkageGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="foundGlAccountId">
+                    <default-field title="found Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:foundGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="contraGlAccountId">
+                    <default-field title="contra Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:contraGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="changeReason">
+                    <default-field title="Reason">
+                        <text-line />
+                    </default-field>
+                </field>
+                <field name="submit">
+                    <default-field title="Submit">
+                        <submit text="Save mapping" type="primary" />
+                    </default-field>
+                </field>
+            </form-single>
+        </container-dialog>
+        <label text="Specific asset/product/category and item mappings precede the organization type default; parent organization defaults are inherited." type="p" />
+        <form-single name="MappingFilter" transition="." map="context">
+            <field name="organizationPartyId" from="organizationPartyId">
+                <default-field title="Organization">
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="mappingKind">
+                <default-field title="Mapping kind">
+                    <drop-down>
+                        <list-options list="mappingKinds" key="${entry}" text="${entry}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submit">
+                <default-field title="Find">
+                    <submit text="Show mappings" />
+                </default-field>
+            </field>
+        </form-single>
+        <form-list name="PostingMappings" list="mappingRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="mappingKind">
+                <default-field title="Kind">
+                    <display />
+                </default-field>
+            </field>
+            <field name="mappingKey">
+                <default-field title="Type">
+                    <display />
+                </default-field>
+            </field>
+            <field name="glAccountId">
+                <default-field title="Account">
+                    <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}" />
+                </default-field>
+            </field>
+            <field name="mappingActions">
+                <default-field title="Actions">
+                    <link parameter-map="{organizationPartyId:organizationPartyId,mappingKind:mappingKind,mappingToken:mappingToken,pageIndex:pageIndex,_openDialog:'Editmapping'}" url="." text="Edit mapping" />
+                </default-field>
+            </field>
+            <columns type="mobile">
+                <column>
+                    <field-ref name="mappingKind" />
+                    <field-ref name="mappingKey" />
+                </column>
+                <column>
+                    <field-ref name="glAccountId" />
+                    <field-ref name="mappingActions" />
+                </column>
+            </columns>
+        </form-list>
+        <label text="Missing mappings" type="h6" />
+        <form-list name="MissingMappings" list="missingMappings" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="mappingKey">
+                <default-field title="Type">
+                    <display />
+                </default-field>
+            </field>
+            <field name="description">
+                <default-field title="Description">
+                    <display />
+                </default-field>
+            </field>
+            <columns type="mobile">
+                <column>
+                    <field-ref name="mappingKey" />
+                </column>
+                <column>
+                    <field-ref name="description" />
+                </column>
+            </columns>
+        </form-list>
+        <label text="Error journal" type="h6" />
+        <form-list name="ErrorJournal" list="errorTransactions" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="acctgTransId">
+                <default-field title="Entry">
+                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}" />
+                </default-field>
+            </field>
+            <field name="postingFailureCode">
+                <default-field title="Reason">
+                    <display />
+                </default-field>
+            </field>
+            <field name="postingFailureMessage">
+                <default-field title="Details">
+                    <display />
+                </default-field>
+            </field>
+            <columns type="mobile">
+                <column>
+                    <field-ref name="acctgTransId" />
+                </column>
+                <column>
+                    <field-ref name="postingFailureCode" />
+                    <field-ref name="postingFailureMessage" />
+                </column>
+            </columns>
+        </form-list>
+        <container-dialog id="Editmapping" button-text="Edit mapping" condition="!!selectedMapping">
+            <form-single name="EditMapping" transition="save" map="selectedMapping">
+                <field name="organizationPartyId" from="organizationPartyId">
+                    <default-field title="Organization party id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="mappingKind" from="selectedMapping?.mappingKind">
+                    <default-field title="Mapping kind">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="lastUpdatedStamp" from="selectedMapping?.lastUpdatedStamp">
+                    <default-field title="Last updated stamp">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="glAccountTypeEnumId" from="selectedMapping?.glAccountTypeEnumId">
+                    <default-field title="Gl account type enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="itemTypeEnumId" from="selectedMapping?.itemTypeEnumId">
+                    <default-field title="Item type enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="direction" from="selectedMapping?.direction">
+                    <default-field title="Direction">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="invoiceTypeEnumId" from="selectedMapping?.invoiceTypeEnumId">
+                    <default-field title="Invoice type enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="isPayable" from="selectedMapping?.isPayable">
+                    <default-field title="Is payable">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="paymentTypeEnumId" from="selectedMapping?.paymentTypeEnumId">
+                    <default-field title="Payment type enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="isApplied" from="selectedMapping?.isApplied">
+                    <default-field title="Is applied">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="paymentInstrumentEnumId" from="selectedMapping?.paymentInstrumentEnumId">
+                    <default-field title="Payment instrument enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="assetTypeGlAccountId" from="selectedMapping?.assetTypeGlAccountId">
+                    <default-field title="Asset type gl account id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="assetTypeEnumId" from="selectedMapping?.assetTypeEnumId">
+                    <default-field title="Asset type enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="classEnumId" from="selectedMapping?.classEnumId">
+                    <default-field title="Class enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="assetId" from="selectedMapping?.assetId">
+                    <default-field title="Asset id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="finAccountTypeId" from="selectedMapping?.finAccountTypeId">
+                    <default-field title="Fin account type id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="reasonEnumId" from="selectedMapping?.reasonEnumId">
+                    <default-field title="Reason enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="varianceReasonEnumId" from="selectedMapping?.varianceReasonEnumId">
+                    <default-field title="Variance reason enum id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="productId" from="selectedMapping?.productId">
+                    <default-field title="Product id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="productCategoryId" from="selectedMapping?.productCategoryId">
+                    <default-field title="Product category id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="partyId" from="selectedMapping?.partyId">
+                    <default-field title="Party id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="roleTypeId" from="selectedMapping?.roleTypeId">
+                    <default-field title="Role type id">
+                        <hidden />
+                    </default-field>
+                </field>
+                <field name="glAccountId" from="selectedMapping?.glAccountId">
+                    <default-field title="Account">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="assetGlAccountId" from="selectedMapping?.assetGlAccountId">
+                    <default-field title="asset Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:assetGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="wipAssetGlAccountId" from="selectedMapping?.wipAssetGlAccountId">
+                    <default-field title="wip Asset Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:wipAssetGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="receiptGlAccountId" from="selectedMapping?.receiptGlAccountId">
+                    <default-field title="receipt Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:receiptGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="issuanceGlAccountId" from="selectedMapping?.issuanceGlAccountId">
+                    <default-field title="issuance Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:issuanceGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="transferGlAccountId" from="selectedMapping?.transferGlAccountId">
+                    <default-field title="transfer Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:transferGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="accDepreciationGlAccountId" from="selectedMapping?.accDepreciationGlAccountId">
+                    <default-field title="acc Depreciation Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:accDepreciationGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="depreciationGlAccountId" from="selectedMapping?.depreciationGlAccountId">
+                    <default-field title="depreciation Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:depreciationGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="profitGlAccountId" from="selectedMapping?.profitGlAccountId">
+                    <default-field title="profit Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:profitGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="lossGlAccountId" from="selectedMapping?.lossGlAccountId">
+                    <default-field title="loss Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:lossGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="shrinkageGlAccountId" from="selectedMapping?.shrinkageGlAccountId">
+                    <default-field title="shrinkage Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:shrinkageGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="foundGlAccountId" from="selectedMapping?.foundGlAccountId">
+                    <default-field title="found Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:foundGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="contraGlAccountId" from="selectedMapping?.contraGlAccountId">
+                    <default-field title="contra Gl Account Id">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:contraGlAccountId}" />
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="changeReason" from="selectedMapping?.changeReason">
+                    <default-field title="Reason">
+                        <text-line />
+                    </default-field>
+                </field>
+                <field name="submit" from="selectedMapping?.submit">
+                    <default-field title="Submit">
+                        <submit text="Save mapping" type="primary" />
+                    </default-field>
+                </field>
+            </form-single>
+        </container-dialog>
+        <label text="Invoice product lines resolve category, product, then asset-type profit/receipt accounts before item-type defaults. Configuration includes parent organizations; party and type mappings apply by transaction kind." type="p" />
+    </widgets>
+</screen>

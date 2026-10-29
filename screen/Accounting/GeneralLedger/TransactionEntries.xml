@@ -24,7 +24,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -47,7 +47,7 @@
             </field>
             <field name="description">
                 <default-field title="Name">
-                    <text-line />
+                    <display />
                 </default-field>
             </field>
             <field name="isPosted">

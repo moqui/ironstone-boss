@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="define" noun="Parameters" type="interface">
+        <in-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="template" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="valid" type="Boolean"/>
+            <parameter name="previewHtml" type="String"/>
+            <parameter name="previewText" type="String"/>
+        </out-parameters>
+    </service>
+    <service verb="validate" noun="Template" allow-remote="false">
+        <description>Allow only approved finance document layouts.</description>
+        <implements service="ironstone.accounting.DocumentServices.define#Parameters"/>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Documents.js').execute('validate', context))</script>
+        </actions>
+    </service>
+    <service verb="preview" noun="Output" allow-remote="false">
+        <description>Render representative long lines and multi-page output without issuing a number.</description>
+        <implements service="ironstone.accounting.DocumentServices.define#Parameters"/>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Documents.js').execute('preview', context))</script>
+        </actions>
+    </service>
+</services>

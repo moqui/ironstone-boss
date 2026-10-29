@@ -1289,3 +1289,61 @@ Products uses native guarded replacements for raw catalog writes, bulk assignmen
 | product/IdentifierServices | store#IdentifierPolicy |  | Shared/IdentificationTypes; Products/Settings/IdentificationTypes |
 | product/PriceServices | get#PricingSettings |  | Products/Settings/PricingSettings; Shared/Prices; Shared/SupplierPrices |
 | product/PriceServices | store#PricingSettings |  | Products/Settings/PricingSettings; Shared/Prices; Shared/SupplierPrices |
+
+
+## Accounting native additions — P0–P3 (Oct 29, 2026)
+
+The screens call these native services after BOSS access context. Reviewed posting replaces raw/unrestricted ledger
+mutators in the app. Legacy unpost, posted rewrite and post#GlJournal remain unexposed.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| AccountingServices | get#Access | Accounting (scoped records and QuickCreate) | Native contract (not directly mounted) |
+| AccountingServices | find#Records | Accounting (scoped records and QuickCreate) | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalEntries; Accounting/GeneralLedger/JournalTemplates; Accounting/GeneralLedger/TransactionEntries; Accounting/Payables/Bills; Accounting/Payments/Payments; Accounting/PeriodClose/PeriodLocks; Accounting/PeriodClose/Periods; Accounting/Receivables/Invoices |
+| AccountingServices | get#Record | Accounting (scoped records and QuickCreate) | Accounting/GeneralLedger/AccountDetail; Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalTemplates; Accounting/Payables/BillDetail; Accounting/Payments/PaymentDetail; Accounting/Receivables/InvoiceDetail |
+| AccountingServices | create#DraftDocument | Accounting (scoped records and QuickCreate) | Accounting/QuickCreate/NewBill; Accounting/QuickCreate/NewInvoice; Accounting/QuickCreate/NewPayment |
+| JournalServices | store#DraftEntry | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail; Accounting/QuickCreate/NewEntry |
+| JournalServices | store#DraftLine | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | delete#DraftLine | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | delete#DraftEntry | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | move#DraftLine | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | preview#Entry | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | post#Entry | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | reverse#Entry | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | update#PostedMetadata | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | store#Batch | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalBatches |
+| JournalServices | validate#Batch | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalEntries |
+| JournalServices | post#Batch | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalEntries |
+| JournalServices | store#Template | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalTemplates |
+| JournalServices | store#TemplateLines | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Native contract (not directly mounted) |
+| JournalServices | create#FromTemplate | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalTemplates |
+| JournalServices | get#Preview | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalEntryDetail |
+| JournalServices | get#BatchPreview | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalEntries |
+| JournalServices | store#TemplateLine | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalTemplates |
+| JournalServices | publish#Template | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalTemplates |
+| JournalServices | delete#TemplateLine | Accounting/GeneralLedger/JournalEntryDetail; Accounting/GeneralLedger/JournalBatches; Accounting/GeneralLedger/JournalTemplates | Accounting/GeneralLedger/JournalTemplates |
+| CloseServices | store#Lock | Accounting/PeriodClose/PeriodLocks | Accounting/PeriodClose/PeriodLocks |
+| CloseServices | grant#Exception | Accounting/PeriodClose/PeriodLocks | Accounting/PeriodClose/PeriodLocks |
+| AccountServices | store#Account | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/AccountDetail; Accounting/PeriodClose/Periods | Accounting/GeneralLedger/AccountDetail; Accounting/GeneralLedger/ChartOfAccounts |
+| AccountServices | store#Assignment | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/AccountDetail; Accounting/PeriodClose/Periods | Accounting/GeneralLedger/AccountDetail; Accounting/GeneralLedger/ChartOfAccounts |
+| AccountServices | ensure#Periods | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/AccountDetail; Accounting/PeriodClose/Periods | Accounting/PeriodClose/Periods |
+| AccountServices | get#Classifications | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/AccountDetail; Accounting/PeriodClose/Periods | Accounting/GeneralLedger/AccountDetail |
+| AccountServices | store#Classification | Accounting/GeneralLedger/ChartOfAccounts; Accounting/GeneralLedger/AccountDetail; Accounting/PeriodClose/Periods | Accounting/GeneralLedger/AccountDetail |
+| SetupServices | get#Preferences | Accounting/Home; Accounting/Settings | Accounting/Settings/AccountingPreferences (get#Context); Accounting/Settings/Settings |
+| SetupServices | store#Preferences | Accounting/Home; Accounting/Settings | Accounting/Settings/AccountingPreferences; Accounting/Settings/DocumentSettings |
+| SetupServices | get#PostingDefaults | Accounting/Home; Accounting/Settings | Accounting/Settings/PostingDefaults |
+| SetupServices | store#PostingDefault | Accounting/Home; Accounting/Settings | Accounting/Settings/PostingDefaults |
+| SetupServices | clone#Preferences | Accounting/Home; Accounting/Settings | Accounting/Settings/AccountingPreferences |
+| SetupServices | store#SettlementTerm | Accounting/Home; Accounting/Settings | Accounting/Settings/PaymentTerms |
+| SetupServices | get#PaymentMethods | Accounting/Home; Accounting/Settings | Accounting/Settings/PaymentMethods; Accounting/Settings/PaymentMethods (get#Context) |
+| SetupServices | store#PaymentMethod | Accounting/Home; Accounting/Settings | Accounting/Settings/PaymentMethods |
+| SetupServices | get#Context | Accounting/Home; Accounting/Settings | Accounting/Settings/AccountingPreferences; Accounting/Settings/Currencies; Accounting/Settings/DocumentSettings; Accounting/Settings/PaymentTerms |
+| SetupServices | get#Readiness | Accounting/Home; Accounting/Settings | Native contract (not directly mounted) |
+| CurrencyServices | store#Rate | Accounting/Settings/Currencies | Accounting/Settings/Currencies |
+| CurrencyServices | store#Currency | Accounting/Settings/Currencies | Accounting/Settings/Currencies |
+| CurrencyServices | import#Rates | Accounting/Settings/Currencies | Accounting/Settings/Currencies |
+| CurrencyServices | get#ImportResult | Accounting/Settings/Currencies | Accounting/Settings/Currencies |
+| FinanceReportServices | run#TrialBalance | Accounting/Reports/TrialBalance; Accounting/Reports/GeneralLedger | Accounting/Reports/TrialBalance |
+| FinanceReportServices | run#GeneralLedger | Accounting/Reports/TrialBalance; Accounting/Reports/GeneralLedger | Accounting/Reports/GeneralLedger |
+| JournalContentServices | create#Content | Accounting/GeneralLedger/JournalEntryDetail (RecordFiles) | Shared/RecordFiles (Accounting journal context) |
+| JournalContentServices | save#ContentFile | Accounting/GeneralLedger/JournalEntryDetail (RecordFiles) | Shared/RecordFiles (Accounting journal context) |

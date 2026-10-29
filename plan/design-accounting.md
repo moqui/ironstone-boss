@@ -1209,10 +1209,10 @@ bank line for the deposit then reconciles once against the group.
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| JournalBatchList | list | Show batches and readiness | journal, name, organization, transaction count, posted, imbalance | — | entity; proposed `ironstone.accounting.JournalServices.validate#Batch` | Accounting/FindJournal TransactionList |
+| JournalBatchList | list | Show batches and readiness | journal, name, organization, transaction count, posted, imbalance | — | entity; proposed `mantle.ledger.JournalServices.validate#Batch` | Accounting/FindJournal TransactionList |
 | JournalBatchEdit | dialog | Create or amend an unposted batch | name, organization, date, description | — | mantle.ledger.LedgerServices.create#GlJournal; mantle.ledger.LedgerServices.update#GlJournal | Accounting/FindJournal CreateGlJournal |
 
-**Actions:** Inspect transactions, validate, then post via proposed ironstone.accounting.JournalServices.post#Batch with confirmation and closed-period checks. Each transaction is atomic; independent constituent failures are named and the others continue. The batch remains open with a derived partial result until all eligible transactions succeed. Existing mantle.ledger.LedgerServices.post#GlJournal returns on a raised error, but a transaction diverted to the error journal raises none and is counted as posted, and `closeJournal` marks the journal posted regardless (impl-accounting F17); it is not used for this batch behavior. GlJournal is not an Odoo sale/purchase book.
+**Actions:** Inspect transactions, validate, then post via proposed mantle.ledger.JournalServices.post#Batch with confirmation and closed-period checks. Each transaction is atomic; independent constituent failures are named and the others continue. The batch remains open with a derived partial result until all eligible transactions succeed. Existing mantle.ledger.LedgerServices.post#GlJournal returns on a raised error, but a transaction diverted to the error journal raises none and is counted as posted, and `closeJournal` marks the journal posted regardless (impl-accounting F17); it is not used for this batch behavior. GlJournal is not an Odoo sale/purchase book.
 
 **Navigation:** The general ledger entry and Home queues link here; source identifiers open their Accounting detail mount or an authorized shared record. Back preserves find filters.
 
@@ -1228,9 +1228,9 @@ bank line for the deposit then reconciles once against the group.
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| TemplateHeader | single | Describe a versioned template | name, organization, type, currency, description, effective dates | — | proposed `ironstone.accounting.JournalServices.store#Template` | ERPNext Journal Entry Template |
-| TemplateLines | list, editable rows | Define accounts and amount parameters | sequence, account, debit/credit, fixed amount or parameter, party, dimensions | — | proposed `ironstone.accounting.JournalServices.store#TemplateLines` | ERPNext journal_entry_template accounts |
-| InstantiateTemplate | dialog | Preview a balanced draft entry | template version, date, amounts, descriptions | — | proposed `ironstone.accounting.JournalServices.create#FromTemplate` | ERPNext Journal Entry get from template |
+| TemplateHeader | single | Describe a versioned template | name, organization, type, currency, description, effective dates | — | proposed `mantle.ledger.JournalServices.store#Template` | ERPNext Journal Entry Template |
+| TemplateLines | list, editable rows | Define accounts and amount parameters | sequence, account, debit/credit, fixed amount or parameter, party, dimensions | — | proposed `mantle.ledger.JournalServices.store#TemplateLines` | ERPNext journal_entry_template accounts |
+| InstantiateTemplate | dialog | Preview a balanced draft entry | template version, date, amounts, descriptions | — | proposed `mantle.ledger.JournalServices.create#FromTemplate` | ERPNext Journal Entry get from template |
 
 **Actions:** Publish template after balancing validation. Instantiate creates an unposted independent entry with source template/version. Templates never silently post on save.
 
@@ -1298,8 +1298,8 @@ CloseChecks also lists these rows, each linked to the screen that resolves it:
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| PostingLocks | list, editable rows | Set effective lock dates | organization, scope all/sales/purchases/tax, lock-through date, hard flag, reason | — | proposed `ironstone.accounting.CloseServices.store#Lock` | Odoo company lock dates; ERPNext Accounting Period |
-| LockExceptions | list, editable rows | Authorize a narrow temporary exception | lock, user/group, allowed document/scope, expires, reason, approver | — | proposed `ironstone.accounting.CloseServices.grant#Exception` | Odoo `account.lock_exception` |
+| PostingLocks | list, editable rows | Set effective lock dates | organization, scope all/sales/purchases/tax, lock-through date, hard flag, reason | — | proposed `mantle.ledger.CloseServices.store#Lock` | Odoo company lock dates; ERPNext Accounting Period |
+| LockExceptions | list, editable rows | Authorize a narrow temporary exception | lock, user/group, allowed document/scope, expires, reason, approver | — | proposed `mantle.ledger.CloseServices.grant#Exception` | Odoo `account.lock_exception` |
 
 **Actions:** A hard/all period close remains non-bypassable; exceptions only relax the specified soft lock and never TimePeriod.isClosed. A scope goes by the transaction's source document (impl-accounting §4). Sales: transactions whose invoice the organization issued (sales invoices, customer credits and returns, their adjustments). Purchases: those whose invoice it received. Tax: any transaction with an entry on a `GatTax` account, and `AttTaxDue` and `AttTaxInvoice`. All: every transaction, so payments, stock, depreciation and manual entries fall under it only. A hard lock takes no exception. Preview impacted records before save; scope and expiry are checked server-side on every posting, refund, reversal and backdated change.
 
@@ -2348,7 +2348,7 @@ belong to the country packs (§20; impl-accounting §4). Readiness also checks t
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | AccountingPreferences | single | Edit fiscal, currency and numbering defaults | base currency, year start, COGS, default terms, numbering prefixes, GL mask, error journal | — | entity | Accounting/OrgSettings/AcctgPreference EditPapForm |
-| ClonePreferences | dialog | Copy selected configuration into a new organization | source, destination, selected mapping groups, conflict preview | — | proposed `ironstone.accounting.SetupServices.clone#Preferences` | Accounting/OrgSettings/AcctgPreference CloneAcctgSettingsForm |
+| ClonePreferences | dialog | Copy selected configuration into a new organization | source, destination, selected mapping groups, conflict preview | — | proposed `mantle.ledger.SetupServices.clone#Preferences` | Accounting/OrgSettings/AcctgPreference CloneAcctgSettingsForm |
 
 **Actions:** Preview clone conflicts; do not overwrite live posted-history policy. Base currency and COGS changes after activation require a migration/revaluation design, not a routine form save. The COGS method is shown for what it is: Mantle posts actual cost whatever it says (§18.2). The Mantle rule flags (§1.4) and the self-approval setting (§1.1) are audit-logged fields here, and only finance admin sets them.
 
@@ -2935,3 +2935,33 @@ below are `later` (impl-accounting §7).
   posted AcctgTrans, with a verification report, after the hard lock of AC-06 (R-ACC-32).
 - **Inbound direct debit.** Recommended: `later`. Mandates, a collection batch file that reuses
   the NACHA outputs, and imported rejects, on PaymentRunDetail's pattern (R-ACC-33).
+
+
+## P0–P3 implementation contracts — Oct 29, 2026
+
+The implemented ownership split is native Mantle authorization/configuration/mutation and BOSS access context,
+forms and approved preview presentation. See [AccountingImplementation](../docs/AccountingImplementation.md).
+`AccountingServices`, `JournalServices`, `CloseServices`, `AccountServices`, `FinanceReportServices`, `SetupServices`,
+`CurrencyServices` and `JournalContentServices` are in `mantle.ledger`. New services declare their response fields
+and check permissions and organization scope independently of artifact authorization.
+
+Invoice, bill and payment routes in P1 provide scoped lists, guarded drafts and read-only details. Their full
+approval, delivery, settlement and gateway actions remain P4–P5. P2 includes both ledger and batch/template/file
+work. Published templates are immutable versioned records; instantiation creates an independent unposted draft.
+Manual journal reviews expire after ten minutes and fingerprint sources, entries, accounts, preferences, periods,
+locks and exceptions. Posting uses the existing PostingOperation and rechecks under lock. P11 close execution and
+P19 activation remain deferred.
+
+ChartOfAccounts can assign an existing global chart account to the selected organization without exposing another
+organization's balances. PostingDefaults follows the installed invoice resolver: product category, product,
+asset-type profit/receipt accounts, then item type (including direction E); organization configuration includes
+accounting parents. Other transaction kinds use their native party, instrument, payment, financial and type rules.
+Its missing queue distinguishes generic invoice-item defaults from product overrides and includes error-journal
+transactions. Native configuration writers refuse a change of posted currency, fiscal or costing meaning.
+
+Rates have explicit dates and persisted sources; CSV rows commit independently with durable results. Payment
+methods return masked identifiers. Active PaymentGatewayOrganization records are provisioned in Admin; finance
+forms may select those bindings but cannot write gateway credentials or executable service configuration.
+DocumentSettings retains Mantle numbering fields and issued identities and previews the approved standard layout.
+PASS Billing/Supplier runtime remains P18; its mount, target, invitation, media, canonical URL and gateway CSP
+contracts are documented in mr-pass/plan/design-forum.md. A durable pending-provider fixture is still required by P18.

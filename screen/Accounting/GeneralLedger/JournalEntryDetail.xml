@@ -190,6 +190,8 @@
         <set from="0" field="auditRowsPageMaxIndex" />
         <set from="auditRowsCount ? 1 : 0" field="auditRowsPageRangeLow" />
         <set from="auditRowsCount" field="auditRowsPageRangeHigh" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+auditRows = dateLabels.formatDates(auditRows,[["changedDate", "yyyy-MM-dd HH:mm"]])</script>
     </actions>
     <widgets>
         <link parameter-map="{organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate,glAccountId:glAccountId}" url="//Accounting/Reports/${reportReturn === 'TrialBalance' ? 'TrialBalance' : 'GeneralLedger'}" text="Back to report" condition="['TrialBalance','GeneralLedger'].includes(reportReturn)" />
@@ -204,70 +206,78 @@
             <container style="m-record-actions">
                 <section name="ReviewAction" condition="record.isPosted !== 'Y' &amp;&amp; accounting.capabilities.glPost">
                     <widgets>
-                        <form-single name="ReviewPosting" transition="preview">
-                            <field name="recordId" from="recordId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="organizationPartyId" from="record.organizationPartyId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="operationKey" from="operationKey">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field>
-                                    <submit text="Review posting" />
-                                </default-field>
-                            </field>
-                        </form-single>
+                        <section name="ReviewPostingPermission" condition="accounting.capabilities.glPost">
+                            <widgets>
+                                <form-single name="ReviewPosting" transition="preview">
+                                    <field name="recordId" from="recordId">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="record.organizationPartyId">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="operationKey" from="operationKey">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field>
+                                            <submit text="Review posting" />
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
                     </widgets>
                 </section>
             </container>
         </container>
         <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="Open linked reversal ${record.reversedByAcctgTransId}" parameter-map="{recordId:record.reversedByAcctgTransId,organizationPartyId:record.organizationPartyId}" condition="record.reversedByAcctgTransId" />
         <label text="Journal entry details" type="h6" />
-        <label text="Debits ${String(debitTotal)} · Credits ${String(creditTotal)} · Difference ${String(debitCreditDifference)}" type="p" />
+        <label text="Debits ${String(debitTotal)} · Credits ${String(creditTotal)} · Difference ${String(debitCreditDifference)} ${record.amountUomId}" type="p" />
         <section name="DraftEditor" condition="record.isPosted !== 'Y' &amp;&amp; accounting.capabilities.glPost">
             <widgets>
-                <form-single name="DraftHeader" transition="save" map="record">
-                    <field name="recordId" from="recordId">
-                        <default-field title="Record id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="lastUpdatedStamp" from="record.lastUpdatedStamp">
-                        <default-field title="Last updated stamp">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="organizationPartyId" from="record.organizationPartyId">
-                        <default-field title="Organization party id">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="description">
-                        <default-field title="Description">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="transactionDate">
-                        <default-field title="Date">
-                            <date-time />
-                        </default-field>
-                    </field>
-                    <field name="submit">
-                        <default-field title="Submit">
-                            <submit text="Save draft" type="primary" />
-                        </default-field>
-                    </field>
-                </form-single>
-                <container-dialog id="Addline" button-text="Add line">
+                <section name="DraftHeaderPermission" condition="accounting.capabilities.glPost">
+                    <widgets>
+                        <form-single name="DraftHeader" transition="save" map="record">
+                            <field name="recordId" from="recordId">
+                                <default-field title="Record id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="lastUpdatedStamp" from="record.lastUpdatedStamp">
+                                <default-field title="Last updated stamp">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="record.organizationPartyId">
+                                <default-field title="Organization party id">
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <text-line />
+                                </default-field>
+                            </field>
+                            <field name="transactionDate">
+                                <default-field title="Date">
+                                    <date-time />
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="Submit">
+                                    <submit text="Save draft" type="primary" />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <container-dialog id="Addline" button-text="Add line" condition="accounting.capabilities.glPost">
                     <form-single name="AddLine" transition="line" map="context">
                         <field name="recordId" from="recordId">
                             <default-field title="Record id">
@@ -282,7 +292,7 @@
                         <field name="glAccountId">
                             <default-field title="Account">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
                                 </drop-down>
                             </default-field>
                         </field>
@@ -307,14 +317,14 @@
                         <field name="facilityId">
                             <default-field title="Facility">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="costCenterId">
                             <default-field title="Cost centre">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId}" />
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
                                 </drop-down>
                             </default-field>
                         </field>
@@ -325,7 +335,7 @@
                         </field>
                     </form-single>
                 </container-dialog>
-                <container-dialog id="Deletedraft" button-text="Delete draft">
+                <container-dialog id="Deletedraft" button-text="Delete draft" condition="accounting.capabilities.glPost">
                     <form-single name="DeleteDraft" transition="delete" map="context">
                         <field name="recordId" from="recordId">
                             <default-field title="Record id">
@@ -374,12 +384,12 @@
             </field>
             <field name="amount" align="right">
                 <default-field title="Amount">
-                    <display />
+                    <display currency-unit-field="record.amountUomId" />
                 </default-field>
             </field>
             <field name="lineActions">
                 <default-field title="Actions">
-                    <container-dialog id="EditLine_${acctgTransEntrySeqId}" button-text="Edit line" condition="record.isPosted !== 'Y' &amp;&amp; accounting.capabilities.glPost">
+                    <container-dialog id="EditLine_${acctgTransEntrySeqId}" button-text="Edit line" condition="(record.isPosted !== 'Y' &amp;&amp; accounting.capabilities.glPost) &amp;&amp; accounting.capabilities.glPost">
                         <form-single name="EditLine" transition="line">
                             <field name="recordId" from="recordId">
                                 <default-field title="Record id">
@@ -399,7 +409,7 @@
                             <field name="glAccountId">
                                 <default-field title="Account">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -429,7 +439,7 @@
                         </form-single>
                     </container-dialog>
                     <button-menu text="More" icon="more_horiz" condition="record.isPosted !== 'Y' &amp;&amp; accounting.capabilities.glPost">
-                        <container-dialog id="Movedraftline" button-text="Move draft line">
+                        <container-dialog id="Movedraftline" button-text="Move draft line" condition="accounting.capabilities.glPost">
                             <form-single name="MoveDraftLine" transition="move" map="context">
                                 <field name="recordId" from="recordId">
                                     <default-field title="Record id">
@@ -449,7 +459,7 @@
                                 <field name="destinationAcctgTransId">
                                     <default-field title="Destination draft">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'drafts',organizationPartyId:organizationPartyId}" />
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'drafts',organizationPartyId:organizationPartyId,selected:destinationAcctgTransId}" />
                                         </drop-down>
                                     </default-field>
                                 </field>
@@ -465,7 +475,7 @@
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <container-dialog id="Removeline" button-text="Remove line">
+                        <container-dialog id="Removeline" button-text="Remove line" condition="accounting.capabilities.glPost">
                             <form-single name="RemoveDraftLine" transition="removeLine" map="context">
                                 <field name="recordId" from="recordId">
                                     <default-field title="Record id">
@@ -564,7 +574,7 @@
         </section>
         <section name="PostedActions" condition="record.isPosted === 'Y' &amp;&amp; accounting.capabilities.glPost">
             <widgets>
-                <container-dialog id="Reverseentry" button-text="Reverse entry" condition="!record.reversedByAcctgTransId">
+                <container-dialog id="Reverseentry" button-text="Reverse entry" condition="(!record.reversedByAcctgTransId) &amp;&amp; accounting.capabilities.glPost">
                     <form-single name="ReverseEntry" transition="reverse" map="context">
                         <field name="recordId" from="recordId">
                             <default-field title="Record id">
@@ -593,7 +603,7 @@
                         </field>
                     </form-single>
                 </container-dialog>
-                <container-dialog id="Correctdescription" button-text="Correct description">
+                <container-dialog id="Correctdescription" button-text="Correct description" condition="accounting.capabilities.glPost">
                     <form-single name="CorrectDescription" transition="metadata" map="context">
                         <field name="recordId" from="recordId">
                             <default-field title="Record id">
@@ -630,7 +640,7 @@
         <form-list name="Audit" list="auditRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
             <field name="changedDate">
                 <default-field title="Date">
-                    <display format="yyyy-MM-dd HH:mm" />
+                    <display text="${changedDateText}" />
                 </default-field>
             </field>
             <field name="changedFieldName">

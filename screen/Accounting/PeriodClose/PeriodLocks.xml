@@ -47,6 +47,8 @@
     <actions>
         <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'locks'})" out-map="context" />
         <set field="recordsCount" from="recordCount" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+records = dateLabels.formatDates(records,[["lastUpdatedStamp", "yyyy-MM-dd HH:mm"]])</script>
     </actions>
     <widgets>
         <label text="Posting locks" type="h5" />
@@ -54,7 +56,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -82,7 +84,7 @@
             </field>
             <field name="lastUpdatedStamp">
                 <default-field title="Updated">
-                    <display format="yyyy-MM-dd HH:mm" />
+                    <display text="${lastUpdatedStampText}" />
                 </default-field>
             </field>
             <field name="lockScope">
@@ -102,7 +104,7 @@
             </field>
             <field name="lockActions">
                 <default-field title="Actions">
-                    <container-dialog id="Editpostinglock" button-text="Edit lock" condition="accounting.capabilities.admin">
+                    <container-dialog id="Editpostinglock" button-text="Edit lock" condition="(accounting.capabilities.admin) &amp;&amp; accounting.capabilities.admin">
                         <form-single name="EditLock" transition="lock" map="context">
                             <field name="accountingLockId" from="accountingLockId">
                                 <default-field title="Lock">
@@ -168,7 +170,7 @@
             </columns>
         </form-list>
         <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Addpostinglock" button-text="Add posting lock" condition="accounting.capabilities.admin">
+        <container-dialog id="Addpostinglock" button-text="Add posting lock" condition="(accounting.capabilities.admin) &amp;&amp; accounting.capabilities.admin">
             <form-single name="PostingLock" transition="lock" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -210,7 +212,7 @@
                 </field>
             </form-single>
         </container-dialog>
-        <container-dialog id="Grantsoftlockexception" button-text="Grant soft-lock exception" condition="accounting.capabilities.admin">
+        <container-dialog id="Grantsoftlockexception" button-text="Grant soft-lock exception" condition="(accounting.capabilities.admin) &amp;&amp; accounting.capabilities.admin">
             <form-single name="LockException" transition="exception" map="context">
                 <field name="organizationPartyId" from="organizationPartyId">
                     <default-field title="Organization party id">
@@ -220,28 +222,28 @@
                 <field name="accountingLockId">
                     <default-field title="Soft lock">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'locks',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'locks',organizationPartyId:organizationPartyId,selected:accountingLockId}" />
                         </drop-down>
                     </default-field>
                 </field>
                 <field name="userId">
                     <default-field title="User">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'users',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'users',organizationPartyId:organizationPartyId,selected:userId}" />
                         </drop-down>
                     </default-field>
                 </field>
                 <field name="userGroupId">
                     <default-field title="Group">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'groups',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'groups',organizationPartyId:organizationPartyId,selected:userGroupId}" />
                         </drop-down>
                     </default-field>
                 </field>
                 <field name="acctgTransId">
                     <default-field title="Entry (optional)">
                         <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'journals',organizationPartyId:organizationPartyId}" />
+                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'journals',organizationPartyId:organizationPartyId,selected:acctgTransId}" />
                         </drop-down>
                     </default-field>
                 </field>

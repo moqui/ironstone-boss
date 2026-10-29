@@ -15,6 +15,8 @@
     <parameter name="pageSize" />
     <actions>
         <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'payments',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+record = dateLabels.formatDates(record,[["effectiveDate", "yyyy-MM-dd"]])</script>
     </actions>
     <widgets>
         <container style="m-record-header">
@@ -28,23 +30,13 @@
         </container>
         <label text="Payment details" type="h6" />
         <label text="This record is read only. Document workflows are enabled in later Accounting phases." type="p" />
-        <form-single name="Document" transition="." map="record">
-            <field name="fromPartyId">
-                <default-field title="From">
-                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" />
-                </default-field>
-            </field>
-            <field name="toPartyId">
-                <default-field title="To">
-                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" />
-                </default-field>
-            </field>
-            <field name="description">
-                <default-field title="Description">
-                    <display />
-                </default-field>
-            </field>
-        </form-single>
+        <container style="m-record-facts">
+            <label text="From ${record.fromPartyName || record.fromPartyId}" type="p" />
+            <label text="To ${record.toPartyName || record.toPartyId}" type="p" />
+            <label text="${record.description || ''}" type="p" />
+            <label text="Date ${record.effectiveDateText || '—'}" type="p" />
+            <label text="Amount ${record.amount == null ? '—' : ec.l10n.formatCurrency(record.amount,record.amountUomId)}" type="p" />
+        </container>
         <link url="//Accounting/Payments/Payments" text="Back to list" />
     </widgets>
 </screen>

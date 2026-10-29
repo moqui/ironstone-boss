@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
 <entity-facade-xml type="demo">
+    <moqui.basic.Enumeration enumId="BOSS_ACCOUNTING_SERVICE_ITEM" enumTypeId="ItemType" description="Accounting service item"/>
+    <mantle.ledger.account.GlAccount glAccountId="BOSS_ACCOUNTING_EXPENSE" accountCode="909900001" accountName="Accounting demo purchase expense" glAccountClassEnumId="EXPENSE" glAccountTypeEnumId="GatCogs" glResourceTypeEnumId="GlrtMoney" isDebit="Y" disallowPosting="N"/>
     <ironstone.accounting.DemoServices.load-AccountingDemo/>
 </entity-facade-xml>

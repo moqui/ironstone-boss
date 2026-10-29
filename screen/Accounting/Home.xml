@@ -23,7 +23,7 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -34,7 +34,10 @@
             </field>
         </form-single>
         <dashboard min-width="150">
-            <number-card title="Unposted entries" value="${summary.unposted == null ? '—' : String(summary.unposted)}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=N" />
+            <number-card title="Unposted entries" value="${summary.unposted == null ? '—' : String(summary.unposted)}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=N&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
+            <number-card title="Posted entries" value="${summary.posted == null ? '—' : String(summary.posted)}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=Y&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
+            <number-card title="Chart accounts" value="${summary.accounts == null ? '—' : String(summary.accounts)}" link="//Accounting/GeneralLedger/ChartOfAccounts?&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
+            <number-card title="Fiscal periods" value="${summary.periods == null ? '—' : String(summary.periods)}" link="//Accounting/PeriodClose/Periods?&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.glPost || accounting.capabilities.fiscalClose" />
             <number-card title="Receivables due" value="—" />
             <number-card title="Payables due" value="—" />
             <number-card title="Unmatched bank lines" value="—" />

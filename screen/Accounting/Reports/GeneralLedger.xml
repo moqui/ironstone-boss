@@ -41,6 +41,9 @@
         <set from="0" field="comparisonRowsPageMaxIndex" />
         <set from="comparisonRowsCount ? 1 : 0" field="comparisonRowsPageRangeLow" />
         <set from="comparisonRowsCount" field="comparisonRowsPageRangeHigh" />
+        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
+reportRows = dateLabels.formatDates(reportRows,[["transactionDate", "yyyy-MM-dd"]])
+comparisonRows = dateLabels.formatDates(comparisonRows,[["transactionDate", "yyyy-MM-dd"]])</script>
     </actions>
     <widgets>
         <label text="General ledger" type="h5" />
@@ -49,21 +52,21 @@
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
                     </drop-down>
                 </default-field>
             </field>
             <field name="glAccountId">
                 <default-field title="Account">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
                     </drop-down>
                 </default-field>
             </field>
             <field name="timePeriodId">
                 <default-field title="Fiscal period">
                     <drop-down>
-                        <dynamic-options server-search="true" min-length="0" parameter-map="{choice:'periods',organizationPartyId:organizationPartyId}" transition="choices" />
+                        <dynamic-options server-search="true" min-length="0" parameter-map="{choice:'periods',organizationPartyId:organizationPartyId,selected:timePeriodId}" transition="choices" />
                     </drop-down>
                 </default-field>
             </field>
@@ -80,21 +83,21 @@
             <field name="amountUomId">
                 <default-field title="Currency">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}" />
                     </drop-down>
                 </default-field>
             </field>
             <field name="facilityId">
                 <default-field title="Facility">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
                     </drop-down>
                 </default-field>
             </field>
             <field name="costCenterId">
                 <default-field title="Cost centre">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId}" />
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
                     </drop-down>
                 </default-field>
             </field>
@@ -132,7 +135,7 @@
             </field>
             <field name="transactionDate">
                 <default-field title="Date">
-                    <display format="yyyy-MM-dd" />
+                    <display text="${transactionDateText}" />
                 </default-field>
             </field>
             <field name="debits" align="right">
@@ -180,7 +183,7 @@
             </field>
             <field name="transactionDate">
                 <default-field title="Date">
-                    <display format="yyyy-MM-dd" />
+                    <display text="${transactionDateText}" />
                 </default-field>
             </field>
             <field name="debits" align="right">

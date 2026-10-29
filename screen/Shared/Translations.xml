@@ -38,6 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="." />
     </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <actions>
         <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
         <service-call name="mantle.product.ContentServices.find#CatalogTranslations" in-map="context" out-map="context" />
@@ -59,18 +60,24 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
             <field name="productId">
-                <default-field title="Product ID">
-                    <text-line />
+                <default-field title="Product">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',selected:productId}"/>
+                    </drop-down>
                 </default-field>
             </field>
             <field name="sourceLocale">
-                <default-field title="Source locale">
-                    <text-line default-value="en" />
+                <default-field title="Source language">
+                    <drop-down allow-empty="false">
+                        <list-options list="localeOptions" key="${value}" text="${label}"/>
+                    </drop-down>
                 </default-field>
             </field>
             <field name="targetLocale">
-                <default-field title="Target locale">
-                    <text-line default-value="es" />
+                <default-field title="Target language">
+                    <drop-down allow-empty="true">
+                        <list-options list="localeOptions" key="${value}" text="${label}"/>
+                    </drop-down>
                 </default-field>
             </field>
             <field name="missingOnly">
@@ -87,6 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
         </form-single>
+        <label text="Choose a target language to compare its translations with the source." type="p" style="m-muted" condition="!targetLocale"/>
         <form-list name="TranslationRows" list="translationRows" skip-form="true" paginate="false">
             <field name="recordId">
                 <default-field title="Record">

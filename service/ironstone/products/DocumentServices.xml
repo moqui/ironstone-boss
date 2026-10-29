@@ -66,6 +66,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="currentRevision" type="String" />
             <parameter name="versionRows" type="List" />
             <parameter name="conflictRows" type="List" />
+            <parameter name="documentFactsText" type="String" />
+            <parameter name="documentState" type="Map" />
+            <parameter name="versionOptions" type="List" />
+            <parameter name="localeOptions" type="List" />
             <parameter name="canEdit" type="Boolean" />
             <parameter name="diff" type="Map" />
             <parameter name="conflict" type="Boolean" />

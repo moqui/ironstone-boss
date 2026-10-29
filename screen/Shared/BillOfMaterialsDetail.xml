@@ -28,6 +28,70 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="printBase" from="sharedMountContext.printBase"/>
         <service-call name="ironstone.products.MethodServices.get#MethodContext" in-map="context" out-map="context" />
     </always-actions>
+    <transition name="saveHeader">
+        <actions>
+            <service-call name="ironstone.products.MethodServices.store#Bom" in-map="context" out-map="saved" />
+            <if condition="saved.productBomId">
+                <set field="productBomId" from="saved.productBomId" />
+            </if>
+            <if condition="saved.workEffortId">
+                <set field="workEffortId" from="saved.workEffortId" />
+            </if>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productBomId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="workEffortId" />
+            <parameter name="asOfDate" value="" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="importLegacy">
+        <actions>
+            <service-call name="ironstone.products.MethodServices.import#LegacyBom" in-map="context" out-map="saved" />
+            <if condition="saved.productBomId">
+                <set field="productBomId" from="saved.productBomId" />
+            </if>
+            <if condition="saved.workEffortId">
+                <set field="workEffortId" from="saved.workEffortId" />
+            </if>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productBomId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="workEffortId" />
+            <parameter name="asOfDate" value="" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="release">
+        <actions>
+            <service-call name="ironstone.products.MethodServices.release#BomDraft" in-map="context" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productBomId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="workEffortId" />
+            <parameter name="asOfDate" value="" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="validate">
+        <actions>
+            <service-call name="ironstone.products.MethodServices.validate#BomDraft" in-map="context" out-map="checked" />
+            <script>if(checked.valid)ec.message.addMessage('Draft checks passed');else for(const f of checked.findings||[])ec.message.addError(f.recordId+': '+f.message)</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productBomId" />
+            <parameter name="workEffortId" />
+            <parameter name="asOfDate" value="" />
+        </default-response>
+        <error-response url="." />
+    </transition>
     <subscreens default-item="Overview">
         <subscreens-item name="Overview" menu-title="Method" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsDetail/Overview.xml" />
         <subscreens-item name="BillOfMaterialsExplosion" menu-title="Explosion" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsExplosion.xml" />
@@ -37,39 +101,383 @@ along with this software (see the LICENSE.md file). If not, see
     </subscreens>
     <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('BOM')</expression></condition>
     <widgets>
-        <label text="Manufacturing methods" type="h5" />
-        <label text="${methodMessage}" type="p" />
-        <section name="MethodAccess" condition="methodAccess.read">
+        <container style="m-record-header">
+            <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                <container style="col-12 col-md m-record-title">
+                    <container style="row items-center no-wrap">
+                        <section name="MethodKey" condition="!!productBom">
+                            <widgets>
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(String(productBom.methodCode ?? ''))}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "MethodKey", style: "strong", text: String(productBom.methodCode ?? "")})}]]></text>
+                                </render-mode>
+                            </widgets>
+                        </section>
+                        <label text="${productBom ? (productBom.bomName || 'Manufacturing method') : 'Manufacturing method'}" type="h5"/>
+                    </container>
+                    <label text="${methodFactsText || product?.productName || productId || ''}" type="p" style="text-caption m-muted q-mb-none"/>
+                    <label text="${methodMessage}" type="p" condition="!!methodMessage"/>
+                </container>
+                <container style="col-12 col-md-auto m-record-status">
+                    <render-mode>
+                        <text type="qvt"><![CDATA[${methodState ? '<q-chip dense square class="q-ma-none m-tonal text-' + methodState.color + '">' + WebUtilities.encodeHtml(methodState.text) + '</q-chip>' : ''}]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "MethodState", text: methodState ? methodState.text : ""})}]]></text>
+                    </render-mode>
+                </container>
+            </container>
+            <section name="MethodAccess" condition="methodAccess.read">
+                <widgets>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md">
+                            <form-single name="MethodSelection" transition=".">
+                                <field name="productId" from="productId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="organizationPartyId" from="organizationPartyId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="productBomId">
+                                    <default-field title="Method">
+                                        <drop-down allow-empty="true">
+                                            <list-options list="bomRows" key="${productBomId}" text="${methodCode} · ${bomName}" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="asOfDate">
+                                    <default-field title="Review at date">
+                                        <date-time />
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Show method">
+                                        <submit />
+                                    </default-field>
+                                </field>
+                                <field-layout>
+                                    <field-row-big>
+                                        <field-ref name="productBomId"/>
+                                        <field-ref name="asOfDate"/>
+                                        <field-ref name="submitButton"/>
+                                    </field-row-big>
+                                </field-layout>
+                            </form-single>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions m-method-actions">
+                            <section name="MethodActions" condition="!kit">
+                                <widgets>
+                                    <section name="ApprovePrimary" condition="!!productBomId &amp;&amp; methodAccess.approve">
+                                        <widgets>
+                                            <container-dialog id="BomReleaseDialog" button-text="Approve method" type="primary" icon="sym_o_verified" title="Approve method" width="720">
+                                                <form-single name="BomRelease" transition="release">
+                                                    <field name="productId" from="productId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productBomId" from="productBomId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="organizationPartyId" from="organizationPartyId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="expectedRevision" from="bomExpectedRevision || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="fromDate">
+                                                        <default-field title="Effective start" tooltip="Leave empty to start now">
+                                                            <date-time />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="changeReason">
+                                                        <default-field title="Approval reason">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="submitButton">
+                                                        <default-field title="Release method">
+                                                            <submit />
+                                                        </default-field>
+                                                    </field>
+                                                </form-single>
+                                            </container-dialog>
+                                        </widgets>
+                                    </section>
+                                    <section name="NewPrimary" condition="!productBomId &amp;&amp; methodAccess.edit">
+                                        <widgets>
+                                            <container-dialog id="NewBomDialog" button-text="New method" type="primary" icon="sym_o_add" title="New method" width="720">
+                                                <form-single name="NewBom" transition="saveHeader" map="bomHeader">
+                                                    <field name="productId" from="productId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="productBomId" from="productBomId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="organizationPartyId" from="organizationPartyId || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="expectedRevision" from="bomExpectedRevision || null">
+                                                        <default-field>
+                                                            <hidden />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="methodCode">
+                                                        <default-field title="Method code">
+                                                            <text-line default-value="MAIN" />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="bomName">
+                                                        <default-field title="Method name">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="baseQuantity">
+                                                        <default-field title="Base quantity">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="quantityUomId">
+                                                        <default-field title="Base unit">
+                                                            <drop-down allow-empty="true">
+                                                                <list-options list="unitOptions" key="${value}" text="${label}" />
+                                                            </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="isPhantom">
+                                                        <default-field title="Phantom method">
+                                                            <drop-down allow-empty="true">
+                                                                <option key="N" text="No" />
+                                                                <option key="Y" text="Yes" />
+                                                            </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="routingWorkEffortId">
+                                                        <default-field title="Routing">
+                                                            <drop-down allow-empty="true">
+                                                                <list-options list="routingOptions" key="${value}" text="${label}" />
+                                                            </drop-down>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="leadTimeDays">
+                                                        <default-field title="Lead days">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="prepareDays">
+                                                        <default-field title="Preparation days">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="acknowledgeImportIssues">
+                                                        <default-field title="Acknowledge reviewed import issues">
+                                                            <check>
+                                                                <option key="true" text="I reviewed the named import issues" />
+                                                            </check>
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="changeReason">
+                                                        <default-field title="Change reason">
+                                                            <text-line />
+                                                        </default-field>
+                                                    </field>
+                                                    <field name="submitButton">
+                                                        <default-field title="Save method draft">
+                                                            <submit />
+                                                        </default-field>
+                                                    </field>
+                                                </form-single>
+                                            </container-dialog>
+                                        </widgets>
+                                    </section>
+                                    <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="methodAccess.edit || (!!productBomId &amp;&amp; methodAccess.costWrite)">
+                                        <section name="DraftActions" condition="!!productBomId &amp;&amp; methodAccess.edit">
+                                            <widgets>
+                                                <container-dialog id="BomValidationDialog" button-text="Validate draft" icon="sym_o_rule" title="Validate method draft" width="560">
+                                                    <form-single name="BomValidation" transition="validate">
+                                                        <field name="productId" from="productId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="productBomId" from="productBomId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="organizationPartyId" from="organizationPartyId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="expectedRevision" from="bomExpectedRevision || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="fromDate">
+                                                            <default-field title="Proposed effective start">
+                                                                <date-time />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="submitButton">
+                                                            <default-field title="Validate draft">
+                                                                <submit />
+                                                            </default-field>
+                                                        </field>
+                                                    </form-single>
+                                                </container-dialog>
+                                                <container-dialog id="BomHeaderDialog" button-text="Edit method draft" icon="sym_o_edit" title="Method draft" width="720">
+                                                    <form-single name="BomHeader" transition="saveHeader" map="bomHeader">
+                                                        <field name="productId" from="productId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="productBomId" from="productBomId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="organizationPartyId" from="organizationPartyId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="expectedRevision" from="bomExpectedRevision || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="methodCode">
+                                                            <default-field title="Method code">
+                                                                <text-line default-value="MAIN" />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="bomName">
+                                                            <default-field title="Method name">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="baseQuantity">
+                                                            <default-field title="Base quantity">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="quantityUomId">
+                                                            <default-field title="Base unit">
+                                                                <drop-down allow-empty="true">
+                                                                    <list-options list="unitOptions" key="${value}" text="${label}" />
+                                                                </drop-down>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="isPhantom">
+                                                            <default-field title="Phantom method">
+                                                                <drop-down allow-empty="true">
+                                                                    <option key="N" text="No" />
+                                                                    <option key="Y" text="Yes" />
+                                                                </drop-down>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="routingWorkEffortId">
+                                                            <default-field title="Routing">
+                                                                <drop-down allow-empty="true">
+                                                                    <list-options list="routingOptions" key="${value}" text="${label}" />
+                                                                </drop-down>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="leadTimeDays">
+                                                            <default-field title="Lead days">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="prepareDays">
+                                                            <default-field title="Preparation days">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="acknowledgeImportIssues">
+                                                            <default-field title="Acknowledge reviewed import issues">
+                                                                <check>
+                                                                    <option key="true" text="I reviewed the named import issues" />
+                                                                </check>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="changeReason">
+                                                            <default-field title="Change reason">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="submitButton">
+                                                            <default-field title="Save method draft">
+                                                                <submit />
+                                                            </default-field>
+                                                        </field>
+                                                    </form-single>
+                                                </container-dialog>
+                                            </widgets>
+                                        </section>
+                                        <section name="ImportActions" condition="methodAccess.edit">
+                                            <widgets>
+                                                <container-dialog id="ImportLegacyBomDialog" button-text="Import legacy components" icon="sym_o_upload" title="Import legacy components" width="720">
+                                                    <form-single name="ImportLegacyBom" transition="importLegacy" map="bomHeader">
+                                                        <field name="productId" from="productId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="organizationPartyId" from="organizationPartyId || null">
+                                                            <default-field>
+                                                                <hidden />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="quantityUomId">
+                                                            <default-field title="Legacy quantity unit">
+                                                                <drop-down>
+                                                                    <list-options list="unitOptions" key="${value}" text="${label}" />
+                                                                </drop-down>
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="changeReason">
+                                                            <default-field title="Import reason">
+                                                                <text-line />
+                                                            </default-field>
+                                                        </field>
+                                                        <field name="submitButton">
+                                                            <default-field title="Import legacy manufacturing components">
+                                                                <submit />
+                                                            </default-field>
+                                                        </field>
+                                                    </form-single>
+                                                </container-dialog>
+                                            </widgets>
+                                        </section>
+                                        <link url="${sharedLinks['Prices/CostRollup']}" text="Cost estimate" icon="sym_o_calculate" condition="!!productBomId &amp;&amp; methodAccess.costWrite"
+                                                parameter-map="{productId:productId,organizationPartyId:organizationPartyId,productBomId:productBomId}"/>
+                                    </button-menu>
+                                </widgets>
+                            </section>
+                        </container>
+                    </container>
+                </widgets>
+            </section>
+        </container>
+        <section name="MethodTabs" condition="methodAccess.read">
             <widgets>
-                <form-single name="MethodSelection" transition=".">
-                    <field name="productId" from="productId || null">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="organizationPartyId" from="organizationPartyId || null">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="productBomId">
-                        <default-field title="Method">
-                            <drop-down allow-empty="true">
-                                <list-options list="bomRows" key="${productBomId}" text="${methodCode} · ${bomName}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="asOfDate">
-                        <default-field title="Review at date">
-                            <date-time />
-                        </default-field>
-                    </field>
-                    <field name="submitButton">
-                        <default-field title="Show method">
-                            <submit />
-                        </default-field>
-                    </field>
-                </form-single>
                 <subscreens-menu id="MethodTabs" type="tab" />
                 <subscreens-active />
             </widgets>

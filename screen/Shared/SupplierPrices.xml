@@ -711,8 +711,15 @@ along with this software (see the LICENSE.md file). If not, see
                         <column><field-ref name="rowActions"/></column>
                     </columns>
                     <columns type="mobile">
-                        <column><field-ref name="productId"/></column>
-                        <column><field-ref name="state"/></column>
+                        <column>
+                            <field-ref name="productId"/>
+                            <field-ref name="supplierName"/>
+                        </column>
+                        <column>
+                            <field-ref name="price"/>
+                            <field-ref name="state"/>
+                            <field-ref name="rowActions"/>
+                        </column>
                     </columns>
                 </form-list>
             </box-body>

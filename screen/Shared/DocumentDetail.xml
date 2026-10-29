@@ -71,273 +71,356 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
     </actions>
     <widgets>
-        <label text="Document detail" type="h5" />
-        <link text="All documents" url="${sharedLinks['Documents']}" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
+        <section name="NoDocument" condition="!document">
+            <widgets>
+                <label text="This document is not available." type="p"/>
+                <link text="All documents" url="${sharedLinks['Documents']}" link-type="anchor-button" icon="sym_o_arrow_back" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}"/>
+            </widgets>
+        </section>
         <section name="SelectedDocument" condition="!!document">
             <widgets>
-                <label text="${document.filename}" type="h6" />
-                <label text="${document.contentTypeText} · ${document.locale || &quot;&quot;}" type="p" />
-                <link text="Preview or download" url="download" target-window="_blank" condition="document.managed" parameter-map="{recordKind:recordKind,contentId:document.contentId,inline:true}" />
-                <label text="Copy this reference through an authorized drive before previewing it." condition="!document.managed" type="p" />
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm">${WebUtilities.encodeHtml(String(document.contentTypeText ?? ''))}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "DocumentType", style: "strong", text: String(document.contentTypeText ?? "")})}]]></text>
+                                </render-mode>
+                                <label text="${document.filename || document.description || document.contentId}" type="h5"/>
+                            </container>
+                            <label text="${documentFactsText || ''}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[${documentState ? '<q-chip dense square class="q-ma-none m-tonal text-' + documentState.color + '">' + WebUtilities.encodeHtml(documentState.text) + '</q-chip>' : ''}]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "DocumentState", text: documentState ? documentState.text : ""})}]]></text>
+                            </render-mode>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md row q-gutter-xs">
+                            <link text="All documents" url="${sharedLinks['Documents']}" link-type="anchor-button" icon="sym_o_arrow_back" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}"/>
+                            <link text="${document.recordId}" url="${sharedLinks['Products/Product360']}" link-type="anchor-button" icon="sym_o_inventory_2" condition="recordKind !== 'category'" parameter-map="{productId:document.recordId}"/>
+                            <link text="${document.recordId}" url="${sharedLinks['Categories/CategoryDetail']}" link-type="anchor-button" icon="sym_o_category" condition="recordKind === 'category'" parameter-map="{productCategoryId:document.recordId}"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <section name="EditDocument" condition="canEdit">
+                                <widgets>
+                                    <container-dialog id="EditDocumentDialog" button-text="Edit document" type="primary" icon="sym_o_edit" title="Edit ${document.filename || 'document'}" width="960">
+                                        <form-single name="ProductContentMetadata" transition="save" map="documentForm">
+                                            <field name="recordKind">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productContentId">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productCategoryContentId">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="contentId">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productId">
+                                                <conditional-field condition="recordKind === 'category'">
+                                                    <ignored />
+                                                </conditional-field>
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productCategoryId">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="expectedRevision">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productContentTypeEnumId">
+                                                <conditional-field condition="recordKind === 'category'">
+                                                    <ignored />
+                                                </conditional-field>
+                                                <default-field title="Product content type">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="contentTypes" key="${value}" text="${label}" />
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="categoryContentTypeEnumId">
+                                                <conditional-field condition="recordKind !== 'category'">
+                                                    <ignored />
+                                                </conditional-field>
+                                                <default-field title="Category content type">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="contentTypes" key="${value}" text="${label}" />
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="description">
+                                                <default-field title="Description">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="locale">
+                                                <default-field title="Locale">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="productStoreId">
+                                                <default-field title="Store ID">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="productFeatureId">
+                                                <conditional-field condition="recordKind === 'category'">
+                                                    <ignored />
+                                                </conditional-field>
+                                                <default-field title="Feature ID">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="fromDate">
+                                                <default-field title="From">
+                                                    <date-time />
+                                                </default-field>
+                                            </field>
+                                            <field name="thruDate">
+                                                <default-field title="Through">
+                                                    <date-time />
+                                                </default-field>
+                                            </field>
+                                            <field name="contentText">
+                                                <default-field title="Text">
+                                                    <text-area rows="10" />
+                                                </default-field>
+                                            </field>
+                                            <field name="contentFile">
+                                                <default-field title="Replace file version">
+                                                    <file />
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save document">
+                                                    <submit />
+                                                </default-field>
+                                            </field>
+                                            <field-layout>
+                                                <field-row>
+                                                    <field-ref name="productContentTypeEnumId"/>
+                                                    <field-ref name="categoryContentTypeEnumId"/>
+                                                    <field-ref name="locale"/>
+                                                </field-row>
+                                                <field-row>
+                                                    <field-ref name="description"/>
+                                                    <field-ref name="productStoreId"/>
+                                                    <field-ref name="productFeatureId"/>
+                                                </field-row>
+                                                <field-row>
+                                                    <field-ref name="fromDate"/>
+                                                    <field-ref name="thruDate"/>
+                                                </field-row>
+                                                <field-ref name="contentText"/>
+                                                <field-ref name="contentFile"/>
+                                                <field-ref name="submitButton"/>
+                                            </field-layout>
+                                        </form-single>
+                                    </container-dialog>
+                                </widgets>
+                            </section>
+                            <link text="Preview or download" url="download" link-type="anchor-button" icon="sym_o_open_in_new" target-window="_blank" condition="document.managed" parameter-map="{recordKind:recordKind,contentId:document.contentId,inline:true}"/>
+                            <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="(canEdit &amp;&amp; versionRows.length &gt; 1) || recordKind !== 'category'">
+                                <link text="Product datasheet" url="datasheet" icon="sym_o_print" target-window="_blank" condition="recordKind !== 'category'" parameter-map="{productId:document.recordId}"/>
+                                <section name="RestoreVersion" condition="canEdit &amp;&amp; versionRows.length &gt; 1">
+                                    <widgets>
+                                        <container-dialog id="RestoreVersionDialog" button-text="Restore a version" icon="sym_o_history" title="Restore a retained version" width="560">
+                                            <form-single name="RestoreCatalogContent" transition="restore">
+                                                <field name="recordKind">
+                                                    <default-field>
+                                                        <hidden />
+                                                    </default-field>
+                                                </field>
+                                                <field name="contentId">
+                                                    <default-field>
+                                                        <hidden />
+                                                    </default-field>
+                                                </field>
+                                                <field name="productContentId">
+                                                    <default-field>
+                                                        <hidden />
+                                                    </default-field>
+                                                </field>
+                                                <field name="productCategoryContentId">
+                                                    <default-field>
+                                                        <hidden />
+                                                    </default-field>
+                                                </field>
+                                                <field name="expectedRevision">
+                                                    <default-field>
+                                                        <hidden />
+                                                    </default-field>
+                                                </field>
+                                                <field name="versionName">
+                                                    <default-field title="Version to restore">
+                                                        <drop-down allow-empty="false">
+                                                            <list-options list="versionOptions" key="${value}" text="${label}"/>
+                                                        </drop-down>
+                                                    </default-field>
+                                                </field>
+                                                <field name="submitButton">
+                                                    <default-field title="Restore as new version">
+                                                        <submit confirmation="Restore this content as a new version? Existing versions will be retained." />
+                                                    </default-field>
+                                                </field>
+                                            </form-single>
+                                        </container-dialog>
+                                    </widgets>
+                                </section>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <label text="Copy this reference through an authorized drive before previewing it." condition="!document.managed" type="p"/>
                 <section name="ReadText" condition="document.isText">
                     <widgets>
-                        <label text="${contentText}" type="pre" />
-                    </widgets>
-                </section>
-                <section name="EditDocument" condition="canEdit">
-                    <widgets>
-                        <form-single name="ProductContentMetadata" transition="save" map="documentForm">
-                            <field name="recordKind">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productContentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productCategoryContentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="contentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productId">
-                                <conditional-field condition="recordKind === 'category'">
-                                    <ignored />
-                                </conditional-field>
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productCategoryId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="expectedRevision">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productContentTypeEnumId">
-                                <conditional-field condition="recordKind === 'category'">
-                                    <ignored />
-                                </conditional-field>
-                                <default-field title="Product content type">
-                                    <drop-down allow-empty="true">
-                                        <list-options list="contentTypes" key="${value}" text="${label}" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="categoryContentTypeEnumId">
-                                <conditional-field condition="recordKind !== 'category'">
-                                    <ignored />
-                                </conditional-field>
-                                <default-field title="Category content type">
-                                    <drop-down allow-empty="true">
-                                        <list-options list="contentTypes" key="${value}" text="${label}" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="description">
-                                <default-field title="Description">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="locale">
-                                <default-field title="Locale">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="productStoreId">
-                                <default-field title="Store ID">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="productFeatureId">
-                                <conditional-field condition="recordKind === 'category'">
-                                    <ignored />
-                                </conditional-field>
-                                <default-field title="Feature ID">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="fromDate">
-                                <default-field title="From">
-                                    <date-time />
-                                </default-field>
-                            </field>
-                            <field name="thruDate">
-                                <default-field title="Through">
-                                    <date-time />
-                                </default-field>
-                            </field>
-                            <field name="contentText">
-                                <default-field title="Text">
-                                    <text-area rows="10" />
-                                </default-field>
-                            </field>
-                            <field name="contentFile">
-                                <default-field title="Replace file version">
-                                    <file />
-                                </default-field>
-                            </field>
-                            <field name="submitButton">
-                                <default-field title="Save document">
-                                    <submit />
-                                </default-field>
-                            </field>
-                        </form-single>
-                    </widgets>
-                </section>
-                <label text="Retained versions" type="h6" />
-                <form-list name="ContentVersions" list="versionRows" skip-form="true" paginate="false">
-                    <field name="versionName">
-                        <default-field title="Version">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="dateText">
-                        <default-field title="Date">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="userId">
-                        <default-field title="Author">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="note">
-                        <default-field title="Note">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="compare">
-                        <default-field title="Compare">
-                            <link url="." text="Compare with current" parameter-map="{recordKind:recordKind,contentId:document.contentId,fromVersion:versionName}" />
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column><field-ref name="versionName"/></column>
-                        <column><field-ref name="dateText"/></column>
-                    </columns>
-                </form-list>
-                <form-single name="CompareContentVersions" transition=".">
-                    <field name="recordKind">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="contentId">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="productContentId">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="productCategoryContentId">
-                        <default-field>
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="fromVersion">
-                        <default-field title="From version">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="toVersion">
-                        <default-field title="To version" tooltip="Leave empty for the current version">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="submitButton">
-                        <default-field title="Compare versions">
-                            <submit />
-                        </default-field>
-                    </field>
-                </form-single>
-                <section name="ContentDiff" condition="!!diff">
-                    <widgets>
-                        <label text="${diff.unifiedDiff}" type="pre" />
-                    </widgets>
-                </section>
-                <section name="RestoreVersion" condition="canEdit &amp;&amp; versionRows.length &gt; 1">
-                    <widgets>
-                        <form-single name="RestoreCatalogContent" transition="restore">
-                            <field name="recordKind">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="contentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productContentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productCategoryContentId">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="expectedRevision">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="versionName">
-                                <default-field title="Version to restore">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="submitButton">
-                                <default-field title="Restore as new version">
-                                    <submit confirmation="Restore this content as a new version? Existing versions will be retained." />
-                                </default-field>
-                            </field>
-                        </form-single>
+                        <container-box>
+                            <box-header title="Text"/>
+                            <box-body>
+                                <label text="${contentText}" type="pre"/>
+                            </box-body>
+                        </container-box>
                     </widgets>
                 </section>
                 <section name="RetainedConflictDrafts" condition="conflictRows.length &gt; 0">
                     <widgets>
-                        <label text="Concurrent edit drafts" type="h6" />
-                        <label text="The current version was kept. Download a submitted draft and reconcile it against the current text." type="p" />
-                        <form-list name="ContentConflicts" list="conflictRows" skip-form="true" paginate="false">
-                            <field name="dateText">
-                                <default-field title="Submitted">
+                        <container-box>
+                            <box-header title="Concurrent edit drafts"/>
+                            <box-body-nopad>
+                                <label text="The current version was kept. Download a submitted draft and reconcile it against the current text." type="p" style="q-px-md q-pt-sm m-muted"/>
+                                <form-list name="ContentConflicts" list="conflictRows" skip-form="true" paginate="false">
+                                    <field name="dateText">
+                                        <default-field title="Submitted">
+                                            <display />
+                                        </default-field>
+                                    </field>
+                                    <field name="submittedByUserId">
+                                        <default-field title="Author">
+                                            <display />
+                                        </default-field>
+                                    </field>
+                                    <field name="draft">
+                                        <default-field title="Submitted draft">
+                                            <link url="download" text="Download draft" parameter-map="{recordKind:recordKind,contentId:document.contentId,contentEditConflictId:contentEditConflictId}" />
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="dateText"/></column>
+                                        <column><field-ref name="submittedByUserId"/></column>
+                                    </columns>
+                                </form-list>
+                            </box-body-nopad>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container-box>
+                    <box-header title="Retained versions"/>
+                    <box-body>
+                        <form-list name="ContentVersions" list="versionRows" skip-form="true" paginate="false">
+                            <field name="versionName">
+                                <default-field title="Version">
                                     <display />
                                 </default-field>
                             </field>
-                            <field name="submittedByUserId">
+                            <field name="dateText">
+                                <default-field title="Date">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="userId">
                                 <default-field title="Author">
                                     <display />
                                 </default-field>
                             </field>
-                            <field name="draft">
-                                <default-field title="Submitted draft">
-                                    <link url="download" text="Download draft" parameter-map="{recordKind:recordKind,contentId:document.contentId,contentEditConflictId:contentEditConflictId}" />
+                            <field name="note">
+                                <default-field title="Note">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="compare">
+                                <default-field title="Compare">
+                                    <link url="." text="Compare with current" parameter-map="{recordKind:recordKind,contentId:document.contentId,fromVersion:versionName}" />
                                 </default-field>
                             </field>
                             <columns type="mobile">
+                                <column><field-ref name="versionName"/></column>
                                 <column><field-ref name="dateText"/></column>
-                                <column><field-ref name="submittedByUserId"/></column>
                             </columns>
                         </form-list>
-                    </widgets>
-                </section>
+                        <form-single name="CompareContentVersions" transition=".">
+                            <field name="recordKind">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="contentId">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="productContentId">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="productCategoryContentId">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="fromVersion">
+                                <default-field title="From version">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="versionOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="toVersion">
+                                <default-field title="To version" tooltip="Leave empty for the current version">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="versionOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Compare versions">
+                                    <submit />
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row-big>
+                                    <field-ref name="fromVersion"/>
+                                    <field-ref name="toVersion"/>
+                                    <field-ref name="submitButton"/>
+                                </field-row-big>
+                            </field-layout>
+                        </form-single>
+                        <section name="ContentDiff" condition="!!diff">
+                            <widgets>
+                                <label text="${diff.unifiedDiff}" type="pre"/>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

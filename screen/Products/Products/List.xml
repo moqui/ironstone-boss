@@ -31,6 +31,17 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="productDetail">
         <default-response url="../Product360"/>
     </transition>
+    <!-- the selected products open the price change review, which previews before anything changes. The action makes
+        this a posted form (a transition with none is a link), so the selected rows go with it. -->
+    <transition name="bulkPrice">
+        <actions>
+            <set field="productIds" from="Array.isArray(productIds) ? productIds.join(',') : productIds"/>
+        </actions>
+        <default-response url="../BulkPrice">
+            <parameter name="productIds"/>
+            <parameter name="direction"/>
+        </default-response>
+    </transition>
     <transition name="bulk">
         <actions>
             <service-call name="ironstone.products.CatalogServices.bulk#Products" in-map="context" out-map="bulkOut"/>
@@ -86,7 +97,7 @@ along with this software (see the LICENSE.md file). If not, see
             <box-header title="Products"/>
             <box-body-nopad>
                 <form-list name="ProductList" list="productList" skip-form="true" paginate="true" header-dialog="true" saved-finds="true" views="list,board" show-csv-button="true" show-xlsx-button="true" select-columns="true">
-                    <row-selection id-field="productId" parameter="productIds" list-mode="true" condition="access.capabilities.catalogEdit">
+                    <row-selection id-field="productId" parameter="productIds" list-mode="true" condition="access.capabilities.catalogEdit || access.capabilities.priceEdit || access.capabilities.supplierPriceEdit">
                         <action>
                             <dialog button-text="Category" title="Update selected product IDs"/>
                             <form-single name="BulkCategory" transition="bulk">
@@ -170,6 +181,29 @@ along with this software (see the LICENSE.md file). If not, see
                                 </field>
                                 <field name="submitButton">
                                     <default-field title="Save">
+                                        <submit/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </action>
+                        <action>
+                            <dialog button-text="Prices" button-icon="sym_o_sell" title="Change prices of the selected products"/>
+                            <form-single name="BulkPriceStart" transition="bulkPrice">
+                                <field name="direction">
+                                    <default-field title="Prices to change">
+                                        <drop-down allow-empty="false">
+                                            <option key="sales" text="Sales prices"/>
+                                            <option key="purchase" text="Supplier offers"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="note">
+                                    <default-field title="">
+                                        <label text="The next page previews every change before any price is saved." type="p" style="m-muted"/>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Review price changes">
                                         <submit/>
                                     </default-field>
                                 </field>
@@ -301,7 +335,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <columns type="mobile">
-                        <column><field-ref name="productId"/></column>
+                        <column>
+                            <field-ref name="productId"/>
+                            <field-ref name="productName"/>
+                        </column>
                         <column><field-ref name="statusId"/></column>
                     </columns>
                     <view-board group-field="statusId" group-fields="productTypeEnumId" card-title-field="productName" card-fields="productId,ownerPartyId" key-fields="productId" status-type-id="Product" status-flow-id="Default" column-order="PrdDraft,PrdActive,PrdDiscontinued,PrdObsolete"/>

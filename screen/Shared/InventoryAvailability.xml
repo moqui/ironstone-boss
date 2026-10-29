@@ -44,7 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
             <field name="facilityId">
-                <default-field title="Facility">
+                <default-field title="Facility" tooltip="Projection and Policy use this facility; Summary lists every authorized facility">
                     <drop-down allow-empty="true">
                         <list-options list="facilityOptions" key="${value}" text="${label}"/>
                     </drop-down>

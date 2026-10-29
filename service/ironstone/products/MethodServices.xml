@@ -150,6 +150,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="bomHeader" type="Map"/>
             <parameter name="bomItemEdit" type="Map"/>
             <parameter name="methodMessage" type="String"/>
+            <parameter name="methodFactsText" type="String"/>
+            <parameter name="methodState" type="Map"/>
+            <parameter name="routingFactsText" type="String"/>
+            <parameter name="routingState" type="Map"/>
             <parameter name="kit" type="Boolean"/>
             <parameter name="workEffortId" type="String"/>
             <parameter name="routingOptions" type="List"/>

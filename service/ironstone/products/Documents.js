@@ -11,6 +11,38 @@ function run(op, parameters) {
             throw new Error("Catalog " + (edit ? "edit" : "read") + " access is required")
         return a
     }
+    const language = locale => String(locale).split(/[_-]/)[0]
+    // The languages catalog content is written in (one distinct read per content entity), in code order.
+    let used = null
+    function usedLocales() {
+        if (used) return used
+        const found = new Set()
+        for (const entity of ["mantle.product.ProductContent", "mantle.product.category.ProductCategoryContent"])
+            try {
+                for (const row of ec.entity
+                    .find(entity)
+                    .selectField("locale")
+                    .condition("locale", "is-not-null", null)
+                    .distinct(true)
+                    .disableAuthz()
+                    .list())
+                    found.add(String(row.locale))
+            } catch (e) {
+                ec.logger.error("Content locales of " + entity + " failed: " + e)
+            }
+        return (used = [...found].sort())
+    }
+    // Language choices: those in use, then the languages the platform names; each labeled by its name.
+    function localeOptions() {
+        const names = new Map(Array.from(ec.l10n.getAvailableLocales()).map(row => [String(row.locale), String(row.name)])),
+            languages = [...names.keys()]
+                .filter(locale => !/[_-]/.test(locale))
+                .sort((a, b) => names.get(a).localeCompare(names.get(b)))
+        return [...new Set([...usedLocales(), ...languages])].map(locale => ({
+            value: locale,
+            label: (names.get(locale) || locale) + " (" + locale + ")"
+        }))
+    }
     function context(p) {
         const a = check(p),
             category = p.recordKind === "category" || !!p.productCategoryId,
@@ -26,7 +58,12 @@ function run(op, parameters) {
             recordKind: kind,
             appRoot: a.appRoot,
             sourceLocale: p.sourceLocale || userLanguage,
-            targetLocale: p.targetLocale || "es",
+            // the target is another language the catalog content is already in, else the user picks one
+            targetLocale:
+                p.targetLocale ||
+                usedLocales().find(locale => language(locale) !== language(p.sourceLocale || userLanguage)) ||
+                null,
+            localeOptions: localeOptions(),
             contentDraft: {locale: p.locale || userLanguage, [c.owner]: p[c.owner]},
             contentTypes: lib.enumOptions(c.enumType),
             canEdit: a.capabilities.catalogEdit && out.canEdit,
@@ -65,6 +102,29 @@ function run(op, parameters) {
             })
             out.versionRows = out.versionRows.map(r => Object.assign({}, r, {dateText: date(r.versionDate)}))
             out.conflictRows = out.conflictRows.map(r => Object.assign({}, r, {dateText: date(r.submittedDate)}))
+            // the record header: its caption facts, a state chip and the version choices
+            const doc = d.document
+            out.documentFactsText = [
+                doc.recordId,
+                doc.locale,
+                doc.fromDate && "From " + date(doc.fromDate),
+                doc.thruDate && "Through " + date(doc.thruDate),
+                out.versionRows.length + (out.versionRows.length === 1 ? " version" : " versions")
+            ]
+                .filter(Boolean)
+                .join(" · ")
+            out.documentState = out.conflictRows.length
+                ? {
+                      text: out.conflictRows.length + " concurrent " + (out.conflictRows.length === 1 ? "draft" : "drafts"),
+                      color: "warning"
+                  }
+                : doc.thruDate && lib.ms(doc.thruDate) <= lib.ms(ec.user.nowTimestamp)
+                  ? {text: "Ended", color: "grey"}
+                  : {text: doc.managed ? "Managed file" : "Drive reference", color: "info"}
+            out.versionOptions = out.versionRows.map(r => ({
+                value: r.versionName,
+                label: r.versionName + " · " + (r.dateText || "")
+            }))
         }
         return out
     }

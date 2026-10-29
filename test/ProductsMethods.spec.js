@@ -111,7 +111,7 @@ feature("parent screen actions never replace submitted BOM or routing optimistic
                 route = call(M + "get#RoutingDetail", {productId: "DEMO_1_1"}),
                 out = []
             for (const [path, parameters] of [
-                ["Overview/saveHeader", {productBomId: c.productBomId, bomName: "Refused stale method"}],
+                ["saveHeader", {productBomId: c.productBomId, bomName: "Refused stale method"}],
                 ["RoutingDetail/saveOperation", {workEffortId: route.workEffortId, workEffortName: "Refused stale operation"}]
             ]) {
                 ec.message.clearErrors()

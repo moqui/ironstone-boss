@@ -50,6 +50,10 @@ feature(
             summary.totals.onHand == "15"
             summary.totals.available == "12"
             summary.totals.held == "3"
+            summary.totals.incoming == "0"
+            summary.stockRows.length >= 1
+            summary.stockRows.every(row => row.incoming != null && row.facilityName)
+            Array.isArray(summary.lotRows)
             summary.costRead == false
             !JSON.stringify(summary).includes("510.98")
             !JSON.stringify(summary).includes("888.77")

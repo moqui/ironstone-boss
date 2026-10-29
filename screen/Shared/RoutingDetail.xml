@@ -128,14 +128,68 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="ironstone.products.MethodServices.get#RoutingDetail" in-map="context" out-map="context" />
     </actions>
     <widgets>
-        <label text="Routing standards" type="h5" />
-        <section name="EditRouting" condition="methodAccess.edit">
-            <widgets>
-                <container-box>
-                    <box-header title="Routing draft" />
-                    <box-body>
-                        <container-dialog id="RoutingHeaderDialog" button-text="Edit routing draft" title="Routing draft" width="720">
-                            <form-single name="RoutingHeader" transition="saveRouting" map="routing">
+        <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm q-mb-sm">
+            <container style="col-12 col-md">
+                <label text="${routing.workEffortName || 'Routing'}" type="h6" style="q-my-none"/>
+                <label text="${routingFactsText}" type="p" style="text-caption m-muted q-mb-none"/>
+            </container>
+            <container style="col-12 col-md-auto row items-center q-gutter-xs m-routing-actions">
+                <render-mode>
+                    <text type="qvt"><![CDATA[${routingState ? '<q-chip dense square class="q-ma-none m-tonal text-' + routingState.color + '">' + WebUtilities.encodeHtml(routingState.text) + '</q-chip>' : ''}]]></text>
+                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "RoutingState", text: routingState ? routingState.text : ""})}]]></text>
+                </render-mode>
+                <section name="ApproveRouting" condition="!!workEffortId &amp;&amp; methodAccess.approve">
+                    <widgets>
+                        <container-dialog id="RoutingReleaseDialog" button-text="Approve routing" type="primary" icon="sym_o_verified" title="Approve routing" width="720">
+                            <form-single name="RoutingRelease" transition="releaseRouting">
+                                <field name="productId" from="productId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="productBomId" from="productBomId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="organizationPartyId" from="organizationPartyId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="workEffortId" from="workEffortId || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="expectedRevision" from="routingExpectedRevision || null">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="Effective start" tooltip="Leave empty to start now">
+                                        <date-time />
+                                    </default-field>
+                                </field>
+                                <field name="changeReason">
+                                    <default-field title="Approval reason">
+                                        <text-line />
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Release routing">
+                                        <submit />
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets>
+                </section>
+                <section name="NewRouting" condition="!workEffortId &amp;&amp; methodAccess.edit">
+                    <widgets>
+                        <container-dialog id="NewRoutingDialog" button-text="New routing" type="primary" icon="sym_o_add" title="New routing" width="720">
+                            <form-single name="NewRouting" transition="saveRouting" map="routing">
                                 <field name="productId" from="productId || null">
                                     <default-field>
                                         <hidden />
@@ -183,10 +237,200 @@ along with this software (see the LICENSE.md file). If not, see
                                 </field>
                             </form-single>
                         </container-dialog>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
+                    </widgets>
+                </section>
+                <button-menu text="More" icon="more_horiz" condition="(!!workEffortId &amp;&amp; methodAccess.edit) || methodAccess.resources">
+                    <link url="validateRouting" link-type="hidden-form-link" text="Validate routing" icon="sym_o_rule" condition="!!workEffortId &amp;&amp; methodAccess.edit"
+                            parameter-map="{productId:productId,productBomId:productBomId,organizationPartyId:organizationPartyId,workEffortId:workEffortId,expectedRevision:routingExpectedRevision}"/>
+                    <section name="EditRouting" condition="!!workEffortId &amp;&amp; methodAccess.edit">
+                        <widgets>
+                            <container-dialog id="RoutingHeaderDialog" button-text="Edit routing draft" icon="sym_o_edit" title="Routing draft" width="720">
+                                <form-single name="RoutingHeader" transition="saveRouting" map="routing">
+                                    <field name="productId" from="productId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="productBomId" from="productBomId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="workEffortId" from="workEffortId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="expectedRevision" from="routingExpectedRevision || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="workEffortName">
+                                        <default-field title="Routing name">
+                                            <text-line />
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <text-area />
+                                        </default-field>
+                                    </field>
+                                    <field name="changeReason">
+                                        <default-field title="Change reason">
+                                            <text-line />
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save routing draft">
+                                            <submit />
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </container-dialog>
+                        </widgets>
+                    </section>
+                    <section name="ResourceAdministration" condition="methodAccess.resources">
+                        <widgets>
+                            <container-dialog id="WorkCenterDialog" button-text="Configure work center" icon="sym_o_precision_manufacturing" title="Work center" width="720">
+                                <form-single name="WorkCenter" transition="saveCenter">
+                                    <field name="productId" from="productId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="productBomId" from="productBomId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="workEffortId" from="workEffortId || null">
+                                        <default-field>
+                                            <hidden />
+                                        </default-field>
+                                    </field>
+                                    <field name="facilityId">
+                                        <default-field title="Facility">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="facilityOptions" key="${value}" text="${label}" />
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="efficiencyPercent">
+                                        <default-field title="Efficiency percent">
+                                            <text-line />
+                                        </default-field>
+                                    </field>
+                                    <field name="oeeTargetPercent">
+                                        <default-field title="OEE target percent">
+                                            <text-line />
+                                        </default-field>
+                                    </field>
+                                    <field name="changeReason">
+                                        <default-field title="Change reason">
+                                            <text-line />
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save work center">
+                                            <submit />
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </container-dialog>
+                            <section name="FinancialRate" condition="methodAccess.costWrite">
+                                <widgets>
+                                    <container-dialog id="WorkCenterRateDialog" button-text="Add hourly rate" icon="sym_o_payments" title="Hourly rate" width="720">
+                                        <form-single name="WorkCenterRate" transition="saveRate" map="rateSettings">
+                                            <field name="productId" from="productId || null">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="productBomId" from="productBomId || null">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="organizationPartyId" from="organizationPartyId || null">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="workEffortId" from="workEffortId || null">
+                                                <default-field>
+                                                    <hidden />
+                                                </default-field>
+                                            </field>
+                                            <field name="facilityId">
+                                                <default-field title="Work center">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="centerOptions" key="${value}" text="${label}" />
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="componentTypeEnumId">
+                                                <default-field title="Component">
+                                                    <drop-down allow-empty="true">
+                                                        <option key="PccLabor" text="Labor" />
+                                                        <option key="PccMachine" text="Machine" />
+                                                        <option key="PccOverhead" text="Overhead" />
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="rateAmount">
+                                                <default-field title="Hourly amount">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="priceUomId">
+                                                <default-field title="Currency">
+                                                    <drop-down allow-empty="true">
+                                                        <list-options list="currencyOptions" key="${value}" text="${label}" />
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="fromDate">
+                                                <default-field title="Effective start" tooltip="Leave empty to start now">
+                                                    <date-time />
+                                                </default-field>
+                                            </field>
+                                            <field name="approve">
+                                                <default-field title="Approval">
+                                                    <check>
+                                                        <option key="true" text="Approve this dated rate" />
+                                                    </check>
+                                                </default-field>
+                                            </field>
+                                            <field name="changeReason">
+                                                <default-field title="Change reason">
+                                                    <text-line />
+                                                </default-field>
+                                            </field>
+                                            <field name="submitButton">
+                                                <default-field title="Save hourly rate">
+                                                    <submit />
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </widgets>
+                            </section>
+                        </widgets>
+                    </section>
+                </button-menu>
+            </container>
+        </container>
         <section name="HasRouting" condition="!!workEffortId">
             <widgets>
                 <container-box>
@@ -257,51 +501,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-box>
                 <container-box>
                     <box-header title="Draft operations" />
-                    <box-body>
-                        <form-list name="DraftRoutingOperations" list="operationRows" skip-form="true" paginate="false" show-csv-button="true">
-                            <field name="workEffortId">
-                                <default-field title="Operation">
-                                    <display />
-                                </default-field>
-                            </field>
-                            <field name="workEffortName">
-                                <default-field title="Name">
-                                    <display />
-                                </default-field>
-                            </field>
-                            <field name="estimatedSetupTime">
-                                <conditional-field condition="standardTimesShown" title="Setup">
-                                    <display />
-                                </conditional-field>
-                            </field>
-                            <field name="estimatedWorkTime">
-                                <conditional-field condition="standardTimesShown" title="Run">
-                                    <display />
-                                </conditional-field>
-                            </field>
-                            <field name="methodRemoved">
-                                <default-field title="Remove">
-                                    <display />
-                                </default-field>
-                            </field>
-                            <field name="editOperation">
-                                <default-field title="">
-                                    <link url="." text="Edit standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId,_openDialog:'RoutingOperationDialog'}" />
-                                </default-field>
-                            </field>
-                            <columns type="mobile">
-                                <column><field-ref name="workEffortId"/></column>
-                                <column><field-ref name="workEffortName"/></column>
-                            </columns>
-                        </form-list>
-                    </box-body>
-                </container-box>
-                <section name="EditStandards" condition="methodAccess.edit">
-                    <widgets>
-                        <container-box>
-                            <box-header title="Operation draft" />
-                            <box-body>
-                                <container-dialog id="RoutingOperationDialog" button-text="Operation draft" title="Operation draft" width="720">
+                    <box-toolbar>
+                        <section name="EditStandards" condition="methodAccess.edit">
+                            <widgets>
+                                <container-dialog id="RoutingOperationDialog" button-text="Add operation" icon="sym_o_add" title="Operation draft" width="720">
                                     <form-single name="RoutingOperation" transition="saveOperation" map="operationEdit">
                                         <field name="productId" from="productId || null">
                                             <default-field>
@@ -420,12 +623,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                            </box-body>
-                        </container-box>
-                        <container-box>
-                            <box-header title="Equipment or skill requirement" />
-                            <box-body>
-                                <container-dialog id="RoutingResourceDialog" button-text="Resource requirement" title="Resource requirement" width="720">
+                                <container-dialog id="RoutingResourceDialog" button-text="Add requirement" icon="sym_o_handyman" title="Resource requirement" width="720">
                                     <form-single name="RoutingResource" transition="saveResource">
                                         <field name="productId" from="productId || null">
                                             <default-field>
@@ -496,238 +694,48 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
-                <container-box>
-                    <box-header title="Routing approval" />
-                    <box-body>
-                        <form-single name="RoutingValidation" transition="validateRouting">
-                            <field name="productId" from="productId || null">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="productBomId" from="productBomId || null">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="organizationPartyId" from="organizationPartyId || null">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="workEffortId" from="workEffortId || null">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="expectedRevision" from="routingExpectedRevision || null">
-                                <default-field>
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="submitButton">
-                                <default-field title="Validate routing">
-                                    <submit />
-                                </default-field>
-                            </field>
-                        </form-single>
-                        <section name="ApproveRouting" condition="methodAccess.approve">
-                            <widgets>
-                                <container-dialog id="RoutingReleaseDialog" button-text="Approve routing" title="Approve routing" width="720">
-                                    <form-single name="RoutingRelease" transition="releaseRouting">
-                                        <field name="productId" from="productId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="productBomId" from="productBomId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="organizationPartyId" from="organizationPartyId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="workEffortId" from="workEffortId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="expectedRevision" from="routingExpectedRevision || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="fromDate">
-                                            <default-field title="Effective start" tooltip="Leave empty to start now">
-                                                <date-time />
-                                            </default-field>
-                                        </field>
-                                        <field name="changeReason">
-                                            <default-field title="Approval reason">
-                                                <text-line />
-                                            </default-field>
-                                        </field>
-                                        <field name="submitButton">
-                                            <default-field title="Release routing">
-                                                <submit />
-                                            </default-field>
-                                        </field>
-                                    </form-single>
-                                </container-dialog>
                             </widgets>
                         </section>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="ResourceAdministration" condition="methodAccess.resources">
-            <widgets>
-                <container-box>
-                    <box-header title="Work center" />
+                    </box-toolbar>
                     <box-body>
-                        <container-dialog id="WorkCenterDialog" button-text="Configure work center" title="Work center" width="720">
-                            <form-single name="WorkCenter" transition="saveCenter">
-                                <field name="productId" from="productId || null">
-                                    <default-field>
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="productBomId" from="productBomId || null">
-                                    <default-field>
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="organizationPartyId" from="organizationPartyId || null">
-                                    <default-field>
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="workEffortId" from="workEffortId || null">
-                                    <default-field>
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="facilityId">
-                                    <default-field title="Facility">
-                                        <drop-down allow-empty="true">
-                                            <list-options list="facilityOptions" key="${value}" text="${label}" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="efficiencyPercent">
-                                    <default-field title="Efficiency percent">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="oeeTargetPercent">
-                                    <default-field title="OEE target percent">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="changeReason">
-                                    <default-field title="Change reason">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="submitButton">
-                                    <default-field title="Save work center">
-                                        <submit />
-                                    </default-field>
-                                </field>
-                            </form-single>
-                        </container-dialog>
+                        <form-list name="DraftRoutingOperations" list="operationRows" skip-form="true" paginate="false" show-csv-button="true">
+                            <field name="workEffortId">
+                                <default-field title="Operation">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="workEffortName">
+                                <default-field title="Name">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="estimatedSetupTime">
+                                <conditional-field condition="standardTimesShown" title="Setup">
+                                    <display />
+                                </conditional-field>
+                            </field>
+                            <field name="estimatedWorkTime">
+                                <conditional-field condition="standardTimesShown" title="Run">
+                                    <display />
+                                </conditional-field>
+                            </field>
+                            <field name="methodRemoved">
+                                <default-field title="Remove">
+                                    <display />
+                                </default-field>
+                            </field>
+                            <field name="editOperation">
+                                <default-field title="">
+                                    <link url="." text="Edit standards" condition="methodAccess.edit" parameter-map="{productId:productId,productBomId:productBomId,workEffortId:routing.workEffortId,selectedOperationId:workEffortId,_openDialog:'RoutingOperationDialog'}" />
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column><field-ref name="workEffortId"/></column>
+                                <column><field-ref name="workEffortName"/></column>
+                            </columns>
+                        </form-list>
                     </box-body>
                 </container-box>
-                <section name="FinancialRate" condition="methodAccess.costWrite">
-                    <widgets>
-                        <container-box>
-                            <box-header title="Hourly rate" />
-                            <box-body>
-                                <container-dialog id="WorkCenterRateDialog" button-text="Add hourly rate" title="Hourly rate" width="720">
-                                    <form-single name="WorkCenterRate" transition="saveRate" map="rateSettings">
-                                        <field name="productId" from="productId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="productBomId" from="productBomId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="organizationPartyId" from="organizationPartyId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="workEffortId" from="workEffortId || null">
-                                            <default-field>
-                                                <hidden />
-                                            </default-field>
-                                        </field>
-                                        <field name="facilityId">
-                                            <default-field title="Work center">
-                                                <drop-down allow-empty="true">
-                                                    <list-options list="centerOptions" key="${value}" text="${label}" />
-                                                </drop-down>
-                                            </default-field>
-                                        </field>
-                                        <field name="componentTypeEnumId">
-                                            <default-field title="Component">
-                                                <drop-down allow-empty="true">
-                                                    <option key="PccLabor" text="Labor" />
-                                                    <option key="PccMachine" text="Machine" />
-                                                    <option key="PccOverhead" text="Overhead" />
-                                                </drop-down>
-                                            </default-field>
-                                        </field>
-                                        <field name="rateAmount">
-                                            <default-field title="Hourly amount">
-                                                <text-line />
-                                            </default-field>
-                                        </field>
-                                        <field name="priceUomId">
-                                            <default-field title="Currency">
-                                                <drop-down allow-empty="true">
-                                                    <list-options list="currencyOptions" key="${value}" text="${label}" />
-                                                </drop-down>
-                                            </default-field>
-                                        </field>
-                                        <field name="fromDate">
-                                            <default-field title="Effective start" tooltip="Leave empty to start now">
-                                                <date-time />
-                                            </default-field>
-                                        </field>
-                                        <field name="approve">
-                                            <default-field title="Approval">
-                                                <check>
-                                                    <option key="true" text="Approve this dated rate" />
-                                                </check>
-                                            </default-field>
-                                        </field>
-                                        <field name="changeReason">
-                                            <default-field title="Change reason">
-                                                <text-line />
-                                            </default-field>
-                                        </field>
-                                        <field name="submitButton">
-                                            <default-field title="Save hourly rate">
-                                                <submit />
-                                            </default-field>
-                                        </field>
-                                    </form-single>
-                                </container-dialog>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
             </widgets>
         </section>
     </widgets>

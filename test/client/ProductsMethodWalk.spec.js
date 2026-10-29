@@ -1,10 +1,35 @@
+// A header More action: open the menu of the method header (or the routing's), then choose the item.
+function menuAction(page, label, actions = ".m-method-actions") {
+    page.evaluate(actions => {
+        Array.from(document.querySelectorAll(actions + " button"))
+            .find(b => b.innerText.includes("More"))
+            .click()
+        return true
+    }, actions) == true
+    page.waitFor(
+        label =>
+            Array.from(document.querySelectorAll(".q-menu .q-item, .q-menu button")).some(i =>
+                i.innerText.trim().endsWith(label)
+            ),
+        {arg: label}
+    )
+    // the item's own button (a dialog's or a link's), not the menu row around it
+    page.evaluate(label => {
+        const hit = i => i.innerText.trim().endsWith(label)
+        ;(
+            Array.from(document.querySelectorAll(".q-menu button, .q-menu a")).find(hit) ||
+            Array.from(document.querySelectorAll(".q-menu .q-item")).find(hit)
+        ).click()
+        return true
+    }, label) == true
+}
 feature("a method engineer imports legacy material, releases a routing and method and compares dated changes in Products", {
     expect() {
         const page = browser.newPage({user: "catalog.method.walk", viewport: {width: 1280, height: 1100}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         page.goto("/qapps/Products/Products/Product360/BOM?productId=DEMO_3_1").status == 200
-        page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Manufacturing methods"))
-        page.getByRole("button", {name: "Import legacy components", exact: true}).click()
+        page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Compare dates"))
+        menuAction(page, "Import legacy components")
         const imp = page.locator("#ImportLegacyBom")
         imp.getByLabel("Legacy quantity unit", {exact: true}).click()
         page.getByRole("option", {name: "Each/Piece", exact: true}).click()
@@ -12,19 +37,19 @@ feature("a method engineer imports legacy material, releases a routing and metho
         imp.getByRole("button", {name: "Import legacy manufacturing components", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Demo Sub Assembly One"))
         page.getByRole("tab", {name: "Routing", exact: true}).click()
-        page.getByRole("button", {name: "Edit routing draft", exact: true}).click()
-        page.fill("#RoutingHeader input[name=workEffortName]", "Browser method routing")
-        page.fill("#RoutingHeader input[name=changeReason]", "Browser routing draft")
-        page.locator("#RoutingHeader").getByRole("button", {name: "Save routing draft", exact: true}).click()
+        page.getByRole("button", {name: "New routing", exact: true}).click()
+        page.fill("#NewRouting input[name=workEffortName]", "Browser method routing")
+        page.fill("#NewRouting input[name=changeReason]", "Browser routing draft")
+        page.locator("#NewRouting").getByRole("button", {name: "Save routing draft", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Released operations"))
-        page.getByRole("button", {name: "Configure work center", exact: true}).click()
+        menuAction(page, "Configure work center", ".m-routing-actions")
         page.locator("#WorkCenter").getByLabel("Facility", {exact: true}).click()
         page.getByRole("option", {name: "Ziziwork Retail Warehouse", exact: true}).click()
         page.fill("#WorkCenter input[name=efficiencyPercent]", "95")
         page.fill("#WorkCenter input[name=changeReason]", "Browser center configuration")
         page.locator("#WorkCenter").getByRole("button", {name: "Save work center", exact: true}).click()
         page.settle()
-        page.getByRole("button", {name: "Add hourly rate", exact: true}).click()
+        menuAction(page, "Add hourly rate", ".m-routing-actions")
         const rate = page.locator("#WorkCenterRate")
         rate.getByLabel("Work center", {exact: true}).click()
         page.getByRole("option", {name: "Ziziwork Retail Warehouse", exact: true}).click()
@@ -35,7 +60,7 @@ feature("a method engineer imports legacy material, releases a routing and metho
         rate.locator("input[name=changeReason]").fill("Browser hourly rate approval")
         rate.getByRole("button", {name: "Save hourly rate", exact: true}).click()
         page.settle()
-        page.getByRole("button", {name: "Operation draft", exact: true}).click()
+        page.getByRole("button", {name: "Add operation", exact: true}).click()
         page.fill("#RoutingOperation input[name=workEffortName]", "Browser assembly step")
         page.fill("#RoutingOperation input[name=estimatedSetupTime]", "0.25")
         page.fill("#RoutingOperation input[name=estimatedWorkTime]", "0.1")
@@ -50,7 +75,7 @@ feature("a method engineer imports legacy material, releases a routing and metho
         page.locator("#RoutingRelease").getByRole("button", {name: "Release routing", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Stage standards"))
         page.getByRole("tab", {name: "Method", exact: true}).click()
-        page.getByRole("button", {name: "Edit method draft", exact: true}).click()
+        menuAction(page, "Edit method draft")
         page.locator("#BomHeader").getByLabel("Routing", {exact: true}).click()
         page.getByRole("option", {name: "Browser method routing", exact: true}).click()
         page.fill("#BomHeader input[name=changeReason]", "Browser method routing selection")

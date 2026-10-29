@@ -39,6 +39,8 @@ function run(op, parameters) {
             throw new Error("Stock organization is not available")
         return {
             appRoot: shared.appRoot,
+            facilities,
+            owners,
             product: map(product),
             productId: p.productId,
             stockable: ["PtAsset", "PtDigitalAsset", "PtAssetUse", "PtPickAssembly"].includes(product.productTypeEnumId),
@@ -53,49 +55,110 @@ function run(op, parameters) {
             costRead: !!capabilities.costRead
         }
     }
+    // Stock in every authorized facility that holds or expects the product, one row per facility, and its lots.
     function stock(p) {
         const focus = context(p),
-            checkedAt = ms(ec.user.nowTimestamp)
-        if (!focus.stockable || !focus.facility)
-            return Object.assign(focus, {
-                stockRows: [],
-                totals: null,
-                checkedAt,
-                summaryMessage: !focus.stockable
-                    ? "This product does not carry stock."
-                    : "No authorized stock facility is available."
-            })
-        const stockTotals = call(P + "AssetServices.get#ProductStockTotals", {
-                productId: focus.productId,
-                facilityId: focus.facilityId,
-                ownerPartyId: focus.organizationPartyId
-            }),
-            totals = {
-                onHand: String(stockTotals.quantityOnHandTotal ?? 0),
-                reserved: String(stockTotals.reservedQuantity ?? 0),
-                available: String(stockTotals.availableToPromiseTotal ?? 0),
-                held: String(stockTotals.heldQuantity ?? 0),
-                availableStatusOnHand: String(stockTotals.availableStatusQuantity ?? 0)
-            },
-            stockRows = [
-                Object.assign({}, totals, {
-                    productId: focus.productId,
-                    facilityId: focus.facilityId,
-                    facilityName: focus.facility.facilityName || focus.facilityId,
-                    ownerPartyId: focus.organizationPartyId,
-                    quantityUomId: focus.product.amountUomId,
-                    quantityUomText:
-                        one("moqui.basic.Uom", {uomId: focus.product.amountUomId})?.description || focus.product.amountUomId
-                })
-            ]
+            checkedAt = ms(ec.user.nowTimestamp),
+            empty = message =>
+                Object.assign(focus, {stockRows: [], lotRows: [], totals: null, checkedAt, summaryMessage: message})
+        if (!focus.stockable) return empty("This product does not carry stock.")
+        if (!focus.facilities.length) return empty("No authorized stock facility is available.")
+        const facilityIds = focus.facilities.map(row => row.facilityId),
+            assets = rowsIn("mantle.product.asset.Asset", "facilityId", facilityIds).filter(
+                row => row.productId === focus.productId && focus.owners.includes(row.ownerPartyId)
+            ),
+            openParts = rowsIn("mantle.order.OrderPart", "facilityId", facilityIds).filter(
+                row =>
+                    focus.owners.includes(row.customerPartyId) &&
+                    ["OrderPlaced", "OrderProcessing", "OrderApproved", "OrderSent", "OrderHold"].includes(row.statusId)
+            ),
+            ordered = new Set(
+                rowsIn(
+                    "mantle.order.OrderItem",
+                    "orderId",
+                    openParts.map(row => row.orderId)
+                )
+                    .filter(row => row.productId === focus.productId)
+                    .map(row => row.orderId + ":" + row.orderPartSeqId)
+            ),
+            // a facility gets a row when it holds the product, expects it on an open purchase, or is the one in focus
+            used = new Set([
+                ...assets.map(row => row.facilityId),
+                ...openParts.filter(row => ordered.has(row.orderId + ":" + row.orderPartSeqId)).map(row => row.facilityId),
+                focus.facilityId
+            ]),
+            unitText = one("moqui.basic.Uom", {uomId: focus.product.amountUomId})?.description || focus.product.amountUomId,
+            sum = {onHand: 0, reserved: 0, available: 0, held: 0, incoming: 0},
+            stockRows = []
+        for (const facility of focus.facilities.filter(row => used.has(row.facilityId))) {
+            try {
+                const out = call(P + "AssetServices.get#ProductStockTotals", {
+                        productId: focus.productId,
+                        facilityId: facility.facilityId,
+                        ownerPartyId: facility.ownerPartyId
+                    }),
+                    row = {
+                        onHand: out.quantityOnHandTotal ?? 0,
+                        reserved: out.reservedQuantity ?? 0,
+                        available: out.availableToPromiseTotal ?? 0,
+                        held: out.heldQuantity ?? 0,
+                        incoming: out.incomingQuantity ?? 0
+                    }
+                for (const key of Object.keys(sum)) sum[key] = toDecimal(sum[key]).add(row[key])
+                stockRows.push(
+                    Object.assign(
+                        {},
+                        Object.fromEntries(Object.entries(row).map(([key, value]) => [key, Number(String(value))])),
+                        {
+                            productId: focus.productId,
+                            facilityId: facility.facilityId,
+                            facilityName: facility.facilityName || facility.facilityId,
+                            ownerPartyId: facility.ownerPartyId,
+                            quantityUomText: unitText,
+                            availableStatusOnHand: String(out.availableStatusQuantity ?? 0),
+                            focused: facility.facilityId === focus.facilityId
+                        }
+                    )
+                )
+            } catch (e) {
+                ec.logger.error("Stock of " + focus.productId + " at " + facility.facilityId + " failed: " + e)
+            }
+        }
+        const lots = new Map(
+                rowsIn(
+                    "mantle.product.asset.Lot",
+                    "lotId",
+                    assets.map(row => row.lotId)
+                ).map(row => [row.lotId, row])
+            ),
+            names = new Map(focus.facilities.map(row => [row.facilityId, row.facilityName || row.facilityId])),
+            byLot = new Map()
+        for (const asset of assets.filter(row => row.lotId && toDecimal(row.quantityOnHandTotal ?? 0).compare(0) > 0)) {
+            const key = asset.facilityId + ":" + asset.lotId,
+                lot = lots.get(asset.lotId),
+                row = byLot.get(key) || {
+                    lotId: asset.lotId,
+                    lotNumber: lot?.lotNumber || asset.lotId,
+                    expirationDateText: dateText(lot?.expirationDate, "yyyy-MM-dd"),
+                    facilityId: asset.facilityId,
+                    facilityName: names.get(asset.facilityId),
+                    onHand: toDecimal(0)
+                }
+            row.onHand = toDecimal(row.onHand).add(asset.quantityOnHandTotal)
+            byLot.set(key, row)
+        }
+        const totals = Object.fromEntries(Object.entries(sum).map(([key, value]) => [key, String(value)]))
         return Object.assign(focus, {
             stockRows,
+            lotRows: [...byLot.values()].map(row => Object.assign(row, {onHand: Number(String(row.onHand))})),
             totals,
+            // the focused facility's own totals, which the projection checks against
+            focusTotals: stockRows.find(row => row.focused) || null,
             checkedAt,
             summaryMessage:
                 focus.product.productTypeEnumId === "PtPickAssembly"
                     ? "Kit availability includes assemblies possible from components."
-                    : "Availability follows the facility’s order-pool rules. Held stock is separate from available stock."
+                    : "Availability follows each facility’s order-pool rules. Held stock is separate from available stock; incoming is what open purchase orders still bring."
         })
     }
     function projection(p) {
@@ -129,7 +192,8 @@ function run(op, parameters) {
                     }),
                     info = out.infoByProductId?.[focus.productId]
                 if (!info) continue
-                const matches = toDecimal(info.quantityOnHandTotalSum ?? 0).compare(current.totals.availableStatusOnHand) === 0
+                const matches =
+                    toDecimal(info.quantityOnHandTotalSum ?? 0).compare(current.focusTotals?.availableStatusOnHand ?? 0) === 0
                 fresh = fresh && matches
                 projectionRows.push({
                     horizonText: ec.l10n.format(new Date(now + days * 86400000), "yyyy-MM-dd"),

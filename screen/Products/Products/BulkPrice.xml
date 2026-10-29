@@ -72,11 +72,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="BulkPriceSetup" transition="preview">
                     <field name="vendorPartyId"><default-field><hidden/></default-field></field>
                     <field name="productIds">
-                        <default-field title="Product IDs" tooltip="Separate several with commas">
+                        <conditional-field condition="String(productIds || '') !== ''" title="Selected products">
+                            <display/>
+                        </conditional-field>
+                        <default-field title="Product IDs" tooltip="Separate several with commas, or select products on the Products list">
                             <text-line/>
                         </default-field>
                     </field>
                     <field name="productPriceIds">
+                        <conditional-field condition="String(productIds || '') !== ''">
+                            <ignored/>
+                        </conditional-field>
                         <default-field title="Or price row IDs" tooltip="Separate several with commas">
                             <text-line/>
                         </default-field>
@@ -150,62 +156,66 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </box-body>
         </container-box>
-        <container-box>
-            <box-header title="Reviewed prices"/>
-            <box-body>
-                <form-list name="PriceChangePreview" list="previewRows" skip-form="true" paginate="false">
-                    <field name="productId">
-                        <default-field title="Product">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="productName">
-                        <default-field title="Name">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="productPriceId">
-                        <default-field title="Source row">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="priceUomId">
-                        <default-field title="Currency">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="minQuantity">
-                        <default-field title="Minimum quantity">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="beforePrice" align="right">
-                        <default-field title="Before">
-                            <display currency-unit-field="priceUomId"/>
-                        </default-field>
-                    </field>
-                    <field name="afterPrice" align="right">
-                        <default-field title="After">
-                            <display currency-unit-field="priceUomId"/>
-                        </default-field>
-                    </field>
-                    <field name="result">
-                        <default-field title="Result">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="error">
-                        <default-field title="Reason">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column><field-ref name="productId"/></column>
-                        <column><field-ref name="result"/></column>
-                    </columns>
-                </form-list>
-            </box-body>
-        </container-box>
+        <section name="Reviewed" condition="previewRows.length &gt; 0">
+            <widgets>
+                <container-box>
+                    <box-header title="Reviewed prices"/>
+                    <box-body>
+                        <form-list name="PriceChangePreview" list="previewRows" skip-form="true" paginate="false">
+                            <field name="productId">
+                                <default-field title="Product">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productName">
+                                <default-field title="Name">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productPriceId">
+                                <default-field title="Source row">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="priceUomId">
+                                <default-field title="Currency">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="minQuantity">
+                                <default-field title="Minimum quantity">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforePrice" align="right">
+                                <default-field title="Before">
+                                    <display currency-unit-field="priceUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterPrice" align="right">
+                                <default-field title="After">
+                                    <display currency-unit-field="priceUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="result">
+                                <default-field title="Result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="error">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column><field-ref name="productId"/></column>
+                                <column><field-ref name="result"/></column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
         <section name="ApplyAvailable" condition="readyCount &gt; 0">
             <widgets>
                 <container-box>
@@ -239,41 +249,45 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-box>
             </widgets>
         </section>
-        <container-box>
-            <box-header title="Results"/>
-            <box-body>
-                <form-list name="PriceChangeResults" list="results" skip-form="true" paginate="false">
-                    <field name="productId">
-                        <default-field title="Product">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="productPriceId">
-                        <default-field title="Source row">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="successorProductPriceId">
-                        <default-field title="Successor row">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="result">
-                        <default-field title="Result">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="error">
-                        <default-field title="Reason">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column><field-ref name="productId"/></column>
-                        <column><field-ref name="result"/></column>
-                    </columns>
-                </form-list>
-            </box-body>
-        </container-box>
+        <section name="ResultsShown" condition="results.length &gt; 0">
+            <widgets>
+                <container-box>
+                    <box-header title="Results"/>
+                    <box-body>
+                        <form-list name="PriceChangeResults" list="results" skip-form="true" paginate="false">
+                            <field name="productId">
+                                <default-field title="Product">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productPriceId">
+                                <default-field title="Source row">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="successorProductPriceId">
+                                <default-field title="Successor row">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="result">
+                                <default-field title="Result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="error">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column><field-ref name="productId"/></column>
+                                <column><field-ref name="result"/></column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

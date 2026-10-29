@@ -18,7 +18,10 @@ feature("two editors retain a conflict draft, then a source edit flags the saved
         const url = "/qapps/Products/DocumentDetail?productId=BOSS_PRD_OWN&productContentId=" + id
         a.goto(url).status == 200
         b.goto(url).status == 200
-        for (const p of [a, b]) p.waitFor(() => !!document.querySelector("#ProductContentMetadata textarea[name=contentText]"))
+        for (const p of [a, b]) {
+            p.getByRole("button", {name: "Edit document", exact: true}).click()
+            p.waitFor(() => !!document.querySelector("#ProductContentMetadata textarea[name=contentText]"))
+        }
         a.fill("#ProductContentMetadata textarea[name=contentText]", "Browser winning source")
         a.locator("#ProductContentMetadata").getByRole("button", {name: "Save document", exact: true}).click()
         a.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser winning source"))
@@ -37,6 +40,8 @@ feature("two editors retain a conflict draft, then a source edit flags the saved
         a.waitFor(() => !document.querySelector("[role=dialog]"))
         a.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reviewed"))
         a.goto(url).status == 200
+        a.getByRole("button", {name: "Edit document", exact: true}).click()
+        a.waitFor(() => !!document.querySelector("#ProductContentMetadata textarea[name=contentText]"))
         a.fill("#ProductContentMetadata textarea[name=contentText]", "Browser changed source")
         a.locator("#ProductContentMetadata").getByRole("button", {name: "Save document", exact: true}).click()
         a.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser changed source"))

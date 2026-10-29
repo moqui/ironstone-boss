@@ -183,6 +183,30 @@ function run(op, parameters) {
         out.draftItemRows = dated(out.draftItemRows)
         out.releaseHistory = dated(out.releaseHistory)
         out.asOfDate = p.asOfDate ? dateText(p.asOfDate) : null
+        // the record header: its caption facts and a state chip
+        const bom = out.productBom
+        out.methodFactsText = [
+            bom && "Base " + String(bom.baseQuantity ?? 1) + " " + (unitNames.get(bom.quantityUomId) || bom.quantityUomId || ""),
+            bom?.routingWorkEffortId &&
+                "Routing " +
+                    (out.routingOptions.find(option => option.value === bom.routingWorkEffortId)?.label ||
+                        bom.routingWorkEffortId),
+            out.asOfDate && "At " + out.asOfDate
+        ]
+            .filter(Boolean)
+            .join(" · ")
+        out.methodState = found.kit
+            ? null
+            : !bom
+              ? {text: "No method", color: "grey"}
+              : out.draftItemRows.length
+                ? {
+                      text: out.draftItemRows.length + " draft " + (out.draftItemRows.length === 1 ? "change" : "changes"),
+                      color: "warning"
+                  }
+                : out.releaseHistory.length
+                  ? {text: "Released", color: "positive"}
+                  : {text: "Not released", color: "grey"}
         return out
     }
     function storeBom(p) {
@@ -320,6 +344,19 @@ function run(op, parameters) {
         delete result.operationEdit.workEffortId
         result.routingExpectedRevision = out.expectedRevision
         delete result.expectedRevision
+        // the routing header: its caption facts and a state chip
+        const drafts = out.operationRows.length,
+            released = out.releasedOperationRows.length
+        result.routingFactsText = c.workEffortId
+            ? "Routing " + c.workEffortId + " · " + released + " released " + (released === 1 ? "operation" : "operations")
+            : "This method has no routing yet."
+        result.routingState = !c.workEffortId
+            ? {text: "No routing", color: "grey"}
+            : drafts
+              ? {text: drafts + " draft " + (drafts === 1 ? "change" : "changes"), color: "warning"}
+              : out.releaseHistory?.length || released
+                ? {text: "Released", color: "positive"}
+                : {text: "Not released", color: "grey"}
         return result
     }
     function execute(op, p) {

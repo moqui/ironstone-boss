@@ -22,35 +22,49 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>
-                <container-box>
-                    <box-header title="Connections"/>
-                    <box-body>
-                        <form-list name="Connections" list="connectionRows" skip-form="true" paginate="false">
-                            <field name="kind">
-                                <header-field title="Record type"/>
-                                <default-field>
-                                    <display/>
-                                </default-field>
-                            </field>
-                            <field name="count">
-                                <header-field title="Visible records"/>
-                                <default-field>
-                                    <display/>
-                                </default-field>
-                            </field>
-                            <field name="recordIds">
-                                <header-field title="Record IDs"/>
-                                <default-field>
-                                    <display/>
-                                </default-field>
-                            </field>
-                            <columns type="mobile">
-                                <column><field-ref name="kind"/></column>
-                                <column><field-ref name="count"/></column>
-                            </columns>
-                        </form-list>
-                    </box-body>
-                </container-box>
+                <section name="NoConnections" condition="!connectionRows.length">
+                    <widgets>
+                        <label text="No orders, invoices, shipments, production runs, requests or agreements you may read use this product." type="p" style="m-muted"/>
+                    </widgets>
+                </section>
+                <section name="HasConnections" condition="connectionRows.length &gt; 0">
+                    <widgets>
+                        <dashboard>
+                            <section-iterate name="ConnectionCards" list="connectionRows" entry="connection">
+                                <widgets>
+                                    <number-card title="${connection.kind}" value="${connection.count}"/>
+                                </widgets>
+                            </section-iterate>
+                        </dashboard>
+                        <container-box>
+                            <box-header title="Connected records"/>
+                            <box-body-nopad>
+                                <form-list name="Connections" list="recordRows" skip-form="true" paginate="false">
+                                    <field name="kind">
+                                        <header-field title="Record type"/>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="recordId">
+                                        <header-field title="Record"/>
+                                        <conditional-field condition="!!url">
+                                            <link url="${url}" url-type="plain" text="${recordId}" link-type="anchor"/>
+                                        </conditional-field>
+                                        <default-field>
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column><field-ref name="recordId"/></column>
+                                        <column><field-ref name="kind"/></column>
+                                    </columns>
+                                </form-list>
+                                <label text="Up to 25 records of each type are listed; a record opens where an app you have shows it." type="p" style="q-px-md q-pb-sm text-caption m-muted"/>
+                            </box-body-nopad>
+                        </container-box>
+                    </widgets>
+                </section>
             </widgets>
         </section>
     </widgets>

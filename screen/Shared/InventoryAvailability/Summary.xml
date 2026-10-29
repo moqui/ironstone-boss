@@ -20,55 +20,121 @@ along with this software (see the LICENSE.md file). If not, see
         <container-box>
             <box-header title="Current inventory"/>
             <box-body>
-                <label text="${summaryMessage}" type="p"/>
-                <section name="StockTotals" condition="totals"><widgets><dashboard>
-                    <number-card title="On hand" value="${totals.onHand}"/>
-                    <number-card title="Available to promise" value="${totals.available}"/>
-                    <number-card title="Reserved" value="${totals.reserved}"/>
-                    <number-card title="Held" value="${totals.held}"/>
-                </dashboard></widgets></section>
-                <form-list name="InventorySummary" list="stockRows" skip-form="true" paginate="false">
-                    <field name="facilityName">
-                        <default-field title="Facility">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="ownerPartyId">
-                        <default-field title="Stock owner">
-                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                        </default-field>
-                    </field>
-                    <field name="quantityUomText">
-                        <default-field title="Stock unit">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="onHand">
-                        <default-field title="On hand">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="reserved">
-                        <default-field title="Reserved">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="available">
-                        <default-field title="Available to promise">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="held">
-                        <default-field title="Held">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column><field-ref name="facilityName"/></column>
-                        <column><field-ref name="available"/></column>
-                    </columns>
-                </form-list>
+                <label text="${summaryMessage}" type="p" style="m-muted"/>
+                <section name="StockTotals" condition="totals">
+                    <widgets>
+                        <dashboard>
+                            <number-card title="On hand" value="${ec.l10n.format(Number(totals.onHand), '#,##0.###')}"/>
+                            <number-card title="Available to promise" value="${ec.l10n.format(Number(totals.available), '#,##0.###')}"/>
+                            <number-card title="Reserved" value="${ec.l10n.format(Number(totals.reserved), '#,##0.###')}"/>
+                            <number-card title="Held" value="${ec.l10n.format(Number(totals.held), '#,##0.###')}"/>
+                            <number-card title="Incoming" value="${ec.l10n.format(Number(totals.incoming), '#,##0.###')}"/>
+                        </dashboard>
+                    </widgets>
+                </section>
             </box-body>
         </container-box>
+        <section name="StockByFacility" condition="stockRows.length &gt; 0">
+            <widgets>
+                <container-box>
+                    <box-header title="By facility"/>
+                    <box-body-nopad>
+                        <form-list name="InventorySummary" list="stockRows" skip-form="true" paginate="false">
+                            <field name="facilityName">
+                                <default-field title="Facility">
+                                    <link url="." text="${facilityName}" link-type="anchor" parameter-map="{productId:productId,facilityId:facilityId}"/>
+                                </default-field>
+                            </field>
+                            <field name="ownerPartyId">
+                                <default-field title="Stock owner">
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+                                </default-field>
+                            </field>
+                            <field name="quantityUomText">
+                                <default-field title="Unit">
+                                    <display/>
+                                </default-field>
+                            </field>
+                    <field name="onHand" align="right">
+                        <default-field title="On hand">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                    <field name="reserved" align="right">
+                        <default-field title="Reserved">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                    <field name="available" align="right">
+                        <default-field title="Available to promise">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                    <field name="held" align="right">
+                        <default-field title="Held">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                    <field name="incoming" align="right">
+                        <default-field title="Incoming">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="facilityName"/>
+                                    <field-ref name="ownerPartyId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="available"/>
+                                    <field-ref name="incoming"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="StockLots" condition="lotRows.length &gt; 0">
+            <widgets>
+                <container-box>
+                    <box-header title="Lots on hand"/>
+                    <box-body-nopad>
+                        <form-list name="InventoryLots" list="lotRows" skip-form="true" paginate="false">
+                            <field name="lotNumber">
+                                <default-field title="Lot">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="facilityName">
+                                <default-field title="Facility">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="expirationDateText">
+                                <default-field title="Expires">
+                                    <display/>
+                                </default-field>
+                            </field>
+                    <field name="onHand" align="right">
+                        <default-field title="On hand">
+                            <display format="#,##0.###"/>
+                        </default-field>
+                    </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="lotNumber"/>
+                                    <field-ref name="facilityName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="onHand"/>
+                                    <field-ref name="expirationDateText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

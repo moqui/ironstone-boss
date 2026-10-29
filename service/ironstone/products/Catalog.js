@@ -222,7 +222,8 @@ function run(op, parameters) {
     // The Connections tab's rows: per record type, the transaction records of the product the user may read.
     function productConnections(p) {
         record(p.productId)
-        return {connectionRows: connections(p.productId)}
+        const connectionRows = connections(p.productId)
+        return {connectionRows, recordRows: connectionRows.flatMap(row => row.records)}
     }
     function connections(id) {
         const allowed = access({includeConnections: true}).connectionTypes
@@ -238,7 +239,8 @@ function run(op, parameters) {
         for (const [label, entity, key, parent] of sources) {
             ec.message.pushErrors()
             try {
-                const ids = new Set()
+                const ids = new Set(),
+                    records = []
                 // Need explicit entity visibility in addition to parent visibility: a catalog role confers no transaction launcher.
                 if (!allowed.includes(label)) continue
                 if (!ec.artifactExecution.isPermitted(entity, "AT_ENTITY", "view")) continue
@@ -250,7 +252,19 @@ function run(op, parameters) {
                     })
                     if (check.recordVisible) ids.add(row[key])
                 }
-                if (ids.size) result.push({kind: label, count: ids.size, recordIds: Array.from(ids).join(", ")})
+                // the first records of each type, each linked where an app the user has opens it (get#RecordLink)
+                for (const recordId of Array.from(ids).slice(0, 25)) {
+                    let url = null
+                    try {
+                        url =
+                            call("ironstone.commons.PaletteServices.get#RecordLink", {recordEntityName: parent, id: recordId})
+                                .url || null
+                    } catch (err) {
+                        ec.logger.warn(`Product ${id} ${label} ${recordId} has no record link: ${err}`)
+                    }
+                    records.push({kind: label, recordId, url})
+                }
+                if (ids.size) result.push({kind: label, count: ids.size, recordIds: Array.from(ids).join(", "), records})
             } catch (err) {
                 ec.logger.error(`Product ${id} ${label} connections failed: ${err}`)
             } finally {

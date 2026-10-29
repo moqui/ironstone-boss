@@ -13,19 +13,8 @@ function run(op, parameters) {
         if (sys) c = c.disableAuthz()
         return c.call() || {}
     }
-    const find = (n, p) =>
-        ec.entity
-            .find(n)
-            .condition(p || {})
-            .disableAuthz()
-    const one = (n, p) => find(n, p).one()
-    const list = (n, p) => Array.from(find(n, p).list())
-    const map = row => (row.getMap ? row.getMap() : Object.assign({}, row))
-    const ms = x => {
-        if (x == null || x === "") return null
-        const n = Number(String(x))
-        return Number.isFinite(n) ? n : Date.parse(String(x))
-    }
+    const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+        {find, one, rows: list, map, ms} = lib
     function withDates(row) {
         const data = map(row)
         for (const key of [
@@ -215,9 +204,7 @@ function run(op, parameters) {
         if (product.productTypeEnumId === "PtPickAssembly") {
             const facilities = a.capabilities.systemAdmin
                 ? list("mantle.facility.Facility")
-                : ec.resource
-                      .script("component://mr-boss/service/ironstone/products/ProductsLib.js")
-                      .rowsIn("mantle.facility.Facility", "ownerPartyId", a.organizationPartyIds)
+                : lib.rowsIn("mantle.facility.Facility", "ownerPartyId", a.organizationPartyIds)
             result.kitAvailable = facilities.reduce(
                 (total, row) =>
                     total.add(
@@ -747,7 +734,6 @@ function run(op, parameters) {
         const a = access()
         if (!a.capabilities.read) throw new Error("Catalog read access is required")
         const admin = a.capabilities.systemAdmin,
-            lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
             option = (key, label) => row => ({value: row[key], label: row[label] || row[key]}),
             internalIds = list("mantle.party.PartyRole", {roleTypeId: "OrgInternal"}).map(row => row.partyId),
             ownerIds = admin ? internalIds : internalIds.filter(id => a.organizationPartyIds.includes(id)),

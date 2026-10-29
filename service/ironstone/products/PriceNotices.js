@@ -2,14 +2,8 @@
 const P = "mantle.product.",
     E = P + "ProductPrice",
     C = "ironstone.products.CatalogServices."
-const find = (n, p) =>
-        ec.entity
-            .find(n)
-            .condition(p || {})
-            .disableAuthz(),
-    one = (n, p) => find(n, p).one(),
-    rows = (n, p) => Array.from(find(n, p).list())
-const ms = v => (v == null || v === "" ? null : Number.isFinite(Number(String(v))) ? Number(String(v)) : Date.parse(String(v))),
+const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+    {find, one, rows, ms} = lib,
     effective = r =>
         (ms(r.fromDate) == null || ms(r.fromDate) <= ms(ec.user.nowTimestamp)) &&
         (ms(r.thruDate) == null || ms(r.thruDate) > ms(ec.user.nowTimestamp))
@@ -117,7 +111,7 @@ function sendOne(p) {
                 productId: r.productId,
                 productPriceId: r.productPriceId,
                 productName: product.productName,
-                thruDate: r.thruDate ? ec.l10n.format(new Date(ms(r.thruDate)), "yyyy-MM-dd") : null,
+                thruDate: r.thruDate ? lib.dateText(r.thruDate, "yyyy-MM-dd") : null,
                 recordEntityName: P + "Product",
                 recordId: r.productId
             })

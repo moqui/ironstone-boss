@@ -524,3 +524,27 @@ feature("audit scope follows the selected direction organization and currency fo
         euro.length == 0
     }
 })
+feature("a catalog-wide price list pages many products and decorates only the page it returns", {
+    when() {
+        as("john.doe", () => {
+            for (let i = 0; i < 60; i++) {
+                const id = "B5_SCALE_" + String(i).padStart(3, "0")
+                product(id)
+                create(id, {price: 10 + i})
+                create(id, {price: 5 + i, minQuantity: 10})
+            }
+        })
+        return as("catalog.price.read", () => {
+            const first = call(C + "find#ProductPrices", {organizationPartyId: "ORG_ZIZI_SERVICES", pageSize: 25}),
+                last = call(C + "find#ProductPrices", {organizationPartyId: "ORG_ZIZI_SERVICES", pageSize: 25, pageIndex: 999})
+            return {first, last}
+        })
+    },
+    then({first, last}) {
+        first.priceRows.length == 25
+        first.priceRowsCount >= 120
+        first.priceRows.every(row => row.productName && row.state)
+        last.pageIndex == Math.ceil(first.priceRowsCount / 25) - 1
+        last.priceRows.length == first.priceRowsCount - last.pageIndex * 25
+    }
+})

@@ -11,27 +11,12 @@ const call = (n, p = {}, fresh = false) => {
     if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
     return out
 }
-const find = (n, p) =>
-    ec.entity
-        .find(n)
-        .condition(p || {})
-        .disableAuthz()
-const one = (n, p) => find(n, p).one()
-const rows = (n, p) => Array.from(find(n, p).list())
-const ms = x => (x == null || x === "" ? null : Number.isFinite(Number(String(x))) ? Number(String(x)) : Date.parse(String(x)))
+const lib = ec.resource.script("component://mr-boss/service/ironstone/products/ProductsLib.js"),
+    {find, one, rows, ms} = lib
 const current = (r, at = ms(ec.user.nowTimestamp)) =>
     (ms(r.fromDate) == null || ms(r.fromDate) <= at) && (ms(r.thruDate) == null || ms(r.thruDate) > at)
 const now = r => current(r)
-const ids = v => [
-    ...new Set(
-        Array.isArray(v)
-            ? v.map(String)
-            : String(v || "")
-                  .split(",")
-                  .map(x => x.trim())
-                  .filter(Boolean)
-    )
-]
+const ids = lib.ids
 const parse = (value, fallback) =>
     value == null || value === "" ? fallback : typeof value === "string" ? JSON.parse(value) : value
 // the variant policy's copyable fields, their labels and the default copy (Mantle's CatalogSettings.js)

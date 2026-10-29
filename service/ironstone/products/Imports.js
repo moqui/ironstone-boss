@@ -35,7 +35,8 @@ function scopeFor(parameters) {
                 },
                 kinds,
                 {
-                    ownerOptions: call("ironstone.products.CatalogServices.get#CatalogOptions").options.owners,
+                    ownerOptions: call("ironstone.products.CatalogServices.get#CatalogOptions", {optionNames: ["owners"]}).options
+                        .owners,
                     uploadForm: {
                         organizationPartyId: p.organizationPartyId || a.activeOrganizationPartyId || a.organizationPartyIds[0],
                         kindId: p.kindId || kinds.kindOptions[0]?.value,

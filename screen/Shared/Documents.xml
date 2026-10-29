@@ -1,0 +1,375 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Documents">
+    <actions>
+        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
+    </actions>
+    <transition name="storeContent">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <service-call name="mantle.product.ContentServices.store#CatalogContent" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
+            <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productCategoryId" />
+            <parameter name="recordKind" />
+            <parameter name="contentId" from="result.contentId || contentId" />
+            <parameter name="productContentId" />
+            <parameter name="productCategoryContentId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="uploadContents">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <service-call name="mantle.product.ContentServices.upload#CatalogContents" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
+            <script>for(const row of result.uploadResults||[]) ec.message.addMessage(row.filename+': '+(row.success?'Uploaded':row.error))</script>
+            <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productCategoryId" />
+            <parameter name="recordKind" />
+            <parameter name="contentId" from="result.contentId || contentId" />
+            <parameter name="productContentId" />
+            <parameter name="productCategoryContentId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <widgets>
+        <label text="Catalog documents" type="h5" />
+        <form-single name="DocumentFind" transition=".">
+            <field name="productCategoryId">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="recordKind">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="productId">
+                <conditional-field condition="recordKind === 'category'">
+                    <ignored />
+                </conditional-field>
+                <default-field title="Product ID">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="contentType">
+                <default-field title="Content type">
+                    <drop-down allow-empty="true">
+                        <list-options list="contentTypes" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="locale">
+                <default-field title="Locale">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="filename">
+                <default-field title="Filename">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="productStoreId">
+                <default-field title="Store ID">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="productFeatureId">
+                <conditional-field condition="recordKind === 'category'">
+                    <ignored />
+                </conditional-field>
+                <default-field title="Feature ID">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="includeHistory">
+                <default-field title="Include all dates">
+                    <drop-down allow-empty="true">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="view">
+                <default-field title="View">
+                    <drop-down allow-empty="true">
+                        <option key="list" text="List" />
+                        <option key="cards" text="Cards" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Find documents">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <link text="Translations" url="//Products/Translations" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
+        <link text="Print product datasheet" url="//Products/DocumentDetail/datasheet" condition="!!productId &amp;&amp; recordKind !== 'category'" target="_blank" parameter-map="{productId:productId}" />
+        <section name="DocumentList" condition="view !== 'cards'">
+            <widgets>
+                <form-list name="Documents" list="contentRows" skip-form="true" paginate="false">
+                    <field name="filename">
+                        <default-field title="Document">
+                            <link url="${detailUrl}" text="${filename}" url-type="screen" />
+                        </default-field>
+                    </field>
+                    <field name="recordId">
+                        <default-field title="Record">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="contentTypeText">
+                        <default-field title="Type">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="locale">
+                        <default-field title="Locale">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="description">
+                        <default-field title="Description">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="productStoreId">
+                        <default-field title="Store">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="productFeatureId">
+                        <conditional-field condition="recordKind === 'category'">
+                            <ignored />
+                        </conditional-field>
+                        <default-field title="Feature">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="fromDateText">
+                        <default-field title="From">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="thruDateText">
+                        <default-field title="Through">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="inheritanceText">
+                        <default-field title="Source">
+                            <display />
+                        </default-field>
+                    </field>
+                </form-list>
+            </widgets>
+        </section>
+        <section name="DocumentCards" condition="view === 'cards'">
+            <widgets>
+                <section-iterate name="DocumentCardsRows" list="contentRows" entry="entry">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${entry.filename}" />
+                            <box-body>
+                                <section name="CardImage" condition="entry.imagePreview">
+                                    <widgets>
+                                        <image url="${entry.previewUrl}" url-type="screen" alt="${entry.filename}" height="100" />
+                                    </widgets>
+                                </section>
+                                <label text="${entry.contentTypeText} · ${entry.locale || &quot;&quot;} · ${entry.recordId}" type="p" />
+                                <label text="${entry.inheritanceText}" type="p" />
+                                <link text="Open document" url="${entry.detailUrl}" />
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section-iterate>
+            </widgets>
+        </section>
+        <section name="NewContentEditor" condition="canEdit">
+            <widgets>
+                <container-dialog id="AddCatalogText" button-text="Add document or text" title="Add typed content" width="720">
+                    <form-single name="AddCatalogText" transition="storeContent" map="contentDraft">
+                        <field name="productCategoryId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="recordKind">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="productId">
+                            <conditional-field condition="recordKind === 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Product ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productContentTypeEnumId">
+                            <conditional-field condition="recordKind === 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Product content type">
+                                <drop-down allow-empty="true">
+                                    <list-options list="contentTypes" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="categoryContentTypeEnumId">
+                            <conditional-field condition="recordKind !== 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Category content type">
+                                <drop-down allow-empty="true">
+                                    <list-options list="contentTypes" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="locale">
+                            <default-field title="Locale">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="description">
+                            <default-field title="Description">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productStoreId">
+                            <default-field title="Store ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productFeatureId">
+                            <conditional-field condition="recordKind === 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Feature ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="From">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Through">
+                                <date-time />
+                            </default-field>
+                        </field>
+                        <field name="contentText">
+                            <default-field title="Text">
+                                <text-area rows="6" />
+                            </default-field>
+                        </field>
+                        <field name="contentFile">
+                            <default-field title="File">
+                                <file />
+                            </default-field>
+                        </field>
+                        <field name="sourceDriveId">
+                            <default-field title="Copy from drive">
+                                <drop-down allow-empty="true">
+                                    <list-options list="driveOptions" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="sourcePath">
+                            <default-field title="File path in drive">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Save document">
+                                <submit />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="UploadCatalogFiles" button-text="Upload files" title="Upload catalog files" width="640">
+                    <form-single name="UploadCatalogFiles" transition="uploadContents">
+                        <field name="productCategoryId">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="recordKind">
+                            <default-field>
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="productId">
+                            <conditional-field condition="recordKind === 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Product ID">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="productContentTypeEnumId">
+                            <conditional-field condition="recordKind === 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Product content type">
+                                <drop-down allow-empty="true">
+                                    <list-options list="contentTypes" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="categoryContentTypeEnumId">
+                            <conditional-field condition="recordKind !== 'category'">
+                                <ignored />
+                            </conditional-field>
+                            <default-field title="Category content type">
+                                <drop-down allow-empty="true">
+                                    <list-options list="contentTypes" key="${value}" text="${label}" />
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="locale">
+                            <default-field title="Locale">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="description">
+                            <default-field title="Description">
+                                <text-line />
+                            </default-field>
+                        </field>
+                        <field name="contentFiles">
+                            <default-field title="Files">
+                                <file multiple="true" />
+                            </default-field>
+                        </field>
+                        <field name="submitButton">
+                            <default-field title="Upload files">
+                                <submit />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        <section name="ProductRecordFiles" condition="!!productId &amp;&amp; recordKind !== 'category'">
+            <widgets>
+                <record-files id="ProductFiles" record-entity="mantle.product.Product" record-id="${productId}" />
+            </widgets>
+        </section>
+    </widgets>
+</screen>

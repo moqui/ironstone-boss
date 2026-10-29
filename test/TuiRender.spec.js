@@ -22,6 +22,9 @@ function findScreenFiles(appList) {
 
 // the id parameters of the screens that open on one demo record (AppStructure's demoRecords)
 const demoParameters = {
+    "Products/Categories/CategoryDetail/Content": {productCategoryId:"BOSS_PRD_CAT"},
+    "CategoryContent": {productCategoryId:"BOSS_PRD_CAT"},
+    "DocumentDetail": {productId:"BOSS_PRD_OWN",productContentId:"BOSS_CONTENT_SAMPLE"},
     "InventoryValuation": {productId:"BOSS_PRD_OWN",productStandardCostId:"BOSS_COST_SAMPLE"},
     "BillOfMaterialsDetail": {productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},
     "BillOfMaterialsExplosion": {productId:"DEMO_1_1",organizationPartyId:"ORG_ZIZI_RETAIL"},

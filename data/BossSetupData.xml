@@ -335,7 +335,7 @@ along with this software (see the LICENSE.md file). If not, see
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <artifacts artifactName="component://mr-boss/screen/(Commons|Comms)(\.xml|/.*)"
                 artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
-        <artifacts artifactName="component://mr-boss/screen/Shared/(StandardCosts|CostRollup|CostHistory|InventoryValuation)\.xml" artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
+        <artifacts artifactName="component://mr-boss/screen/Shared/(StandardCosts|CostRollup|CostHistory|InventoryValuation|Documents|DocumentDetail|CategoryContent|Translations)\.xml" artifactTypeEnumId="AT_XML_SCREEN" nameIsPattern="Y" inheritAuthz="Y"/>
         <!-- every write of an IronStone app service, by its verb: every verb but the reads (get, find, search, check, clean, decorate,
             describe, list, lookup, match, parse, suggest), which test/ClientWrites.spec.js checks against every service file. The
             pattern names the app packages and any depth under them. A new app directory is not denied until its name is added here.
@@ -649,4 +649,9 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserGroupPermission userGroupId="BOSS_WAREHOUSE_ADMIN" userPermissionId="STOCK_POLICY_MANAGE" fromDate="0"/>
     <moqui.security.UserGroup userGroupId="BOSS_PURCHASING_PLANNER" description="Purchasing planner"/>
     <moqui.security.UserGroupPermission userGroupId="BOSS_PURCHASING_PLANNER" userPermissionId="STOCK_POLICY_PLAN" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_CATALOG_EDIT" userPermissionId="PRODUCT_CATALOG_EDIT" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_CATALOG_VIEW" fromDate="0"/>
+    <moqui.security.UserGroupPermission userGroupId="BOSS_PRODUCTS_ADMIN" userPermissionId="PRODUCT_CATALOG_EDIT" fromDate="0"/>
 </entity-facade-xml>

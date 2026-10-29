@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='utf-8'?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="DocumentContext" allow-remote="false">
+        <in-parameters>
+            <parameter name="recordKind" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="productCategoryId" type="String" />
+            <parameter name="contentId" type="String" />
+            <parameter name="productContentId" type="String" />
+            <parameter name="productCategoryContentId" type="String" />
+            <parameter name="contentType" type="String" />
+            <parameter name="productContentTypeEnumId" type="String" />
+            <parameter name="categoryContentTypeEnumId" type="String" />
+            <parameter name="locale" type="String" />
+            <parameter name="productFeatureId" type="String" />
+            <parameter name="productStoreId" type="String" />
+            <parameter name="fromDate" type="Timestamp" />
+            <parameter name="thruDate" type="Timestamp" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="description" type="String" />
+            <parameter name="sequenceNum" type="Long" />
+            <parameter name="contentLocation" type="String" />
+            <parameter name="contentText" type="String" allow-html="any" />
+            <parameter name="contentFile" type="org.apache.commons.fileupload2.core.FileItem" />
+            <parameter name="contentFiles" type="List" />
+            <parameter name="filename" type="String" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="includeInherited" type="Boolean" />
+            <parameter name="fromVersion" type="String" />
+            <parameter name="toVersion" type="String" />
+            <parameter name="versionName" type="String" />
+            <parameter name="contentEditConflictId" type="String" />
+            <parameter name="sourceLocale" type="String" />
+            <parameter name="targetLocale" type="String" />
+            <parameter name="missingOnly" type="Boolean" />
+            <parameter name="sourceContentId" type="String" />
+            <parameter name="sourceRevision" type="String" />
+            <parameter name="targetContentId" type="String" />
+            <parameter name="targetRevision" type="String" />
+            <parameter name="targetText" type="String" allow-html="any" />
+            <parameter name="markReviewed" type="Boolean" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="sourceDriveId" type="String" />
+            <parameter name="sourcePath" type="String" />
+            <parameter name="view" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="contentRows" type="List" />
+            <parameter name="document" type="Map" />
+            <parameter name="contentText" type="String" />
+            <parameter name="expectedRevision" type="String" />
+            <parameter name="currentRevision" type="String" />
+            <parameter name="versionRows" type="List" />
+            <parameter name="conflictRows" type="List" />
+            <parameter name="canEdit" type="Boolean" />
+            <parameter name="diff" type="Map" />
+            <parameter name="conflict" type="Boolean" />
+            <parameter name="contentEditConflictId" type="String" />
+            <parameter name="contentId" type="String" />
+            <parameter name="productContentId" type="String" />
+            <parameter name="productCategoryContentId" type="String" />
+            <parameter name="uploadResults" type="List" />
+            <parameter name="contentLocation" type="String" />
+            <parameter name="filename" type="String" />
+            <parameter name="inlineAllowed" type="Boolean" />
+            <parameter name="translationRows" type="List" />
+            <parameter name="directLocalizationRows" type="List" />
+            <parameter name="printHtml" type="String" />
+            <parameter name="sourceLocale" />
+            <parameter name="targetLocale" />
+            <parameter name="recordKind" type="String" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="contentDraft" type="Map" />
+            <parameter name="contentTypes" type="List" />
+            <parameter name="driveOptions" type="List" />
+            <parameter name="view" type="String" />
+            <parameter name="documentForm" type="Map" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Documents.js').execute('context',context))</script>
+        </actions>
+    </service>
+</services>

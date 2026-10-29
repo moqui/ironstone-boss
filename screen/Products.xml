@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
 
     <subscreens default-item="Home" always-use-full-path="true">
+        <subscreens-item name="DocumentDetail" location="component://mr-boss/screen/Shared/DocumentDetail.xml" menu-include="false"/>
         <!-- the record panels the chatter and record-files elements load under this app root, hidden from the menu
             (the theme values STRT_CHATTER_SCREEN and STRT_RECORD_FILES_SCREEN; impl-drawers-commons.md R5) -->
         <subscreens-item name="Chatter" location="component://mr-boss/screen/Shared/Chatter.xml" menu-include="false"/>

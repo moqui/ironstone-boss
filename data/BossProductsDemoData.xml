@@ -67,4 +67,10 @@
     <mantle.ledger.config.GlAccountTypeDefault organizationPartyId="ORG_ZIZI_SERVICES" glAccountTypeEnumId="GatInventory" glAccountId="141300000"/>
     <mantle.ledger.account.GlAccount glAccountId="BOSS_INVENTORY_REVALUATION" accountName="Inventory revaluation" glAccountClassEnumId="EXPENSE" glAccountTypeEnumId="GatInventoryRevaluation" glResourceTypeEnumId="GlrtMoney"/>
     <mantle.ledger.config.GlAccountTypeDefault organizationPartyId="ORG_ZIZI_SERVICES" glAccountTypeEnumId="GatInventoryRevaluation" glAccountId="BOSS_INVENTORY_REVALUATION"/>
+    <moqui.resource.DbResource resourceId="BOSS_CONTENT_PRODUCT" parentResourceId="MCNT_PRODUCT" filename="BOSS_PRD_OWN" isFile="N"/>
+    <moqui.resource.DbResource resourceId="BOSS_CONTENT_FOLDER" parentResourceId="BOSS_CONTENT_PRODUCT" filename="content_BOSS_CONTENT_SAMPLE" isFile="N"/>
+    <moqui.resource.DbResource resourceId="BOSS_CONTENT_TEXT" parentResourceId="BOSS_CONTENT_FOLDER" filename="description.txt" isFile="Y">
+        <file mimeType="text/plain" versionName="01" rootVersionName="01"><fileData>Services catalog sample: typed product documentation, separate from generic record attachments.</fileData><histories versionName="01" versionDate="1704067200000" isDiff="N"/></file>
+    </moqui.resource.DbResource>
+    <mantle.product.ProductContent productContentId="BOSS_CONTENT_SAMPLE" productId="BOSS_PRD_OWN" productContentTypeEnumId="PcntDescriptionLong" locale="en" description="Sample product documentation" fromDate="2000-01-01 00:00:00" contentLocation="dbresource://mantle/content/product/BOSS_PRD_OWN/content_BOSS_CONTENT_SAMPLE/description.txt"/>
 </entity-facade-xml>

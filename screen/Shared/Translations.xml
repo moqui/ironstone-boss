@@ -1,0 +1,203 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Translations">
+    <actions>
+        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
+        <service-call name="mantle.product.ContentServices.find#CatalogTranslations" in-map="context" out-map="context" />
+    </actions>
+    <transition name="saveTranslation">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
+            <service-call name="mantle.product.ContentServices.store#CatalogTranslation" in-map="context" out-map="result" />
+            <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="productCategoryId" />
+            <parameter name="recordKind" />
+            <parameter name="contentId" from="result.contentId || contentId" />
+            <parameter name="productContentId" />
+            <parameter name="productCategoryContentId" />
+            <parameter name="sourceLocale"/><parameter name="targetLocale"/>
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <widgets>
+        <label text="Catalog translations" type="h5" />
+        <form-single name="TranslationFind" transition=".">
+            <field name="productCategoryId">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="recordKind">
+                <default-field title="Record kind">
+                    <drop-down allow-empty="true">
+                        <option key="product" text="Products" />
+                        <option key="category" text="Categories" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="productId">
+                <default-field title="Product ID">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="sourceLocale">
+                <default-field title="Source locale">
+                    <text-line default-value="en" />
+                </default-field>
+            </field>
+            <field name="targetLocale">
+                <default-field title="Target locale">
+                    <text-line default-value="es" />
+                </default-field>
+            </field>
+            <field name="missingOnly">
+                <default-field title="Missing only">
+                    <drop-down allow-empty="true">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Find translations">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <form-list name="TranslationRows" list="translationRows" skip-form="true" paginate="false">
+            <field name="recordId">
+                <default-field title="Record">
+                    <display />
+                </default-field>
+            </field>
+            <field name="contentTypeText">
+                <default-field title="Type">
+                    <display />
+                </default-field>
+            </field>
+            <field name="sourceText">
+                <default-field title="Source text">
+                    <display />
+                </default-field>
+            </field>
+            <field name="targetText">
+                <default-field title="Target text">
+                    <display />
+                </default-field>
+            </field>
+            <field name="reviewState">
+                <default-field title="Review">
+                    <display />
+                </default-field>
+            </field>
+            <field name="storageSource">
+                <default-field title="Stored in">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+        <section name="TranslationEditors" condition="canEdit">
+            <widgets>
+                <section-iterate name="TranslationEditorRows" list="translationRows" entry="entry">
+                    <widgets>
+                        <container-dialog id="Translation_${entry_index}" button-text="Translate ${entry.recordId}: ${entry.contentTypeText}" title="Review source and translation" width="840">
+                            <label text="${entry.sourceText}" type="pre" />
+                            <form-single name="TranslationEdit_${entry_index}" transition="saveTranslation" map="entry">
+                                <field name="recordKind">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="productId">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="productCategoryId">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="targetLocale">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="sourceRevision">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="sourceContentId">
+                                    <default-field>
+                                        <hidden default-value="${entry.contentId}" />
+                                    </default-field>
+                                </field>
+                                <field name="targetContentId">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="targetRevision">
+                                    <default-field>
+                                        <hidden />
+                                    </default-field>
+                                </field>
+                                <field name="targetText">
+                                    <default-field title="Target text">
+                                        <text-area rows="8" />
+                                    </default-field>
+                                </field>
+                                <field name="markReviewed">
+                                    <default-field title="Reviewed against this source">
+                                        <drop-down allow-empty="false" no-current-selected-key="false">
+                                            <option key="true" text="Yes" />
+                                            <option key="false" text="No" />
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <default-field title="Save translation">
+                                        <submit />
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets>
+                </section-iterate>
+            </widgets>
+        </section>
+        <label text="Direct field localizations" type="h6" />
+        <label text="These values use their existing LocalizedEntityField storage." type="p" />
+        <form-list name="DirectLocalizations" list="directLocalizationRows" skip-form="true" paginate="false">
+            <field name="entityName">
+                <default-field title="Record type">
+                    <display />
+                </default-field>
+            </field>
+            <field name="pkValue">
+                <default-field title="Record">
+                    <display />
+                </default-field>
+            </field>
+            <field name="fieldName">
+                <default-field title="Field">
+                    <display />
+                </default-field>
+            </field>
+            <field name="localized">
+                <default-field title="Localized value">
+                    <display />
+                </default-field>
+            </field>
+            <field name="storageSource">
+                <default-field title="Stored in">
+                    <display />
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

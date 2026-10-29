@@ -446,25 +446,5 @@ function choices(p) {
     const term=String(p.term || '').toLowerCase()
     return {rows:options().options[p.choice].filter(row=>!term || String(row.value+' '+row.label).toLowerCase().includes(term)).slice(0,50)}
 }
-function content(p) {
-    record(p.productId,'catalogEdit')
-    const old=p.productContentId ? one(P+'ProductContent',{productContentId:p.productContentId}) : null
-    if(p.productContentId && old?.productId!==p.productId) throw new Error('Content is not on this product')
-    if(p.contentLocation) throw new Error('Choose a file through its authorized drive and path')
-    const data=fields(p,'productId,productContentId,productContentTypeEnumId,description,locale,fromDate,thruDate,contentText,contentFile')
-    if(p.sourceDriveId || p.sourcePath) {
-        const source=call('org.moqui.impl.FileServices.get#ResourceInfo',{driveId:p.sourceDriveId,path:p.sourcePath}).resource
-        if(!source || source.isDirectory) throw new Error('Source file is not available')
-        const target='dbresource://mantle/content/product/'+p.productId+'/linked_'+ms(ec.user.nowTimestamp)+'_'+Math.floor(Math.random()*1e9)+'/'+source.name
-        const stream=ec.resource.getLocationReference(source.location).openStream()
-        try { ec.resource.getLocationReference(target).putStream(stream) } finally { if(stream) stream.close() }
-        data.contentLocation=target
-    }
-    if(old && p.contentText) {
-        const location=String(old.contentLocation || '')
-        if(!['dbresource://mantle/content/product/'+p.productId+'/', 'dbresource://ironstone/products/'+p.productId+'/'].some(prefix=>location.startsWith(prefix)) || location.split('/').includes('..')) throw new Error('Replace this document with an uploaded file before editing its text')
-    }
-    return call('mantle.product.ProductServices.'+(p.productContentId?'update':'create')+'#ProductContent',data,true)
-}
-function execute(op,p) { return ({settings,storeSettings,storeProduct,transition,storeRow,content,choices,detail,deleteProduct,bulk,clone,findProducts,summary,palette,options})[op](p || {}) }
+function execute(op,p) { return ({settings,storeSettings,storeProduct,transition,storeRow,choices,detail,deleteProduct,bulk,clone,findProducts,summary,palette,options})[op](p || {}) }
 ;({execute})

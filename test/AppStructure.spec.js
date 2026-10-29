@@ -46,6 +46,13 @@ function findScreenFiles(appList, matches) {
 // what a screen shows of the demo records (data/BossDemoData.xml), by app and path, with the id parameters of a screen
 // that opens on one
 const demoRecords = {
+    "Shared/Documents/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Catalog documents"},
+    "Shared/DocumentDetail/": {parameters:{productId:"BOSS_PRD_OWN",productContentId:"BOSS_CONTENT_SAMPLE"},text:"Document detail"},
+    "Shared/CategoryContent/": {parameters:{productCategoryId:"BOSS_PRD_CAT"},text:"Catalog documents"},
+    "Shared/Translations/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Catalog translations"},
+    "Products/Documents": {text:"Catalog documents"},
+    "Products/Translations": {text:"Catalog translations"},
+    "Products/Categories/CategoryDetail/Content": {parameters:{productCategoryId:"BOSS_PRD_CAT"},text:"m-subscreens-active"},
     "Shared/StandardCosts/": {parameters:{productId:"BOSS_PRD_OWN",productStandardCostId:"BOSS_COST_SAMPLE"},text:"Standard costs"},
     "Shared/CostRollup/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Cost roll-up"},
     "Shared/CostHistory/": {parameters:{productId:"BOSS_PRD_OWN"},text:"Cost history"},
@@ -404,7 +411,7 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
         // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings; P6 replaces SupplierPrices)
-        placeholders.length >= 90
+        placeholders.length >= 80
         failures.join("\n") == ""
     },
 })

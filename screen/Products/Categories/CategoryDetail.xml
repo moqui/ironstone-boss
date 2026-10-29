@@ -40,23 +40,55 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <subscreens default-item="Summary"/>
+    <actions>
+        <if condition="recordFound">
+            <!-- the header's facts: the type and the owner by name -->
+            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="masterType" cache="true">
+                <field-map field-name="enumId" from="master.productCategoryTypeEnumId"/>
+            </entity-find-one>
+            <entity-find-one entity-name="mantle.party.Organization" value-field="ownerOrganization" cache="true">
+                <field-map field-name="partyId" from="master.ownerPartyId"/>
+            </entity-find-one>
+            <set field="factsText" from="[masterType?.description, master.ownerPartyId === '_NA_' || !master.ownerPartyId ? ec.l10n.localize('Shared catalog') : (ownerOrganization?.organizationName || master.ownerPartyId)].filter(Boolean).join(' · ')"/>
+        </if>
+    </actions>
     <widgets>
         <section name="Record" condition="recordFound">
             <widgets>
                 <context record-entity="mantle.product.category.ProductCategory" record-id="${productCategoryId}" title="${master.categoryName}"/>
+                <!-- the header card (style-guide §3.3): the ID and name, then the type and owner with the actions at their right -->
                 <container style="m-record-header">
-                    <label text="${productCategoryId}" style="text-mono"/>
-                    <label text="${master.categoryName}" type="h5"/>
-                    <label text="${master.ownerPartyId === '_NA_' ? 'Shared catalog record' : master.ownerPartyId}" type="p"/>
-                    <link url="delete" text="Delete unused category" link-type="hidden-form" condition="canEdit" confirmation="Delete this unused category?" parameter-map="{productCategoryId:productCategoryId}"/>
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(productCategoryId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: productCategoryId})}]]></text>
+                                </render-mode>
+                                <label text="${master.categoryName}" type="h5"/>
+                            </container>
+                            <label text="${factsText}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <button-menu text="More" icon="more_horiz" condition="canEdit">
+                                <link url="delete" text="Delete unused category" link-type="hidden-form-link" icon="sym_o_delete" btn-type="danger"
+                                        confirmation="Delete the unused category ${master.categoryName}?" parameter-map="{productCategoryId:productCategoryId}"/>
+                            </button-menu>
+                        </container>
+                    </container>
                 </container>
-                <subscreens-menu id="CategoryTabs" type="tab"/>
-                <subscreens-active/>
+                <subscreens-panel id="CategoryTabs" type="tab"/>
             </widgets>
         </section>
         <section name="Unavailable" condition="!recordFound">
             <widgets>
-                <label text="Catalog record not available" type="p"/>
+                <container-box type="warning">
+                    <box-header title="Not available"/>
+                    <box-body>
+                        <label text="This category is not available: it does not exist, or it belongs to an organization you are not in." type="p"/>
+                        <link url=".." text="Back to the list" link-type="anchor"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

@@ -31,7 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Equipment')</expression></condition>
+    <condition><expression>(!Array.isArray(product360Tabs) || product360Tabs.includes('Equipment')) &amp;&amp; product?.assetTypeEnumId === 'AstTpEquipment'</expression></condition>
     <widgets>
         <section name="RowsAvailable" condition="productFound &amp;&amp; product.assetTypeEnumId === 'AstTpEquipment'">
             <widgets>

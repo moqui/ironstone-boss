@@ -44,9 +44,9 @@ along with this software (see the LICENSE.md file). If not, see
         <dashboard min-width="150" style="q-mb-sm">
             <number-card title="Active SKUs" value="${counts.active}" icon="sym_o_inventory_2" size="sm" link="/qapps/Products/Products?list=activeSkus"/>
             <number-card title="Variants" value="${counts.variants}" icon="sym_o_style" size="sm" link="/qapps/Products/Products?list=variants"/>
-            <number-card title="Missing a price" value="${counts.missingPrice}" icon="sym_o_sell" size="sm" link="/qapps/Products/Products?list=missingPrice"
+            <number-card title="Missing price" value="${counts.missingPrice}" icon="sym_o_sell" size="sm" link="/qapps/Products/Products?list=missingPrice"
                     condition="summary.missingPrice != null"/>
-            <number-card title="Discontinuing in 30 days" value="${counts.discontinuingSoon}" icon="sym_o_event_busy" size="sm"
+            <number-card title="Ending in 30 days" value="${counts.discontinuingSoon}" icon="sym_o_event_busy" size="sm"
                     link="/qapps/Products/Products?list=discontinuingSoon"/>
             <number-card title="Incomplete" value="${counts.incomplete}" icon="sym_o_rule" size="sm"
                     link="/qapps/Products/Settings/CatalogChecks?runChecks=true&amp;checkIds=requiredFields" condition="access.capabilities.catalogAdmin"/>

@@ -19,84 +19,92 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-box>
                     <box-header title="Feature"/>
                     <box-body>
-                        <section name="Editor" condition="canEdit">
-                            <widgets>
-                                <form-single name="Feature" transition="../save" map="master">
-                                    <field name="productFeatureId">
-                                        <default-field>
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="expectedLastUpdatedStamp" from="master.lastUpdatedStamp">
-                                        <default-field>
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="description">
-                                        <default-field title="Description">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="productFeatureTypeEnumId">
-                                        <default-field title="Type">
-                                            <drop-down allow-empty="true">
-                                                <list-options list="options.featureTypes" key="${value}" text="${label}"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="abbrev">
-                                        <default-field title="Abbreviation">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="idCode">
-                                        <default-field title="Code">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="numberSpecified">
-                                        <default-field title="Number">
-                                            <text-line input-type="number"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="numberUomId">
-                                        <default-field title="Unit">
-                                            <drop-down allow-empty="true">
-                                                <list-options list="options.units" key="${value}" text="${label}"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="defaultAmount">
-                                        <default-field title="Default amount">
-                                            <text-line input-type="number"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="defaultSequenceNum">
-                                        <default-field title="Sequence">
-                                            <text-line input-type="number"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="submitButton">
-                                        <default-field title="Save">
-                                            <submit/>
-                                        </default-field>
-                                    </field>
-                                </form-single>
-                            </widgets>
-                        </section>
-                        <section name="Reader" condition="!canEdit">
-                            <widgets>
-                                <label text="Description: ${master.description || '—'}" type="p"/>
-                                <label text="Type: ${master.productFeatureTypeEnumId || '—'}" type="p"/>
-                                <label text="Owner: ${master.ownerPartyId || '—'}" type="p"/>
-                                <label text="Abbreviation: ${master.abbrev || '—'}" type="p"/>
-                                <label text="Code: ${master.idCode || '—'}" type="p"/>
-                                <label text="Number: ${master.numberSpecified || '—'}" type="p"/>
-                                <label text="Unit: ${master.numberUomId || '—'}" type="p"/>
-                                <label text="Default amount: ${master.defaultAmount || '—'}" type="p"/>
-                                <label text="Sequence: ${master.defaultSequenceNum || '—'}" type="p"/>
-                            </widgets>
-                        </section>
+                        <!-- one layout for every user: an editor edits the fields a reader sees as text (style-guide §3.3) -->
+                        <form-single name="Feature" transition="../save" map="master">
+                            <field name="productFeatureId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="expectedLastUpdatedStamp" from="master.lastUpdatedStamp">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <conditional-field condition="canEdit" title="Description">
+                                    <text-line/>
+                                </conditional-field>
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="productFeatureTypeEnumId">
+                                <conditional-field condition="canEdit" title="Type">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.featureTypes" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </conditional-field>
+                                <default-field title="Type">
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
+                                </default-field>
+                            </field>
+                            <field name="abbrev">
+                                <conditional-field condition="canEdit" title="Abbreviation">
+                                    <text-line/>
+                                </conditional-field>
+                                <default-field title="Abbreviation">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="idCode">
+                                <conditional-field condition="canEdit" title="Code">
+                                    <text-line/>
+                                </conditional-field>
+                                <default-field title="Code">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="numberSpecified">
+                                <conditional-field condition="canEdit" title="Number">
+                                    <text-line input-type="number"/>
+                                </conditional-field>
+                                <default-field title="Number">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="numberUomId">
+                                <conditional-field condition="canEdit" title="Unit">
+                                    <drop-down allow-empty="true">
+                                        <list-options list="options.units" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </conditional-field>
+                                <default-field title="Unit">
+                                    <display-entity entity-name="moqui.basic.Uom"/>
+                                </default-field>
+                            </field>
+                            <field name="defaultAmount">
+                                <conditional-field condition="canEdit" title="Default amount">
+                                    <text-line input-type="number"/>
+                                </conditional-field>
+                                <default-field title="Default amount">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="defaultSequenceNum">
+                                <conditional-field condition="canEdit" title="Sequence">
+                                    <text-line input-type="number"/>
+                                </conditional-field>
+                                <default-field title="Sequence">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <conditional-field condition="canEdit" title="Save">
+                                    <submit/>
+                                </conditional-field>
+                            </field>
+                        </form-single>
                     </box-body>
                 </container-box>
             </widgets>

@@ -42,23 +42,55 @@ along with this software (see the LICENSE.md file). If not, see
     <subscreens default-item="Summary">
         <subscreens-item name="Interactions" location="component://mr-boss/screen/Products/Features/FeatureInteractions.xml" menu-index="4"/>
     </subscreens>
+    <actions>
+        <if condition="recordFound">
+            <!-- the header's facts: the type and the owner by name -->
+            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="masterType" cache="true">
+                <field-map field-name="enumId" from="master.productFeatureTypeEnumId"/>
+            </entity-find-one>
+            <entity-find-one entity-name="mantle.party.Organization" value-field="ownerOrganization" cache="true">
+                <field-map field-name="partyId" from="master.ownerPartyId"/>
+            </entity-find-one>
+            <set field="factsText" from="[masterType?.description, master.ownerPartyId === '_NA_' || !master.ownerPartyId ? ec.l10n.localize('Shared catalog') : (ownerOrganization?.organizationName || master.ownerPartyId)].filter(Boolean).join(' · ')"/>
+        </if>
+    </actions>
     <widgets>
         <section name="Record" condition="recordFound">
             <widgets>
                 <context record-entity="mantle.product.feature.ProductFeature" record-id="${productFeatureId}" title="${master.description}"/>
+                <!-- the header card (style-guide §3.3): the ID and name, then the type and owner with the actions at their right -->
                 <container style="m-record-header">
-                    <label text="${productFeatureId}" style="text-mono"/>
-                    <label text="${master.description}" type="h5"/>
-                    <label text="${master.ownerPartyId === '_NA_' ? 'Shared catalog record' : master.ownerPartyId}" type="p"/>
-                    <link url="delete" text="Delete unused feature" link-type="hidden-form" condition="canEdit" confirmation="Delete this unused feature?" parameter-map="{productFeatureId:productFeatureId}"/>
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(productFeatureId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: productFeatureId})}]]></text>
+                                </render-mode>
+                                <label text="${master.description}" type="h5"/>
+                            </container>
+                            <label text="${factsText}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <button-menu text="More" icon="more_horiz" condition="canEdit">
+                                <link url="delete" text="Delete unused feature" link-type="hidden-form-link" icon="sym_o_delete" btn-type="danger"
+                                        confirmation="Delete the unused feature ${master.description}?" parameter-map="{productFeatureId:productFeatureId}"/>
+                            </button-menu>
+                        </container>
+                    </container>
                 </container>
-                <subscreens-menu id="FeatureTabs" type="tab"/>
-                <subscreens-active/>
+                <subscreens-panel id="FeatureTabs" type="tab"/>
             </widgets>
         </section>
         <section name="Unavailable" condition="!recordFound">
             <widgets>
-                <label text="Catalog record not available" type="p"/>
+                <container-box type="warning">
+                    <box-header title="Not available"/>
+                    <box-body>
+                        <label text="This feature is not available: it does not exist, or it belongs to an organization you are not in." type="p"/>
+                        <link url=".." text="Back to the list" link-type="anchor"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

@@ -79,9 +79,9 @@ feature("owned and shared product routes render for the reader and another owner
         own.status == 200
         own.errors == ""
         own.output.includes("Services catalog sample")
-        shared.output.includes("Shared catalog record")
+        shared.output.includes("Shared catalog")
         !other.output.includes("Retail catalog sample")
-        other.output.includes("Product not available")
+        other.output.includes("is not available")
     }
 })
 

@@ -85,131 +85,207 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="Costs" menu-title="Costs" menu-index="10" menu-include="true" location="component://mr-boss/screen/Shared/StandardCosts.xml"/>
         <subscreens-item name="Stock" menu-index="11" menu-include="true" location="component://mr-boss/screen/Shared/InventoryAvailability.xml"/>
         <subscreens-item name="BOM" menu-title="BOM" menu-index="12" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsDetail.xml"/>
-        <subscreens-item name="KitComponents" menu-index="13" menu-include="false" location="component://mr-boss/screen/Shared/Product360/KitComponents.xml"/>
-        <subscreens-item name="Equipment" menu-index="14" menu-include="false" location="component://mr-boss/screen/Shared/Product360/Equipment.xml"/>
+        <subscreens-item name="KitComponents" menu-title="Kit components" menu-index="13" menu-include="true" location="component://mr-boss/screen/Shared/Product360/KitComponents.xml"/>
+        <subscreens-item name="Equipment" menu-title="Equipment" menu-index="14" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Equipment.xml"/>
         <subscreens-item name="Associations" menu-index="15" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Associations.xml"/>
         <subscreens-item name="Parties" menu-index="16" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Parties.xml"/>
         <subscreens-item name="Connections" menu-index="17" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Connections.xml"/>
         <subscreens-item name="History" menu-index="18" menu-include="true" location="component://mr-boss/screen/Shared/Product360/History.xml"/>
     </subscreens>
+    <actions>
+        <if condition="productFound">
+            <!-- the header's facts: the type and owner by name, and the key numbers -->
+            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="productType" cache="true">
+                <field-map field-name="enumId" from="product.productTypeEnumId"/>
+            </entity-find-one>
+            <entity-find-one entity-name="mantle.party.Organization" value-field="ownerOrganization" cache="true">
+                <field-map field-name="partyId" from="product.ownerPartyId"/>
+            </entity-find-one>
+            <script><![CDATA[
+                ownerText = product.ownerPartyId === '_NA_' ? ec.l10n.localize('Shared catalog') : (ownerOrganization?.organizationName || product.ownerPartyId)
+                factsText = [productType?.description || product.productTypeEnumId, ownerText].filter(Boolean).join(' · ')
+                const now = ec.user.nowTimestamp, current = row => (!row.fromDate || row.fromDate <= now) && (!row.thruDate || row.thruDate > now)
+                keyNumbers = {variants: (detail.variantRows || []).length, categories: (detail.categoryRows || []).filter(current).length,
+                    identifiers: (detail.identifierRows || []).length, documents: (detail.contentRows || []).length}
+                virtualProduct = product.productTypeEnumId === 'PtVirtual'
+                kitProduct = product.productTypeEnumId === 'PtPickAssembly'
+            ]]></script>
+        </if>
+    </actions>
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>
                 <context record-entity="mantle.product.Product" record-id="${productId}" title="${product.productName}"/>
+                <!-- the header card (style-guide §3.3, §3.4): the ID and name with the lifecycle at their right, then the tags with
+                    the actions at their right; a reader sees the same card without the actions -->
                 <container style="m-record-header">
-                    <label text="${productId}" style="text-mono"/>
-                    <label text="${product.productName}" type="h5"/>
-                    <status-bar id="ProductStatus" status-id="${detail.effectiveStatusId}" status-flow-id="Default" stages="PrdDraft,PrdActive,PrdDiscontinued,PrdObsolete" read-only="true"/>
-                    <link url="KitComponents" text="Kit components" link-type="anchor-button" condition="product.productTypeEnumId === 'PtPickAssembly'" parameter-map="{productId:productId}"/>
-                    <link url="Equipment" text="Equipment templates" link-type="anchor-button" condition="product.assetTypeEnumId === 'AstTpEquipment'" parameter-map="{productId:productId}"/>
-                    <label text="${product.ownerPartyId === '_NA_' ? 'Shared catalog record' : product.ownerPartyId}" type="p"/>
-                    <section name="EditorActions" condition="canEdit">
-                        <widgets>
-                            <link url="status" text="Activate" link-type="hidden-form" condition="['PrdDraft','PrdDiscontinued'].includes(detail.effectiveStatusId)" parameter-map="{productId:productId,statusId:'PrdActive',expectedStatusId:detail.effectiveStatusId}"/>
-                            <link url="status" text="Discontinue" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdActive'" confirmation="Discontinue this product?" parameter-map="{productId:productId,statusId:'PrdDiscontinued',expectedStatusId:detail.effectiveStatusId}"/>
-                            <link url="status" text="Make obsolete" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdDiscontinued'" confirmation="Make this product obsolete? New order lines will be refused." parameter-map="{productId:productId,statusId:'PrdObsolete',expectedStatusId:detail.effectiveStatusId}"/>
-                            <link url="deleteDraft" text="Delete unused draft" link-type="hidden-form" condition="detail.effectiveStatusId === 'PrdDraft'" confirmation="Delete this unused draft and its catalog rows?" parameter-map="{productId:productId}"/>
-                            <container-dialog id="CloneProductDialog" button-text="Clone" title="Clone selected sections" width="640">
-                                <form-single name="CloneProduct" transition="clone">
-                                    <field name="productId">
-                                        <default-field>
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="newProductId">
-                                        <default-field title="New ID" tooltip="Leave empty to have one generated">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="newProductName">
-                                        <default-field title="New name">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="ownerPartyId">
-                                        <default-field title="Owner">
-                                            <drop-down allow-empty="true">
-                                                <list-options list="options.owners" key="${value}" text="${label}"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyCategories">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Categories"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyFeatures">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Features"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyDimensions">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Dimensions"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyParties">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Parties"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyAssociations">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Substitutes"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyEquipment">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Equipment templates"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyIdentifiers">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="New internal identifiers (external codes require reassignment)"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="copyContent">
-                                        <default-field title=" ">
-                                            <check>
-                                                <option key="true" text="Documents"/>
-                                            </check>
-                                        </default-field>
-                                    </field>
-                                    <field name="submitButton">
-                                        <default-field title="Save">
-                                            <submit/>
-                                        </default-field>
-                                    </field>
-                                </form-single>
-                            </container-dialog>
-                        </widgets>
-                    </section>
-                </container>
-                <container style="row items-center">
-                    <container style="col">
-                        <subscreens-menu id="ProductTabs" type="tab"/>
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(productId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "ProductKey", style: "strong", text: productId})}]]></text>
+                                </render-mode>
+                                <label text="${product.productName}" type="h5"/>
+                            </container>
+                            <label text="${factsText}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <status-bar id="ProductStatus" status-id="${detail.effectiveStatusId}" status-flow-id="Default" stages="PrdDraft,PrdActive,PrdDiscontinued,PrdObsolete" read-only="true"/>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md row q-gutter-xs">
+                            <section-iterate name="Tags" list="detail.tagRows" entry="tag">
+                                <widgets>
+                                    <link url="${sharedLinks['Categories/CategoryDetail']}" text="${tag.categoryName}" link-type="anchor-button" icon="sym_o_sell" parameter-map="{productCategoryId:tag.productCategoryId}"/>
+                                </widgets>
+                            </section-iterate>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <section name="PrimaryStatus" condition="canEdit &amp;&amp; ['PrdDraft','PrdDiscontinued'].includes(detail.effectiveStatusId)">
+                                <widgets>
+                                    <link url="status" text="Activate" link-type="hidden-form" btn-type="primary" icon="sym_o_check_circle" confirmation="Activate ${product.productName}? Its required data is checked first."
+                                            parameter-map="{productId:productId,statusId:'PrdActive',expectedStatusId:detail.effectiveStatusId}"/>
+                                </widgets>
+                            </section>
+                            <link url="${sharedLinks['Products/VariantBuilder']}" text="Build variants" link-type="anchor-button" icon="sym_o_grid_view" condition="canEdit &amp;&amp; virtualProduct" parameter-map="{productId:productId}"/>
+                            <button-menu text="More" icon="more_horiz" style="q-ml-xs">
+                                <link url="${sharedLinks['Units/Labels']}" text="Product labels" icon="sym_o_qr_code_2" parameter-map="{productId:productId}"/>
+                                <link url="status" text="Discontinue" link-type="hidden-form-link" icon="sym_o_event_busy" condition="canEdit &amp;&amp; detail.effectiveStatusId === 'PrdActive'"
+                                        confirmation="Discontinue ${product.productName}?" parameter-map="{productId:productId,statusId:'PrdDiscontinued',expectedStatusId:detail.effectiveStatusId}"/>
+                                <link url="status" text="Make obsolete" link-type="hidden-form-link" icon="sym_o_block" condition="canEdit &amp;&amp; detail.effectiveStatusId === 'PrdDiscontinued'"
+                                        confirmation="Make ${product.productName} obsolete? New order lines will be refused." parameter-map="{productId:productId,statusId:'PrdObsolete',expectedStatusId:detail.effectiveStatusId}"/>
+                                <container-dialog id="CloneProductDialog" condition="canEdit" button-text="Clone" icon="sym_o_content_copy" title="Clone ${product.productName}" width="640">
+                                    <form-single name="CloneProduct" transition="clone">
+                                        <field name="productId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="newProductId">
+                                            <default-field title="New ID" tooltip="Leave empty to have one generated">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="newProductName">
+                                            <default-field title="New name">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="ownerPartyId">
+                                            <default-field title="Owner">
+                                                <drop-down allow-empty="true">
+                                                    <list-options list="options.owners" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyCategories">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Categories"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyFeatures">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Features"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyDimensions">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Dimensions"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyParties">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Parties"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyAssociations">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Substitutes"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyEquipment">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Equipment templates"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyIdentifiers">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="New internal identifiers (external codes require reassignment)"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="copyContent">
+                                            <default-field title="">
+                                                <check>
+                                                    <option key="true" text="Documents"/>
+                                                </check>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Clone">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-row>
+                                                <field-ref name="newProductId"/>
+                                                <field-ref name="newProductName"/>
+                                            </field-row>
+                                            <field-ref name="ownerPartyId"/>
+                                            <field-group title="Copy">
+                                                <field-ref name="copyCategories"/>
+                                                <field-ref name="copyFeatures"/>
+                                                <field-ref name="copyDimensions"/>
+                                                <field-ref name="copyParties"/>
+                                                <field-ref name="copyAssociations"/>
+                                                <field-ref name="copyEquipment"/>
+                                                <field-ref name="copyIdentifiers"/>
+                                                <field-ref name="copyContent"/>
+                                            </field-group>
+                                            <field-ref name="submitButton"/>
+                                        </field-layout>
+                                    </form-single>
+                                </container-dialog>
+                                <link url="deleteDraft" text="Delete unused draft" link-type="hidden-form-link" icon="sym_o_delete" btn-type="danger" condition="canEdit &amp;&amp; detail.effectiveStatusId === 'PrdDraft'"
+                                        confirmation="Delete the unused draft ${product.productName} and its catalog rows?" parameter-map="{productId:productId}"/>
+                            </button-menu>
+                        </container>
                     </container>
                 </container>
-                <subscreens-active/>
+                <dashboard min-width="140" style="q-mb-sm">
+                    <number-card title="Variants" value="${keyNumbers.variants}" icon="sym_o_grid_view" size="sm" link="Features?productId=${productId}" condition="virtualProduct"/>
+                    <number-card title="Available kits" value="${detail.kitAvailable == null ? '—' : detail.kitAvailable}" icon="sym_o_package_2" size="sm" link="KitComponents?productId=${productId}" condition="kitProduct"/>
+                    <number-card title="Categories" value="${keyNumbers.categories}" icon="sym_o_category" size="sm" link="Categories?productId=${productId}"/>
+                    <number-card title="Identifiers" value="${keyNumbers.identifiers}" icon="sym_o_barcode" size="sm" link="Identifiers?productId=${productId}"/>
+                    <number-card title="Documents" value="${keyNumbers.documents}" icon="sym_o_description" size="sm" link="Documents?productId=${productId}"/>
+                </dashboard>
+                <subscreens-panel id="ProductTabs" type="tab"/>
             </widgets>
         </section>
         <section name="Unavailable" condition="!productFound">
             <widgets>
-                <label text="Product not available" type="p"/>
+                <container-box type="warning">
+                    <box-header title="Not available"/>
+                    <box-body>
+                        <label text="Product ${productId} is not available: it does not exist, or it belongs to an organization you are not in." type="p"/>
+                        <link url=".." text="Back to the product list" link-type="anchor"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

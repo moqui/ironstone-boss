@@ -16,7 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
     which the account list (a card each), the account's page and the wizard's Finish step load in a dynamic-container with the
     account's emailAccountId. It listens on the notification socket for the topic emailSyncProgress, which
     org.moqui.impl.EmailClientServices.sync#EmailAccount sends the account's owner and members while it fetches mail (at most
-    one a second, and one when it ends; mr-moqui webroot js/README.md), and shows "Syncing 1,204 of 8,000" with the folder's
+    one a second, and one when it ends; mr-moqui docs/Qvt-Client.md), and shows "Syncing 1,204 of 8,000" with the folder's
     name, then what the sync brought. The messages carry counts only, and only to the users of the account; this screen reads
     nothing itself. No socket (none configured, or not signed in): nothing shows. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"

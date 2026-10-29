@@ -1255,7 +1255,7 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- ========== Record cards ========== -->
 
     <service verb="get" noun="RecordCard">
-        <description>The card of a record for m-record-card (webroot js/README.md, Record cards): {title, typeLabel, icon, id,
+        <description>The card of a record for m-record-card (docs/Qvt-Client.md, Record cards): {title, typeLabel, icon, id,
             entity, url, status {label, color}, fields}, from mantle.GeneralServices.lookup#ById and the record's BOSS screen
             (ironstone.commons.PaletteServices.get#RecordLink), under the user's filters. A record the user may not see answers only its
             id.</description>

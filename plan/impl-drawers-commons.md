@@ -109,7 +109,7 @@ Each finding was verified in the code. Each resolution is now part of the design
   When in doubt, the logic goes in Mantle.
 - **A new XML element** follows style-guide §8.1. That means the XSD, `ScreenQvt.js` with its `ScreenQvtStatic.js`
   mirror and a `ScreenHtml.js` fallback, the `ScreenSupport.js` element tables (a missing entry is an error), the
-  `m-*` wrapper, a regenerated `WebrootVue.qvt.render.js`, CSS, goldens, a `js/README.md` row and a gallery screen.
+  `m-*` wrapper, a regenerated `WebrootVue.qvt.render.js`, CSS, goldens, a `docs/Qvt-Client.md` row and a gallery screen.
 - **A JS library** comes in through `libs/refresh.mjs`, as an esbuild bundle like compiler-dom when it has no UMD build,
   with a MANIFEST entry and a `plans/archive/License-Review.md` row. **A Rust crate** is checked against `deny.toml`.
 - **`.qvue` screens** copy the gallery pattern (`example/screen/Gallery/Board.qvue`, `Calendar.qvue`): JSON transitions

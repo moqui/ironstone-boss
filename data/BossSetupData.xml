@@ -458,7 +458,7 @@ along with this software (see the LICENSE.md file). If not, see
         the tray panel's three tabs, the quick-create screen of the + menu kinds that name no screen, and the screen the
         header's Inbox count links to, each a path under the apps root; the Chatter and record-files elements' subscreen
         names, which every BOSS app root mounts from screen/Shared (R5). The webroot shellData transition sends them to
-        the shell (webroot/screen/webroot/js/README.md, "Shell data and providers"). STRT_SHELL_COUNTS_SERVICE comes with
+        the shell (docs/Qvt-Client.md, "Shell data and providers"). STRT_SHELL_COUNTS_SERVICE comes with
         mantle.party.PartyServices.get#ShellCounts (M2). -->
     <moqui.screen.ScreenThemeResource screenThemeId="DEFAULT_QUASAR" sequenceNum="300" resourceTypeEnumId="STRT_TRAY_TODAY"
             resourceValue="Commons/Panel/Today"/>

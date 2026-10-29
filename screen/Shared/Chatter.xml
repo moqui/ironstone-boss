@@ -74,7 +74,7 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
-    <!-- the card of a record for m-record-card (webroot js/README.md, Record cards) -->
+    <!-- the card of a record for m-record-card (docs/Qvt-Client.md, Record cards) -->
     <transition name="recordCard" read-only="true">
         <actions>
             <service-call name="ironstone.shared.ChatterServices.get#RecordCard" in-map="{recordEntityName:recordEntity, recordId:recordId}" out-map="cardOut"/>

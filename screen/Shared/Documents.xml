@@ -21,9 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
-    </actions>
     <transition name="storeContent">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
@@ -59,6 +56,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="." />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
+    </actions>
     <widgets>
         <label text="Catalog documents" type="h5" />
         <form-single name="DocumentFind" transition=".">
@@ -138,7 +138,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
         </form-single>
         <link text="Translations" url="${sharedLinks['Translations']}" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
-        <link text="Print product datasheet" url="${sharedLinks['DocumentDetail/datasheet']}" condition="!!productId &amp;&amp; recordKind !== 'category'" target="_blank" parameter-map="{productId:productId}" />
+        <link text="Print product datasheet" url="${sharedLinks['DocumentDetail/datasheet']}" condition="!!productId &amp;&amp; recordKind !== 'category'" target-window="_blank" parameter-map="{productId:productId}" />
         <section name="DocumentList" condition="view !== 'cards'">
             <widgets>
                 <form-list name="Documents" list="contentRows" skip-form="true" paginate="false">

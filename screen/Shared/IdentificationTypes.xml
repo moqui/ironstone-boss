@@ -21,20 +21,11 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'identifiers'})" out-map="context" />
-    </actions>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none" />
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="storePolicy">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
-            <script>if(!toolAppAccess.capabilities.catalogAdmin)throw new Error('Catalog catalogAdmin access is required')</script>
+            <script>if(!toolAppAccess.capabilities.catalogAdmin)throw new Error('Catalog administrator access is required')</script>
             <service-call name="mantle.product.IdentifierServices.store#IdentifierPolicy" in-map="context" out-map="result" />
         </actions>
         <default-response url=".">
@@ -45,6 +36,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="." />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'identifiers'})" out-map="context" />
+    </actions>
     <widgets>
         <label text="Identification types" type="h5" />
         <form-single name="IdentifierPolicyFind" transition=".">

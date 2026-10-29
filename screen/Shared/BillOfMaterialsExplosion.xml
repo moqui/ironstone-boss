@@ -182,9 +182,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
             </field>
         </form-list>
-        <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; !!costSummary">
+        <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; (!!costSummary || !!costFindings?.length)">
             <widgets>
-                <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p"/>
+                <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p" condition="!!costSummary"/>
                 <form-list name="ExplosionCostFindings" list="costFindings || []" skip-form="true" paginate="false">
                     <field name="recordId">
                         <default-field title="Cost input">

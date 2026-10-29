@@ -127,7 +127,7 @@ function run(op, parameters) {
         }))
         out.releaseOptions = out.releaseHistory.map(r => ({
             value: r.methodReleaseDecisionId,
-            label: new Date(ms(r.fromDate)).toISOString().replace("T", " ").replace("Z", " UTC") + " · " + r.changeReason
+            label: ec.l10n.format(new Date(ms(r.fromDate)), "yyyy-MM-dd HH:mm:ss") + " · " + r.changeReason
         }))
         out.leftReleaseId =
             p.leftReleaseId ||
@@ -319,25 +319,35 @@ function run(op, parameters) {
                 costAccess = ec.resource.script("component://mr-mantle/service/mantle/product/CostPolicy.js").capabilities()
             result.canCostRead = costAccess.read
             if (costAccess.read && result.productBomId) {
-                const cost = call(
-                    "mantle.product.CostServices.preview#ProductCostRollup",
-                    Object.assign({}, p, {
-                        productId: result.productId,
-                        productBomId: result.productBomId,
-                        organizationPartyId: result.organizationPartyId,
-                        transientPreview: true
+                // A failing cost preview leaves the explosion itself readable, with the failure as a cost finding.
+                ec.message.pushErrors()
+                try {
+                    const cost = call(
+                        "mantle.product.CostServices.preview#ProductCostRollup",
+                        Object.assign({}, p, {
+                            productId: result.productId,
+                            productBomId: result.productBomId,
+                            organizationPartyId: result.organizationPartyId,
+                            transientPreview: true
+                        })
+                    )
+                    result.costFindings = cost.findings
+                    result.costSummary = cost.standardCost
+                    result.explosionRows = result.explosionRows.map(row => {
+                        const lines = cost.componentRows.filter(c => c.path === row.path || c.path?.startsWith(row.path + "/")),
+                            amount = lines.length ? lines.reduce((v, c) => v.add(c.amount), toDecimal(0)) : null
+                        return Object.assign({}, row, {
+                            estimatedAmount: amount == null ? null : String(amount),
+                            costCurrency: cost.standardCost.priceUomId
+                        })
                     })
-                )
-                result.costFindings = cost.findings
-                result.costSummary = cost.standardCost
-                result.explosionRows = result.explosionRows.map(row => {
-                    const lines = cost.componentRows.filter(c => c.path === row.path || c.path?.startsWith(row.path + "/")),
-                        amount = lines.length ? lines.reduce((v, c) => v.add(c.amount), toDecimal(0)) : null
-                    return Object.assign({}, row, {
-                        estimatedAmount: amount == null ? null : String(amount),
-                        costCurrency: cost.standardCost.priceUomId
-                    })
-                })
+                } catch (e) {
+                    ec.logger.error("Explosion cost preview of product " + result.productId + ": " + e)
+                    result.costFindings = [{recordId: result.productBomId, message: String(e.message || e)}]
+                } finally {
+                    ec.message.clearErrors()
+                    ec.message.popErrors()
+                }
             }
             return result
         }

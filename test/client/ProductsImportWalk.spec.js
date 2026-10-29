@@ -1,6 +1,6 @@
 feature("an editor uploads a real CSV part and receives the durable import location", {
     expect() {
-        const s = session({user: "catalog.catalog.edit"})
+        const s = session({user: "catalog.edit"})
         const opened = s.get("/apps/Products/ProductImport", {follow: true})
         opened.status == 200
         const uploaded = s.post("/apps/Products/ProductImport/Index/stage", {
@@ -29,7 +29,7 @@ feature("an editor uploads a real CSV part and receives the durable import locat
 })
 feature("an editor maps a file, reviews valid and invalid rows, applies and resumes without a duplicate write", {
     expect() {
-        const p = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
+        const p = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
         p.allowProblems(/userPhoto\?userId=|net::ERR_INTERNET_DISCONNECTED.*fonts\.googleapis\.com/)
         p.goto("/qapps/Products/ProductImport").status == 200
         p.waitFor(() => !!document.querySelector("#CatalogImportUpload"))
@@ -72,7 +72,7 @@ feature("an editor maps a file, reviews valid and invalid rows, applies and resu
         p.locator("#ApplyCatalogImport").count() == 0
         const download = p.getByRole("link", {name: "Download error CSV", exact: true}).attribute("href")
         download.includes("/apps/Products/ProductImport/Index/results")
-        const s = session({user: "catalog.catalog.edit"}),
+        const s = session({user: "catalog.edit"}),
             report = s.get(download)
         report.status == 200
         report.contentType.includes("text/csv")

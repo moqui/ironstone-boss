@@ -49,16 +49,7 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
-    <transition name="choices" read-only="true">
-        <actions>
-            <script><![CDATA[
-        const out=ec.service.sync().name('ironstone.products.CatalogServices.find#Products').parameters({text:term,list:'virtual',pageSize:40}).call()||{}, options=(out.productList||[]).map(p=>({value:p.productId,label:p.productName+' ('+p.productId+')'}))
-        if(productId&&!options.some(p=>p.value===productId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:productId,checkOnly:true}).call();if(got.record?.productTypeEnumId==='PtVirtual')options.unshift({value:productId,label:got.record.productName+' ('+productId+')'})}
-        ec.web.sendJsonResponse(options)
-    ]]></script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <widgets>
         <render-mode>
             <text type="qvue" location="component://mr-boss/screen/Products/Products/VariantBuilder.qvue" template="false"/>

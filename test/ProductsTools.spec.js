@@ -125,7 +125,7 @@ feature("a label selection retains ready products and named failures, and its ac
             loaded: as("catalog.reader", () =>
                 call(T + "get#ToolsContext", {workspace: "labels", operationKey: prepared.operationKey})
             ),
-            denied: as("catalog.catalog.edit", () => invoke(L + "get#ProductLabels", {operationKey: prepared.operationKey}))
+            denied: as("catalog.edit", () => invoke(L + "get#ProductLabels", {operationKey: prepared.operationKey}))
         }
     },
     then({prepared, loaded, denied}) {

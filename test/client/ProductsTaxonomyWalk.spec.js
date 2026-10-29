@@ -1,6 +1,6 @@
 feature("an editor moves one category edge, retains the other parent and manages a feature group", {
     expect() {
-        const page = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1000}, timeout: 30})
+        const page = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1000}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         const stamp = Date.now(),
             destination = "P3_BROWSER_C_" + stamp

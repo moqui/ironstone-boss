@@ -230,28 +230,27 @@ function run(op, parameters) {
         const allowed = call(M + "find#ProductPrices", {productId: p.productId, includeHistory: true}).productPriceList,
             changes = []
         let historyRestricted = false
-        const scopeFields = ["productId", "vendorPartyId", "customerPartyId", "productStoreId", "agreementId", "priceTypeEnumId"],
-            labels = {
-                price: "Unit price",
-                minQuantity: "Minimum quantity",
-                fromDate: "Effective from",
-                thruDate: "Through",
-                priceUomId: "Currency",
-                quantityUomId: "Quantity unit",
-                vendorPartyId: "Vendor",
-                customerPartyId: "Customer",
-                priceTypeEnumId: "Price type",
-                pricePurposeEnumId: "Purpose",
-                productId: "Product",
-                productStoreId: "Store",
-                agreementId: "Agreement",
-                agreementItemSeqId: "Agreement item",
-                changeReason: "Reason",
-                otherPartyItemId: "Supplier item code",
-                otherPartyItemName: "Supplier item name",
-                standardLeadTimeDays: "Lead time in days",
-                termUomId: "Term unit"
-            }
+        const labels = {
+            price: "Unit price",
+            minQuantity: "Minimum quantity",
+            fromDate: "Effective from",
+            thruDate: "Through",
+            priceUomId: "Currency",
+            quantityUomId: "Quantity unit",
+            vendorPartyId: "Vendor",
+            customerPartyId: "Customer",
+            priceTypeEnumId: "Price type",
+            pricePurposeEnumId: "Purpose",
+            productId: "Product",
+            productStoreId: "Store",
+            agreementId: "Agreement",
+            agreementItemSeqId: "Agreement item",
+            changeReason: "Reason",
+            otherPartyItemId: "Supplier item code",
+            otherPartyItemName: "Supplier item name",
+            standardLeadTimeDays: "Lead time in days",
+            termUomId: "Term unit"
+        }
         const text = (field, v) =>
             v == null
                 ? ""
@@ -271,18 +270,8 @@ function run(op, parameters) {
             )
                 continue
             const logs = rows("moqui.entity.EntityAuditLog", {changedEntityName: E, pkPrimaryValue: r.productPriceId})
-            let safe = true
-            // A legacy row may have been repurposed before the scope became immutable. Check its old scopes before exposing any earlier amounts.
-            for (const log of logs.filter(
-                l => scopeFields.includes(l.changedFieldName) && l.oldValueText != null && l.oldValueText !== l.newValueText
-            )) {
-                try {
-                    domain("access", Object.assign({}, r, {[log.changedFieldName]: log.oldValueText}))
-                } catch (e) {
-                    if (!(a.capabilities.systemAdmin && String(e).includes("internal sales vendor"))) safe = false
-                }
-            }
-            if (!safe) {
+            // A legacy row's earlier amounts show only when each of its earlier scopes is readable (PricePolicy).
+            if (!domain("earlierScopesVisible", {productPriceId: r.productPriceId}).visible) {
                 historyRestricted = true
                 continue
             }

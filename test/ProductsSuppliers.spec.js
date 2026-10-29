@@ -279,6 +279,30 @@ feature("supplier screen #path renders in #mode with the canonical guarded sourc
         !/Error rendering|Exception in render/.test(result.output)
     }
 })
+feature("an offer correction form carries the offer's own change stamp", {
+    when() {
+        const page = as("john.doe", () =>
+            ec.screen
+                .makeTest()
+                .rootScreen("component://mr-boss/screen/Products.xml")
+                .renderMode("html")
+                .render(
+                    "Products/Product360/Suppliers",
+                    {productId: "BOSS_PRD_OWN", organizationPartyId: "ORG_ZIZI_SERVICES"},
+                    null
+                )
+        )
+        const output = String(page.output || "")
+        const stamps = [...output.matchAll(/<input[^>]*name="expectedLastUpdatedStamp"[^>]*>/g)].map(
+            m => (m[0].match(/value="([^"]*)"/) || [])[1] || ""
+        )
+        return {stamps}
+    },
+    then({stamps}) {
+        stamps.length > 0
+        stamps.every(stamp => stamp !== "")
+    }
+})
 feature("a reviewed supplier bulk change pins its buyer and vendor and retries without creating another successor", {
     when() {
         return as("catalog.supplier.price.edit", () => {

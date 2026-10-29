@@ -34,7 +34,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="bulk">
         <actions>
             <service-call name="ironstone.products.CatalogServices.bulk#Products" in-map="context" out-map="bulkOut"/>
-            <script>ec.user.context.productsBulkResults = bulkOut.results</script>
+            <script><![CDATA[
+            // The outcome survives the redirect as messages: one summary and one line per product that failed.
+            const failed = (bulkOut.results || []).filter(row => row.status === 'error')
+            ec.message.addMessage(ec.resource.expand(ec.l10n.localize('${successCount} products updated, ${failedCount} failed'), '', bulkOut), failed.length ? 'warning' : 'success')
+            for (const row of failed) ec.message.addMessage(row.productId + ': ' + row.error, 'warning')
+            ]]></script>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
@@ -43,7 +48,6 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
         <service-call name="ironstone.products.CategoryServices.get#CategoryOptions" out-map="context"/>
         <service-call name="ironstone.products.CatalogServices.find#Products" in-map="context" out-map="context"/>
-        <set field="bulkResults" from="ec.user.context.productsBulkResults || []"/>
         <set field="productListPageIndex" from="pageIndex"/>
         <set field="productListPageSize" from="pageSize"/>
         <set field="productListPageMaxIndex" from="Math.max(0, Math.ceil(productListCount / pageSize) - 1)"/>
@@ -67,31 +71,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="${searchMessage}" type="p"/>
             </widgets>
         </section>
-        <container-box>
-            <box-header title="Bulk results"/>
-            <box-body>
-                <form-list name="BulkResults" list="bulkResults" skip-form="true" paginate="false">
-                    <field name="productId">
-                        <header-field title="Product"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="status">
-                        <header-field title="Result"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="error">
-                        <header-field title="Reason"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                </form-list>
-            </box-body>
-        </container-box>
         <container-box>
             <box-header title="Products"/>
             <box-body-nopad>

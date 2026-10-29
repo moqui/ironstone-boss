@@ -1545,6 +1545,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="manualRightDate" type="Timestamp"/>
         </in-parameters>
         <out-parameters>
+            <parameter name="standardTimesShown" type="Boolean"/>
             <parameter name="canCostRead" type="Boolean"/>
             <parameter name="costSummary" type="Map"/>
             <parameter name="costFindings" type="List"/>

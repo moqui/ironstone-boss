@@ -14,9 +14,6 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Standard costs" default-menu-include="false">
     <parameter name="appRoot"/>
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Costs')</expression>
-    </condition>
     <parameter name="productId"/>
     <parameter name="organizationPartyId"/>
     <parameter name="facilityId"/>
@@ -36,6 +33,69 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
+    <transition name="store">
+        <actions>
+            <service-call name="ironstone.products.CostServices.store#StandardCost" in-map="Object.assign({},context,{productStandardCostId:null})" out-map="saved"/>
+            <set field="productStandardCostId" from="saved.productStandardCostId"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="component">
+        <actions>
+            <service-call name="ironstone.products.CostServices.store#CostComponent" in-map="context" out-map="saved"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="clone">
+        <actions>
+            <service-call name="ironstone.products.CostServices.clone#StandardCost" in-map="context" out-map="saved"/>
+            <set field="productStandardCostId" from="saved.productStandardCostId"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="approve">
+        <actions>
+            <service-call name="ironstone.products.CostServices.approve#StandardCost" in-map="context" out-map="saved"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="productStandardCostId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="approvedPdf" read-only="true">
+        <actions>
+            <service-call name="mantle.product.CostServices.get#ProductStandardCost" in-map="{productStandardCostId:productStandardCostId}" out-map="pdfCost"/>
+            <script>if (!pdfCost.standardCost.approvedPdfLocation) throw new Error('This estimate has no approved PDF'); ec.web.sendResourceResponse(pdfCost.standardCost.approvedPdfLocation,true,'standard-estimate-'+productStandardCostId+'.pdf')</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="estimatePrint" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CostServices.get#CostPrint" in-map="context" out-map="printed"/>
+            <script>ec.web.sendTextResponse(printed.printHtml,'text/html',null)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Costs')</expression>
+    </condition>
     <actions>
         <service-call name="ironstone.products.CostServices.get#CostContext" in-map="context" out-map="context"/>
     </actions>
@@ -420,64 +480,4 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets>
         </section>
     </widgets>
-    <transition name="store">
-        <actions>
-            <service-call name="ironstone.products.CostServices.store#StandardCost" in-map="Object.assign({},context,{productStandardCostId:null})" out-map="saved"/>
-            <set field="productStandardCostId" from="saved.productStandardCostId"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="productId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="productStandardCostId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="component">
-        <actions>
-            <service-call name="ironstone.products.CostServices.store#CostComponent" in-map="context" out-map="saved"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="productId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="productStandardCostId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="clone">
-        <actions>
-            <service-call name="ironstone.products.CostServices.clone#StandardCost" in-map="context" out-map="saved"/>
-            <set field="productStandardCostId" from="saved.productStandardCostId"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="productId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="productStandardCostId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="approve">
-        <actions>
-            <service-call name="ironstone.products.CostServices.approve#StandardCost" in-map="context" out-map="saved"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="productId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="productStandardCostId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="approvedPdf" read-only="true">
-        <actions>
-            <service-call name="mantle.product.CostServices.get#ProductStandardCost" in-map="{productStandardCostId:productStandardCostId}" out-map="pdfCost"/>
-            <script>if (!pdfCost.standardCost.approvedPdfLocation) throw new Error('This estimate has no approved PDF'); ec.web.sendResourceResponse(pdfCost.standardCost.approvedPdfLocation,true,'standard-estimate-'+productStandardCostId+'.pdf')</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
-    <transition name="estimatePrint" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CostServices.get#CostPrint" in-map="context" out-map="printed"/>
-            <script>ec.web.sendTextResponse(printed.printHtml,'text/html',null)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
 </screen>

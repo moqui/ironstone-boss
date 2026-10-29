@@ -16,6 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productFeatureId"/>
     <parameter name="productId"/>
     <parameter name="productFeatureIds"/>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="saveInteraction">
         <actions>
             <service-call name="ironstone.products.FeatureServices.store#FeatureInteraction" in-map="context"/>
@@ -108,7 +109,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="productId">
                                     <default-field title="Product scope (empty: global)">
                                         <drop-down allow-empty="true">
-                                            <list-options list="options.products" key="${value}" text="${label}"/>
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',selected:productId}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
@@ -188,7 +189,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="productId">
                         <default-field title="Product">
                             <drop-down allow-empty="true">
-                                <list-options list="options.products" key="${value}" text="${label}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',selected:productId}"/>
                             </drop-down>
                         </default-field>
                     </field>

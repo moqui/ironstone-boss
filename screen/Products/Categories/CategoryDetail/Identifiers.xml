@@ -13,6 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identifiers" default-menu-index="5">
+    <parameter name="suggestedSlug"/>
     <transition name="storeIdentifiersRows">
         <actions>
             <service-call name="ironstone.products.CategoryServices.store#CategoryRow" in-map="Object.assign({},context,{rowKind:'identifier'})"/>
@@ -20,7 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/>
         <error-response url="."/>
     </transition>
-    <parameter name="suggestedSlug"/>
     <transition name="previewSlug" read-only="true">
         <actions>
             <service-call name="ironstone.products.CategoryServices.preview#CategorySlug" in-map="context" out-map="slug"/>

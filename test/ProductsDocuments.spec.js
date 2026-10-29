@@ -41,7 +41,7 @@ feature("document #path renders in #mode using the same guarded typed content", 
         const p = path.includes("Categor")
             ? {productCategoryId: "BOSS_PRD_CAT"}
             : {productId: "BOSS_PRD_OWN", ...(path === "DocumentDetail" ? {productContentId: "BOSS_CONTENT_SAMPLE"} : {})}
-        const r = as("catalog.catalog.edit", () =>
+        const r = as("catalog.edit", () =>
             ec.screen
                 .makeTest()
                 .rootScreen("component://mr-boss/screen/Products.xml")
@@ -65,7 +65,7 @@ feature("document readers can preview their content while editor writes and fore
             denied: as("catalog.reader", () =>
                 invoke("mantle.product.ContentServices.store#CatalogContent", {productId: "BOSS_PRD_OWN", contentText: "Denied"})
             ),
-            foreign: as("catalog.catalog.edit", () => invoke(D + "get#DocumentContext", {productId: "BOSS_PRD_OTHER"}))
+            foreign: as("catalog.edit", () => invoke(D + "get#DocumentContext", {productId: "BOSS_PRD_OTHER"}))
         }
     },
     then({reader, resource, denied, foreign}) {
@@ -78,7 +78,7 @@ feature("document readers can preview their content while editor writes and fore
 })
 feature("the app content and translation wrappers use native optimistic revisions and retained conflict drafts", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const created = call(C + "store#ProductContent", {
                     productId: "BOSS_PRD_OWN",
                     productContentTypeEnumId: "PcntProductName",
@@ -131,7 +131,7 @@ feature("raw typed content, conflict drafts and their audit rows retain the cata
             })
         )
         const result = as(
-            "catalog.catalog.edit",
+            "catalog.edit",
             () =>
                 invoke("mantle.party.CommunicationServices.get#RecordLinkInfo", {
                     recordEntityName: "mantle.product.ProductContent",

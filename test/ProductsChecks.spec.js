@@ -80,7 +80,7 @@ feature("Home incomplete counts and report retries use the same native checks wi
 })
 feature("activation uses native readiness checks and refuses a duplicate identifier without changing status", {
     when() {
-        return as("catalog.catalog.edit", () => ({
+        return as("catalog.edit", () => ({
             report: call("mantle.product.CatalogCheckServices.validate#Catalog", {
                 productIds: ["BOSS_CHK_DUP_A"],
                 checkIds: ["identifiers"]

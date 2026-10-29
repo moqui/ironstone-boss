@@ -41,7 +41,9 @@ function scopeFor(parameters) {
             out.conversionRows = out.conversionRows.map(r =>
                 Object.assign({}, r, {fromDateText: date(r.fromDate), thruDateText: date(r.thruDate)})
             )
-            if (p.previewUomId && p.previewToUomId)
+            if (p.previewUomId && p.previewToUomId) {
+                // A preview that cannot convert is shown as a message; only its own errors are cleared.
+                ec.message.pushErrors()
                 try {
                     Object.assign(
                         out,
@@ -54,9 +56,12 @@ function scopeFor(parameters) {
                     )
                 } catch (e) {
                     ec.logger.error("Unit preview " + p.previewUomId + " to " + p.previewToUomId + ": " + e)
-                    ec.message.clearErrors()
                     out.toolMessage = String(e.message || e)
+                } finally {
+                    ec.message.clearErrors()
+                    ec.message.popErrors()
                 }
+            }
         } else if (out.workspace === "packaging") {
             const base = p.baseProductId || p.productId || null
             Object.assign(

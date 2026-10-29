@@ -1,6 +1,6 @@
 feature("an editor schedules a successor pack size and scans its base quantity", {
     expect() {
-        const p = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
+        const p = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
         p.allowProblems(/userPhoto\?userId=/)
         p.goto("/qapps/Products/Units/Packaging?baseProductId=BOSS_PRD_OWN&selectedPackProductId=BOSS_PRD_PACK").status == 200
         p.waitFor(() => !!document.querySelector("#ProductPackaging input[name=quantity]"))

@@ -31,21 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="canEdit" from="detail.canEdit"/>
         </if>
     </always-actions>
-    <subscreens default-item="Summary">
-        <subscreens-item name="BOM" menu-title="BOM" menu-include="true" menu-index="16" location="component://mr-boss/screen/Shared/BillOfMaterialsDetail.xml"/>
-        <subscreens-item name="Stock" menu-include="true" menu-index="15" location="component://mr-boss/screen/Shared/InventoryAvailability.xml"/>
-        <subscreens-item name="Suppliers" location="component://mr-boss/screen/Shared/SupplierPrices.xml"/>
-        <subscreens-item name="Prices" location="component://mr-boss/screen/Shared/Prices.xml"/>
-        <subscreens-item name="Costs" location="component://mr-boss/screen/Shared/StandardCosts.xml" menu-include="true" menu-index="17"/>
-        <subscreens-item name="Packaging" location="component://mr-boss/screen/Shared/Packaging.xml" menu-include="true" menu-index="18"/>
-    </subscreens>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="save">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#Product" in-map="context"/>
@@ -83,6 +69,27 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../List"/>
         <error-response url="."/>
     </transition>
+    <!-- the tabs in design-products §3 order; each tab screen also checks product360Tabs, the server-derived list -->
+    <subscreens default-item="Summary">
+        <subscreens-item name="Summary" menu-index="1" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Summary.xml"/>
+        <subscreens-item name="Features" menu-index="2" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Features.xml"/>
+        <subscreens-item name="Categories" menu-index="3" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Categories.xml"/>
+        <subscreens-item name="Identifiers" menu-index="4" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Identifiers.xml"/>
+        <subscreens-item name="Dimensions" menu-index="5" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Dimensions.xml"/>
+        <subscreens-item name="Packaging" menu-index="6" menu-include="true" location="component://mr-boss/screen/Shared/Packaging.xml"/>
+        <subscreens-item name="Documents" menu-index="7" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Documents.xml"/>
+        <subscreens-item name="Prices" menu-index="8" menu-include="true" location="component://mr-boss/screen/Shared/Prices.xml"/>
+        <subscreens-item name="Suppliers" menu-title="Suppliers" menu-index="9" menu-include="true" location="component://mr-boss/screen/Shared/SupplierPrices.xml"/>
+        <subscreens-item name="Costs" menu-title="Costs" menu-index="10" menu-include="true" location="component://mr-boss/screen/Shared/StandardCosts.xml"/>
+        <subscreens-item name="Stock" menu-index="11" menu-include="true" location="component://mr-boss/screen/Shared/InventoryAvailability.xml"/>
+        <subscreens-item name="BOM" menu-title="BOM" menu-index="12" menu-include="true" location="component://mr-boss/screen/Shared/BillOfMaterialsDetail.xml"/>
+        <subscreens-item name="KitComponents" menu-index="13" menu-include="false" location="component://mr-boss/screen/Shared/Product360/KitComponents.xml"/>
+        <subscreens-item name="Equipment" menu-index="14" menu-include="false" location="component://mr-boss/screen/Shared/Product360/Equipment.xml"/>
+        <subscreens-item name="Associations" menu-index="15" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Associations.xml"/>
+        <subscreens-item name="Parties" menu-index="16" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Parties.xml"/>
+        <subscreens-item name="Connections" menu-index="17" menu-include="true" location="component://mr-boss/screen/Shared/Product360/Connections.xml"/>
+        <subscreens-item name="History" menu-index="18" menu-include="true" location="component://mr-boss/screen/Shared/Product360/History.xml"/>
+    </subscreens>
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>

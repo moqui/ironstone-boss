@@ -118,7 +118,7 @@ feature(
     }
 )
 feature("Products administrators and catalog editors cannot change Warehouse policy through either service boundary", {
-    where: [{user: "catalog.admin"}, {user: "catalog.catalog.edit"}],
+    where: [{user: "catalog.admin"}, {user: "catalog.edit"}],
     when({user}) {
         return as(user, () => ({
             shared: invoke(I + "store#FacilityPolicy", Object.assign({}, scope, {minimumStock: 1, changeReason: "Refused"})),

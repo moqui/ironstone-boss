@@ -6,7 +6,7 @@ spec({
 })
 feature("the import gallery opens a durable validated run over a mixed demonstration file", {
     expect() {
-        login("catalog.catalog.edit")
+        login("catalog.edit")
         const disabled = ec.artifactExecution.disableAuthz()
         const S = "mantle.product.ProductImportServices.",
             staged = call(S + "stage#CatalogImport", {

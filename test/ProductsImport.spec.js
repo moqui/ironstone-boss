@@ -32,7 +32,7 @@ spec({
 feature("the import wizard renders in #mode with guarded mapping choices", {
     where: [{mode: "qvt"}, {mode: "html"}, {mode: "tui"}],
     expect({mode}) {
-        const r = as("catalog.catalog.edit", () =>
+        const r = as("catalog.edit", () =>
             ec.screen
                 .makeTest()
                 .rootScreen("component://mr-boss/screen/Products.xml")
@@ -48,7 +48,7 @@ feature("the import wizard renders in #mode with guarded mapping choices", {
 })
 feature("the BOSS mapping form configures native work and emits one aggregate result notice for an applied run", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const staged = call(S + "stage#CatalogImport", {
                     kindId: "products",
                     organizationPartyId: "ORG_ZIZI_SERVICES",
@@ -116,12 +116,12 @@ feature("native import staging and source reports keep their role and owner guar
                 enabled
             ),
             editor: as(
-                "catalog.catalog.edit",
+                "catalog.edit",
                 () => call(S + "get#CatalogImportKinds", {organizationPartyId: "ORG_ZIZI_SERVICES"}),
                 enabled
             ),
             prices: as(
-                "catalog.catalog.edit",
+                "catalog.edit",
                 () =>
                     invoke(S + "stage#CatalogImport", {
                         kindId: "supplierPrices",

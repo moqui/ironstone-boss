@@ -1,6 +1,6 @@
 feature("an editor generates one choice, retries it, resumes a durable batch and uses the XML twin", {
     expect() {
-        const page = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1000}, timeout: 30})
+        const page = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1000}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         page.goto("/qapps/Products/Products/VariantBuilder?productId=BOSS_PRD_VIRT").status == 200
         page.waitFor(() => document.querySelectorAll("[data-feature-key]").length === 4)

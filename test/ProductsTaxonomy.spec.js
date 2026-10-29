@@ -50,7 +50,7 @@ feature(
     "multi-parent occurrences remain distinct, branch counts deduplicate members, and moving one dated edge preserves the other",
     {
         when() {
-            return as("catalog.catalog.edit", () => {
+            return as("catalog.edit", () => {
                 for (const id of ["P3_A", "P3_B", "P3_C", "P3_CHILD"]) category(id)
                 for (const parent of ["P3_A", "P3_B"])
                     call(CAT + "store#CategoryParent", {
@@ -100,7 +100,7 @@ feature(
 )
 feature("cycles are checked across effective overlaps, while disjoint reciprocal edges are allowed", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             category("P3_DATE_A")
             category("P3_DATE_B")
             const first = invoke(CAT + "store#CategoryParent", {
@@ -132,7 +132,7 @@ feature("cycles are checked across effective overlaps, while disjoint reciprocal
 })
 feature("feature groups have an owner boundary and shared group writes remain administrator-only", {
     when() {
-        const own = as("catalog.catalog.edit", () =>
+        const own = as("catalog.edit", () =>
             invoke(F + "store#FeatureGroup", {
                 productFeatureGroupId: "P3_GROUP",
                 description: "Owned feature group",
@@ -154,7 +154,7 @@ feature("feature groups have an owner boundary and shared group writes remain ad
                 createOnly: true
             })
         }))
-        const editor = as("catalog.catalog.edit", () => ({
+        const editor = as("catalog.edit", () => ({
             list: call(F + "find#FeatureGroups").rows,
             shared: invoke(F + "store#FeatureGroup", {productFeatureGroupId: "P3_SHARED_GROUP", description: "Refused"}),
             other: invoke(F + "get#FeatureGroupDetail", {productFeatureGroupId: "P3_OTHER_GROUP"})
@@ -174,7 +174,7 @@ feature("feature groups have an owner boundary and shared group writes remain ad
 })
 feature("a feature pair cannot be repurposed for another product, and preview reports dependency and incompatible selections", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             for (const id of ["P3_F_A", "P3_F_B", "P3_F_C"]) newFeature(id)
             const dependency = invoke(F + "store#FeatureInteraction", {
                 productFeatureId: "P3_F_A",
@@ -225,7 +225,7 @@ feature("active distinguishing feature meaning is fixed while a description can 
                 applTypeEnumId: "PfatDistinguishing"
             })
         )
-        return as("catalog.catalog.edit", () => ({
+        return as("catalog.edit", () => ({
             meaning: invoke(F + "store#Feature", {productFeatureId: "P3_F_A", abbrev: "NEW"}),
             description: invoke(F + "store#Feature", {productFeatureId: "P3_F_A", description: "Renamed color"}),
             deleted: invoke(F + "delete#UnusedFeature", {productFeatureId: "P3_F_A"})
@@ -265,7 +265,7 @@ feature("legacy feature groups with a null owner read as shared and refuse edito
                 ownerPartyId: null
             })
         })
-        return as("catalog.catalog.edit", () => ({
+        return as("catalog.edit", () => ({
             detail: invoke(F + "get#FeatureGroupDetail", {productFeatureGroupId: "P3_LEGACY_GROUP"}),
             edit: invoke(F + "store#FeatureGroup", {productFeatureGroupId: "P3_LEGACY_GROUP", description: "Denied"})
         }))
@@ -279,7 +279,7 @@ feature("legacy feature groups with a null owner read as shared and refuse edito
 })
 feature("create-and-apply is atomic and checks the product independently of the new feature owner", {
     when() {
-        const results = as("catalog.catalog.edit", () => ({
+        const results = as("catalog.edit", () => ({
             created: invoke(F + "store#Feature", {
                 createOnly: true,
                 productFeatureId: "P3_APPLIED",
@@ -326,7 +326,7 @@ feature("create-and-apply is atomic and checks the product independently of the 
 })
 feature("a keyboard sibling move creates an ordering gap without changing a second parent edge", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             for (const id of ["P3_ORDER_PARENT", "P3_ORDER_OTHER", "P3_ORDER_X", "P3_ORDER_Y", "P3_ORDER_Z"]) category(id)
             for (const id of ["P3_ORDER_X", "P3_ORDER_Y", "P3_ORDER_Z"])
                 call(CAT + "store#CategoryParent", {

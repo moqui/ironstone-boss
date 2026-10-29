@@ -24,9 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="canEdit" from="detail.canEdit"/>
         </if>
     </always-actions>
-    <subscreens default-item="Summary">
-        <subscreens-item name="Interactions" location="component://mr-boss/screen/Products/Features/FeatureInteractions.xml" menu-index="4"/>
-    </subscreens>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="save">
         <actions>
             <service-call name="ironstone.products.FeatureServices.store#Feature" in-map="context"/>
@@ -41,6 +39,9 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../List"/>
         <error-response url="."/>
     </transition>
+    <subscreens default-item="Summary">
+        <subscreens-item name="Interactions" location="component://mr-boss/screen/Products/Features/FeatureInteractions.xml" menu-index="4"/>
+    </subscreens>
     <widgets>
         <section name="Record" condition="recordFound">
             <widgets>

@@ -2,7 +2,7 @@ let pages = {}
 spec({
     setupSpec() {
         for (const width of [390, 1280, 1440]) {
-            pages[width] = browser.newPage({user: "catalog.catalog.edit", viewport: {width, height: 1100}, timeout: 30})
+            pages[width] = browser.newPage({user: "catalog.edit", viewport: {width, height: 1100}, timeout: 30})
             pages[width].allowProblems(/userPhoto\?userId=/)
         }
     }

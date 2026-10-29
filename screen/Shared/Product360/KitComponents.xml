@@ -13,7 +13,6 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Kit components" default-menu-include="false" default-menu-index="9">
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('KitComponents')</expression></condition>
     <transition name="storeRow">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'kit'})"/>
@@ -23,6 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('KitComponents')</expression></condition>
     <widgets>
         <section name="RowsAvailable" condition="productFound &amp;&amp; product.productTypeEnumId === 'PtPickAssembly'">
             <widgets>
@@ -74,7 +74,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="toProductId">
                                             <default-field title="Component">
                                                 <drop-down allow-empty="true">
-                                                    <list-options list="options.products" key="${value}" text="${label}"/>
+                                                    <dynamic-options transition="../choices" server-search="true" min-length="0" parameter-map="{choice:'products'}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>

@@ -14,9 +14,6 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Prices" default-menu-index="1">
     <parameter name="appRoot"/>
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression>
-    </condition>
     <parameter name="productId"/>
     <parameter name="direction"/>
     <parameter name="organizationPartyId"/>
@@ -71,13 +68,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="bulk">
         <default-response url="${sharedLinks['Products/BulkPrice']}"/>
     </transition>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:'products',term:term}" out-map="choices"/>
-            <script><![CDATA[if(selectedProductId&&!choices.rows.some(r=>r.value===selectedProductId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:selectedProductId,checkOnly:true}).call();if(got.record)choices.rows.unshift({value:selectedProductId,label:got.record.productName||selectedProductId})}ec.web.sendJsonResponse(choices.rows)]]></script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression>
+    </condition>
     <actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="access"/>
         <service-call name="ironstone.products.CatalogServices.get#PriceOptions" out-map="context"/>
@@ -99,7 +93,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                     <field name="productId">
                         <default-field title="Product">
                             <drop-down allow-empty="true">
-                                <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                <dynamic-options parameter-map="{choice:'products',selected:productId}" transition="choices" server-search="true" min-length="0"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -167,7 +161,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                         <field name="productId">
                             <default-field title="Product">
                                 <drop-down allow-empty="false">
-                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                    <dynamic-options parameter-map="{choice:'products',selected:productId}" transition="choices" server-search="true" min-length="0"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -296,7 +290,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
                         <field name="productId">
                             <default-field title="Product">
                                 <drop-down allow-empty="false">
-                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                    <dynamic-options parameter-map="{choice:'products',selected:productId}" transition="choices" server-search="true" min-length="0"/>
                                 </drop-down>
                             </default-field>
                         </field>

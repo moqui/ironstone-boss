@@ -162,7 +162,7 @@ function run(op, parameters) {
                             ? "Approved standard estimate"
                             : r.basePriceTypeEnumId,
                 selectorText: r.selector === "all" ? "All products" : r.productId || r.productCategoryId || r.productFeatureId,
-                fromDateInput: new Date(Math.max(Date.now(), ms(r.fromDate))).toISOString()
+                fromDateInput: ec.l10n.format(new Date(Math.max(Date.now(), ms(r.fromDate))), "yyyy-MM-dd HH:mm:ss")
             })
         )
         for (const rule of rules)
@@ -189,10 +189,14 @@ function run(op, parameters) {
                 baseType: "typed",
                 basePriceTypeEnumId: "PptCurrent",
                 minQuantity: "0",
-                fromDate: new Date(Math.max(ms(header.fromDate), ms(ec.user.nowTimestamp))).toISOString()
+                fromDate: ec.l10n.format(new Date(Math.max(ms(header.fromDate), ms(ec.user.nowTimestamp))), "yyyy-MM-dd HH:mm:ss")
             },
             successor: Object.assign({}, header, {
-                fromDate: new Date(Math.max(ms(header.fromDate) + 1, ms(ec.user.nowTimestamp))).toISOString()
+                // the next whole second after the current list's start, as the form shows seconds
+                fromDate: ec.l10n.format(
+                    new Date(Math.max(Math.floor(ms(header.fromDate) / 1000) * 1000 + 1000, ms(ec.user.nowTimestamp))),
+                    "yyyy-MM-dd HH:mm:ss"
+                )
             })
         }
     }

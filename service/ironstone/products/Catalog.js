@@ -780,25 +780,23 @@ function run(op, parameters) {
             pageSize = Math.max(1, Math.min(200, Number(p.pageSize || 25)))
         if (p.orderByField === "-lastUpdatedStamp") productRows.sort((a, b) => ms(b.lastUpdatedStamp) - ms(a.lastUpdatedStamp))
         return {
-            productList: productRows
-                .slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
-                .map(row => ({
-                    productId: row.productId,
-                    pseudoId: row.pseudoId,
-                    productName: row.productName,
-                    productTypeEnumId: row.productTypeEnumId,
-                    ownerPartyId: row.ownerPartyId,
-                    statusId:
-                        row.statusId ||
-                        (ms(row.salesDiscontinuationDate) != null && ms(row.salesDiscontinuationDate) <= ms(ec.user.nowTimestamp)
-                            ? "PrdDiscontinued"
-                            : "PrdActive"),
-                    shared: row.ownerPartyId === "_NA_",
-                    lastUpdatedStamp: row.lastUpdatedStamp,
-                    lastUpdatedStampText: row.lastUpdatedStamp
-                        ? ec.l10n.format(new Date(ms(row.lastUpdatedStamp)), "yyyy-MM-dd HH:mm")
-                        : null
-                })),
+            productList: productRows.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize).map(row => ({
+                productId: row.productId,
+                pseudoId: row.pseudoId,
+                productName: row.productName,
+                productTypeEnumId: row.productTypeEnumId,
+                ownerPartyId: row.ownerPartyId,
+                statusId:
+                    row.statusId ||
+                    (ms(row.salesDiscontinuationDate) != null && ms(row.salesDiscontinuationDate) <= ms(ec.user.nowTimestamp)
+                        ? "PrdDiscontinued"
+                        : "PrdActive"),
+                shared: row.ownerPartyId === "_NA_",
+                lastUpdatedStamp: row.lastUpdatedStamp,
+                lastUpdatedStampText: row.lastUpdatedStamp
+                    ? ec.l10n.format(new Date(ms(row.lastUpdatedStamp)), "yyyy-MM-dd HH:mm")
+                    : null
+            })),
             productListCount: productRows.length,
             pageIndex,
             pageSize,
@@ -957,28 +955,45 @@ function run(op, parameters) {
         }
     }
 
-    function choices(p) {
-        if (p.choice === "products")
-            return {
-                rows: findProducts({text: p.term, pageSize: 30}).productList.map(row => ({
-                    value: row.productId,
-                    label: row.productName || row.productId
-                }))
-            }
+    // Server-search options for a drop-down. The selected value keeps its label even when the term does not find it.
+    function choiceRows(p) {
+        if (p.choice === "products" || p.choice === "virtualProducts")
+            return findProducts({
+                text: p.term,
+                list: p.choice === "virtualProducts" ? "virtual" : null,
+                pageSize: 30
+            }).productList.map(row => ({
+                value: row.productId,
+                label: row.productName ? row.productName + " (" + row.productId + ")" : row.productId
+            }))
         const allowed = ["owners", "units", "categories", "features", "parties", "contentTypes"]
         if (!allowed.includes(p.choice)) throw new Error("Unknown catalog choice")
         const term = String(p.term || "").toLowerCase()
-        return {
-            rows: options()
-                .options[p.choice].filter(
-                    row =>
-                        !term ||
-                        String(row.value + " " + row.label)
-                            .toLowerCase()
-                            .includes(term)
-                )
-                .slice(0, 50)
+        return options()
+            .options[p.choice].filter(
+                row =>
+                    !term ||
+                    String(row.value + " " + row.label)
+                        .toLowerCase()
+                        .includes(term)
+            )
+            .slice(0, 50)
+    }
+    function selectedChoice(p) {
+        if (p.choice === "products" || p.choice === "virtualProducts") {
+            const product = call(C + "get#CatalogRecord", {recordId: p.selected, checkOnly: true}).record
+            if (!product || (p.choice === "virtualProducts" && product.productTypeEnumId !== "PtVirtual")) return null
+            return {value: p.selected, label: product.productName ? product.productName + " (" + p.selected + ")" : p.selected}
         }
+        return options().options[p.choice].find(row => row.value === p.selected) || null
+    }
+    function choices(p) {
+        const rows = choiceRows(p)
+        if (p.selected && !rows.some(row => row.value === p.selected)) {
+            const selected = selectedChoice(p)
+            if (selected) rows.unshift(selected)
+        }
+        return {rows}
     }
     function execute(op, p) {
         return {

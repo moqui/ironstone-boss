@@ -70,7 +70,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="productId">
                                             <default-field title="Product">
                                                 <drop-down allow-empty="true">
-                                                    <list-options list="options.products" key="${value}" text="${label}"/>
+                                                    <dynamic-options transition="../choices" server-search="true" min-length="0" parameter-map="{choice:'products'}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>

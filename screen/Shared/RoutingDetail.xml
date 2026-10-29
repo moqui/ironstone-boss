@@ -27,9 +27,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.MethodServices.get#RoutingDetail" in-map="context" out-map="context" />
-    </actions>
     <transition name="saveRouting">
         <actions>
             <service-call name="ironstone.products.MethodServices.store#Routing" in-map="context" out-map="saved" />
@@ -127,6 +124,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="." />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.MethodServices.get#RoutingDetail" in-map="context" out-map="context" />
+    </actions>
     <widgets>
         <label text="Routing standards" type="h5" />
         <section name="EditRouting" condition="methodAccess.edit">
@@ -209,14 +209,14 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="setupTime">
-                                <default-field title="Setup">
+                                <conditional-field condition="standardTimesShown" title="Setup">
                                     <display />
-                                </default-field>
+                                </conditional-field>
                             </field>
                             <field name="runTime">
-                                <default-field title="Run per batch">
+                                <conditional-field condition="standardTimesShown" title="Run per batch">
                                     <display />
-                                </default-field>
+                                </conditional-field>
                             </field>
                             <field name="timeUomId">
                                 <default-field title="Time unit">
@@ -266,14 +266,14 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="estimatedSetupTime">
-                                <default-field title="Setup">
+                                <conditional-field condition="standardTimesShown" title="Setup">
                                     <display />
-                                </default-field>
+                                </conditional-field>
                             </field>
                             <field name="estimatedWorkTime">
-                                <default-field title="Run">
+                                <conditional-field condition="standardTimesShown" title="Run">
                                     <display />
-                                </default-field>
+                                </conditional-field>
                             </field>
                             <field name="methodRemoved">
                                 <default-field title="Remove">

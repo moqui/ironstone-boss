@@ -1,7 +1,7 @@
 // P2: real editor form submission and lifecycle/child navigation, without direct service calls.
 feature("a catalog editor creates and activates a draft, then assigns an identifier and customer code", {
     expect() {
-        const page = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 900}, timeout: 30})
+        const page = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 900}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         const id = "BROWSER_P2_" + Date.now()
         page.goto("/qapps/Products/Products/NewProduct").status == 200

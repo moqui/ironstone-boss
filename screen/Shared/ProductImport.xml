@@ -21,9 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context" />
-    </actions>
     <transition name="stage">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
@@ -86,6 +83,9 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none" />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context" />
+    </actions>
     <widgets>
         <label text="Product import" type="h5" />
         <link text="Start another import" url="${sharedLinks['ProductImport']}" url-noparam="true" condition="hasImport" link-type="anchor" />

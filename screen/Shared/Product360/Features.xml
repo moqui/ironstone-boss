@@ -13,9 +13,6 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Variants &amp; features" default-menu-index="2">
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Features')</expression>
-    </condition>
     <transition name="newFeature">
         <actions>
             <service-call name="ironstone.products.FeatureServices.store#Feature" in-map="{createOnly:true,productId:productId,productFeatureId:newProductFeatureId,description:newFeatureDescription,productFeatureTypeEnumId:productFeatureTypeEnumId,ownerPartyId:ownerPartyId,applTypeEnumId:newApplTypeEnumId}"/>
@@ -34,6 +31,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Features')</expression>
+    </condition>
     <widgets>
         <section name="RowsAvailable" condition="productFound">
             <widgets>

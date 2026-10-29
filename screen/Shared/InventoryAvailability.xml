@@ -14,7 +14,6 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Stock" default-menu-include="false">
     <parameter name="appRoot"/>
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Stock')</expression></condition>
     
 
     <parameter name="productId" required="true"/>
@@ -33,6 +32,7 @@ along with this software (see the LICENSE.md file). If not, see
     
 
     <subscreens default-item="Summary"/>
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Stock')</expression></condition>
     
 
     <widgets>

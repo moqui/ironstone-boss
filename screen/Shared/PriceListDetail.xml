@@ -64,6 +64,13 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <transition name="effectiveOutput" read-only="true" method="get">
+        <actions>
+            <service-call name="mantle.product.PriceServices.get#EffectivePriceList" in-map="context" out-map="effectiveOutput"/>
+            <script>if(outputFormat==='pdf'){const bytes=ec.resource.xslFoTransform(effectiveOutput.printHtml,null,null,'application/pdf');ec.web.response.setContentType('application/pdf');ec.web.response.setHeader('Content-Disposition','attachment; filename="Effective-prices.pdf"');ec.web.response.getOutputStream().write(bytes)}else ec.web.sendTextResponse(effectiveOutput.printHtml,'text/html',null)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
     <actions>
         <set field="includeHistory" from="sri.getRenderMode() === 'html-print' ? false : includeHistory"/>
         <service-call name="ironstone.products.PriceListServices.get#PriceListOptions" out-map="context"/>
@@ -78,13 +85,6 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="effectivePriceRows" from="effectiveReport.effectivePriceRows"/>
         </if>
     </actions>
-    <transition name="effectiveOutput" read-only="true" method="get">
-        <actions>
-            <service-call name="mantle.product.PriceServices.get#EffectivePriceList" in-map="context" out-map="effectiveOutput"/>
-            <script>if(outputFormat==='pdf'){const bytes=ec.resource.xslFoTransform(effectiveOutput.printHtml,null,null,'application/pdf');ec.web.response.setContentType('application/pdf');ec.web.response.setHeader('Content-Disposition','attachment; filename="Effective-prices.pdf"');ec.web.response.getOutputStream().write(bytes)}else ec.web.sendTextResponse(effectiveOutput.printHtml,'text/html',null)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
     <widgets>
         <render-mode>
             <text type="html-print">&lt;style&gt;body{font:14px/1.4 Arial,sans-serif;margin:24px}h1{font-size:24px}.pricing-print-scope{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.pricing-print-scope div{display:flex;gap:8px}.pricing-print-scope dt{font-weight:bold}.pricing-print-scope dd{margin:0}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{padding:6px;text-align:left;vertical-align:top}th{border-bottom:1px solid #777}thead{display:table-header-group}@page{size:A4 landscape;margin:14mm}&lt;/style&gt;</text>
@@ -865,8 +865,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <section name="ResolvedPricesReady" condition="!!effectiveReport">
                             <widgets>
                                 <label text="${effectiveReport.reportContext.productCount} ${effectiveReport.reportContext.productCount === 1 ? 'product' : 'products'} · ${effectiveReport.reportContext.asOfDate} · quantity ${effectiveReport.reportContext.quantity}" type="p"/>
-                                <link text="Print resolved prices" url="${printUrl}" url-type="plain" target="_blank"/>
-                                <link text="Download resolved prices PDF" url="${printUrl}&amp;outputFormat=pdf" url-type="plain" target="_blank"/>
+                                <link text="Print resolved prices" url="${printUrl}" url-type="plain" target-window="_blank"/>
+                                <link text="Download resolved prices PDF" url="${printUrl}&amp;outputFormat=pdf" url-type="plain" target-window="_blank"/>
                                 <form-list name="EffectivePrices" list="effectivePriceRows" skip-form="true" paginate="false" show-csv-button="true" show-xlsx-button="true">
                                     <field name="productId">
                                         <default-field title="Product">

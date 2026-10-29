@@ -21,16 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'units'})" out-map="context" />
-    </actions>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none" />
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="storeUnit">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
@@ -70,6 +61,9 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="." />
         <error-response url="." />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'units'})" out-map="context" />
+    </actions>
     <widgets>
         <label text="Units and conversions" type="h5" />
         <label text="Global changes require a system administrator. Currency units and exchange rates are maintained in Accounting." type="p" />

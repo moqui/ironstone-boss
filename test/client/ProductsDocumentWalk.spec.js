@@ -1,7 +1,7 @@
 feature("two editors retain a conflict draft, then a source edit flags the saved translation for review", {
     expect() {
-        const a = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30}),
-            b = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
+        const a = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30}),
+            b = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
         for (const p of [a, b]) p.allowProblems(/userPhoto\?userId=/)
         a.goto("/qapps/Products/Documents?productId=BOSS_PRD_OWN").status == 200
         a.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Catalog documents"))

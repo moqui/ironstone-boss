@@ -13,9 +13,6 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Supplier prices" default-menu-index="1">
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Suppliers')</expression>
-    </condition>
     <parameter name="appRoot"/>
     <parameter name="organizationPartyId"/>
     <parameter name="vendorPartyId"/>
@@ -68,13 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:'products',term:term}" out-map="choices"/>
-            <script><![CDATA[if(selectedProductId&&!choices.rows.some(r=>r.value===selectedProductId)){const got=ec.service.sync().name('ironstone.products.CatalogServices.get#CatalogRecord').parameters({recordId:selectedProductId,checkOnly:true}).call();if(got.record)choices.rows.unshift({value:selectedProductId,label:got.record.productName||selectedProductId})}ec.web.sendJsonResponse(choices.rows)]]></script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="bulk">
         <default-response url="${sharedLinks['Products/BulkPrice']}">
             <parameter name="direction" value="purchase"/>
@@ -83,6 +74,9 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="productPriceIds"/>
         </default-response>
     </transition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Suppliers')</expression>
+    </condition>
     <actions>
         <service-call name="ironstone.products.SupplierServices.get#SupplierOptions" in-map="context" out-map="context"/>
         <service-call name="ironstone.products.SupplierServices.find#SupplierPrices" in-map="context" out-map="context"/>
@@ -111,7 +105,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="productId">
                         <default-field title="Product or base product">
                             <drop-down allow-empty="true">
-                                <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                <dynamic-options parameter-map="{choice:'products',selected:productId}" transition="choices" server-search="true" min-length="0"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -175,7 +169,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="productId">
                             <default-field title="Product or pack product">
                                 <drop-down allow-empty="false">
-                                    <dynamic-options parameter-map="{selectedProductId:productId}" transition="choices" server-search="true" min-length="0"/>
+                                    <dynamic-options parameter-map="{choice:'products',selected:productId}" transition="choices" server-search="true" min-length="0"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -502,7 +496,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <hidden/>
                                             </default-field>
                                         </field>
-                                        <field name="expectedLastUpdatedStamp" from="lastUpdatedStamp">
+                                        <field name="expectedLastUpdatedStamp" from="offer.lastUpdatedStamp">
                                             <default-field title="">
                                                 <hidden/>
                                             </default-field>
@@ -603,7 +597,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <hidden/>
                                             </default-field>
                                         </field>
-                                        <field name="expectedLastUpdatedStamp" from="lastUpdatedStamp">
+                                        <field name="expectedLastUpdatedStamp" from="offer.lastUpdatedStamp">
                                             <default-field title="">
                                                 <hidden/>
                                             </default-field>

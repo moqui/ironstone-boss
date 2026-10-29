@@ -21,16 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'labels'})" out-map="context" />
-    </actions>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none" />
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="prepareLabels">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
@@ -96,6 +87,9 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none" />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'labels'})" out-map="context" />
+    </actions>
     <widgets>
         <label text="Product labels" type="h5" />
         <label text="Labels encode existing product or pack identifiers. Prepare a selection, review the decoded result, then render or print it." type="p" />
@@ -226,7 +220,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <text type="qvt">&lt;div class="bg-white q-pa-sm" style="overflow:auto"&gt;${labelRow.svg}&lt;/div&gt;</text>
                                     <text type="html">${labelRow.svg}</text>
                                     <text type="html-print">${labelRow.svg}</text>
-                                    <text type="tui">${labelRow.symbology}: ${labelRow.encodedValue}</text>
+                                    <text type="tui">${JSON.stringify({t: 'text', text: labelRow.symbology + ': ' + labelRow.encodedValue})}</text>
                                 </render-mode>
                                 <label text="${labelRow.encodedValue}" type="p" />
                             </box-body>
@@ -235,7 +229,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </section-iterate>
                 <section name="LabelActions" condition="!stale &amp;&amp; labelRows.length &gt; 0">
                     <widgets>
-                        <link text="Open print layout" url="${printBase}/Units/Labels/printable" parameter-map="{operationKey:operationKey,inputFingerprint:inputFingerprint}" target="_blank" />
+                        <link text="Open print layout" url="${printBase}/Units/Labels/printable" parameter-map="{operationKey:operationKey,inputFingerprint:inputFingerprint}" target-window="_blank" />
                         <form-single name="RenderLabels" transition="renderLabels">
                             <field name="operationKey">
                                 <default-field>
@@ -257,7 +251,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <section name="LabelArtifact" condition="artifactAvailable">
                     <widgets>
-                        <link text="Download rendered PDF" url="${printBase}/Units/Labels/download" parameter-map="{operationKey:operationKey}" target="_blank" />
+                        <link text="Download rendered PDF" url="${printBase}/Units/Labels/download" parameter-map="{operationKey:operationKey}" target-window="_blank" />
                         <form-single name="PrintLabels" transition="printLabels">
                             <field name="operationKey">
                                 <default-field>

@@ -14,13 +14,7 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Settings" default-menu-index="9" menu-image="sym_o_settings" menu-image-type="icon">
     <parameter name="organizationPartyId"/>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice,term:term}" out-map="found"/>
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="save">
         <actions>
             <service-call name="ironstone.products.SettingsServices.store#CatalogSettings" in-map="{organizationPartyId:organizationPartyId,expectedVersion:expectedVersion,fromDate:effectiveFromDate,changeReason:changeReason,settings:{defaultProductTypeEnumId:defaultProductTypeEnumId,defaultAmountUomId:defaultAmountUomId,defaultCurrencyUomId:defaultCurrencyUomId,requiredFields:requiredFields,idPolicy:idPolicy,variantsEnabled:variantsEnabled,packagingEnabled:packagingEnabled,priceListsEnabled:priceListsEnabled,allowCostSelfApproval:allowCostSelfApproval}}"/>

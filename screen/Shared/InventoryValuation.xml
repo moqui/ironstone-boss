@@ -27,9 +27,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context"/>
-    </actions>
     <transition name="preview">
         <actions>
             <service-call name="ironstone.accounting.AssetBookServices.preview#Revaluation" in-map="context" out-map="result"/>
@@ -53,6 +50,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <actions>
+        <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context"/>
+    </actions>
     <widgets>
         <label text="Inventory revaluation" type="h5"/>
         <label text="${bookMessage || &quot;&quot;}" type="p"/>
@@ -216,7 +216,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                         <section name="PostedRevaluation" condition="!!posted">
                             <widgets>
-                                <link url="." text="Posted accounting transaction ${acctgTransId}" parameter-map="{productStandardCostId:productStandardCostId,previewId:previewId,operationKey:operationKey}"/>
+                                <!-- Accounting has no transaction screen yet; link it here when GeneralLedger has one -->
+                                <label text="Posted accounting transaction ${acctgTransId}" type="p"/>
                                 <form-list name="RevaluationLedgerEntries" list="ledgerRows || []" skip-form="true" paginate="false">
                                     <field name="glAccountId">
                                         <default-field title="Account">

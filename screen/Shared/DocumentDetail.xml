@@ -21,9 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
-    </actions>
     <transition name="save">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
@@ -76,6 +73,9 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none" />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
+    </actions>
     <widgets>
         <label text="Document detail" type="h5" />
         <link text="All documents" url="${sharedLinks['Documents']}" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
@@ -83,7 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
             <widgets>
                 <label text="${document.filename}" type="h6" />
                 <label text="${document.contentTypeText} · ${document.locale || &quot;&quot;}" type="p" />
-                <link text="Preview or download" url="download" target="_blank" condition="document.managed" parameter-map="{recordKind:recordKind,contentId:document.contentId,inline:true}" />
+                <link text="Preview or download" url="download" target-window="_blank" condition="document.managed" parameter-map="{recordKind:recordKind,contentId:document.contentId,inline:true}" />
                 <label text="Copy this reference through an authorized drive before previewing it." condition="!document.managed" type="p" />
                 <section name="ReadText" condition="document.isText">
                     <widgets>

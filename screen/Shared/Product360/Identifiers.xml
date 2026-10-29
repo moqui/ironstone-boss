@@ -13,9 +13,6 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identifiers" default-menu-index="4">
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Identifiers')</expression>
-    </condition>
     <transition name="storeRow">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'identifier'})"/>
@@ -34,9 +31,6 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
-    <actions>
-        <script>if (previewIdentifierType) identifierPreview=ec.service.sync().name('mantle.product.ProductServices.validate#ProductIdentifier').parameters({productId:productId,productIdTypeEnumId:previewIdentifierType,generate:true,forAssignment:true}).call()</script>
-    </actions>
     <transition name="assignGenerated">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="identifierAppAccess"/>
@@ -50,6 +44,12 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Identifiers')</expression>
+    </condition>
+    <actions>
+        <script>if (previewIdentifierType) identifierPreview=ec.service.sync().name('mantle.product.ProductServices.validate#ProductIdentifier').parameters({productId:productId,productIdTypeEnumId:previewIdentifierType,generate:true,forAssignment:true}).call()</script>
+    </actions>
     <widgets>
         <section name="RowsAvailable" condition="productFound">
             <widgets>

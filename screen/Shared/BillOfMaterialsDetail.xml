@@ -13,7 +13,6 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="BOM" default-menu-include="false">
-    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('BOM')</expression></condition>
     <parameter name="appRoot" />
     <parameter name="productId" />
     <parameter name="productBomId" />
@@ -36,6 +35,7 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="WhereUsed" menu-title="Where used" menu-include="true" location="component://mr-boss/screen/Shared/WhereUsed.xml" />
         <subscreens-item name="RoutingDetail" menu-title="Routing" menu-include="true" location="component://mr-boss/screen/Shared/RoutingDetail.xml" />
     </subscreens>
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('BOM')</expression></condition>
     <widgets>
         <label text="Manufacturing methods" type="h5" />
         <label text="${methodMessage}" type="p" />

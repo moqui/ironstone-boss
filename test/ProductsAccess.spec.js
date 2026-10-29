@@ -44,7 +44,7 @@ feature("a reader sees shared and own products, with no writes or other-organiza
 })
 feature("editor authority composes with ownership and shared writes require system authority", {
     when() {
-        const editor = asCatalog("catalog.catalog.edit", () => ({
+        const editor = asCatalog("catalog.edit", () => ({
             own: access("BOSS_PRD_OWN", "catalogEdit"),
             other: access("BOSS_PRD_OTHER", "catalogEdit"),
             shared: access("DEMO_SA_1", "catalogEdit"),
@@ -147,7 +147,7 @@ feature("catalog file writes require the editor grant through Products and Commo
             upload: mount("Products", "upload", {contentFile: uploadedFile("reader-refused.txt", "refused")}, "post"),
             commons: mount("Commons", "upload", {contentFile: uploadedFile("reader-refused.txt", "refused")}, "post")
         }))
-        const editor = asCatalog("catalog.catalog.edit", () => mount("Products", "filesData", {}, "get"))
+        const editor = asCatalog("catalog.edit", () => mount("Products", "filesData", {}, "get"))
         return {reader, editor}
     },
     then({reader, editor}) {
@@ -401,7 +401,7 @@ feature("P6 supplier services and shared mounts refuse sales-only editors even t
 feature("P7 stock policy remains Warehouse-controlled through Products shared callbacks", {
     when() {
         return asCatalog(
-            "catalog.catalog.edit",
+            "catalog.edit",
             () => {
                 const refused = []
                 for (const name of ["store#FacilityPolicy", "store#TrackingPolicy"]) {
@@ -623,7 +623,7 @@ feature("P12 imports cannot grant readers writes or expose another operators sta
     where: [{enabled: true}, {enabled: false}],
     when({enabled}) {
         const run = asCatalog(
-            "catalog.catalog.edit",
+            "catalog.edit",
             () =>
                 call("mantle.product.ProductImportServices.stage#CatalogImport", {
                     kindId: "products",
@@ -663,5 +663,45 @@ feature("P12 imports cannot grant readers writes or expose another operators sta
     then({writes, source}) {
         writes == true
         source == true
+    }
+})
+feature("catalog capabilities follow the Mantle permissions, not the BOSS group names", {
+    when() {
+        const groupId = "BOSS_SPEC_CATALOG_EDIT_PERMISSION",
+            readerId = ec.entity
+                .find("moqui.security.UserAccount")
+                .condition("username", "catalog.reader")
+                .disableAuthz()
+                .one().userId
+        const authzDisabled = ec.artifactExecution.disableAuthz()
+        try {
+            if (!ec.entity.find("moqui.security.UserGroup").condition("userGroupId", groupId).count())
+                call("create#moqui.security.UserGroup", {userGroupId: groupId, description: "Catalog edit by permission alone"})
+            call("create#moqui.security.UserGroupPermission", {
+                userGroupId: groupId,
+                userPermissionId: "PRODUCT_CATALOG_EDIT",
+                fromDate: 0
+            })
+            call("create#moqui.security.UserGroupMember", {userGroupId: groupId, userId: readerId, fromDate: 0})
+        } finally {
+            if (!authzDisabled) ec.artifactExecution.enableAuthz()
+        }
+        try {
+            return asCatalog("catalog.reader", () => ({
+                capabilities: call(CATALOG + "get#CatalogAccess").capabilities,
+                own: access("BOSS_PRD_OWN", "catalogEdit")
+            }))
+        } finally {
+            ec.artifactExecution.disableAuthz()
+            ec.entity.find("moqui.security.UserGroupMember").condition({userGroupId: groupId, userId: readerId}).deleteAll()
+            ec.entity.find("moqui.security.UserGroupPermission").condition("userGroupId", groupId).deleteAll()
+            if (!authzDisabled) ec.artifactExecution.enableAuthz()
+        }
+    },
+    then({capabilities, own}) {
+        capabilities.read == true
+        capabilities.catalogEdit == true
+        capabilities.catalogAdmin == false
+        own.canWrite == true
     }
 })

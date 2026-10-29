@@ -19,7 +19,7 @@ function json(path) {
 feature("the Products menu follows the composed grants", {
     where: [
         {user: "catalog.reader", extra: []},
-        {user: "catalog.catalog.edit", extra: []},
+        {user: "catalog.edit", extra: []},
         {user: "catalog.price.read", extra: ["Prices"]},
         {user: "catalog.price.edit", extra: ["Prices"]},
         {user: "catalog.supplier.price.read", extra: ["Prices", "SupplierPrices"]},

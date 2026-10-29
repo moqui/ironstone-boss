@@ -28,7 +28,7 @@ feature("a stock planner opens the Stock tab and saves stock levels and a dated 
 })
 feature("a catalog editor reads stock policy without its write actions", {
     expect() {
-        const page = browser.newPage({user: "catalog.catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
+        const page = browser.newPage({user: "catalog.edit", viewport: {width: 1280, height: 1100}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         page.goto("/qapps/Products/Products/Product360/Stock/Policy?productId=BOSS_PRD_OWN&facilityId=BOSS_PRD_WH").status == 200
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Product tracking policy"))

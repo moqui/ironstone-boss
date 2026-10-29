@@ -21,23 +21,11 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <condition>
-        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Packaging')</expression>
-    </condition>
-    <actions>
-        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'packaging'})" out-map="context"/>
-    </actions>
-    <transition name="choices" read-only="true">
-        <actions>
-            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found"/>
-            <script>ec.web.sendJsonResponse(found.rows)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <transition name="storePack">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess"/>
-            <script>if(!toolAppAccess.capabilities.catalogEdit)throw new Error('Catalog catalogEdit access is required')</script>
+            <script>if(!toolAppAccess.capabilities.catalogEdit)throw new Error('Catalog editor access is required')</script>
             <service-call name="mantle.product.ProductServices.store#ProductPackaging" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
@@ -48,6 +36,12 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <condition>
+        <expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Packaging')</expression>
+    </condition>
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'packaging'})" out-map="context"/>
+    </actions>
     <widgets>
         <label text="Product packaging" type="h5"/>
         <label text="A pack is a product containing a dated quantity of its base product. These definitions do not move stock." type="p"/>

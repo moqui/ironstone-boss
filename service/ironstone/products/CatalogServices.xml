@@ -47,29 +47,24 @@ along with this software (see the LICENSE.md file). If not, see
         </out-parameters>
         <actions>
             <script><![CDATA[
-            const admin = !!ec.user.userId && ec.user.isInGroup('ADMIN')
-            const blockedClient = !!ec.user.userId && !admin && ec.user.hasPermission('PROJECT_CLIENT')
-            const has = (group) => !!ec.user.userId && !blockedClient && (admin || ec.user.isInGroup(group) || group.startsWith('BOSS_PRODUCTS') && ec.user.isInGroup('BOSS_PRODUCTS_ADMIN'))
-            const grants = {
-                read: 'BOSS_PRODUCTS', catalogEdit: 'BOSS_PRODUCTS_CATALOG_EDIT',
-                priceRead: 'BOSS_PRODUCTS_PRICE_READ', priceEdit: 'BOSS_PRODUCTS_PRICE_EDIT',
-                supplierPriceRead: 'BOSS_PRODUCTS_SUPPLIER_PRICE_READ', supplierPriceEdit: 'BOSS_PRODUCTS_SUPPLIER_PRICE_EDIT',
-                costRead: 'BOSS_PRODUCTS_COST_READ', costEstimate: 'BOSS_PRODUCTS_COST_ESTIMATE',
-                costApprove: 'BOSS_PRODUCTS_COST_APPROVE', catalogAdmin: 'BOSS_PRODUCTS_ADMIN',
-                stockPlan: 'BOSS_WAREHOUSE_STOCK_PLANNER', stockManage: 'BOSS_WAREHOUSE_MANAGER',
-                methodRead: 'BOSS_MANUFACTURING_READ', methodEdit: 'BOSS_MANUFACTURING_METHOD',
-                methodApprove: 'BOSS_MANUFACTURING_METHOD_APPROVE', methodAdmin: 'BOSS_MANUFACTURING_RESOURCE_ADMIN',
-                glPost: 'BOSS_ACCOUNTING_GL'
-            }
-            capabilities = {systemAdmin: admin}
-            for (const [key, group] of Object.entries(grants)) capabilities[key] = has(group)
+            // Every capability comes from the Moqui permissions Mantle checks (granted to the BOSS groups in BossSetupData),
+            // so a screen offers exactly what the Mantle services will allow.
             const domain = ec.resource.script('component://mr-mantle/service/mantle/product/ProductAccess.js')
             const cost = ec.resource.script('component://mr-mantle/service/mantle/product/CostPolicy.js').capabilities()
             const methods = ec.resource.script('component://mr-mantle/service/mantle/product/MethodPolicy.js').capabilities()
-            Object.assign(capabilities, {priceRead:domain.has('PRICE_VIEW')||domain.has('PRICE_EDIT'),priceEdit:domain.has('PRICE_EDIT'),
-                supplierPriceRead:cost.supplierRead,supplierPriceEdit:domain.has('SUPPLIER_PRICE_EDIT'),costRead:cost.read,costEstimate:cost.edit,costApprove:cost.approve,
-                stockPlan:domain.has('STOCK_POLICY_PLAN')||domain.has('STOCK_POLICY_MANAGE'),stockManage:domain.has('STOCK_POLICY_MANAGE'),
-                methodRead:methods.read,methodEdit:methods.edit,methodApprove:methods.approve,methodAdmin:methods.resources,glPost:cost.glPost,catalogAdmin:domain.has('PRODUCT_CATALOG_ADMIN')})
+            const catalogAdmin = domain.has('PRODUCT_CATALOG_ADMIN')
+            const catalogEdit = catalogAdmin || domain.has('PRODUCT_CATALOG_EDIT')
+            capabilities = {
+                systemAdmin: domain.systemAdmin(),
+                read: catalogEdit || domain.has('PRODUCT_CATALOG_VIEW'),
+                catalogEdit, catalogAdmin,
+                priceRead: domain.has('PRICE_VIEW') || domain.has('PRICE_EDIT'), priceEdit: domain.has('PRICE_EDIT'),
+                supplierPriceRead: cost.supplierRead, supplierPriceEdit: domain.has('SUPPLIER_PRICE_EDIT'),
+                costRead: cost.read, costEstimate: cost.edit, costApprove: cost.approve,
+                stockPlan: domain.has('STOCK_POLICY_PLAN') || domain.has('STOCK_POLICY_MANAGE'), stockManage: domain.has('STOCK_POLICY_MANAGE'),
+                methodRead: methods.read, methodEdit: methods.edit, methodApprove: methods.approve, methodAdmin: methods.resources,
+                glPost: cost.glPost
+            }
             capabilities.marginRead = capabilities.priceRead && capabilities.costRead
             const scope = ec.service.sync().name('mantle.product.ProductServices.get#CatalogOwnerScope').disableAuthz().call() || {}
             organizationPartyIds = scope.organizationPartyIds || []
@@ -456,6 +451,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="appRoot"/>
             <parameter name="choice" required="true"/>
             <parameter name="term"/>
+            <parameter name="selected"/>
         </in-parameters>
         <out-parameters>
             <parameter name="rows" type="List"/>

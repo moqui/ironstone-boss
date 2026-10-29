@@ -59,7 +59,7 @@ feature("preview and generation enforce the real editor and owner, including dis
                 selectedFeatureSets: [["BOSS_VAR_BLUE", "BOSS_VAR_SMALL"]]
             })
         }))
-        const other = as("catalog.catalog.edit", () => invoke(V + "preview#VariantProducts", {productId: "B4_OTHER"}))
+        const other = as("catalog.edit", () => invoke(V + "preview#VariantProducts", {productId: "B4_OTHER"}))
         return {out, other}
     },
     then({out, other}) {
@@ -86,7 +86,7 @@ feature("preview omits price extras and hidden selectable features before sendin
                 fromDate: time - 1000
             })
         })
-        const out = as("catalog.catalog.edit", () => call(V + "preview#VariantProducts", {productId: "B4_SCOPE"}))
+        const out = as("catalog.edit", () => call(V + "preview#VariantProducts", {productId: "B4_SCOPE"}))
         return {out, text: JSON.stringify(out)}
     },
     then({out, text}) {
@@ -109,7 +109,7 @@ feature("selected generation is idempotent and reports a separate result for eac
                 productTypeEnumId: "PtAsset"
             })
         })
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const preview = call(V + "preview#VariantProducts", {productId: "B4_SELECT"}),
                 params = {
                     productId: "B4_SELECT",
@@ -137,7 +137,7 @@ feature("selected generation is idempotent and reports a separate result for eac
 feature("unsafe copying and stale previews cannot change products or existing variant overrides", {
     when() {
         as("john.doe", () => source("B4_STALE"))
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const p = call(V + "preview#VariantProducts", {productId: "B4_STALE"})
             const unsafe = invoke(V + "preview#VariantProducts", {productId: "B4_STALE", copyFields: ["standardCost"]})
             call(C + "store#Product", {productId: "B4_STALE", productName: "Renamed source"})
@@ -195,7 +195,7 @@ feature("variant policies change by effective date, keep old values and reject s
                     .count()
             }
         })
-        const denied = as("catalog.catalog.edit", () =>
+        const denied = as("catalog.edit", () =>
             invoke(S + "store#VariantSettings", {organizationPartyId: "ORG_ZIZI_SERVICES", settings: {batchLimit: 5}})
         )
         return {out, denied}
@@ -215,7 +215,7 @@ feature("variant policies change by effective date, keep old values and reject s
 feature("large selections use a durable manifest, resume in bounded chunks and bind operation keys to the exact request", {
     when() {
         as("john.doe", () => source("B4_BATCH"))
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const preview = call(V + "preview#VariantProducts", {productId: "B4_BATCH"}),
                 p = {
                     productId: "B4_BATCH",
@@ -253,7 +253,7 @@ feature("large selections use a durable manifest, resume in bounded chunks and b
 feature("a changed batch input fails each affected item without losing its manifest or successes", {
     when() {
         as("john.doe", () => source("B4_CHANGE"))
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const before = call(V + "preview#VariantProducts", {productId: "B4_CHANGE"})
             call(V + "start#VariantBatch", {
                 productId: "B4_CHANGE",
@@ -277,7 +277,7 @@ feature("a changed batch input fails each affected item without losing its manif
 feature("blank optional XML form fields retain the previewed copy policy", {
     when() {
         as("john.doe", () => source("B4_XML"))
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const preview = call(V + "preview#VariantProducts", {productId: "B4_XML"})
             return invoke(V + "create#VariantProducts", {
                 productId: "B4_XML",

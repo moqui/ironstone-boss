@@ -280,9 +280,55 @@ feature("change and expiry notices stay inside the direction grant and deduplica
     then({out, denied}) {
         !out.changed.sentToUserIds.includes("BOSS_PRD_READER")
         !out.changed.sentToUserIds.includes("BOSS_PRD_SUPPLIER_PRICE_READ")
+        out.changed.sentToUserIds.includes("BOSS_PRD_PRICE_EDIT")
         out.first.sentCount > 0
         out.again.sentCount == 0
         denied.error.includes("scheduler")
+    }
+})
+feature("a price notice reaches a Products user who holds the price permission through any group", {
+    when() {
+        const groupId = "BOSS_SPEC_PRICE_VIEW_PERMISSION"
+        const wasDisabled = ec.artifactExecution.disableAuthz()
+        try {
+            if (!ec.entity.find("moqui.security.UserGroup").condition("userGroupId", groupId).count())
+                call("create#moqui.security.UserGroup", {userGroupId: groupId, description: "Price view by permission alone"})
+            call("create#moqui.security.UserGroupPermission", {userGroupId: groupId, userPermissionId: "PRICE_VIEW", fromDate: 0})
+            call("create#moqui.security.UserGroupMember", {userGroupId: groupId, userId: "BOSS_PRD_READER", fromDate: 0})
+        } finally {
+            if (!wasDisabled) ec.artifactExecution.enableAuthz()
+        }
+        try {
+            return as("john.doe", () => {
+                product("B5_NOTICE_PERMISSION")
+                const price = create("B5_NOTICE_PERMISSION", {})
+                // send#ProductPriceNotice refuses a recipient outside the price grant before it checks for an earlier send
+                const send = recipientUserId =>
+                    invoke("ironstone.products.PriceNoticeServices.send#ProductPriceNotice", {
+                        productPriceId: price.productPriceId,
+                        topic: "ProductPriceChanged",
+                        recipientUserId
+                    })
+                return {
+                    reader: send("BOSS_PRD_READER"),
+                    editor: send("BOSS_PRD_PRICE_EDIT"),
+                    supplier: send("BOSS_PRD_SUPPLIER_PRICE_READ")
+                }
+            })
+        } finally {
+            ec.artifactExecution.disableAuthz()
+            ec.entity
+                .find("moqui.security.UserGroupMember")
+                .condition({userGroupId: groupId, userId: "BOSS_PRD_READER"})
+                .deleteAll()
+            ec.entity.find("moqui.security.UserGroupPermission").condition("userGroupId", groupId).deleteAll()
+            if (!wasDisabled) ec.artifactExecution.enableAuthz()
+        }
+    },
+    then({reader, editor, supplier}) {
+        reader.error == ""
+        editor.error == ""
+        supplier.error.includes("not authorized")
     }
 })
 feature("the unchanged price REST URLs guard reads, validate writes and expire instead of deleting", {

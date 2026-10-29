@@ -34,9 +34,6 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/>
         <error-response url="."/>
     </transition>
-    <actions>
-        <set field="childRows" from="detail ? detail.children.map(row =&gt; Object.assign({},row,{childProductCategoryId:row.productCategoryId})) : []"/>
-    </actions>
     <transition name="endParent">
         <actions>
             <service-call name="ironstone.products.CategoryServices.expire#CategoryParent" in-map="context"/>
@@ -46,6 +43,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <actions>
+        <set field="childRows" from="detail ? detail.children.map(row =&gt; Object.assign({},row,{childProductCategoryId:row.productCategoryId})) : []"/>
+    </actions>
     <widgets>
         <section name="Available" condition="recordFound">
             <widgets>

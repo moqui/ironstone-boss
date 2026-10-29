@@ -39,7 +39,7 @@ const product = (id, type = "PtAsset") =>
     })
 feature("an editor creates a draft, fills activation requirements, and transitions with an audited lifecycle", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const created = product("PRD_P2_LIFE")
             const cleared = invoke(C + "store#Product", {productId: created.productId, amountUomId: ""})
             const refused = invoke(C + "transition#ProductStatus", {productId: created.productId, statusId: "PrdActive"})
@@ -61,7 +61,7 @@ feature("an editor creates a draft, fills activation requirements, and transitio
 })
 feature("identifier uniqueness and customer item codes use guarded stores and authorized search", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const a = product("PRD_P2_IDA"),
                 b = product("PRD_P2_IDB")
             const id = invoke(C + "store#CatalogRow", {
@@ -98,7 +98,7 @@ feature("identifier uniqueness and customer item codes use guarded stores and au
 })
 feature("kit writes reject cycles and invalid quantities and retain all three components", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             product("PRD_P2_KITA", "PtPickAssembly")
             product("PRD_P2_KITB", "PtPickAssembly")
             const parts = ["DEMO_SA_1", "DEMO_SA_2", "DEMO_RM_1"].map(toProductId =>
@@ -137,7 +137,7 @@ feature("kit writes reject cycles and invalid quantities and retain all three co
 })
 feature("bulk category applies a fixed ID selection independently and reports a foreign owner by ID", {
     when() {
-        return as("catalog.catalog.edit", () =>
+        return as("catalog.edit", () =>
             invoke(C + "bulk#Products", {
                 productIds: ["BOSS_PRD_OWN", "BOSS_PRD_OTHER"],
                 kind: "category",
@@ -152,9 +152,57 @@ feature("bulk category applies a fixed ID selection independently and reports a 
         results.find(row => row.status === "error").productId == "BOSS_PRD_OTHER"
     }
 })
+feature("a bulk change from the list reports its outcome as messages that survive the redirect", {
+    when() {
+        login("catalog.edit")
+        try {
+            const screens = ec.screen.makeTest().rootScreen("component://webroot/screen/webroot.xml")
+            const posted = screens.render(
+                "apps/Products/Products/List/bulk",
+                {productIds: "BOSS_PRD_OWN,BOSS_PRD_OTHER", kind: "category", productCategoryId: "BOSS_PRD_CAT"},
+                "post"
+            )
+            const next = screens.renderMode("html").render("apps/Products/Products/List", {}, null)
+            return {status: posted.status, page: String(next.output || "")}
+        } finally {
+            ec.message.clearErrors()
+            login("john.doe")
+        }
+    },
+    then({status, page}) {
+        status == 302
+        page.includes("1 products updated, 1 failed")
+        page.includes("BOSS_PRD_OTHER: ")
+    }
+})
+feature("product choices search the whole authorized catalog and keep the selected product's label", {
+    when() {
+        return as("catalog.edit", () => ({
+            found: invoke(C + "search#CatalogChoices", {choice: "products", term: "BOSS_PRD_OWN"}),
+            selected: invoke(C + "search#CatalogChoices", {
+                choice: "products",
+                term: "no such product",
+                selected: "BOSS_PRD_OWN"
+            }),
+            foreign: invoke(C + "search#CatalogChoices", {
+                choice: "products",
+                term: "no such product",
+                selected: "BOSS_PRD_OTHER"
+            }),
+            virtual: invoke(C + "search#CatalogChoices", {choice: "virtualProducts", term: "", selected: "BOSS_PRD_OWN"})
+        }))
+    },
+    then({found, selected, foreign, virtual}) {
+        found.rows.some(row => row.value === "BOSS_PRD_OWN")
+        selected.rows[0].value == "BOSS_PRD_OWN"
+        selected.rows[0].label.includes("BOSS_PRD_OWN")
+        !foreign.rows.some(row => row.value === "BOSS_PRD_OTHER")
+        !virtual.rows.some(row => row.value === "BOSS_PRD_OWN")
+    }
+})
 feature("clone copies modern dimensions without external identifiers or status and deletion preserves used masters", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             product("PRD_P2_CLONE")
             const dimension = invoke(C + "store#CatalogRow", {
                 kind: "dimension",
@@ -199,7 +247,7 @@ feature("catalog settings use dated optimistic tokens, reject stale edits and re
             })
             return {current, next, stale}
         })
-        const editor = as("catalog.catalog.edit", () =>
+        const editor = as("catalog.edit", () =>
             invoke(S + "store#CatalogSettings", {organizationPartyId: "ORG_ZIZI_SERVICES", expectedVersion: 0, settings: {}})
         )
         const reader = as("catalog.reader", () =>
@@ -219,7 +267,7 @@ feature("catalog settings use dated optimistic tokens, reject stale edits and re
 
 feature("clone preserves scoped IDs and independently copied document bytes, meters and maintenance references", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const created = invoke(C + "store#Product", {
                 productId: "PRD_P2_EQUIPMENT",
                 productName: "Equipment template",
@@ -307,7 +355,7 @@ feature("active distinguishing identity, forged child IDs and supplier-only item
             })
             return own.productUomDimensionId
         })
-        const editor = as("catalog.catalog.edit", () => ({
+        const editor = as("catalog.edit", () => ({
             dimension: invoke(C + "store#CatalogRow", {
                 kind: "dimension",
                 productId: "BOSS_PRD_OWN",
@@ -353,7 +401,7 @@ feature("active distinguishing identity, forged child IDs and supplier-only item
 
 feature("typed content copies an authorized drive file and refuses server paths and inaccessible drives", {
     when() {
-        return as("catalog.catalog.edit", () => {
+        return as("catalog.edit", () => {
             const drive = call("org.moqui.impl.FileServices.get#UserDrives").personalDriveId
             call("org.moqui.impl.FileServices.upload#Resource", {
                 driveId: drive,

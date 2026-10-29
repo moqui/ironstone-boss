@@ -21,10 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
-    <actions>
-        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
-        <service-call name="mantle.product.ContentServices.find#CatalogTranslations" in-map="context" out-map="context" />
-    </actions>
     <transition name="saveTranslation">
         <actions>
             <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
@@ -43,6 +39,10 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="." />
     </transition>
+    <actions>
+        <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
+        <service-call name="mantle.product.ContentServices.find#CatalogTranslations" in-map="context" out-map="context" />
+    </actions>
     <widgets>
         <label text="Catalog translations" type="h5" />
         <form-single name="TranslationFind" transition=".">

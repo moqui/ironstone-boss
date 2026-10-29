@@ -2,7 +2,7 @@
     <m-container-box title="Build variants">
         <p>Preview the selectable features, choose complete combinations, then generate their SKUs. Existing combinations keep their product and overrides.</p>
         <div class="row q-col-gutter-sm">
-            <div class="col-12 col-md-6"><m-drop-down v-model="form.productId" name="virtualProduct" label="Virtual product" :options="sourceOptions" :options-url="screenPath + '/choices'" :options-parameters="{productId:form.productId}" server-search :allow-empty="true" @update:model-value="sourceChanged"></m-drop-down></div>
+            <div class="col-12 col-md-6"><m-drop-down v-model="form.productId" name="virtualProduct" label="Virtual product" :options="sourceOptions" :options-url="screenPath + '/choices'" :options-parameters="{choice:'virtualProducts',selected:form.productId}" server-search :allow-empty="true" @update:model-value="sourceChanged"></m-drop-down></div>
             <div class="col-12 col-md-3"><m-drop-down v-model="form.productTypeEnumId" name="variantType" label="Variant type" :options="variantTypes" @update:model-value="invalidate"></m-drop-down></div>
             <div class="col-12 col-md-3"><m-check v-model="form.copyCategoryMembers" name="copyCategories" true-value="Y" false-value="N" single-label="Copy categories" :disable="!categoryCopyAllowed" @update:model-value="invalidate"></m-check></div>
         </div>

@@ -9,7 +9,7 @@ const find = (n, p) =>
             .disableAuthz(),
     one = (n, p) => find(n, p).one(),
     rows = (n, p) => Array.from(find(n, p).list())
-const ms = v => (v == null ? null : Number(String(v))),
+const ms = v => (v == null || v === "" ? null : Number.isFinite(Number(String(v))) ? Number(String(v)) : Date.parse(String(v))),
     effective = r =>
         (ms(r.fromDate) == null || ms(r.fromDate) <= ms(ec.user.nowTimestamp)) &&
         (ms(r.thruDate) == null || ms(r.thruDate) > ms(ec.user.nowTimestamp))
@@ -27,46 +27,55 @@ const auditActor = r =>
         .limit(1)
         .one()?.changedByUserId
 const direction = r => ec.resource.script("component://mr-mantle/service/mantle/product/PricePolicy.js").execute("direction", r)
+// The user groups that hold any of these permissions now.
+const groupsWith = permissionIds =>
+    new Set(
+        rows("moqui.security.UserGroupPermission")
+            .filter(row => permissionIds.includes(row.userPermissionId) && effective(row))
+            .map(row => row.userGroupId)
+    )
+// Recipients open the Products app (its launcher groups) and hold the price permission of the row's direction, by any
+// group, in the price organization; project clients never receive one.
 function recipients(r) {
     const d = direction(r),
         org = d === "purchase" ? r.customerPartyId : r.vendorPartyId,
         product = one(P + "Product", {productId: r.productId})
     if (!org || !product) return []
-    const memberships = rows("moqui.security.UserGroupMember").filter(effective),
-        groups = {}
-    for (const m of memberships) (groups[m.userId] ||= new Set()).add(m.userGroupId)
-    const role = d === "purchase" ? "BOSS_PRODUCTS_SUPPLIER_PRICE_" : "BOSS_PRODUCTS_PRICE_",
-        out = []
-    for (const [userId, g] of Object.entries(groups)) {
-        const admin = g.has("ADMIN"),
-            productAdmin = g.has("BOSS_PRODUCTS_ADMIN")
-        if (
-            !admin &&
-            (g.has("BOSS_PROJECT_CLIENT") ||
-                (!productAdmin && (!g.has("BOSS_PRODUCTS") || (!g.has(role + "READ") && !g.has(role + "EDIT")))))
-        )
-            continue
-        if (
-            [r.vendorPartyId, r.customerPartyId].filter(Boolean).some(id => {
-                const party = one("mantle.party.Party", {partyId: id})
-                return (
-                    !party ||
-                    (party.privateOwnerUserId && party.privateOwnerUserId !== userId) ||
-                    (!admin && party.ownerPartyId && !["_NA_", org].includes(party.ownerPartyId) && id !== org)
-                )
-            })
-        )
-            continue
-        if (!admin && product.ownerPartyId !== "_NA_" && product.ownerPartyId !== org) continue
-        const u = one("moqui.security.UserAccount", {userId})
-        if (!u?.partyId) continue
-        if (
-            !rows("mantle.party.PartyRelationship", {fromPartyId: u.partyId, toPartyId: org}).some(
-                r => effective(r) && ["PrtAgent", "PrtEmployee", "PrtMember"].includes(r.relationshipTypeEnumId)
+    const prefix = d === "purchase" ? "SUPPLIER_PRICE_" : "PRICE_",
+        priceGroups = groupsWith([prefix + "VIEW", prefix + "EDIT"]),
+        clientGroups = groupsWith(["PROJECT_CLIENT"]),
+        appGroups = new Set(["BOSS_PRODUCTS", "BOSS_PRODUCTS_ADMIN"])
+    const staffPartyIds = new Set(
+        rows("mantle.party.PartyRelationship", {toPartyId: org})
+            .filter(rel => effective(rel) && ["PrtAgent", "PrtEmployee", "PrtMember"].includes(rel.relationshipTypeEnumId))
+            .map(rel => rel.fromPartyId)
+    )
+    const out = []
+    for (const partyId of staffPartyIds) {
+        for (const u of rows("moqui.security.UserAccount", {partyId})) {
+            const userId = u.userId,
+                groups = new Set(
+                    rows("moqui.security.UserGroupMember", {userId})
+                        .filter(effective)
+                        .map(m => m.userGroupId)
+                ),
+                admin = groups.has("ADMIN"),
+                holds = set => [...groups].some(g => set.has(g))
+            if (!admin && (holds(clientGroups) || !holds(appGroups) || !holds(priceGroups))) continue
+            if (
+                [r.vendorPartyId, r.customerPartyId].filter(Boolean).some(id => {
+                    const party = one("mantle.party.Party", {partyId: id})
+                    return (
+                        !party ||
+                        (party.privateOwnerUserId && party.privateOwnerUserId !== userId) ||
+                        (!admin && party.ownerPartyId && !["_NA_", org].includes(party.ownerPartyId) && id !== org)
+                    )
+                })
             )
-        )
-            continue
-        out.push(userId)
+                continue
+            if (!admin && product.ownerPartyId !== "_NA_" && product.ownerPartyId !== org) continue
+            out.push(userId)
+        }
     }
     return out
 }
@@ -97,7 +106,7 @@ function sendOne(p) {
                     p.recipientUserId
             )
             .slice(0, 40)
-    find("moqui.basic.EnumerationType", {enumTypeId: "ProductPriceType"}).forUpdate(true).one()
+    // The marker is the operation's primary key: a concurrent send of the same notice fails its insert and rolls back.
     if (one(P + "ProductCatalogOperation", {operationKey: marker})) return {sent: false}
     const url = "/qapps/Products/Products/Product360/Prices?productId=" + encodeURIComponent(r.productId),
         nm = ec
@@ -172,12 +181,12 @@ function expiring(p) {
     const at = ms(ec.user.nowTimestamp),
         end = at + Math.max(1, Math.min(90, Number(p.days || 30))) * 86400000
     let sentCount = 0
-    for (const r of rows(E).filter(
-        r =>
-            ms(r.thruDate) > at &&
-            ms(r.thruDate) <= end &&
-            (ms(r.fromDate) == null || ms(r.fromDate) <= at) &&
-            r.priceTypeEnumId !== "PptAverage"
+    const ending = find(E)
+        .condition("thruDate", "greater", new Date(at))
+        .condition("thruDate", "less-equals", new Date(end))
+        .list()
+    for (const r of Array.from(ending).filter(
+        r => (ms(r.fromDate) == null || ms(r.fromDate) <= at) && r.priceTypeEnumId !== "PptAverage"
     )) {
         ec.message.pushErrors()
         try {

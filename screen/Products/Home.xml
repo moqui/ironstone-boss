@@ -49,7 +49,7 @@ along with this software (see the LICENSE.md file). If not, see
             <number-card title="Ending in 30 days" value="${counts.discontinuingSoon}" icon="sym_o_event_busy" size="sm"
                     link="/qapps/Products/Products?list=discontinuingSoon"/>
             <number-card title="Incomplete" value="${counts.incomplete}" icon="sym_o_rule" size="sm"
-                    link="/qapps/Products/CatalogChecks?runChecks=true&amp;checkIds=requiredFields"/>
+                    link="/qapps/Products/CatalogChecks?runChecks=true&amp;checkIds=requiredFields&amp;severity=error"/>
         </dashboard>
         <label text="As of ${summary.asOf}" type="p" style="text-caption m-muted"/>
         <container-row>

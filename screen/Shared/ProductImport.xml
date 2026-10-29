@@ -23,512 +23,537 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="stage">
         <actions>
-            <service-call name="mantle.product.ProductImportServices.stage#CatalogImport" in-map="context" out-map="result" />
+            <service-call name="mantle.product.ProductImportServices.stage#CatalogImport" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
-            <parameter name="operationKey" from="result.operationKey" />
+            <parameter name="operationKey" from="result.operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="mapping">
         <actions>
-            <service-call name="ironstone.products.ImportServices.map#CatalogImport" in-map="context" out-map="result" />
+            <service-call name="ironstone.products.ImportServices.map#CatalogImport" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
-            <parameter name="operationKey" from="result.operationKey" />
+            <parameter name="operationKey" from="result.operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="validate">
         <actions>
-            <service-call name="mantle.product.ProductImportServices.validate#CatalogImport" in-map="context" out-map="result" />
+            <service-call name="mantle.product.ProductImportServices.validate#CatalogImport" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
-            <parameter name="operationKey" from="result.operationKey" />
+            <parameter name="operationKey" from="result.operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="apply">
         <actions>
-            <service-call name="mantle.product.ProductImportServices.apply#CatalogImport" in-map="context" out-map="result" />
+            <service-call name="mantle.product.ProductImportServices.apply#CatalogImport" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
-            <parameter name="operationKey" from="result.operationKey" />
+            <parameter name="operationKey" from="result.operationKey"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="sample" read-only="true" method="get">
         <actions>
-            <service-call name="mantle.product.ProductImportServices.get#CatalogImportSample" in-map="{kindId:kindId,organizationPartyId:organizationPartyId}" out-map="report" />
+            <service-call name="mantle.product.ProductImportServices.get#CatalogImportSample" in-map="{kindId:kindId,organizationPartyId:organizationPartyId}" out-map="report"/>
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
         </actions>
-        <default-response type="none" />
+        <default-response type="none"/>
     </transition>
     <transition name="results" read-only="true" method="get">
         <actions>
-            <service-call name="mantle.product.ProductImportServices.get#CatalogImportReport" in-map="{operationKey:operationKey,errorsOnly:errorsOnly}" out-map="report" />
+            <service-call name="mantle.product.ProductImportServices.get#CatalogImportReport" in-map="{operationKey:operationKey,errorsOnly:errorsOnly}" out-map="report"/>
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
         </actions>
-        <default-response type="none" />
+        <default-response type="none"/>
     </transition>
     <actions>
-        <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context" />
+        <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context"/>
         <entity-find-one entity-name="mantle.party.Organization" value-field="organization" cache="true">
             <field-map field-name="partyId" from="organizationPartyId"/>
         </entity-find-one>
         <set field="organizationName" from="organization?.organizationName || organizationPartyId || ''"/>
     </actions>
     <widgets>
-        <label text="Product import" type="h5" />
-        <link text="Start another import" url="${sharedLinks['ProductImport']}" url-noparam="true" condition="hasImport" link-type="anchor" />
-        <label text="Upload → Map columns and values → Validate → Review and apply → Results. Saved runs resume from this page." type="p" />
+        <label text="Product import" type="h5"/>
+        <link text="Start another import" url="${sharedLinks['ProductImport']}" url-noparam="true" condition="hasImport" link-type="anchor"/>
+        <label text="Upload → Map columns and values → Validate → Review and apply → Results. Saved runs resume from this page." type="p"/>
         <section name="ImportUpload" condition="canStage &amp;&amp; !hasImport">
             <widgets>
-                <label text="1. Upload a catalog file" type="h6" />
-                <form-single name="CatalogImportUpload" transition="stage" map="uploadForm">
-                    <field name="organizationPartyId">
-                        <default-field title="Organization">
-                            <drop-down allow-empty="false">
-                                <list-options list="ownerOptions" key="${value}" text="${label}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="kindId">
-                        <default-field title="Import kind">
-                            <drop-down allow-empty="false">
-                                <list-options list="kindOptions" key="${value}" text="${label}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="importFile">
-                        <default-field title="UTF-8 CSV file">
-                            <file />
-                        </default-field>
-                    </field>
-                    <field name="sourceText">
-                        <default-field title="Or paste CSV text">
-                            <text-area rows="5" />
-                        </default-field>
-                    </field>
-                    <field name="delimiter">
-                        <default-field title="Delimiter">
-                            <drop-down allow-empty="false">
-                                <option key="," text="Comma" />
-                                <option key=";" text="Semicolon" />
-                                <option key="tab" text="Tab" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="updateMode">
-                        <default-field title="Update mode">
-                            <drop-down allow-empty="false">
-                                <option key="upsert" text="Create or update" />
-                                <option key="create" text="Create only" />
-                                <option key="update" text="Update only" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="forceNew">
-                        <default-field title="Start a separate run for the same file">
-                            <drop-down allow-empty="false">
-                                <option key="false" text="Resume existing run" />
-                                <option key="true" text="Start a new run" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="submitButton">
-                        <default-field title="Stage import">
-                            <submit />
-                        </default-field>
-                    </field>
-                </form-single>
-                <form-single name="CatalogImportSample" transition="sample">
-                    <field name="organizationPartyId">
-                        <default-field title="Organization">
-                            <drop-down allow-empty="false">
-                                <list-options list="ownerOptions" key="${value}" text="${label}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="kindId">
-                        <default-field title="Sample kind">
-                            <drop-down allow-empty="false">
-                                <list-options list="kindOptions" key="${value}" text="${label}" />
-                            </drop-down>
-                        </default-field>
-                    </field>
-                    <field name="submitButton">
-                        <default-field title="Download sample CSV">
-                            <submit />
-                        </default-field>
-                    </field>
-                </form-single>
-            </widgets>
-        </section>
-        <section name="ImportWorkspace" condition="hasImport">
-            <widgets>
-                <label text="${filename} · ${kindDescription} · ${state}" type="h6" />
-                <label text="${organizationName} · ${rowCount} rows · ${validCount} ready · ${appliedCount} applied · ${errorCount} need attention" type="p" />
-                <label text="${lastError || &quot;&quot;}" type="p" condition="!!lastError" />
-                <section name="ImportMappingEditor" condition="canEdit">
-                    <widgets>
-                        <label text="2. Map columns and values" type="h6" />
-                        <form-list name="ImportColumnMapping" list="mappingRows" transition="mapping" paginate="false">
-                            <field name="operationKey">
-                                <default-field title="">
-                                    <hidden />
+                <container-box>
+                    <box-header title="1. Upload a catalog file"/>
+                    <box-body>
+                        <form-single name="CatalogImportUpload" transition="stage" map="uploadForm">
+                            <field name="organizationPartyId">
+                                <default-field title="Organization">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="ownerOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
                                 </default-field>
                             </field>
-                            <field name="mappingRevision">
-                                <default-field title="">
-                                    <hidden />
+                            <field name="kindId">
+                                <default-field title="Import kind">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="kindOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
                                 </default-field>
                             </field>
-                            <field name="mappingAction" from="'column'">
-                                <default-field title="">
-                                    <hidden />
+                            <field name="importFile">
+                                <default-field title="UTF-8 CSV file">
+                                    <file/>
                                 </default-field>
                             </field>
-                            <field name="sourceColumn">
-                                <default-field title="Source column">
-                                    <display also-hidden="true" />
+                            <field name="sourceText">
+                                <default-field title="Or paste CSV text">
+                                    <text-area rows="5"/>
                                 </default-field>
                             </field>
-                            <field name="targetField">
-                                <default-field title="Catalog field">
-                                    <drop-down allow-empty="true">
-                                        <list-options list="targetOptions" key="${value}" text="${label}" />
+                            <field name="delimiter">
+                                <default-field title="Delimiter">
+                                    <drop-down allow-empty="false">
+                                        <option key="," text="Comma"/>
+                                        <option key=";" text="Semicolon"/>
+                                        <option key="tab" text="Tab"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="updateMode">
+                                <default-field title="Update mode">
+                                    <drop-down allow-empty="false">
+                                        <option key="upsert" text="Create or update"/>
+                                        <option key="create" text="Create only"/>
+                                        <option key="update" text="Update only"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="forceNew">
+                                <default-field title="Start a separate run for the same file">
+                                    <drop-down allow-empty="false">
+                                        <option key="false" text="Resume existing run"/>
+                                        <option key="true" text="Start a new run"/>
                                     </drop-down>
                                 </default-field>
                             </field>
                             <field name="submitButton">
-                                <default-field title="Save column mapping">
-                                    <submit />
-                                </default-field>
-                            </field>
-                            <columns type="mobile">
-                                <column><field-ref name="sourceColumn"/></column>
-                                <column><field-ref name="targetField"/></column>
-                            </columns>
-                        </form-list>
-                        <container-dialog id="ImportDefaultsDialog" button-text="Column defaults" title="Column defaults" width="700">
-                            <form-single name="ImportDefault" transition="mapping">
-                                <field name="operationKey">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingRevision">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingAction" from="'default'">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="targetField">
-                                    <default-field title="Catalog field">
-                                        <drop-down allow-empty="false">
-                                            <list-options list="targetOptions" key="${value}" text="${label}" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="defaultValue">
-                                    <default-field title="Default value">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="removeValue">
-                                    <default-field title="Action">
-                                        <drop-down allow-empty="false">
-                                            <option key="false" text="Save mapping" />
-                                            <option key="true" text="Remove mapping" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="submitButton">
-                                    <default-field title="Default for missing cells">
-                                        <submit />
-                                    </default-field>
-                                </field>
-                            </form-single>
-                        </container-dialog>
-                        <container-dialog id="ImportValuesDialog" button-text="Value mappings" title="Value mappings" width="700">
-                            <form-single name="ImportValueMapping" transition="mapping">
-                                <field name="operationKey">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingRevision">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingAction" from="'value'">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="targetField">
-                                    <default-field title="Catalog field">
-                                        <drop-down allow-empty="false">
-                                            <list-options list="targetOptions" key="${value}" text="${label}" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="sourceValue">
-                                    <default-field title="Source value">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="targetValue">
-                                    <default-field title="Catalog value">
-                                        <text-line />
-                                    </default-field>
-                                </field>
-                                <field name="removeValue">
-                                    <default-field title="Action">
-                                        <drop-down allow-empty="false">
-                                            <option key="false" text="Save mapping" />
-                                            <option key="true" text="Remove mapping" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="submitButton">
-                                    <default-field title="Map a source value">
-                                        <submit />
-                                    </default-field>
-                                </field>
-                            </form-single>
-                        </container-dialog>
-                        <container style="scroll full-width">
-                            <form-list name="ImportDefaults" list="defaultRows" skip-form="true" paginate="false">
-                                <field name="field">
-                                    <default-field title="Catalog field">
-                                        <display />
-                                    </default-field>
-                                </field>
-                                <field name="value">
-                                    <default-field title="Default value">
-                                        <display />
-                                    </default-field>
-                                </field>
-                            </form-list>
-                        </container>
-                        <container style="scroll full-width">
-                            <form-list name="ImportValueMappings" list="valueMappingRows" skip-form="true" paginate="false">
-                                <field name="field">
-                                    <default-field title="Catalog field">
-                                        <display />
-                                    </default-field>
-                                </field>
-                                <field name="sourceValue">
-                                    <default-field title="Source value">
-                                        <display />
-                                    </default-field>
-                                </field>
-                                <field name="targetValue">
-                                    <default-field title="Catalog value">
-                                        <display />
-                                    </default-field>
-                                </field>
-                                <columns type="mobile">
-                                    <column><field-ref name="field"/></column>
-                                    <column><field-ref name="sourceValue"/></column>
-                                </columns>
-                            </form-list>
-                        </container>
-                        <container-dialog id="ImportFormatsDialog" button-text="Formats and clearing" title="Formats and clearing" width="700">
-                            <form-single name="ImportFormats" transition="mapping" map="formatForm">
-                                <field name="operationKey">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingRevision">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="mappingAction" from="'formats'">
-                                    <default-field title="">
-                                        <hidden />
-                                    </default-field>
-                                </field>
-                                <field name="updateMode">
-                                    <default-field title="Update mode">
-                                        <drop-down allow-empty="false">
-                                            <option key="upsert" text="Create or update" />
-                                            <option key="create" text="Create only" />
-                                            <option key="update" text="Update only" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="dateFormat">
-                                    <default-field title="Date format">
-                                        <drop-down allow-empty="false">
-                                            <option key="iso" text="ISO date or timestamp" />
-                                            <option key="yyyy-MM-dd" text="Year-month-day" />
-                                            <option key="MM/dd/yyyy" text="Month/day/year" />
-                                            <option key="dd/MM/yyyy" text="Day/month/year" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="decimalSeparator">
-                                    <default-field title="Decimal separator">
-                                        <drop-down allow-empty="false">
-                                            <option key="." text="Point" />
-                                            <option key="," text="Comma" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="groupSeparator">
-                                    <default-field title="Thousands separator">
-                                        <drop-down allow-empty="false">
-                                            <option key="" text="None" />
-                                            <option key="," text="Comma" />
-                                            <option key="." text="Point" />
-                                            <option key=" " text="Space" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="clearFields">
-                                    <default-field title="Explicitly clear empty optional fields">
-                                        <drop-down allow-empty="true" allow-multiple="true">
-                                            <list-options list="clearOptions" key="${value}" text="${label}" />
-                                        </drop-down>
-                                    </default-field>
-                                </field>
-                                <field name="submitButton">
-                                    <default-field title="Save formats and clear choices">
-                                        <submit />
-                                    </default-field>
-                                </field>
-                            </form-single>
-                        </container-dialog>
-                        <label text="An empty cell preserves the existing value unless an optional field is explicitly selected for clearing. Validate again after changing any mapping." type="p" />
-                        <form-single name="ValidateCatalogImport" transition="validate">
-                            <field name="operationKey">
-                                <default-field title="">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="mappingRevision">
-                                <default-field title="">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="submitButton">
-                                <default-field title="Validate mapped rows">
-                                    <submit />
+                                <default-field title="Stage import">
+                                    <submit/>
                                 </default-field>
                             </field>
                         </form-single>
+                        <form-single name="CatalogImportSample" transition="sample">
+                            <field name="organizationPartyId">
+                                <default-field title="Organization">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="ownerOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="kindId">
+                                <default-field title="Sample kind">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="kindOptions" key="${value}" text="${label}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Download sample CSV">
+                                    <submit/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="ImportWorkspace" condition="hasImport">
+            <widgets>
+                <label text="${filename} · ${kindDescription} · ${state}" type="h6"/>
+                <label text="${organizationName} · ${rowCount} rows · ${validCount} ready · ${appliedCount} applied · ${errorCount} need attention" type="p"/>
+                <label text="${lastError || &quot;&quot;}" type="p" condition="!!lastError"/>
+                <section name="ImportMappingEditor" condition="canEdit">
+                    <widgets>
+                        <container-box>
+                            <box-header title="2. Map columns and values"/>
+                            <box-body>
+                                <form-list name="ImportColumnMapping" list="mappingRows" transition="mapping" paginate="false">
+                                    <field name="operationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="mappingRevision">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="mappingAction" from="'column'">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceColumn">
+                                        <default-field title="Source column">
+                                            <display also-hidden="true"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="targetField">
+                                        <default-field title="Catalog field">
+                                            <drop-down allow-empty="true">
+                                                <list-options list="targetOptions" key="${value}" text="${label}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Save column mapping">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceColumn"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="targetField"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <container-dialog id="ImportDefaultsDialog" button-text="Column defaults" title="Column defaults" width="700">
+                                    <form-single name="ImportDefault" transition="mapping">
+                                        <field name="operationKey">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingRevision">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingAction" from="'default'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="targetField">
+                                            <default-field title="Catalog field">
+                                                <drop-down allow-empty="false">
+                                                    <list-options list="targetOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="defaultValue">
+                                            <default-field title="Default value">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="removeValue">
+                                            <default-field title="Action">
+                                                <drop-down allow-empty="false">
+                                                    <option key="false" text="Save mapping"/>
+                                                    <option key="true" text="Remove mapping"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Default for missing cells">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="ImportValuesDialog" button-text="Value mappings" title="Value mappings" width="700">
+                                    <form-single name="ImportValueMapping" transition="mapping">
+                                        <field name="operationKey">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingRevision">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingAction" from="'value'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="targetField">
+                                            <default-field title="Catalog field">
+                                                <drop-down allow-empty="false">
+                                                    <list-options list="targetOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceValue">
+                                            <default-field title="Source value">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="targetValue">
+                                            <default-field title="Catalog value">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="removeValue">
+                                            <default-field title="Action">
+                                                <drop-down allow-empty="false">
+                                                    <option key="false" text="Save mapping"/>
+                                                    <option key="true" text="Remove mapping"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Map a source value">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container style="scroll full-width">
+                                    <form-list name="ImportDefaults" list="defaultRows" skip-form="true" paginate="false">
+                                        <field name="field">
+                                            <default-field title="Catalog field">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="value">
+                                            <default-field title="Default value">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                    </form-list>
+                                </container>
+                                <container style="scroll full-width">
+                                    <form-list name="ImportValueMappings" list="valueMappingRows" skip-form="true" paginate="false">
+                                        <field name="field">
+                                            <default-field title="Catalog field">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceValue">
+                                            <default-field title="Source value">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="targetValue">
+                                            <default-field title="Catalog value">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <columns type="mobile">
+                                            <column>
+                                                <field-ref name="field"/>
+                                            </column>
+                                            <column>
+                                                <field-ref name="sourceValue"/>
+                                            </column>
+                                        </columns>
+                                    </form-list>
+                                </container>
+                                <container-dialog id="ImportFormatsDialog" button-text="Formats and clearing" title="Formats and clearing" width="700">
+                                    <form-single name="ImportFormats" transition="mapping" map="formatForm">
+                                        <field name="operationKey">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingRevision">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="mappingAction" from="'formats'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="updateMode">
+                                            <default-field title="Update mode">
+                                                <drop-down allow-empty="false">
+                                                    <option key="upsert" text="Create or update"/>
+                                                    <option key="create" text="Create only"/>
+                                                    <option key="update" text="Update only"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="dateFormat">
+                                            <default-field title="Date format">
+                                                <drop-down allow-empty="false">
+                                                    <option key="iso" text="ISO date or timestamp"/>
+                                                    <option key="yyyy-MM-dd" text="Year-month-day"/>
+                                                    <option key="MM/dd/yyyy" text="Month/day/year"/>
+                                                    <option key="dd/MM/yyyy" text="Day/month/year"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="decimalSeparator">
+                                            <default-field title="Decimal separator">
+                                                <drop-down allow-empty="false">
+                                                    <option key="." text="Point"/>
+                                                    <option key="," text="Comma"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="groupSeparator">
+                                            <default-field title="Thousands separator">
+                                                <drop-down allow-empty="false">
+                                                    <option key="" text="None"/>
+                                                    <option key="," text="Comma"/>
+                                                    <option key="." text="Point"/>
+                                                    <option key=" " text="Space"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="clearFields">
+                                            <default-field title="Explicitly clear empty optional fields">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <list-options list="clearOptions" key="${value}" text="${label}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submitButton">
+                                            <default-field title="Save formats and clear choices">
+                                                <submit/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                            </box-body>
+                        </container-box>
+                        <container-box>
+                            <box-header title="3. Validate"/>
+                            <box-body>
+                                <label text="An empty cell preserves the existing value unless an optional field is explicitly selected for clearing. Validate again after changing any mapping." type="p"/>
+                                <form-single name="ValidateCatalogImport" transition="validate">
+                                    <field name="operationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="mappingRevision">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Validate mapped rows">
+                                            <submit/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </box-body>
+                        </container-box>
                     </widgets>
                 </section>
                 <section name="ImportApply" condition="canEdit &amp;&amp; !!inputFingerprint &amp;&amp; validCount &gt; 0">
                     <widgets>
-                        <label text="3. Review and apply" type="h6" />
-                        <form-single name="ApplyCatalogImport" transition="apply">
-                            <field name="operationKey">
-                                <default-field title="">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="inputFingerprint">
-                                <default-field title="">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="selectedRowIds">
-                                <default-field title="Row IDs from the preview" tooltip="Leave empty for all ready rows">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="submitButton">
-                                <default-field title="Apply reviewed valid rows">
-                                    <submit confirmation="Apply the selected ready rows? Existing source records will be checked again." />
-                                </default-field>
-                            </field>
-                        </form-single>
+                        <container-box>
+                            <box-header title="4. Review and apply"/>
+                            <box-body>
+                                <form-single name="ApplyCatalogImport" transition="apply">
+                                    <field name="operationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="inputFingerprint">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="selectedRowIds">
+                                        <default-field title="Only these row IDs" tooltip="Leave empty to apply every ready row">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton">
+                                        <default-field title="Apply reviewed valid rows">
+                                            <submit confirmation="Apply ${validCount} ready rows? Each source record is checked again first."/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </box-body>
+                        </container-box>
                     </widgets>
                 </section>
-                <label text="4. Preview and results" type="h6" />
-                <container style="scroll full-width">
-                    <form-list name="CatalogImportRows" list="previewRows" skip-form="true" paginate="false">
-                        <field name="itemSeqId">
-                            <default-field title="Row ID">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="rowNumber">
-                            <default-field title="CSV row">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="result">
-                            <default-field title="Result">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="sourceText">
-                            <default-field title="Source">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="proposedText">
-                            <default-field title="Proposed values">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="changeText">
-                            <default-field title="Changes">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="warningText">
-                            <default-field title="Warnings">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="errorMessage">
-                            <default-field title="Error">
-                                <display />
-                            </default-field>
-                        </field>
-                        <field name="resultRecordId">
-                            <default-field title="Target ID">
-                                <display />
-                            </default-field>
-                        </field>
-                        <columns type="mobile">
-                            <column><field-ref name="itemSeqId"/></column>
-                            <column><field-ref name="result"/></column>
-                        </columns>
-                    </form-list>
-                </container>
-                <form-single name="ImportPagination" transition=".">
-                    <field name="operationKey">
-                        <default-field title="">
-                            <hidden />
-                        </default-field>
-                    </field>
-                    <field name="pageIndex">
-                        <default-field title="Page index" tooltip="50 rows per page">
-                            <text-line />
-                        </default-field>
-                    </field>
-                    <field name="submitButton">
-                        <default-field title="Show page">
-                            <submit />
-                        </default-field>
-                    </field>
-                </form-single>
-                <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="Download all results CSV" parameter-map="{operationKey:operationKey,errorsOnly:false}" />
-                <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="Download error CSV" parameter-map="{operationKey:operationKey,errorsOnly:true}" />
+                <container-box>
+                    <box-header title="5. Rows and results"/>
+                    <box-toolbar>
+                        <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="All results CSV" link-type="anchor-button" icon="sym_o_download" parameter-map="{operationKey:operationKey,errorsOnly:false}"/>
+                        <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="Error CSV" link-type="anchor-button" icon="sym_o_download" parameter-map="{operationKey:operationKey,errorsOnly:true}"/>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="CatalogImportRows" list="previewRows" skip-form="true" paginate="false">
+                            <field name="itemSeqId">
+                                <default-field title="Row ID">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="rowNumber">
+                                <default-field title="CSV row">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="result">
+                                <default-field title="Result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="sourceText">
+                                <default-field title="Source">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="proposedText">
+                                <default-field title="Proposed values">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="changeText">
+                                <default-field title="Changes">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="warningText">
+                                <default-field title="Warnings">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="errorMessage">
+                                <default-field title="Error">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="resultRecordId">
+                                <default-field title="Target ID">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="itemSeqId"/>
+                                    <field-ref name="rowNumber"/>
+                                    <field-ref name="result"/>
+                                </column>
+                                <column>
+                                    <field-ref name="proposedText"/>
+                                    <field-ref name="warningText"/>
+                                    <field-ref name="errorMessage"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <container style="row items-center q-gutter-sm">
+                            <link url="." text="Previous rows" link-type="anchor-button" icon="sym_o_chevron_left" condition="(Number(pageIndex) || 0) &gt; 0" parameter-map="{operationKey:operationKey,pageIndex:(Number(pageIndex) || 0) - 1}"/>
+                            <label text="Rows ${(Number(pageIndex) || 0) * 50 + 1}–${(Number(pageIndex) || 0) * 50 + (previewRows?.length || 0)} of ${rowCount}" type="span" style="m-muted"/>
+                            <link url="." text="Next rows" link-type="anchor-button" icon="sym_o_chevron_right" condition="((Number(pageIndex) || 0) + 1) * 50 &lt; rowCount" parameter-map="{operationKey:operationKey,pageIndex:(Number(pageIndex) || 0) + 1}"/>
+                        </container>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

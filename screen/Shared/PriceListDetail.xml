@@ -91,19 +91,26 @@ along with this software (see the LICENSE.md file). If not, see
         <render-mode>
             <text type="html-print">${priceList.printHeaderHtml}</text>
         </render-mode>
-        <section name="InteractiveList1" condition="sri.getRenderMode() !== 'html-print'">
+        <!-- the header card (style-guide §3.3) of the screen; the printed list has its own header above -->
+        <section name="ListHeader" condition="sri.getRenderMode() !== 'html-print'">
             <widgets>
-                <label text="${priceList.listName}" type="h4"/>
-            </widgets>
-        </section>
-        <section name="InteractiveList2" condition="sri.getRenderMode() !== 'html-print'">
-            <widgets>
-                <label text="Effective policy at ${priceList.asOfDateText}" type="p"/>
-            </widgets>
-        </section>
-        <section name="ListPrintAction" condition="sri.getRenderMode() !== 'html-print'">
-            <widgets>
-                <link condition="priceList.effective" text="Print effective list" url="${printUrl}" url-type="plain" link-type="anchor-button" target-window="_blank"/>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <label text="${priceList.listName}" type="h5"/>
+                            <label text="Effective policy at ${priceList.asOfDateText}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-sm m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${({effective:'positive',published:'positive',scheduled:'info',draft:'warning',ended:'grey-7',retired:'grey-7'})[String(priceList.stateText ?? '').toLowerCase()] || 'primary'}">${WebUtilities.encodeHtml(String(priceList.stateText ?? ''))}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: String(priceList.stateText ?? "")})}]]></text>
+                            </render-mode>
+                            <button-menu text="More" icon="more_horiz" condition="priceList.effective">
+                                <link text="Print effective list" url="${printUrl}" url-type="plain" icon="sym_o_print" target-window="_blank"/>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
             </widgets>
         </section>
         <section name="InteractiveList4" condition="sri.getRenderMode() !== 'html-print'">
@@ -788,7 +795,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </box-body>
                 </container-box>
-                <container-dialog id="EndPriceList" title="End price list" button-text="End price list" width="960">
+                <container-dialog id="EndPriceList" title="End ${priceList.listName}" button-text="End price list" icon="sym_o_event_busy" width="600">
                     <form-single name="EndPriceListForm" transition="retire">
                         <field name="priceListId">
                             <default-field>

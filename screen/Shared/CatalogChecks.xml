@@ -13,6 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Catalog checks" default-menu-include="false">
+    <parameter name="severity"/>
     <parameter name="appRoot"/>
     <always-actions>
         <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
@@ -21,115 +22,138 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
         <set field="printBase" from="sharedMountContext.printBase"/>
     </always-actions>
+    <transition-include name="choices" location="component://mr-boss/template/CatalogChoiceTransitions.xml"/>
     <actions>
         <service-call name="ironstone.products.CheckServices.get#CheckContext" in-map="context" out-map="context"/>
+        <!-- Home's Incomplete card opens the error issues: an optional severity narrows the issues shown -->
+        <set field="issueRows" from="severity &amp;&amp; issueRows ? issueRows.filter(row =&gt; row.severity === severity) : issueRows"/>
     </actions>
     <widgets>
-        <label text="Catalog checks" type="h5"/>
-        <label text="Readiness issues include evidence and a suggested correction. Each record is checked independently." type="p"/>
-        <form-single name="CheckSelection" transition="." map="checkForm">
-            <field name="runChecks">
-                <default-field title="">
-                    <hidden/>
-                </default-field>
-            </field>
-            <field name="productIds">
-                <default-field title="Product IDs" tooltip="Leave empty to check the whole visible catalog">
-                    <text-line/>
-                </default-field>
-            </field>
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <list-options list="ownerOptions" key="${value}" text="${label}"/>
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="checkIds">
-                <default-field title="Checks">
-                    <drop-down allow-empty="true" allow-multiple="true">
-                        <list-options list="checkOptions" key="${value}" text="${label}"/>
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="productCategoryId">
-                <default-field title="Category ID" tooltip="Optional">
-                    <text-line/>
-                </default-field>
-            </field>
-            <field name="includeDescendants">
-                <default-field title="Include descendant categories">
-                    <drop-down allow-empty="false">
-                        <option key="false" text="No"/>
-                        <option key="true" text="Yes"/>
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="includeInactive">
-                <default-field title="Include discontinued and obsolete products">
-                    <drop-down allow-empty="false">
-                        <option key="false" text="No"/>
-                        <option key="true" text="Yes"/>
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="asOfDate">
-                <default-field title="As of">
-                    <date-time/>
-                </default-field>
-            </field>
-            <field name="submitButton">
-                <default-field title="Run catalog checks">
-                    <submit/>
-                </default-field>
-            </field>
-        </form-single>
+        <container-box>
+            <box-header title="Catalog checks"/>
+            <box-body>
+                <label text="Readiness issues include evidence and a suggested correction. Each record is checked independently." type="p"/>
+                <form-single name="CheckSelection" transition="." map="checkForm">
+                    <field name="runChecks">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="productIds">
+                        <default-field title="Product IDs" tooltip="Leave empty to check the whole visible catalog">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <list-options list="ownerOptions" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="checkIds">
+                        <default-field title="Checks">
+                            <drop-down allow-empty="true" allow-multiple="true">
+                                <list-options list="checkOptions" key="${value}" text="${label}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="productCategoryId">
+                        <default-field title="Category">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'categories',selected:productCategoryId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="includeDescendants">
+                        <default-field title="Include descendant categories">
+                            <drop-down allow-empty="false">
+                                <option key="false" text="No"/>
+                                <option key="true" text="Yes"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="includeInactive">
+                        <default-field title="Include discontinued and obsolete products">
+                            <drop-down allow-empty="false">
+                                <option key="false" text="No"/>
+                                <option key="true" text="Yes"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="asOfDate">
+                        <default-field title="As of">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Run catalog checks">
+                            <submit/>
+                        </default-field>
+                    </field>
+                </form-single>
+            </box-body>
+        </container-box>
         <section name="CatalogCheckResults" condition="catalogChecksRan">
             <widgets>
-                <label text="${checkedCount} products checked · ${issueCount} issues · ${incompleteCount} incomplete products" type="p"/>
-                <container style="scroll full-width">
-                    <form-list name="CatalogIssues" list="issueRows" skip-form="true" paginate="false" show-csv-button="true">
-                        <field name="productId">
-                            <default-field title="Product">
-                                <link url="${sharedLinks['Products/Product360']}" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId"/>
-                            </default-field>
-                        </field>
-                        <field name="productCategoryId">
-                            <default-field title="Category">
-                                <link url="${sharedLinks['Categories/CategoryDetail']}" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/>
-                            </default-field>
-                        </field>
-                        <field name="checkId">
-                            <default-field title="Check">
-                                <display/>
-                            </default-field>
-                        </field>
-                        <field name="severity">
-                            <default-field title="Severity">
-                                <display/>
-                            </default-field>
-                        </field>
-                        <field name="evidence">
-                            <default-field title="Evidence">
-                                <display/>
-                            </default-field>
-                        </field>
-                        <field name="suggestedAction">
-                            <default-field title="Suggested action">
-                                <display/>
-                            </default-field>
-                        </field>
-                        <field name="retry">
-                            <default-field title="Retry">
-                                <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'"/>
-                            </default-field>
-                        </field>
-                        <columns type="mobile">
-                            <column><field-ref name="productId"/></column>
-                            <column><field-ref name="severity"/></column>
-                        </columns>
-                    </form-list>
-                </container>
+                <container-box>
+                    <box-header title="Issues"/>
+                    <box-body-nopad>
+                        <label text="${checkedCount} products checked · ${issueCount} issues · ${incompleteCount} incomplete products" type="p" style="q-px-md q-pt-sm m-muted"/>
+                        <form-list name="CatalogIssues" list="issueRows" skip-form="true" paginate="false" show-csv-button="true">
+                            <field name="productId">
+                                <default-field title="Product">
+                                    <link url="${sharedLinks['Products/Product360']}" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId"/>
+                                </default-field>
+                            </field>
+                            <field name="productCategoryId">
+                                <default-field title="Category">
+                                    <link url="${sharedLinks['Categories/CategoryDetail']}" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/>
+                                </default-field>
+                            </field>
+                            <field name="checkId">
+                                <default-field title="Check">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="severity">
+                                <default-field title="Severity">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${severity === 'error' ? 'negative' : severity === 'warning' ? 'warning' : 'info'}">${WebUtilities.encodeHtml(String(severity ?? ''))}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", text: String(severity ?? "")})}]]></text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <field name="evidence">
+                                <default-field title="Evidence">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="suggestedAction">
+                                <default-field title="Suggested action">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="retry">
+                                <default-field title="Retry">
+                                    <link url="." text="Retry check" parameter-map="{productIds:productId,productCategoryId:productCategoryId,checkIds:checkId,runChecks:true,asOfDate:asOfDate}" condition="checkId !== 'record'"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="productId"/>
+                                    <field-ref name="productCategoryId"/>
+                                    <field-ref name="severity"/>
+                                </column>
+                                <column>
+                                    <field-ref name="evidence"/>
+                                    <field-ref name="suggestedAction"/>
+                                    <field-ref name="retry"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
             </widgets>
         </section>
     </widgets>

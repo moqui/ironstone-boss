@@ -70,7 +70,7 @@ feature("an editor maps a file, reviews valid and invalid rows, applies and resu
         p.goto("/qapps/Products/ProductImport?operationKey=" + key).status == 200
         p.text().includes("1 applied")
         p.locator("#ApplyCatalogImport").count() == 0
-        const download = p.getByRole("link", {name: "Download error CSV", exact: true}).attribute("href")
+        const download = p.getByRole("link", {name: "Error CSV", exact: false}).attribute("href")
         download.includes("/apps/Products/ProductImport/Index/results")
         const s = session({user: "catalog.edit"}),
             report = s.get(download)

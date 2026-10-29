@@ -1,20 +1,23 @@
+// App routing is local to this invocation, including nested catalog reads.
+function run(op,parameters){
+const requestedRoot=parameters.appRoot||'Products'
 // Products view of Warehouse-owned inventory and policy. Quantities are scoped before they enter a response.
 const C='ironstone.products.CatalogServices.',P='mantle.product.',F='mantle.facility.',W=F+'WarehousePolicyServices.'
 const find=(n,p={})=>ec.entity.find(n).condition(p).disableAuthz(),one=(n,p)=>find(n,p).one(),rows=(n,p)=>Array.from(find(n,p).list())
-const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(p).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
+const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(Object.assign({appRoot:requestedRoot},p)).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
 const map=r=>r?.getMap?r.getMap():Object.assign({},r||{}),ms=v=>v==null||v===''?null:Number.isFinite(Number(String(v)))?Number(String(v)):Date.parse(String(v)),dec=v=>toDecimal(v??0)
 const fieldLabels={lotRequired:'Lot required',serialRequired:'Serial required',expiryBlock:'Block expired stock',serialPattern:'Serial pattern',lotPattern:'Lot pattern',shelfLifeDays:'Shelf life in days',nearExpiryDays:'Near-expiry warning days',minimumRemainingShelfLifeDays:'Minimum remaining shelf life'}
 function context(p){
- const a=call(C+'get#CatalogAccess'),product=call(C+'get#CatalogRecord',{recordId:p.productId,checkOnly:true}).record
+ const a=call(C+'get#SharedContext',{appRoot:p.appRoot}),product=call(C+'get#CatalogRecord',{recordId:p.productId,checkOnly:true}).record
  if(!product)throw new Error('Product is not available')
- if(p.appRoot&&p.appRoot!=='Products')throw new Error('Only the Products stock context is available')
+
  let facilities=rows(F+'Facility').filter(r=>(a.capabilities.systemAdmin||a.ownerPartyIds.includes(r.ownerPartyId))&&one('mantle.party.PartyRole',{partyId:r.ownerPartyId,roleTypeId:'OrgInternal'}))
  if(p.organizationPartyId&&!p.facilityId)facilities=facilities.filter(r=>r.ownerPartyId===p.organizationPartyId)
  const facility=p.facilityId?facilities.find(r=>r.facilityId===p.facilityId):facilities.find(r=>r.facilityTypeEnumId==='FcTpWarehouse')||facilities[0]
  if(p.facilityId&&!facility)throw new Error('Facility is not available')
  const organizationPartyId=facility?.ownerPartyId||p.organizationPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0]
  if(organizationPartyId&&!a.capabilities.systemAdmin&&!a.ownerPartyIds.includes(organizationPartyId))throw new Error('Stock organization is not available')
- return{appRoot:'Products',product:map(product),productId:p.productId,stockable:['PtAsset','PtDigitalAsset','PtAssetUse','PtPickAssembly'].includes(product.productTypeEnumId),facility:facility?map(facility):null,facilityId:facility?.facilityId||null,organizationPartyId,facilityOptions:facilities.map(r=>({value:r.facilityId,label:(r.facilityName||r.facilityId)+' · '+r.ownerPartyId})),canPlan:!!(a.capabilities.stockPlan||a.capabilities.stockManage),costRead:!!a.capabilities.costRead}
+ return{appRoot:a.appRoot,product:map(product),productId:p.productId,stockable:['PtAsset','PtDigitalAsset','PtAssetUse','PtPickAssembly'].includes(product.productTypeEnumId),facility:facility?map(facility):null,facilityId:facility?.facilityId||null,organizationPartyId,facilityOptions:facilities.map(r=>({value:r.facilityId,label:(r.facilityName||r.facilityId)+' · '+r.ownerPartyId})),canPlan:!!(a.capabilities.stockPlan||a.capabilities.stockManage),costRead:!!a.capabilities.costRead}
 }
 function stock(p){
  const c=context(p),checkedAt=ms(ec.user.nowTimestamp)
@@ -53,4 +56,6 @@ function policy(p){
 function storeFacility(p){const c=context(p);if(!c.canPlan)throw new Error('Warehouse stock-planner or manager authority is required');return call(F+'FacilityServices.store#ProductFacilityPolicy',Object.assign({},p,{productId:c.productId,facilityId:c.facilityId,organizationPartyId:c.organizationPartyId}))}
 function storeTracking(p){const c=context(p);if(!c.canPlan)throw new Error('Warehouse stock-planner or manager authority is required');return call(W+'store#TrackingPolicy',Object.assign({},p,{productId:c.productId,organizationPartyId:c.organizationPartyId,facilityId:p.trackingScope==='organization'?null:c.facilityId,fromDate:p.effectiveFromDate||p.fromDate||null}))}
 function execute(op,p){return({context,stock,projection,policy,storeFacility,storeTracking})[op](p)}
-;({execute})
+return execute(op,parameters)
+}
+;({execute:run})

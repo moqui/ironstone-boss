@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="BOM" default-menu-include="false">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('BOM')</expression></condition>
     <parameter name="appRoot" />
     <parameter name="productId" />
     <parameter name="productBomId" />
@@ -8,6 +9,11 @@
     <parameter name="asOfDate" />
     <parameter name="selectedBomItemId" />
     <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
         <service-call name="ironstone.products.MethodServices.get#MethodContext" in-map="context" out-map="context" />
     </always-actions>
     <subscreens default-item="Overview">

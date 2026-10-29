@@ -4,6 +4,13 @@
     <parameter name="priceListId" />
     <parameter name="asOfDate" />
     <parameter name="includeHistory" />
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <transition name="store">
         <actions>
             <service-call name="ironstone.products.PriceListServices.store#ProductPriceList" in-map="context" out-map="saved" />
@@ -46,7 +53,7 @@
         <service-call name="ironstone.products.PriceListServices.get#PriceListDetail" in-map="context" out-map="context" />
         <set field="ruleEdits" from="priceRuleRows.map(r =&gt; Object.assign({},r,{expectedLastUpdatedStamp:r.lastUpdatedStamp,fromDate:null}))" />
         <set field="header" from="Object.assign({},successor,{fromDate:null,expectedLastUpdatedStamp:priceList.lastUpdatedStamp,priority:String(priceList.priority || 0)})" />
-        <set field="printUrl" from="'/apps/Products/Prices/PriceLists/PriceListDetail?renderMode=html-print&amp;priceListId='+encodeURIComponent(priceListId)+'&amp;asOfDate='+encodeURIComponent(asOfDate || ec.user.nowTimestamp)" />
+        <set field="printUrl" from="printBase+'/Prices/PriceLists/PriceListDetail?renderMode=html-print&amp;priceListId='+encodeURIComponent(priceListId)+'&amp;asOfDate='+encodeURIComponent(asOfDate || ec.user.nowTimestamp)" />
     </actions>
     <widgets>
         <render-mode>
@@ -772,7 +779,7 @@
         </section>
         <section name="InteractiveList7" condition="sri.getRenderMode() !== 'html-print'">
             <widgets>
-                <link text="Explain a transaction price" url="//Products/Prices/PriceExplain">
+                <link text="Explain a transaction price" url="${sharedLinks['Prices/PriceExplain']}">
                     <parameter name="priceListId" />
                     <parameter name="organizationPartyId" from="priceList.organizationPartyId" />
                     <parameter name="direction" from="priceList.direction" />

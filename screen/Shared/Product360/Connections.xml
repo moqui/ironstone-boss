@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Connections" default-menu-index="10">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Connections')</expression></condition>
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>

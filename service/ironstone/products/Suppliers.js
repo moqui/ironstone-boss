@@ -1,14 +1,17 @@
+// App routing is local to this invocation, including nested catalog reads.
+function run(op,parameters){
+const requestedRoot=parameters.appRoot||'Products'
 // Products context for supplier offers. The native price policy remains the writer and amount guard.
 const C='ironstone.products.CatalogServices.',S='ironstone.products.SupplierServices.',P='mantle.product.'
 const find=(n,p={})=>ec.entity.find(n).condition(p).disableAuthz(),one=(n,p)=>find(n,p).one(),rows=(n,p)=>Array.from(find(n,p).list())
-const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(p).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
+const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(Object.assign({appRoot:requestedRoot},p)).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
 const ms=v=>v==null||v===''?null:Number.isFinite(Number(String(v)))?Number(String(v)):Date.parse(String(v))
 const active=(r,at)=>(ms(r.fromDate)??-Infinity)<=at&&(ms(r.thruDate)??Infinity)>at
 const price=(op,p)=>ec.resource.script('component://mr-boss/service/ironstone/products/Prices.js').execute(op,p)
 function scope(p,write=false){
- const a=call(C+'get#CatalogAccess'),organizationPartyId=p.organizationPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0]
+ const a=call(C+'get#SharedContext',{appRoot:p.appRoot}),organizationPartyId=p.organizationPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0]
  if(!(write?a.capabilities.supplierPriceEdit:a.capabilities.supplierPriceRead))throw new Error('Supplier-price authority is required')
- if(p.appRoot&&p.appRoot!=='Products')throw new Error('Only the Products supplier context is available')
+
  if(!organizationPartyId||!one('mantle.party.PartyRole',{partyId:organizationPartyId,roleTypeId:'OrgInternal'})||!a.capabilities.systemAdmin&&!a.organizationPartyIds.includes(organizationPartyId))throw new Error('Choose an available internal buying organization')
  return Object.assign({},a,{organizationPartyId})
 }
@@ -48,9 +51,9 @@ function offers(p){
  }
  all.sort((x,y)=>String(p.groupBy==='product'?x.productId:x.vendorPartyId).localeCompare(String(p.groupBy==='product'?y.productId:y.vendorPartyId))||String(x.productId).localeCompare(String(y.productId))||ms(y.fromDate)-ms(x.fromDate))
  const pageSize=Math.max(1,Math.min(100,Number(p.pageSize||25))),pageIndex=Math.max(0,Math.min(Math.max(0,Math.ceil(all.length/pageSize)-1),Number(p.pageIndex||0)))
- return{appRoot:'Products',organizationPartyId:a.organizationPartyId,offerRows:all.slice(pageIndex*pageSize,(pageIndex+1)*pageSize),offerRowsCount:all.length,pageIndex,pageSize,canSupplierPriceEdit:a.capabilities.supplierPriceEdit}
+ return{appRoot:a.appRoot,organizationPartyId:a.organizationPartyId,offerRows:all.slice(pageIndex*pageSize,(pageIndex+1)*pageSize),offerRowsCount:all.length,pageIndex,pageSize,canSupplierPriceEdit:a.capabilities.supplierPriceEdit}
 }
-function options(p){const a=scope(p),out=price('options',{}),enums=t=>rows('moqui.basic.Enumeration',{enumTypeId:t}).map(r=>({value:r.enumId,label:r.description||r.enumId}));out.priceOptions.types=out.priceOptions.types.filter(r=>r.value!=='PptAverage');out.priceOptions.organizations=out.priceOptions.organizations.filter(r=>a.capabilities.systemAdmin||a.organizationPartyIds.includes(r.value));out.pricingDefaults=call(P+'PriceServices.get#PricingSettings',{organizationPartyId:a.organizationPartyId}).settings;return Object.assign(out,{organizationPartyId:a.organizationPartyId,preferenceOptions:enums('SupplierPreferredOrder'),ratingOptions:enums('SupplierRatingType'),appRoot:'Products'})}
+function options(p){const a=scope(p),out=price('options',{}),enums=t=>rows('moqui.basic.Enumeration',{enumTypeId:t}).map(r=>({value:r.enumId,label:r.description||r.enumId}));out.priceOptions.types=out.priceOptions.types.filter(r=>r.value!=='PptAverage');out.priceOptions.organizations=out.priceOptions.organizations.filter(r=>a.capabilities.systemAdmin||a.organizationPartyIds.includes(r.value));out.pricingDefaults=call(P+'PriceServices.get#PricingSettings',{organizationPartyId:a.organizationPartyId}).settings;return Object.assign(out,{organizationPartyId:a.organizationPartyId,preferenceOptions:enums('SupplierPreferredOrder'),ratingOptions:enums('SupplierRatingType'),appRoot:a.appRoot})}
 function write(op,p){
  const a=scope(p,true),old=p.productPriceId?one(P+'ProductPrice',{productPriceId:p.productPriceId}):null
  if(p.productPriceId&&!old)throw new Error('Supplier offer is not available')
@@ -61,7 +64,9 @@ function write(op,p){
 }
 function detail(p){
  const a=scope(p),party=supplier(p.vendorPartyId||p.partyId,a),contacts=call('ironstone.commons.ContactServices.get#ContactRecord',{partyId:party.partyId})
- return{appRoot:'Products',organizationPartyId:a.organizationPartyId,vendorPartyId:party.partyId,supplier:{partyId:party.partyId,supplierName:one('mantle.party.Organization',{partyId:party.partyId})?.organizationName||party.partyId,ownerPartyId:party.ownerPartyId,canEditContact:!!contacts.access?.canEdit},contactRows:contacts.contactMechList||[],addressRows:contacts.addressList||[],roleRows:rows('mantle.party.PartyRole',{partyId:party.partyId}).map(r=>({roleTypeId:r.roleTypeId})),relatedContacts:(contacts.relationshipList||[]).filter(r=>partyVisible(one('mantle.party.Party',{partyId:r.otherPartyId||r.partyId}),a))}
+ return{appRoot:a.appRoot,organizationPartyId:a.organizationPartyId,vendorPartyId:party.partyId,supplier:{partyId:party.partyId,supplierName:one('mantle.party.Organization',{partyId:party.partyId})?.organizationName||party.partyId,ownerPartyId:party.ownerPartyId,canEditContact:!!contacts.access?.canEdit},contactRows:contacts.contactMechList||[],addressRows:contacts.addressList||[],roleRows:rows('mantle.party.PartyRole',{partyId:party.partyId}).map(r=>({roleTypeId:r.roleTypeId})),relatedContacts:(contacts.relationshipList||[]).filter(r=>partyVisible(one('mantle.party.Party',{partyId:r.otherPartyId||r.partyId}),a))}
 }
 function execute(op,p){if(op==='offers')return offers(p);if(op==='options')return options(p);if(op==='detail')return detail(p);return write(op,p)}
-;({execute})
+return execute(op,parameters)
+}
+;({execute:run})

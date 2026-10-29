@@ -1,11 +1,19 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Product import" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.ImportServices.get#ImportContext" in-map="context" out-map="context" />
     </actions>
     <transition name="stage">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.stage#CatalogImport" in-map="context" out-map="result" />
         </actions>
@@ -16,7 +24,7 @@
     </transition>
     <transition name="mapping">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="ironstone.products.ImportServices.map#CatalogImport" in-map="context" out-map="result" />
         </actions>
@@ -27,7 +35,7 @@
     </transition>
     <transition name="validate">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.validate#CatalogImport" in-map="context" out-map="result" />
         </actions>
@@ -38,7 +46,7 @@
     </transition>
     <transition name="apply">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.apply#CatalogImport" in-map="context" out-map="result" />
         </actions>
@@ -49,7 +57,7 @@
     </transition>
     <transition name="sample" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.get#CatalogImportSample" in-map="{kindId:kindId,organizationPartyId:organizationPartyId}" out-map="report" />
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
@@ -58,7 +66,7 @@
     </transition>
     <transition name="results" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="importAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="importAccess" />
             <script>if(!importAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ProductImportServices.get#CatalogImportReport" in-map="{operationKey:operationKey,errorsOnly:errorsOnly}" out-map="report" />
             <script>ec.web.sendTextResponse(report.reportCsv,'text/csv',report.filename)</script>
@@ -67,7 +75,7 @@
     </transition>
     <widgets>
         <label text="Product import" type="h5" />
-        <link text="Start another import" url="//Products/ProductImport" url-noparam="true" condition="hasImport" link-type="anchor" />
+        <link text="Start another import" url="${sharedLinks['ProductImport']}" url-noparam="true" condition="hasImport" link-type="anchor" />
         <label text="Upload → Map columns and values → Validate → Review and apply → Results. Saved runs resume from this page." type="p" />
         <section name="ImportUpload" condition="canStage &amp;&amp; !hasImport">
             <widgets>
@@ -502,8 +510,8 @@
                         </default-field>
                     </field>
                 </form-single>
-                <link url="/apps/Products/ProductImport/Index/results" url-type="plain" text="Download all results CSV" parameter-map="{operationKey:operationKey,errorsOnly:false}" />
-                <link url="/apps/Products/ProductImport/Index/results" url-type="plain" text="Download error CSV" parameter-map="{operationKey:operationKey,errorsOnly:true}" />
+                <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="Download all results CSV" parameter-map="{operationKey:operationKey,errorsOnly:false}" />
+                <link url="${printBase}/ProductImport/Index/results" url-type="plain" text="Download error CSV" parameter-map="{operationKey:operationKey,errorsOnly:true}" />
             </widgets>
         </section>
     </widgets>

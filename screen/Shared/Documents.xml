@@ -1,11 +1,19 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Documents">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
     </actions>
     <transition name="storeContent">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.store#CatalogContent" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
@@ -22,7 +30,7 @@
     </transition>
     <transition name="uploadContents">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.upload#CatalogContents" in-map="Object.assign({},context,{contentId:null,productContentId:null,productCategoryContentId:null})" out-map="result" />
             <script>for(const row of result.uploadResults||[]) ec.message.addMessage(row.filename+': '+(row.success?'Uploaded':row.error))</script>
@@ -116,8 +124,8 @@
                 </default-field>
             </field>
         </form-single>
-        <link text="Translations" url="//Products/Translations" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
-        <link text="Print product datasheet" url="//Products/DocumentDetail/datasheet" condition="!!productId &amp;&amp; recordKind !== 'category'" target="_blank" parameter-map="{productId:productId}" />
+        <link text="Translations" url="${sharedLinks['Translations']}" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
+        <link text="Print product datasheet" url="${sharedLinks['DocumentDetail/datasheet']}" condition="!!productId &amp;&amp; recordKind !== 'category'" target="_blank" parameter-map="{productId:productId}" />
         <section name="DocumentList" condition="view !== 'cards'">
             <widgets>
                 <form-list name="Documents" list="contentRows" skip-form="true" paginate="false">

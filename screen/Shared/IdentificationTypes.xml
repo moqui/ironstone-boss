@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identification types" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'identifiers'})" out-map="context" />
     </actions>
@@ -12,7 +20,7 @@
     </transition>
     <transition name="storePolicy">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.catalogAdmin)throw new Error('Catalog catalogAdmin access is required')</script>
             <service-call name="mantle.product.IdentifierServices.store#IdentifierPolicy" in-map="context" out-map="result" />
         </actions>

@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Inventory revaluation" default-menu-include="false">
+    <parameter name="appRoot"/>
     <parameter name="productStandardCostId" />
     <parameter name="productId" />
     <parameter name="organizationPartyId" />
     <parameter name="facilityId" />
     <parameter name="previewId" />
     <parameter name="operationKey" />
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context" />
     </actions>

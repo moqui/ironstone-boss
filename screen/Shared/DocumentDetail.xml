@@ -1,11 +1,19 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Document">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.DocumentServices.get#DocumentContext" in-map="context" out-map="context" />
     </actions>
     <transition name="save">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.store#CatalogContent" in-map="context" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
@@ -22,7 +30,7 @@
     </transition>
     <transition name="restore">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ContentServices.restore#CatalogContent" in-map="context" out-map="result" />
             <script>if(result.conflict)ec.message.addMessage('This document changed. Your submission is retained as a separate draft; review it beside the current version.')</script>
@@ -39,7 +47,7 @@
     </transition>
     <transition name="download" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ContentServices.get#CatalogContentResource" in-map="context" out-map="result" />
             <script>if(result.contentLocation)ec.web.sendResourceResponse(result.contentLocation,String(inline)==='true'&amp;&amp;result.inlineAllowed,result.filename)</script>
@@ -48,7 +56,7 @@
     </transition>
     <transition name="datasheet" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="documentAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="documentAppAccess" />
             <script>if(!documentAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.ContentServices.get#ProductDatasheet" in-map="context" out-map="result" />
             <script>ec.web.sendTextResponse(result.printHtml,'text/html',null)</script>
@@ -57,7 +65,7 @@
     </transition>
     <widgets>
         <label text="Document detail" type="h5" />
-        <link text="All documents" url="//Products/Documents" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
+        <link text="All documents" url="${sharedLinks['Documents']}" parameter-map="{productId:productId,productCategoryId:productCategoryId,recordKind:recordKind}" />
         <section name="SelectedDocument" condition="!!document">
             <widgets>
                 <label text="${document.filename}" type="h6" />

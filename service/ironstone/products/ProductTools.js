@@ -1,7 +1,10 @@
+// Each exported screen operation receives a fresh routing scope.
+function scopeFor(parameters){
+const requestedRoot=parameters.appRoot||'Products'
 // Products workspace reads and shapes. Mutating transitions call the owning domain service directly.
 const policy=()=>ec.resource.script('component://mr-mantle/service/mantle/product/CatalogPolicy.js'),call=(n,p={})=>policy().call(n,p)
 function context(p){
- if(p.appRoot&&p.appRoot!=='Products')throw new Error('Catalog tools context is not available');const a=call('ironstone.products.CatalogServices.get#CatalogAccess');if(!a.capabilities.read)throw new Error('Catalog read access is required');const out={appRoot:'Products',toolAccess:a.capabilities,workspace:p.workspace||'units',toolMessage:'',unitForm:{uomId:'',uomTypeEnumId:'UT_OTHER_MEASURE'},conversionForm:{conversionFactor:'1',conversionOffset:0,fromDate:null},packagingForm:{quantity:1,quantityUomId:'OTH_ea',fromDate:null},identifierPolicyForm:null,labelRows:[],findings:[],scanResult:null,operationKey:p.operationKey||null,labelDraft:{productIds:p.productIds||p.productId||'',copies:1,templateId:'product-50x30',symbology:'auto',priceUomId:'USD'}}
+ const a=call('ironstone.products.CatalogServices.get#SharedContext',{appRoot:p.appRoot});if(!a.capabilities.read)throw new Error('Catalog read access is required');const out={appRoot:a.appRoot,toolAccess:a.capabilities,workspace:p.workspace||'units',toolMessage:'',unitForm:{uomId:'',uomTypeEnumId:'UT_OTHER_MEASURE'},conversionForm:{conversionFactor:'1',conversionOffset:0,fromDate:null},packagingForm:{quantity:1,quantityUomId:'OTH_ea',fromDate:null},identifierPolicyForm:null,labelRows:[],findings:[],scanResult:null,operationKey:p.operationKey||null,labelDraft:{productIds:p.productIds||p.productId||'',copies:1,templateId:'product-50x30',symbology:'auto',priceUomId:'USD'}}
  const date=v=>v?ec.l10n.format(new Date(policy().ms(v)),'yyyy-MM-dd HH:mm:ss'):''
  const opts=call('ironstone.products.CatalogServices.get#CatalogOptions');out.ownerOptions=opts.options?.owners||[];out.identifierTypes=opts.options?.idTypes||[];out.unitOptions=opts.options?.units||[]
  if(out.workspace==='units'){
@@ -16,4 +19,6 @@ function context(p){
  }else throw new Error('Unknown catalog workspace')
  return out
 }
-;({context})
+return {context}
+}
+;({context:p=>scopeFor(p).context(p)})

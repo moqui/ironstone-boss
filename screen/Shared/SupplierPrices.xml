@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Supplier prices" default-menu-index="1">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Suppliers')</expression></condition>
     
 
     <parameter name="appRoot"/>
@@ -14,6 +15,13 @@
     <parameter name="groupBy"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     
 
     <transition name="store">
@@ -65,7 +73,7 @@
     
 
     <transition name="bulk">
-        <default-response url="//Products/Products/BulkPrice">
+        <default-response url="${sharedLinks['Products/BulkPrice']}">
             <parameter name="direction" value="purchase"/>
             <parameter name="organizationPartyId"/>
             <parameter name="vendorPartyId"/>
@@ -583,14 +591,14 @@
 
                     <field name="openSupplier">
                         <default-field title="Supplier record">
-                            <link url="//Products/Suppliers/Supplier360" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['Suppliers/Supplier360']}" text="Supplier360" parameter-map="{vendorPartyId:vendorPartyId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
                     
 
                     <field name="openProduct">
                         <default-field title="Product record">
-                            <link url="//Products/Products/Product360" text="Product360" parameter-map="{productId:productId}"/>
+                            <link url="${sharedLinks['Products/Product360']}" text="Product360" parameter-map="{productId:productId}"/>
                         </default-field>
                     </field>
                     

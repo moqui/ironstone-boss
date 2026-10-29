@@ -1,7 +1,11 @@
+// Each invocation keeps its app route local; helpers never capture a cached service context.
+function run(op,parameters){
+const requestedRoot=parameters.appRoot||'Products'
+ec.service.sync().name('ironstone.products.CatalogServices.get#SharedContext').parameters({appRoot:requestedRoot}).call()
 // Catalog application operations. Every entry checks the current user; request capabilities and entity names are ignored.
 const C = 'ironstone.products.CatalogServices.'
 const P = 'mantle.product.'
-const call = (name, p, sys = false) => { let c = ec.service.sync().name(name).parameters(p || {}); if (sys) c = c.disableAuthz(); return c.call() || {} }
+const call = (name, p, sys = false) => { let c = ec.service.sync().name(name).parameters(Object.assign({appRoot:requestedRoot},p || {})); if (sys) c = c.disableAuthz(); return c.call() || {} }
 const find = (n, p) => ec.entity.find(n).condition(p || {}).disableAuthz()
 const one = (n, p) => find(n, p).one()
 const list = (n, p) => Array.from(find(n, p).list())
@@ -13,7 +17,7 @@ function withDates(row) {
     return data
 }
 const current = row => (ms(row.fromDate) == null || ms(row.fromDate) <= ms(ec.user.nowTimestamp)) && (ms(row.thruDate) == null || ms(row.thruDate) > ms(ec.user.nowTimestamp))
-const access = () => call(C + 'get#CatalogAccess')
+const access = (p={}) => call(C + 'get#SharedContext',Object.assign({},p,{appRoot:requestedRoot}))
 function record(id, need = 'read', entity = P + 'Product') {
     const out = call(C + 'get#CatalogRecord', {recordId: id, need, recordEntityName: entity, checkOnly: true})
     if (!out.record) throw new Error('Catalog record ' + id + ' is not available for this action')
@@ -151,6 +155,7 @@ function detail(p) {
     return {detail:result}
 }
 function connections(id) {
+    const allowed=access({includeConnections:true}).connectionTypes
     const sources = [['Orders','mantle.order.OrderItem','orderId','mantle.order.OrderHeader'], ['Invoices','mantle.account.invoice.InvoiceItem','invoiceId','mantle.account.invoice.Invoice'],
         ['Shipments','mantle.shipment.ShipmentItem','shipmentId','mantle.shipment.Shipment'], ['Production','mantle.work.effort.WorkEffortProduct','workEffortId','mantle.work.effort.WorkEffort'],
         ['Requests','mantle.request.RequestItem','requestId','mantle.request.Request'], ['Agreements','mantle.party.agreement.AgreementItem','agreementId','mantle.party.agreement.Agreement']]
@@ -160,8 +165,7 @@ function connections(id) {
         try {
             const ids = new Set()
             // Need explicit entity visibility in addition to parent visibility: a catalog role confers no transaction launcher.
-            const groups = label==='Production' ? ['BOSS_MANUFACTURING_READ'] : label==='Shipments' ? ['BOSS_WAREHOUSE_MANAGER'] : ['BOSS_PROJECT_MANAGER']
-            if (!ec.user.isInGroup('ADMIN') && !groups.some(group=>ec.user.isInGroup(group))) continue
+            if (!allowed.includes(label)) continue
             if (!ec.artifactExecution.isPermitted(entity, 'AT_ENTITY', 'view')) continue
             for (const row of list(entity, {productId:id})) {
                 const check = call('mantle.party.CommunicationServices.get#RecordLinkInfo', {recordEntityName:parent, recordId:row[key], checkOnly:true})
@@ -382,4 +386,6 @@ function choices(p) {
     return {rows:options().options[p.choice].filter(row=>!term || String(row.value+' '+row.label).toLowerCase().includes(term)).slice(0,50)}
 }
 function execute(op,p) { return ({settings,storeSettings,storeProduct,transition,storeRow,choices,detail,deleteProduct,bulk,clone,findProducts,summary,palette,options})[op](p || {}) }
-;({execute})
+return execute(op,parameters)
+}
+;({execute:run})

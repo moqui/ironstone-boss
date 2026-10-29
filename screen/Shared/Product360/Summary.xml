@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Summary" default-menu-index="1">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Summary')</expression></condition>
     <widgets>
-        <link url="//Products/Units/Labels" text="Product labels" parameter-map="{productId:productId}" condition="productFound"/>
-        <section name="ProductTags" condition="productFound &amp;&amp; detail.tagRows.length"><widgets><container style="row q-gutter-sm"><section-iterate name="Tags" list="detail.tagRows" entry="tag"><widgets><link url="//Products/Categories/CategoryDetail" text="${tag.categoryName}" link-type="anchor-button" parameter-map="{productCategoryId:tag.productCategoryId}"/></widgets></section-iterate></container></widgets></section>
+        <link url="${sharedLinks['Units/Labels']}" text="Product labels" parameter-map="{productId:productId}" condition="productFound"/>
+        <section name="ProductTags" condition="productFound &amp;&amp; detail.tagRows.length"><widgets><container style="row q-gutter-sm"><section-iterate name="Tags" list="detail.tagRows" entry="tag"><widgets><link url="${sharedLinks['Categories/CategoryDetail']}" text="${tag.categoryName}" link-type="anchor-button" parameter-map="{productCategoryId:tag.productCategoryId}"/></widgets></section-iterate></container></widgets></section>
         <section name="Master" condition="productFound">
             <widgets>
                 <container-box>

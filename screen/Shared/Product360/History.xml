@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="History" default-menu-index="11">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('History')</expression></condition>
     <widgets>
         <section name="Available" condition="productFound">
             <widgets>

@@ -7,6 +7,13 @@
     <parameter name="workEffortId" />
     <parameter name="asOfDate" />
     <parameter name="selectedOperationId" />
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.MethodServices.get#RoutingDetail" in-map="context" out-map="context" />
     </actions>

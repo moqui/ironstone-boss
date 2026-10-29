@@ -17,6 +17,13 @@
     <parameter name="termUomId" />
     <parameter name="shipToCountryGeoId" />
     <parameter name="billToCountryGeoId" />
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.PriceListServices.get#PriceListOptions" out-map="context" />
         <set field="organizationPartyId" from="organizationPartyId || defaultOrganizationPartyId" />

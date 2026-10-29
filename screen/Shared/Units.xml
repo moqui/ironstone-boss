@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Units and conversions" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'units'})" out-map="context" />
     </actions>
@@ -12,7 +20,7 @@
     </transition>
     <transition name="storeUnit">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.store#Unit" in-map="context" out-map="result" />
         </actions>
@@ -27,7 +35,7 @@
     </transition>
     <transition name="storeConversion">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.store#UnitConversion" in-map="context" out-map="result" />
         </actions>
@@ -42,7 +50,7 @@
     </transition>
     <transition name="endConversion">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="unitAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="unitAppAccess" />
             <script>if(!unitAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="org.moqui.impl.UnitServices.end#UnitConversion" in-map="context" />
         </actions>

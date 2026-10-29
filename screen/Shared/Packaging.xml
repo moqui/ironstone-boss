@@ -1,5 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Packaging" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Packaging')</expression></condition>
     <actions>
         <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'packaging'})" out-map="context" />
     </actions>
@@ -12,7 +21,7 @@
     </transition>
     <transition name="storePack">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.catalogEdit)throw new Error('Catalog catalogEdit access is required')</script>
             <service-call name="mantle.product.ProductServices.store#ProductPackaging" in-map="context" out-map="result" />
         </actions>

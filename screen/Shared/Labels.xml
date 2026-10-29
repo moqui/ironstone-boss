@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Labels" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'labels'})" out-map="context" />
     </actions>
@@ -12,7 +20,7 @@
     </transition>
     <transition name="prepareLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.prepare#ProductLabels" in-map="Object.assign({},context,{productIds:String(productIds || productId || &quot;&quot;).split(/[\s,]+/).filter(Boolean)})" out-map="result" />
         </actions>
@@ -27,7 +35,7 @@
     </transition>
     <transition name="renderLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.render#ProductLabels" in-map="context" out-map="result" />
             <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
@@ -43,7 +51,7 @@
     </transition>
     <transition name="printLabels">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.print#ProductLabels" in-map="context" out-map="result" />
             <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
@@ -59,7 +67,7 @@
     </transition>
     <transition name="download" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.get#ProductLabelResource" in-map="context" out-map="result" />
             <script>ec.web.sendResourceResponse(result.contentLocation,true,result.filename)</script>
@@ -68,7 +76,7 @@
     </transition>
     <transition name="printable" read-only="true" method="get">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="toolAppAccess" />
             <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
             <service-call name="mantle.product.LabelServices.get#ProductLabelPrint" in-map="context" out-map="result" />
             <script>ec.web.sendTextResponse(result.printHtml,'text/html',null)</script>
@@ -214,7 +222,7 @@
                 </section-iterate>
                 <section name="LabelActions" condition="!stale &amp;&amp; labelRows.length &gt; 0">
                     <widgets>
-                        <link text="Open print layout" url="/apps/Products/Units/Labels/printable" parameter-map="{operationKey:operationKey,inputFingerprint:inputFingerprint}" target="_blank" />
+                        <link text="Open print layout" url="${printBase}/Units/Labels/printable" parameter-map="{operationKey:operationKey,inputFingerprint:inputFingerprint}" target="_blank" />
                         <form-single name="RenderLabels" transition="renderLabels">
                             <field name="operationKey">
                                 <default-field>
@@ -236,7 +244,7 @@
                 </section>
                 <section name="LabelArtifact" condition="artifactAvailable">
                     <widgets>
-                        <link text="Download rendered PDF" url="/apps/Products/Units/Labels/download" parameter-map="{operationKey:operationKey}" target="_blank" />
+                        <link text="Download rendered PDF" url="${printBase}/Units/Labels/download" parameter-map="{operationKey:operationKey}" target="_blank" />
                         <form-single name="PrintLabels" transition="printLabels">
                             <field name="operationKey">
                                 <default-field>

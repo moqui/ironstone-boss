@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Product" default-menu-include="false">
+    <parameter name="appRoot"/>
     <parameter name="productId" required="true"/>
     <always-actions>
-        <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId,checkOnly:true}" out-map="catalog"/>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+        <set field="product360Tabs" from="sharedMountContext.productTabs"/>
+        <service-call name="ironstone.products.CatalogServices.get#CatalogRecord" in-map="{recordId:productId,checkOnly:true,appRoot:appRoot}" out-map="catalog"/>
         <set field="productFound" from="!!catalog.record"/>
         <if condition="productFound">
-            <service-call name="ironstone.products.CatalogServices.get#ProductDetail" in-map="{productId:productId}" out-map="context"/>
+            <service-call name="ironstone.products.CatalogServices.get#ProductDetail" in-map="{productId:productId,appRoot:appRoot}" out-map="context"/>
             <service-call name="ironstone.products.CatalogServices.get#CatalogOptions" out-map="context"/>
             <set field="product" from="detail.product"/>
             <set field="canEdit" from="detail.canEdit"/>
@@ -51,7 +58,7 @@
     </transition>
     <transition name="deleteDraft">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.delete#UnusedDraft" in-map="{productId:productId}"/>
+            <service-call name="ironstone.products.CatalogServices.delete#UnusedDraft" in-map="{productId:productId,appRoot:appRoot}"/>
         </actions>
         <default-response url="../List"/>
         <error-response url="."/>

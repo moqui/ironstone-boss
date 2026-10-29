@@ -1,11 +1,15 @@
+// Each invocation keeps its app route local; helpers never capture a cached service context.
+function run(op,parameters){
+const requestedRoot=parameters.appRoot||'Products'
+ec.service.sync().name('ironstone.products.CatalogServices.get#SharedContext').parameters({appRoot:requestedRoot}).call()
 // The shared pricing screens use real direction grants, independently of a launcher or caller-supplied capabilities.
 const P='mantle.product.',M=P+'PriceServices.'
 const find=(n,p={})=>ec.entity.find(n).condition(p).disableAuthz(),one=(n,p)=>find(n,p).one(),rows=(n,p)=>Array.from(find(n,p).list())
-const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(p).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
+const call=(n,p={})=>{const out=ec.service.sync().name(n).parameters(Object.assign({appRoot:requestedRoot},p)).disableAuthz().call()||{};if(ec.message.hasError())throw new Error(ec.message.getErrorsString());return out}
 const domain=()=>ec.resource.script('component://mr-mantle/service/mantle/product/PriceLists.js')
 const ms=v=>v==null||v===''?null:Number.isFinite(Number(String(v)))?Number(String(v)):Date.parse(String(v))
 const text=v=>v==null?'':ec.l10n.format(new Date(ms(v)),'yyyy-MM-dd HH:mm:ss')
-function access(){const s=domain().scope(),has=domain().has;return Object.assign({},s,{canPriceRead:s.systemAdmin||has('PRICE_VIEW')||has('PRICE_EDIT'),canSupplierRead:s.systemAdmin||has('SUPPLIER_PRICE_VIEW')||has('SUPPLIER_PRICE_EDIT'),canPriceEdit:s.systemAdmin||has('PRICE_EDIT'),canSupplierEdit:s.systemAdmin||has('SUPPLIER_PRICE_EDIT'),canSettings:s.systemAdmin||has('PRODUCT_CATALOG_ADMIN'),canCostRead:ec.resource.script('component://mr-mantle/service/mantle/product/CostPolicy.js').capabilities().read})}
+function access(){const shared=call('ironstone.products.CatalogServices.get#SharedContext',{appRoot:requestedRoot});if(!shared.capabilities.read)throw new Error('Catalog read access is required');const s=domain().scope(),has=domain().has;return Object.assign({},s,{canPriceRead:s.systemAdmin||has('PRICE_VIEW')||has('PRICE_EDIT'),canSupplierRead:s.systemAdmin||has('SUPPLIER_PRICE_VIEW')||has('SUPPLIER_PRICE_EDIT'),canPriceEdit:s.systemAdmin||has('PRICE_EDIT'),canSupplierEdit:s.systemAdmin||has('SUPPLIER_PRICE_EDIT'),canSettings:s.systemAdmin||has('PRODUCT_CATALOG_ADMIN'),canCostRead:ec.resource.script('component://mr-mantle/service/mantle/product/CostPolicy.js').capabilities().read})}
 function options(){
  const a=access();if(!a.canPriceRead&&!a.canSupplierRead&&!a.canSettings)throw new Error('Price authority is required')
  const visible=r=>(!r.privateOwnerUserId||r.privateOwnerUserId===ec.user.userId)&&(a.systemAdmin||a.ownerPartyIds.includes(r.ownerPartyId)||a.organizationPartyIds.includes(r.partyId)),parties=rows('mantle.party.Party').filter(visible),name=id=>one('mantle.party.Organization',{partyId:id})?.organizationName||one('mantle.party.Person',{partyId:id})?.firstName||id,option=p=>({value:p.partyId,label:name(p.partyId)+' ('+p.partyId+')'}),role=(id,type)=>!!one('mantle.party.PartyRole',{partyId:id,roleTypeId:type}),enums=type=>rows('moqui.basic.Enumeration',{enumTypeId:type}).map(r=>({value:r.enumId,label:r.description||r.enumId}))
@@ -26,4 +30,6 @@ function explanation(p){
  const out=call(M+'get#ProductPrice',Object.assign({},p,{explain:true}));if(direction==='sales'&&a.canCostRead&&out.price!=null)Object.assign(out,call('mantle.product.CostServices.get#ProductMargin',{productId:p.productId,organizationPartyId:p.organizationPartyId||p.vendorPartyId||a.activeOrganizationPartyId||a.organizationPartyIds[0],quantityUomId:p.quantityUomId,priceUomId:out.priceUomId||p.priceUomId,asOfDate:p.validDate,price:out.price}));out.priceTrace=(out.priceTrace||[]).map(r=>Object.assign({},r,{beforeText:r.beforeAmount==null?'':String(r.beforeAmount),afterText:r.afterAmount==null?'':String(r.afterAmount),operandText:r.operand==null?'':String(r.operand),eligibleText:r.eligible==null?'':r.eligible?'Yes':'No'}));return{priceResult:out,traceRows:out.priceTrace}
 }
 function execute(op,p){if(op==='options')return options();if(op==='lists')return lists(p);if(op==='detail')return detail(p);if(op==='explanation')return explanation(p);return call(M+({storeList:'store#ProductPriceList',storeRule:'store#ProductPriceRule',publish:'publish#ProductPriceList',retire:'retire#ProductPriceList',settings:'get#PricingSettings',storeSettings:'store#PricingSettings'})[op],p)}
-;({execute})
+return execute(op,parameters)
+}
+;({execute:run})

@@ -1,12 +1,16 @@
+// App routing is local to this invocation, including nested catalog reads.
+function run(op,parameters){
+const requestedRoot=parameters.appRoot||'Products'
 // Products context for Manufacturing-owned methods. All writes still pass the owner's independent guards.
 const S='mantle.product.BomServices.',R='mantle.work.RoutingServices.',C='ironstone.products.CatalogServices.'
 const policy=()=>ec.resource.script('component://mr-mantle/service/mantle/product/MethodPolicy.js'),call=(n,p={})=>policy().call(n,p),rows=(n,p={})=>policy().rows(n,p),map=r=>policy().map(r),ms=v=>policy().ms(v)
 function context(p){
- if(p.appRoot&&p.appRoot!=='Products')throw new Error('Only the Products method context is available')
+
+ const shared=call(C+'get#SharedContext',{appRoot:p.appRoot});if(!shared.capabilities.read)throw new Error('Catalog read access is required')
  let productId=p.productId,detail=null
  if(p.productBomId){detail=call(S+'get#BomDetail',{productBomId:p.productBomId,asOfDate:p.asOfDate});if(productId&&productId!==detail.productBom.productId)throw new Error('BOM does not belong to this product');productId=detail.productBom.productId}
  const product=call(C+'get#CatalogRecord',{recordId:productId,checkOnly:true}).record;if(!product)throw new Error('Product is not available')
- const a=policy().capabilities(),out={appRoot:'Products',product:map(product),productId,methodAccess:a,productBomId:p.productBomId||null,bomRows:[],bomItemRows:[],draftItemRows:[],releaseHistory:[],bomHeader:{baseQuantity:1,quantityUomId:product.amountUomId||'OTH_ea',methodCode:'MAIN',isPhantom:'N'},bomItemEdit:{quantity:1,quantityUomId:product.amountUomId||'OTH_ea',scrapFactor:0,roleEnumId:'BmirConsume',sequenceNum:10},methodMessage:!a.read?'Manufacturing method access is required.':product.productTypeEnumId==='PtPickAssembly'?'Kits use dated Kit components. Their usage is shown read only.':''}
+ const a=policy().capabilities(),out={appRoot:shared.appRoot,product:map(product),productId,methodAccess:a,productBomId:p.productBomId||null,bomRows:[],bomItemRows:[],draftItemRows:[],releaseHistory:[],bomHeader:{baseQuantity:1,quantityUomId:product.amountUomId||'OTH_ea',methodCode:'MAIN',isPhantom:'N'},bomItemEdit:{quantity:1,quantityUomId:product.amountUomId||'OTH_ea',scrapFactor:0,roleEnumId:'BmirConsume',sequenceNum:10},methodMessage:!a.read?'Manufacturing method access is required.':product.productTypeEnumId==='PtPickAssembly'?'Kits use dated Kit components. Their usage is shown read only.':''}
  if(!a.read)return out
  const scope=policy().scope(Object.assign({},p,{organizationPartyId:detail?.productBom.organizationPartyId||p.organizationPartyId}));out.organizationPartyId=scope.organizationPartyId
  const kit=product.productTypeEnumId==='PtPickAssembly';out.kit=kit
@@ -32,4 +36,6 @@ function execute(op,p){p=Object.assign({},p);for(const k of ['productBomId','wor
  const result=report(p,S+'get#BomExplosion'),costAccess=ec.resource.script('component://mr-mantle/service/mantle/product/CostPolicy.js').capabilities();result.canCostRead=costAccess.read
  if(costAccess.read&&result.productBomId){const cost=call('mantle.product.CostServices.preview#ProductCostRollup',Object.assign({},p,{productId:result.productId,productBomId:result.productBomId,organizationPartyId:result.organizationPartyId,transientPreview:true}));result.costFindings=cost.findings;result.costSummary=cost.standardCost;result.explosionRows=result.explosionRows.map(row=>{const lines=cost.componentRows.filter(c=>c.path===row.path||c.path?.startsWith(row.path+'/')),amount=lines.length?lines.reduce((v,c)=>v.add(c.amount),toDecimal(0)):null;return Object.assign({},row,{estimatedAmount:amount==null?null:String(amount),costCurrency:cost.standardCost.priceUomId})})}return result
  }if(op==='compare')return report(p,S+'compare#BomDates');if(op==='whereUsed')return report(p,S+'get#BomWhereUsed');const route={importLegacy:[S+'import#LegacyBom','edit'],validate:[S+'validate#BomDraft'],release:[S+'release#BomDraft','approve'],storeRouting:[R+'store#Routing','edit'],storeOperation:[R+'store#RoutingOperation','edit'],storeResource:[R+'store#RoutingResource','edit'],validateRouting:[R+'validate#RoutingDraft'],releaseRouting:[R+'release#RoutingDraft','approve'],storeCenter:[R+'store#WorkCenter','resources'],storeRate:[R+'store#WorkCenterRate','resources']};if(!route[op])throw new Error('Unknown method operation');return native(p,...route[op])}
-;({execute})
+return execute(op,parameters)
+}
+;({execute:run})

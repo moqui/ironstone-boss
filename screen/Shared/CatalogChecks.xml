@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Catalog checks" default-menu-include="false">
+    <parameter name="appRoot"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.CheckServices.get#CheckContext" in-map="context" out-map="context" />
     </actions>
@@ -70,10 +78,10 @@
                     <form-list name="CatalogIssues" list="issueRows" skip-form="true" paginate="false" show-csv-button="true">
                         <field name="productId">
                             <default-field title="Product">
-                                <link url="//Products/Products/Product360" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId" />
+                                <link url="${sharedLinks['Products/Product360']}" text="${productId}" parameter-map="{productId:productId}" link-type="anchor" condition="!!productId" />
                             </default-field>
                         </field>
-                        <field name="productCategoryId"><default-field title="Category"><link url="//Products/Categories/CategoryDetail" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/></default-field></field>
+                        <field name="productCategoryId"><default-field title="Category"><link url="${sharedLinks['Categories/CategoryDetail']}" text="${productCategoryId}" parameter-map="{productCategoryId:productCategoryId}" link-type="anchor" condition="!!productCategoryId"/></default-field></field>
                     <field name="checkId">
                             <default-field title="Check">
                                 <display />

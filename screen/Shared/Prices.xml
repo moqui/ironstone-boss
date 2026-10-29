@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Prices" default-menu-index="1">
+    <parameter name="appRoot"/>
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Prices')</expression></condition>
     <parameter name="productId"/>
     <parameter name="direction"/>
     <parameter name="organizationPartyId"/>
@@ -13,6 +15,13 @@
     <parameter name="includeHistory"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <transition name="store">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#ProductPrice" in-map="context" out-map="answer"/>
@@ -41,10 +50,10 @@
         <error-response url="."/>
     </transition>
     <transition name="history">
-        <default-response url="//Products/Prices/PriceHistory"/>
+        <default-response url="${sharedLinks['Prices/PriceHistory']}"/>
     </transition>
     <transition name="bulk">
-        <default-response url="//Products/Products/BulkPrice"/>
+        <default-response url="${sharedLinks['Products/BulkPrice']}"/>
     </transition>
     
 
@@ -58,7 +67,7 @@
     
 
     <actions>
-        <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="access"/>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="access"/>
         <service-call name="ironstone.products.CatalogServices.get#PriceOptions" out-map="context"/>
         <service-call name="ironstone.products.CatalogServices.find#ProductPrices" in-map="context" out-map="context"/>
         <script><![CDATA[
@@ -68,7 +77,7 @@ newSupplier={productId:productId||null,customerPartyId:defaultOrganizationPartyI
 ]]></script>
     </actions>
     <widgets>
-        <link text="Explain price" url="//Products/Prices/PriceExplain"><parameter name="productId"/></link>
+        <link text="Explain price" url="${sharedLinks['Prices/PriceExplain']}"><parameter name="productId"/></link>
         <container-box>
             <box-header title="Price scope"/>
             <box-body>

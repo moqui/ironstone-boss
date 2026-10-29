@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identifiers" default-menu-index="4">
+    <condition><expression>!Array.isArray(product360Tabs) || product360Tabs.includes('Identifiers')</expression></condition>
     <transition name="storeRow">
         <actions>
             <service-call name="ironstone.products.CatalogServices.store#CatalogRow" in-map="Object.assign({},context,{kind:'identifier'})"/>
@@ -23,7 +24,7 @@
     </actions>
     <transition name="assignGenerated">
         <actions>
-            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="identifierAppAccess"/>
+            <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="identifierAppAccess"/>
             <script>if(!identifierAppAccess.capabilities.catalogEdit)throw new Error('Catalog edit access is required')</script>
             <service-call name="mantle.product.ProductServices.validate#ProductIdentifier" in-map="{productId:productId,productIdTypeEnumId:previewIdentifierType,generate:true,forAssignment:true}" out-map="checked"/>
             <script>if(!checked.valid || checked.generatedValue!==previewValue)throw new Error('Identifier policy or value changed; preview again')</script>

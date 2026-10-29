@@ -12,6 +12,13 @@
     <parameter name="fullBlowThrough"/>
     <parameter name="leftDate" />
     <parameter name="rightDate" />
+    <always-actions>
+        <service-call name="ironstone.products.CatalogServices.get#SharedContext" in-map="{appRoot:appRoot}" out-map="sharedMountContext"/>
+        <script>if(!sharedMountContext.capabilities.read)throw new Error('Catalog read access is required')</script>
+        <set field="appRoot" from="sharedMountContext.appRoot"/>
+        <set field="sharedLinks" from="sharedMountContext.sharedLinks"/>
+        <set field="printBase" from="sharedMountContext.printBase"/>
+    </always-actions>
     <actions>
         <service-call name="ironstone.products.MethodServices.get#BomExplosion" in-map="context" out-map="context" />
     </actions>
@@ -142,7 +149,7 @@
         <section name="ExplosionCostSummary" condition="canCostRead &amp;&amp; !!costSummary"><widgets>
             <label text="Estimated total ${costSummary.totalCost == null ? 'Unvalued' : costSummary.totalCost} ${costSummary.priceUomId}" type="p"/>
             <form-list name="ExplosionCostFindings" list="costFindings || []" skip-form="true" paginate="false"><field name="recordId"><default-field title="Cost input"><display/></default-field></field><field name="message"><default-field title="Finding"><display/></default-field></field></form-list>
-            <link url="//${appRoot}/Prices/CostRollup" text="Roll up estimate" parameter-map="{productId:productId,productBomId:productBomId,asOfDate:asOfDate,quantity:quantity,quantityUomId:quantityUomId,organizationPartyId:organizationPartyId}"/>
+            <link url="${sharedLinks['Prices/CostRollup']}" text="Roll up estimate" parameter-map="{productId:productId,productBomId:productBomId,asOfDate:asOfDate,quantity:quantity,quantityUomId:quantityUomId,organizationPartyId:organizationPartyId}"/>
         </widgets></section>
         <label text="Buildable from selected facility: ${buildableQuantity == null ? &quot;Unavailable&quot; : buildableQuantity}" type="p" />
         <label text="Quantities only. The report creates no supply and does not post stock." type="p" />

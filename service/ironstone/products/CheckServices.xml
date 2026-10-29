@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="CheckContext" allow-remote="false">
+        <in-parameters>
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="productIds" type="List" />
+            <parameter name="candidateProducts" type="List" />
+            <parameter name="productCategoryId" type="String" />
+            <parameter name="includeDescendants" type="Boolean" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="checkIds" type="List" />
+            <parameter name="includeInactive" type="Boolean" />
+            <parameter name="appRoot" type="String" />
+            <parameter name="runChecks" type="Boolean" />
+            <parameter name="productId" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="issueRows" type="List" />
+            <parameter name="checkOptions" type="List" />
+            <parameter name="checkedCount" type="Integer" />
+            <parameter name="issueCount" type="Integer" />
+            <parameter name="incompleteCount" type="Integer" />
+            <parameter name="missingPriceCount" type="Integer" />
+            <parameter name="valid" type="Boolean" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="ownerOptions" type="List" />
+            <parameter name="catalogChecksRan" type="Boolean" />
+            <parameter name="checkForm" type="Map" />
+            <parameter name="appRoot" type="String" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/Checks.js').context(context))</script>
+        </actions>
+    </service>
+</services>

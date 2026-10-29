@@ -1,0 +1,287 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Labels" default-menu-include="false">
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'labels'})" out-map="context" />
+    </actions>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <transition name="prepareLabels">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="mantle.product.LabelServices.prepare#ProductLabels" in-map="Object.assign({},context,{productIds:String(productIds || productId || &quot;&quot;).split(/[\s,]+/).filter(Boolean)})" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+            <parameter name="operationKey" from="result.operationKey" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="renderLabels">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="mantle.product.LabelServices.render#ProductLabels" in-map="context" out-map="result" />
+            <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+            <parameter name="operationKey" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="printLabels">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="mantle.product.LabelServices.print#ProductLabels" in-map="context" out-map="result" />
+            <script>if(result.lastError)ec.message.addMessage(result.lastError)</script>
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+            <parameter name="operationKey" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="download" read-only="true" method="get">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="mantle.product.LabelServices.get#ProductLabelResource" in-map="context" out-map="result" />
+            <script>ec.web.sendResourceResponse(result.contentLocation,true,result.filename)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <transition name="printable" read-only="true" method="get">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="mantle.product.LabelServices.get#ProductLabelPrint" in-map="context" out-map="result" />
+            <script>ec.web.sendTextResponse(result.printHtml,'text/html',null)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <widgets>
+        <label text="Product labels" type="h5" />
+        <label text="Labels encode existing product or pack identifiers. Prepare a selection, review the decoded result, then render or print it." type="p" />
+        <form-single name="LabelSelection" transition="prepareLabels" map="labelDraft">
+            <field name="productIds">
+                <default-field title="Product IDs (comma separated)">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="productIdTypeEnumId">
+                <default-field title="Existing identifier type (empty: preferred)">
+                    <drop-down allow-empty="true">
+                        <list-options list="identifierTypes" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="copies">
+                <default-field title="Copies per product">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="templateId">
+                <default-field title="Approved template">
+                    <drop-down allow-empty="false">
+                        <list-options list="templateOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="symbology">
+                <default-field title="Symbology">
+                    <drop-down allow-empty="false">
+                        <option key="auto" text="auto" />
+                        <option key="Code128" text="Code128" />
+                        <option key="EAN-13" text="EAN-13" />
+                        <option key="UPC-A" text="UPC-A" />
+                        <option key="EAN-8" text="EAN-8" />
+                        <option key="ITF-14" text="ITF-14" />
+                        <option key="GS1-128" text="GS1-128" />
+                        <option key="QR" text="QR" />
+                        <option key="DataMatrix" text="DataMatrix" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="includePrice">
+                <default-field title="Include selling price">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="priceUomId">
+                <default-field title="Price currency">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Prepare labels">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <section name="PreparedLabels" condition="!!operationKey">
+            <widgets>
+                <label text="${labelCount} labels · ${state || &quot;prepared&quot;}" type="h6" />
+                <label text="${lastError || &quot;&quot;}" type="p" condition="!!lastError" />
+                <label text="Inputs changed. Prepare a new selection before rendering or printing." type="p" condition="stale" />
+                <container style="scroll full-width">
+                    <form-list name="LabelPreview" list="labelRows" skip-form="true" paginate="false" show-csv-button="true">
+                        <field name="productId">
+                            <default-field title="Product">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="idValue">
+                            <default-field title="Existing code">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="symbology">
+                            <default-field title="Symbol">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="copies">
+                            <default-field title="Copies">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="decodedProductId">
+                            <default-field title="Decoded product">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="packProductId">
+                            <default-field title="Pack">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="containedQuantity">
+                            <default-field title="Contained quantity">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="quantityUomId">
+                            <default-field title="Unit">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="sellingPrice">
+                            <default-field title="Selling price">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="priceUomId">
+                            <default-field title="Currency">
+                                <display />
+                            </default-field>
+                        </field>
+                    </form-list>
+                </container>
+                <section-iterate name="BarcodePreviewRows" list="labelRows" entry="labelRow">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${labelRow.productName}" />
+                            <box-body>
+                                <render-mode>
+                                    <text type="qvt">&lt;div class="bg-white q-pa-sm" style="overflow:auto"&gt;${labelRow.svg}&lt;/div&gt;</text>
+                                    <text type="html">${labelRow.svg}</text>
+                                    <text type="html-print">${labelRow.svg}</text>
+                                    <text type="tui">${labelRow.symbology}: ${labelRow.encodedValue}</text>
+                                </render-mode>
+                                <label text="${labelRow.encodedValue}" type="p" />
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section-iterate>
+                <section name="LabelActions" condition="!stale &amp;&amp; labelRows.length &gt; 0">
+                    <widgets>
+                        <link text="Open print layout" url="/apps/Products/Units/Labels/printable" parameter-map="{operationKey:operationKey,inputFingerprint:inputFingerprint}" target="_blank" />
+                        <form-single name="RenderLabels" transition="renderLabels">
+                            <field name="operationKey">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Render PDF">
+                                    <submit />
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <section name="LabelArtifact" condition="artifactAvailable">
+                    <widgets>
+                        <link text="Download rendered PDF" url="/apps/Products/Units/Labels/download" parameter-map="{operationKey:operationKey}" target="_blank" />
+                        <form-single name="PrintLabels" transition="printLabels">
+                            <field name="operationKey">
+                                <default-field>
+                                    <hidden />
+                                </default-field>
+                            </field>
+                            <field name="networkPrinterId">
+                                <default-field title="Configured printer">
+                                    <drop-down allow-empty="false">
+                                        <list-options list="printerOptions" key="${value}" text="${label}" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="retry">
+                                <default-field title="Retry a failed send">
+                                    <drop-down allow-empty="false">
+                                        <option key="false" text="No" />
+                                        <option key="true" text="Yes" />
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submitButton">
+                                <default-field title="Send to printer">
+                                    <submit confirmation="Send these rendered labels to the selected printer?" />
+                                </default-field>
+                            </field>
+                        </form-single>
+                        <label text="Print job: ${printJobId || &quot;Not sent&quot;}" type="p" />
+                    </widgets>
+                </section>
+                <container style="scroll full-width">
+                    <form-list name="LabelFindings" list="findings" skip-form="true" paginate="false">
+                        <field name="productId">
+                            <default-field title="Product">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="message">
+                            <default-field title="Outcome">
+                                <display />
+                            </default-field>
+                        </field>
+                    </form-list>
+                </container>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

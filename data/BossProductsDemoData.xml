@@ -48,7 +48,7 @@
     <!-- One supplier, two internal buyers, and a separate priced pack product. -->
     <mantle.product.ProductPrice productPriceId="BOSS_SUPPLIER_RETAIL" productId="BOSS_PRD_OWN" vendorPartyId="BOSS_PRD_SUPPLIER" customerPartyId="ORG_ZIZI_RETAIL" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="9.00" priceUomId="USD" minQuantity="12" quantityIncrement="12" quantityUomId="OTH_ea" standardLeadTimeDays="7" preferredOrderEnumId="SpoAlternate" canDropShip="N" fromDate="2026-01-01 00:00:00" otherPartyItemId="SERV-RETAIL-01"/>
     <mantle.product.Product productId="BOSS_PRD_PACK" productName="Case of twelve units" productTypeEnumId="PtAsset" ownerPartyId="ORG_ZIZI_SERVICES" amountUomId="OTH_ea" statusId="PrdActive"/>
-    <mantle.product.ProductAssoc productId="BOSS_PRD_PACK" toProductId="BOSS_PRD_OWN" productAssocTypeEnumId="PatPackagingFor" fromDate="2026-01-01 00:00:00" quantity="12"/>
+    <mantle.product.ProductAssoc productId="BOSS_PRD_PACK" toProductId="BOSS_PRD_OWN" productAssocTypeEnumId="PatPackagingFor" fromDate="2026-01-01 00:00:00" quantity="12" quantityUomId="OTH_ea"/>
     <mantle.product.ProductPrice productPriceId="BOSS_SUPPLIER_PACK" productId="BOSS_PRD_PACK" vendorPartyId="BOSS_PRD_SUPPLIER" customerPartyId="ORG_ZIZI_SERVICES" priceTypeEnumId="PptCurrent" pricePurposeEnumId="PppPurchase" price="84.00" priceUomId="USD" minQuantity="1" quantityIncrement="1" quantityIncluded="12" quantityUomId="OTH_ea" standardLeadTimeDays="4" preferredOrderEnumId="SpoMain" fromDate="2026-01-01 00:00:00" otherPartyItemId="SERV-CASE-12"/>
     <mantle.party.contact.ContactMech contactMechId="BOSS_SUPPLIER_EMAIL" contactMechTypeEnumId="CmtEmailAddress" infoString="supply@example.test"/>
     <mantle.party.contact.PartyContactMech partyId="BOSS_PRD_SUPPLIER" contactMechId="BOSS_SUPPLIER_EMAIL" contactMechPurposeId="EmailPrimary" fromDate="2026-01-01 00:00:00"/>
@@ -73,4 +73,13 @@
         <file mimeType="text/plain" versionName="01" rootVersionName="01"><fileData>Services catalog sample: typed product documentation, separate from generic record attachments.</fileData><histories versionName="01" versionDate="1704067200000" isDiff="N"/></file>
     </moqui.resource.DbResource>
     <mantle.product.ProductContent productContentId="BOSS_CONTENT_SAMPLE" productId="BOSS_PRD_OWN" productContentTypeEnumId="PcntDescriptionLong" locale="en" description="Sample product documentation" fromDate="2000-01-01 00:00:00" contentLocation="dbresource://mantle/content/product/BOSS_PRD_OWN/content_BOSS_CONTENT_SAMPLE/description.txt"/>
+    <mantle.product.ProductIdentification productId="BOSS_PRD_PACK" productIdTypeEnumId="PidtSku" idValue="BOSS_PACK_12"/>
+    <mantle.product.ProductIdentification productId="BOSS_PRD_OWN" productIdTypeEnumId="PidtSku" idValue="BOSS_SAMPLE"/>
+    <!-- CatalogChecks demonstrations are ordinary legacy/incomplete catalog records, never automatic repairs. -->
+    <mantle.product.Product productId="BOSS_CHK_EMPTY" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" statusId="PrdDraft"/>
+    <mantle.product.Product productId="BOSS_CHK_DUP_A" productName="Identifier review A" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" amountUomId="OTH_ea" statusId="PrdDraft"/>
+    <mantle.product.Product productId="BOSS_CHK_DUP_B" productName="Identifier review B" ownerPartyId="ORG_ZIZI_SERVICES" productTypeEnumId="PtAsset" amountUomId="OTH_ea" statusId="PrdDraft"/>
+    <mantle.product.ProductIdentification productId="BOSS_CHK_DUP_A" productIdTypeEnumId="PidtSku" idValue="LEGACY_REVIEW_CODE"/>
+    <mantle.product.ProductIdentification productId="BOSS_CHK_DUP_B" productIdTypeEnumId="PidtSku" idValue="LEGACY_REVIEW_CODE"/>
+    <mantle.product.ProductDimension productId="BOSS_PRD_PACK" dimensionTypeId="QuantityIncluded" value="12" uomId="OTH_ea"/>
 </entity-facade-xml>

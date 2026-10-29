@@ -20,10 +20,10 @@
                         <link url="../Products" text="Discontinuing in 30 days: ${summary.discontinuingSoon}" link-type="anchor" parameter-map="{list:'discontinuingSoon'}"/>
                     </container>
                     <container style="col-12 col-sm-6 col-lg">
-                        <label text="Missing price: unavailable" type="p"/>
+                        <link url="../CatalogChecks" text="Missing price: ${summary.missingPrice}" parameter-map="{runChecks:true,checkIds:'prices'}" condition="summary.missingPrice != null" link-type="anchor"/>
                     </container>
                     <container style="col-12 col-sm-6 col-lg">
-                        <label text="Incomplete catalog: unavailable" type="p"/>
+                        <link url="../CatalogChecks" text="Incomplete catalog: ${summary.incomplete}" parameter-map="{runChecks:true}" link-type="anchor"/>
                     </container>
                 </container>
             </box-body>

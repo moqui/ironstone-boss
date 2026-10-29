@@ -1,0 +1,358 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Units and conversions" default-menu-include="false">
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'units'})" out-map="context" />
+    </actions>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <transition name="storeUnit">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="org.moqui.impl.UnitServices.store#Unit" in-map="context" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+            <parameter name="selectedUomId" from="result.uomId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="storeConversion">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="org.moqui.impl.UnitServices.store#UnitConversion" in-map="context" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+            <parameter name="selectedConversionId" from="result.uomConversionId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="endConversion">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="unitAppAccess" />
+            <script>if(!unitAppAccess.capabilities.read)throw new Error('Catalog read access is required')</script>
+            <service-call name="org.moqui.impl.UnitServices.end#UnitConversion" in-map="context" />
+        </actions>
+        <default-response url="." />
+        <error-response url="." />
+    </transition>
+    <widgets>
+        <label text="Units and conversions" type="h5" />
+        <label text="Global changes require a system administrator. Currency units and exchange rates are maintained in Accounting." type="p" />
+        <label text="${toolMessage}" type="p" condition="!!toolMessage" />
+        <form-single name="UnitFind" transition=".">
+            <field name="text">
+                <default-field title="Unit ID or name">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="uomTypeEnumId">
+                <default-field title="Unit type">
+                    <drop-down allow-empty="true">
+                        <list-options list="unitTypes" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Find units">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <container style="scroll full-width">
+            <form-list name="Units" list="unitRows" skip-form="true" paginate="false" show-csv-button="true">
+                <field name="uomId">
+                    <default-field title="Unit">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="description">
+                    <default-field title="Description">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="uomTypeEnumId">
+                    <default-field title="Type">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="abbreviation">
+                    <default-field title="Abbreviation">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="fractionDigits">
+                    <default-field title="Fraction digits">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="edit">
+                    <default-field title="Edit">
+                        <link url="." text="Edit unit" parameter-map="{selectedUomId:uomId}" />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+        <section name="UnitEditor" condition="canManageUnits">
+            <widgets>
+                <label text="Unit metadata" type="h6" />
+                <link text="New unit" url="." parameter-map="{selectedUomId:''}" />
+                <form-single name="UnitMetadata" transition="storeUnit" map="unitForm">
+                    <field name="expectedRevision">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="uomId">
+                        <default-field title="Unit ID">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="uomTypeEnumId">
+                        <default-field title="Type">
+                            <drop-down allow-empty="false">
+                                <list-options list="unitTypes" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="description">
+                        <default-field title="Description">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="abbreviation">
+                        <default-field title="Abbreviation">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="fractionDigits">
+                        <default-field title="Fraction digits">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Change reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Save unit">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+        <label text="Dated conversions" type="h6" />
+        <form-single name="ConversionFind" transition=".">
+            <field name="uomId">
+                <default-field title="From unit">
+                    <drop-down allow-empty="true">
+                        <list-options list="unitOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="toUomId">
+                <default-field title="To unit">
+                    <drop-down allow-empty="true">
+                        <list-options list="unitOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of (empty: all dates)">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Find conversions">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <container style="scroll full-width">
+            <form-list name="Conversions" list="conversionRows" skip-form="true" paginate="false" show-csv-button="true">
+                <field name="uomId">
+                    <default-field title="From unit">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="toUomId">
+                    <default-field title="To unit">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="conversionFactor">
+                    <default-field title="Factor">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="conversionOffset">
+                    <default-field title="Offset">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="fromDateText">
+                    <default-field title="From">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="thruDateText">
+                    <default-field title="Through">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="edit">
+                    <default-field title="Change">
+                        <link url="." text="Schedule successor" parameter-map="{selectedConversionId:uomConversionId}" />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+        <section name="ConversionEditor" condition="canManageUnits">
+            <widgets>
+                <label text="New conversion or dated successor" type="h6" />
+                <label text="A successor retains the old factor and starts the new row from its effective date. Factors support at most 15 significant digits." type="p" />
+                <link text="New conversion" url="." parameter-map="{selectedConversionId:''}" />
+                <form-single name="UnitConversion" transition="storeConversion" map="conversionForm">
+                    <field name="uomConversionId">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="expectedRevision">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="uomId">
+                        <default-field title="From unit">
+                            <drop-down allow-empty="false">
+                                <list-options list="unitOptions" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="toUomId">
+                        <default-field title="To unit">
+                            <drop-down allow-empty="false">
+                                <list-options list="unitOptions" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="conversionFactor">
+                        <default-field title="Factor">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="conversionOffset">
+                        <default-field title="Offset (temperature only)">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="Effective from (empty: now)">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Through">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Change reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Store dated conversion">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="EndConversion" condition="canManageUnits &amp;&amp; !!conversionForm.uomConversionId">
+            <widgets>
+                <form-single name="EndUnitConversion" transition="endConversion" map="conversionForm">
+                    <field name="uomConversionId">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="expectedRevision">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="End conversion from">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Change reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="End this conversion">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+        <label text="Preview conversion" type="h6" />
+        <form-single name="UnitConversionPreview" transition=".">
+            <field name="previewUomId">
+                <default-field title="From unit">
+                    <drop-down allow-empty="false">
+                        <list-options list="unitOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="previewToUomId">
+                <default-field title="To unit">
+                    <drop-down allow-empty="false">
+                        <list-options list="unitOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="previewAmount">
+                <default-field title="Amount">
+                    <text-line default-value="1" />
+                </default-field>
+            </field>
+            <field name="previewAsOfDate">
+                <default-field title="As of">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Convert">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <section name="UnitPreviewResult" condition="convertedAmount != null">
+            <widgets>
+                <label text="Converted amount: ${convertedAmount}" type="p" />
+                <label text="Factor ${appliedConversionFactor}; offset ${appliedConversionOffset}" type="p" />
+            </widgets>
+        </section>
+    </widgets>
+</screen>

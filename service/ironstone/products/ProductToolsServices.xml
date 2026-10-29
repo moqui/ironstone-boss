@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='utf-8'?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="ToolsContext" allow-remote="false">
+        <in-parameters>
+            <parameter name="appRoot" type="String" />
+            <parameter name="workspace" type="String" /><parameter name="productIds" type="String"/>
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="productId" type="String" />
+            <parameter name="baseProductId" type="String" />
+            <parameter name="packProductId" type="String" />
+            <parameter name="uomId" type="String" />
+            <parameter name="toUomId" type="String" />
+            <parameter name="uomTypeEnumId" type="String" />
+            <parameter name="selectedUomId" type="String" />
+            <parameter name="selectedConversionId" type="String" />
+            <parameter name="selectedPackProductId" type="String" />
+            <parameter name="selectedFromDate" type="Timestamp" />
+            <parameter name="text" type="String" />
+            <parameter name="asOfDate" type="Timestamp" />
+            <parameter name="includeHistory" type="Boolean" />
+            <parameter name="scanId" type="String" />
+            <parameter name="productIdTypeEnumId" type="String" />
+            <parameter name="previewUomId" type="String" />
+            <parameter name="previewToUomId" type="String" />
+            <parameter name="previewAmount" type="BigDecimal" />
+            <parameter name="previewAsOfDate" type="Timestamp" />
+            <parameter name="testProductId" type="String" />
+            <parameter name="testIdentifierType" type="String" />
+            <parameter name="testValue" type="String" />
+            <parameter name="generate" type="Boolean" />
+            <parameter name="operationKey" type="String" />
+        </in-parameters>
+        <out-parameters>
+            <parameter name="appRoot" type="String" />
+            <parameter name="workspace" type="String" /><parameter name="productIds" type="String"/>
+            <parameter name="toolAccess" type="Map" />
+            <parameter name="toolMessage" type="String" />
+            <parameter name="unitForm" type="Map" />
+            <parameter name="conversionForm" type="Map" />
+            <parameter name="packagingForm" type="Map" />
+            <parameter name="identifierPolicyForm" type="Map" />
+            <parameter name="identifierTest" type="Map" />
+            <parameter name="labelDraft" type="Map" />
+            <parameter name="unitRows" type="List" />
+            <parameter name="conversionRows" type="List" />
+            <parameter name="unitOptions" type="List" />
+            <parameter name="unitTypes" type="List" />
+            <parameter name="canManageUnits" type="Boolean" />
+            <parameter name="ownerOptions" type="List" />
+            <parameter name="identifierTypes" type="List" />
+            <parameter name="convertedAmount" type="BigDecimal" />
+            <parameter name="conversionPath" type="List" />
+            <parameter name="appliedConversionFactor" type="BigDecimal" />
+            <parameter name="appliedConversionOffset" type="BigDecimal" />
+            <parameter name="packagingRows" type="List" />
+            <parameter name="findings" type="List" />
+            <parameter name="canEdit" type="Boolean" />
+            <parameter name="scanResult" type="Map" />
+            <parameter name="organizationPartyId" type="String" />
+            <parameter name="identifierPolicyRows" type="List" />
+            <parameter name="identifierPolicyHistory" type="List" />
+            <parameter name="labelRows" type="List" />
+            <parameter name="operationKey" type="String" />
+            <parameter name="labelCount" type="Integer" />
+            <parameter name="complete" type="Boolean" />
+            <parameter name="inputFingerprint" type="String" />
+            <parameter name="request" type="Map" />
+            <parameter name="templateOptions" type="List" />
+            <parameter name="printerOptions" type="List" />
+            <parameter name="canPriceLabels" type="Boolean" />
+            <parameter name="stale" type="Boolean" />
+            <parameter name="state" type="String" />
+            <parameter name="lastError" type="String" />
+            <parameter name="printJobId" type="String" />
+            <parameter name="artifactAvailable" type="Boolean" />
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/products/ProductTools.js').context(context))</script>
+        </actions>
+    </service>
+</services>

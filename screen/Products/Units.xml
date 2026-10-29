@@ -1,5 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Units &amp; barcodes" default-menu-index="8" menu-image="sym_o_straighten" menu-image-type="icon">
-    <widgets><label text="Placeholder: Units, packaging and labels." type="p"/></widgets>
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Units &amp; barcodes" default-menu-index="8" menu-image="sym_o_straighten" menu-image-type="icon">
+    <subscreens default-item="Index">
+        <subscreens-item name="Index" menu-index="1" menu-include="true" menu-title="Units" location="component://mr-boss/screen/Shared/Units.xml" />
+        <subscreens-item name="Packaging" menu-index="2" location="component://mr-boss/screen/Shared/Packaging.xml" menu-include="true" />
+        <subscreens-item name="Labels" menu-index="3" location="component://mr-boss/screen/Shared/Labels.xml" menu-include="true" />
+    </subscreens>
+    <widgets>
+        <subscreens-menu id="ProductUnitTabs" type="tab" />
+        <subscreens-active />
+    </widgets>
 </screen>

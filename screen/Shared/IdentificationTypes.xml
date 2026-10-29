@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Identification types" default-menu-include="false">
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'identifiers'})" out-map="context" />
+    </actions>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <transition name="storePolicy">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.catalogAdmin)throw new Error('Catalog catalogAdmin access is required')</script>
+            <service-call name="mantle.product.IdentifierServices.store#IdentifierPolicy" in-map="context" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <widgets>
+        <label text="Identification types" type="h5" />
+        <form-single name="IdentifierPolicyFind" transition=".">
+            <field name="organizationPartyId">
+                <default-field title="Organization">
+                    <drop-down allow-empty="false">
+                        <list-options list="ownerOptions" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="productIdTypeEnumId">
+                <default-field title="Identifier type">
+                    <drop-down allow-empty="true">
+                        <list-options list="identifierTypes" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Show policy">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <container style="scroll full-width">
+            <form-list name="IdentificationTypes" list="identifierPolicyRows" skip-form="true" paginate="false">
+                <field name="productIdTypeEnumId">
+                    <default-field title="Type">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="description">
+                    <default-field title="Description">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="enabled">
+                    <default-field title="Assignment enabled">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="format">
+                    <default-field title="Format">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="uniquenessScope">
+                    <default-field title="Uniqueness">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="generationRule">
+                    <default-field title="Generation">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="open">
+                    <default-field title="Open">
+                        <link url="." text="Open policy" parameter-map="{productIdTypeEnumId:productIdTypeEnumId,organizationPartyId:organizationPartyId}" />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+        <section name="IdentifierPolicyEditor" condition="toolAccess.catalogAdmin">
+            <widgets>
+                <form-single name="IdentifierPolicy" transition="storePolicy" map="identifierPolicyForm">
+                    <field name="organizationPartyId">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="productIdTypeEnumId">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="expectedRevision">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="enabled">
+                        <default-field title="Allow new assignments">
+                            <drop-down allow-empty="false">
+                                <option key="Y" text="Yes" />
+                                <option key="N" text="No" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="format">
+                        <default-field title="Format">
+                            <drop-down allow-empty="false">
+                                <option key="Code128" text="Code128" />
+                                <option key="GTIN" text="GTIN" />
+                                <option key="EAN-13" text="EAN-13" />
+                                <option key="EAN-8" text="EAN-8" />
+                                <option key="UPC-A" text="UPC-A" />
+                                <option key="ITF-14" text="ITF-14" />
+                                <option key="GS1-128" text="GS1-128" />
+                                <option key="QR" text="QR" />
+                                <option key="DataMatrix" text="DataMatrix" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="uniquenessScope">
+                        <default-field title="Uniqueness">
+                            <drop-down allow-empty="false">
+                                <option key="global" text="Global" />
+                                <option key="organization" text="Organization" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="generationRule">
+                        <default-field title="Generation">
+                            <drop-down allow-empty="false">
+                                <option key="manual" text="Manual" />
+                                <option key="internal" text="Prefix + product ID" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="prefix">
+                        <default-field title="Internal prefix">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="Effective from (empty: now)">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Change reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Store dated policy">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+        <label text="Policy effective dates and audit reasons" type="h6" />
+        <container style="scroll full-width">
+            <form-list name="IdentifierPolicyHistory" list="identifierPolicyHistory" skip-form="true" paginate="false">
+                <field name="productIdTypeEnumId">
+                    <default-field title="Type">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="fromDateText">
+                    <default-field title="From">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="thruDateText">
+                    <default-field title="Through">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="enabled">
+                    <default-field title="Assignments">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="format">
+                    <default-field title="Format">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="changeReason">
+                    <default-field title="Reason">
+                        <display />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+        <label text="Test an identifier" type="h6" />
+        <form-single name="IdentifierTest" transition=".">
+            <field name="organizationPartyId">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="testProductId">
+                <default-field title="Product">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products'}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="testIdentifierType">
+                <default-field title="Identifier type">
+                    <drop-down allow-empty="false">
+                        <list-options list="identifierTypes" key="${value}" text="${label}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="testValue">
+                <default-field title="Identifier value">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="generate">
+                <default-field title="Generate internal preview">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Validate without assigning">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <section name="IdentifierTestResult" condition="!!identifierTest">
+            <widgets>
+                <label text="${identifierTest.valid ? &quot;Valid&quot; : &quot;Invalid&quot;}: ${identifierTest.normalizedValue}" type="p" />
+                <label text="${identifierTest.issues.join(&quot;; &quot;)}" type="p" />
+                <label text="This preview does not assign the identifier." type="p" />
+            </widgets>
+        </section>
+    </widgets>
+</screen>

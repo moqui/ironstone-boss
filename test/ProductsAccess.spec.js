@@ -218,3 +218,7 @@ feature('each owner app administrator holds its app permissions without granting
   return{accounting,purchasing,products:asCatalog('catalog.admin',()=>call(CATALOG+'get#CatalogAccess').capabilities,false)}
  },then({accounting,purchasing,products}){accounting.glPost==true;accounting.costRead==true;accounting.costEstimate==false;purchasing.stockPlan==true;purchasing.glPost==false;products.glPost==false;products.stockPlan==false;products.methodEdit==false},
 })
+
+feature('P11 readers cannot mutate packs, identifier policy or global units through native callbacks with authz #enabled',{
+ where:[{enabled:true},{enabled:false}],when({enabled}){return asCatalog('catalog.reader',()=>{const failures=[];for(const [name,args] of [['mantle.product.ProductServices.store#ProductPackaging',{packProductId:'BOSS_PRD_PACK',baseProductId:'BOSS_PRD_OWN',quantity:24,changeReason:'Denied'}],['mantle.product.IdentifierServices.store#IdentifierPolicy',{organizationPartyId:'ORG_ZIZI_SERVICES',productIdTypeEnumId:'PidtSku',changeReason:'Denied'}],['org.moqui.impl.UnitServices.store#Unit',{uomId:'DENIED',description:'Denied',uomTypeEnumId:'UT_OTHER_MEASURE',changeReason:'Denied'}]]){let refused=false;try{call(name,args);refused=ec.message.hasError()}catch(e){refused=true}finally{ec.message.clearErrors()}if(!refused)failures.push(name)}return{failures}},enabled)},then({failures}){failures.length==0},
+})

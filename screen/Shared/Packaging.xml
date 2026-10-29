@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='utf-8'?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Packaging" default-menu-include="false">
+    <actions>
+        <service-call name="ironstone.products.ProductToolsServices.get#ToolsContext" in-map="Object.assign({},context,{workspace:'packaging'})" out-map="context" />
+    </actions>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.search#CatalogChoices" in-map="{choice:choice||'products',term:term}" out-map="found" />
+            <script>ec.web.sendJsonResponse(found.rows)</script>
+        </actions>
+        <default-response type="none" />
+    </transition>
+    <transition name="storePack">
+        <actions>
+            <service-call name="ironstone.products.CatalogServices.get#CatalogAccess" out-map="toolAppAccess" />
+            <script>if(!toolAppAccess.capabilities.catalogEdit)throw new Error('Catalog catalogEdit access is required')</script>
+            <service-call name="mantle.product.ProductServices.store#ProductPackaging" in-map="context" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="productId" />
+            <parameter name="baseProductId" />
+            <parameter name="organizationPartyId" />
+            <parameter name="productIdTypeEnumId" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <widgets>
+        <label text="Product packaging" type="h5" />
+        <label text="A pack is a product containing a dated quantity of its base product. These definitions do not move stock." type="p" />
+        <form-single name="PackagingFind" transition=".">
+            <field name="baseProductId">
+                <default-field title="Base product">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products'}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="packProductId">
+                <default-field title="Pack product">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products'}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field title="As of">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="includeHistory">
+                <default-field title="Include all dates">
+                    <drop-down allow-empty="false">
+                        <option key="false" text="No" />
+                        <option key="true" text="Yes" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Find packs">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <container style="scroll full-width">
+            <form-list name="Packaging" list="packagingRows" skip-form="true" paginate="false" show-csv-button="true">
+                <field name="packProductId">
+                    <default-field title="Pack">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="packName">
+                    <default-field title="Pack name">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="baseProductId">
+                    <default-field title="Base product">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="quantity">
+                    <default-field title="Contained quantity">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="quantityUomId">
+                    <default-field title="Unit">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="fromDateText">
+                    <default-field title="From">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="thruDateText">
+                    <default-field title="Through">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="legacyUnit">
+                    <default-field title="Legacy unit">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="edit">
+                    <default-field title="Change">
+                        <link url="." text="Schedule change" parameter-map="{selectedPackProductId:packProductId,selectedFromDate:fromDate,baseProductId:baseProductId}" />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+        <section name="PackagingEditor" condition="toolAccess.catalogEdit">
+            <widgets>
+                <label text="New pack definition or dated change" type="h6" />
+                <link text="New pack definition" url="." parameter-map="{selectedPackProductId:''}" />
+                <form-single name="ProductPackaging" transition="storePack" map="packagingForm">
+                    <field name="expectedRevision">
+                        <default-field>
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="packProductId">
+                        <default-field title="Pack product">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products'}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="baseProductId">
+                        <default-field title="Base product">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products'}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="quantity">
+                        <default-field title="Contained quantity">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="quantityUomId">
+                        <default-field title="Contained unit">
+                            <drop-down allow-empty="false">
+                                <list-options list="unitOptions" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="productIdTypeEnumId">
+                        <default-field title="Identifier type (optional)">
+                            <drop-down allow-empty="true">
+                                <list-options list="identifierTypes" key="${value}" text="${label}" />
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="idValue">
+                        <default-field title="Assign identifier (optional)">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="Effective from (empty: now)">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Through">
+                            <date-time />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Change reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submitButton">
+                        <default-field title="Store packaging definition">
+                            <submit />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+        <label text="Resolve a scan" type="h6" />
+        <form-single name="PackagingScan" transition=".">
+            <field name="scanId">
+                <default-field title="Scanned identifier">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="baseProductId">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="productId">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="asOfDate">
+                <default-field>
+                    <hidden />
+                </default-field>
+            </field>
+            <field name="submitButton">
+                <default-field title="Resolve scan">
+                    <submit />
+                </default-field>
+            </field>
+        </form-single>
+        <section name="ScannedProduct" condition="!!scanResult">
+            <widgets>
+                <label text="${scanResult.found ? &quot;Resolved&quot; : scanResult.ambiguous ? &quot;Ambiguous code&quot; : &quot;No matching product&quot;}" type="p" />
+                <label text="Product ${scanResult.productId || &quot;&quot;}; pack ${scanResult.packProductId || &quot;&quot;}; contained ${scanResult.containedQuantity || &quot;&quot;} ${scanResult.quantityUomId || &quot;&quot;}" condition="scanResult.found" type="p" />
+                <container style="scroll full-width">
+                    <form-list name="ScanCandidates" list="scanResult.ambiguityList" skip-form="true" paginate="false">
+                        <field name="matchedProductId">
+                            <default-field title="Matched product">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="productId">
+                            <default-field title="Base product">
+                                <display />
+                            </default-field>
+                        </field>
+                        <field name="containedQuantity">
+                            <default-field title="Quantity">
+                                <display />
+                            </default-field>
+                        </field>
+                    </form-list>
+                </container>
+            </widgets>
+        </section>
+        <container style="scroll full-width">
+            <form-list name="PackagingFindings" list="findings" skip-form="true" paginate="false">
+                <field name="packProductId">
+                    <default-field title="Pack">
+                        <display />
+                    </default-field>
+                </field>
+                <field name="message">
+                    <default-field title="Finding">
+                        <display />
+                    </default-field>
+                </field>
+            </form-list>
+        </container>
+    </widgets>
+</screen>

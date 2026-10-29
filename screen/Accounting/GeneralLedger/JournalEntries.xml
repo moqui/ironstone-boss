@@ -14,9 +14,39 @@
     <parameter name="pageIndex" />
     <parameter name="pageSize" />
     <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <transition name="reviewSelection">
+        <actions>
+            <service-call name="mantle.ledger.JournalServices.validate#Batch" in-map="context" out-map="result" />
+            <set field="previewId" from="result.previewId" />
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId" />
+            <parameter name="recordId" />
+            <parameter name="previewId" />
+            <parameter name="inputFingerprint" />
+            <parameter name="operationKey" />
+        </default-response>
+        <error-response url="." />
+    </transition>
+    <transition name="postSelection">
+        <actions>
+            <service-call name="mantle.ledger.JournalServices.post#Batch" in-map="context" out-map="result" />
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId" />
+            <parameter name="recordId" />
+            <parameter name="previewId" />
+            <parameter name="inputFingerprint" />
+            <parameter name="operationKey" />
+        </default-response>
+        <error-response url="." />
+    </transition>
     <actions>
         <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'journals'})" out-map="context" />
         <set field="recordsCount" from="recordCount" />
+        <if condition="previewId">
+            <service-call name="mantle.ledger.JournalServices.get#BatchPreview" in-map="{organizationPartyId:organizationPartyId,previewId:previewId}" out-map="batchPreview" />
+        </if>
         <set from="batchPreview?.results || []" field="batchPreviewResults" />
         <set from="(batchPreviewResults || []).length" field="batchPreviewResultsCount" />
         <set from="batchPreviewResultsCount || 1" field="batchPreviewResultsPageSize" />
@@ -48,6 +78,23 @@
         </form-single>
         <link url="//Accounting/QuickCreate/NewEntry" text="Create draft" link-type="anchor-button" btn-type="primary" condition="accounting.capabilities.glPost" />
         <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <row-selection id-field="acctgTransId" parameter="acctgTransIds" list-mode="true" condition="accounting.capabilities.glPost">
+                <action>
+                    <dialog button-text="Review selected" title="Review selected journal entries" />
+                    <form-single name="ReviewSelection" transition="reviewSelection" map="context">
+                        <field name="organizationPartyId" from="organizationPartyId">
+                            <default-field title="Organization party id">
+                                <hidden />
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="Submit">
+                                <submit text="Review selected" type="primary" />
+                            </default-field>
+                        </field>
+                    </form-single>
+                </action>
+            </row-selection>
             <field name="acctgTransId">
                 <default-field title="Record">
                     <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}" />

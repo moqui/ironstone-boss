@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Trial balance" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId" />
+    <parameter name="recordId" />
+    <parameter name="acctgTransId" />
+    <parameter name="glAccountId" />
+    <parameter name="glJournalId" />
+    <parameter name="acctgTransTemplateId" />
+    <parameter name="previewId" />
+    <parameter name="inputFingerprint" />
+    <parameter name="operationKey" />
+    <parameter name="text" />
+    <parameter name="pageIndex" />
+    <parameter name="pageSize" />
+    <parameter name="fromDate" />
+    <parameter name="thruDate" />
+    <parameter name="timePeriodId" />
+    <parameter name="amountUomId" />
+    <parameter name="facilityId" />
+    <parameter name="costCenterId" />
+    <parameter name="compareFromDate" />
+    <parameter name="compareThruDate" />
+    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <actions>
+        <set field="reportRows" from="[]" />
+        <set field="asOf" from="''" />
+        <if condition="organizationPartyId">
+            <service-call name="mantle.ledger.FinanceReportServices.run#TrialBalance" in-map="context" out-map="context" />
+        </if>
+        <script>printUrl = '/apps/Accounting/Reports/TrialBalance?renderMode=html-print&amp;' + Object.entries({organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate,glAccountId:glAccountId}).filter(([key,value])=&gt;value).map(([key,value])=&gt;key+'='+encodeURIComponent(value)).join('&amp;')</script>
+        <set from="(reportRows || []).length" field="reportRowsCount" />
+        <set from="reportRowsCount || 1" field="reportRowsPageSize" />
+        <set from="0" field="reportRowsPageIndex" />
+        <set from="0" field="reportRowsPageMaxIndex" />
+        <set from="reportRowsCount ? 1 : 0" field="reportRowsPageRangeLow" />
+        <set from="reportRowsCount" field="reportRowsPageRangeHigh" />
+    </actions>
+    <widgets>
+        <label text="Trial balance" type="h5" />
+        <link target-window="_blank" url="${printUrl}" text="Print report" />
+        <form-single name="ReportOptions" transition="." map="context">
+            <field name="organizationPartyId">
+                <default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="glAccountId">
+                <default-field title="Account">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="timePeriodId">
+                <default-field title="Fiscal period">
+                    <drop-down>
+                        <dynamic-options server-search="true" min-length="0" parameter-map="{choice:'periods',organizationPartyId:organizationPartyId}" transition="choices" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="fromDate">
+                <default-field title="From">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="thruDate">
+                <default-field title="Through (exclusive)">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="amountUomId">
+                <default-field title="Currency">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="facilityId">
+                <default-field title="Facility">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="costCenterId">
+                <default-field title="Cost centre">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="compareFromDate">
+                <default-field title="Comparison from">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="compareThruDate">
+                <default-field title="Comparison through (exclusive)">
+                    <date-time />
+                </default-field>
+            </field>
+            <field name="submit">
+                <default-field title="Submit">
+                    <submit text="Run report" type="primary" />
+                </default-field>
+            </field>
+        </form-single>
+        <form-list name="ReportRows" list="reportRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true" saved-finds="true">
+            <field name="glAccountId">
+                <default-field title="Account">
+                    <link url="//Accounting/GeneralLedger/AccountDetail" text="${accountName || glAccountId}" parameter-map="{recordId:glAccountId,organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate,reportReturn:'TrialBalance'}" />
+                </default-field>
+            </field>
+            <field name="amountUomId">
+                <default-field title="Currency">
+                    <display />
+                </default-field>
+            </field>
+            <field name="beginning" align="right">
+                <default-field title="Beginning">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <field name="debits" align="right">
+                <default-field title="Debits">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <field name="credits" align="right">
+                <default-field title="Credits">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <field name="ending" align="right">
+                <default-field title="Ending">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <field name="comparisonEnding" align="right">
+                <default-field title="Comparison ending">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <field name="change" align="right">
+                <default-field title="Change">
+                    <display currency-unit-field="amountUomId" />
+                </default-field>
+            </field>
+            <columns type="mobile">
+                <column>
+                    <field-ref name="glAccountId" />
+                    <field-ref name="amountUomId" />
+                </column>
+                <column>
+                    <field-ref name="debits" />
+                    <field-ref name="credits" />
+                    <field-ref name="ending" />
+                </column>
+            </columns>
+        </form-list>
+        <label text="As of ${asOf}" type="p" style="text-caption" />
+    </widgets>
+</screen>

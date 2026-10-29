@@ -1,2 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<screen default-menu-title="Reports" default-menu-index="13"><widgets><label text="Ledger reporting and period tools become available with P2." type="p"/></widgets></screen>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Reports" default-menu-index="12" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <subscreens default-item="Reports" always-use-full-path="true"/>
+    <widgets>
+        <subscreens-panel id="ReportsPanel" type="tab"/>
+    </widgets>
+</screen>

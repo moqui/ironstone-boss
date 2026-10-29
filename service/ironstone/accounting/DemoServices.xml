@@ -22,12 +22,16 @@
                 create('mantle.account.payment.Payment',{paymentId:'BOSS_ACCT_PAYMENT'},{paymentTypeEnumId:'PtDisbursement',paymentInstrumentEnumId:'PiOther',statusId:'PmntProposed',fromPartyId:org,toPartyId:'ORG_ACME',amountUomId:currency,amount:125,description:'Accounting demo proposed payment'})
                 const accounts = lib.rows('mantle.ledger.account.GlAccountAndOrganization',{organizationPartyId:org}).filter(r=>r.disallowPosting!=='Y')
                 if(accounts.length<2)throw new Error('Accounting demo requires two posting accounts')
-                for(const id of ['BOSS_ACCT_ENTRY']) {
+                for(const id of ['BOSS_ACCT_ENTRY','BOSS_ACCT_POSTED']) {
                     if(lib.one('mantle.ledger.transaction.AcctgTrans',{acctgTransId:id}))continue
                     lib.call('create#mantle.ledger.transaction.AcctgTrans',{acctgTransId:id,organizationPartyId:org,acctgTransTypeEnumId:'AttInternal',amountUomId:currency,transactionDate:ec.user.nowTimestamp,isPosted:'N',glFiscalTypeEnumId:'GLFT_ACTUAL',description:id==='BOSS_ACCT_ENTRY'?'Office expense review':'Posted office expense'})
                     for(const [i,flag] of ['D','C'].entries())lib.call('mantle.ledger.LedgerServices.create#AcctgTransEntry',{acctgTransId:id,glAccountId:accounts[i].glAccountId,debitCreditFlag:flag,amount:125})
-
+                    if(id==='BOSS_ACCT_POSTED') {
+                        const reviewed=lib.call('mantle.ledger.JournalServices.preview#Entry',{acctgTransId:id})
+                        lib.call('mantle.ledger.JournalServices.post#Entry',Object.assign({},reviewed,{acctgTransId:id,operationKey:'BOSS_ACCT_DEMO_POST',changeReason:'Accounting demo posting'}))
+                    }
                 }
+                lib.call('update#mantle.ledger.config.PartyAcctgPreference',{organizationPartyId:org,postingGuardEnabled:'Y',requiredLedgerDimensionsEnabled:'Y',forwardIssuanceRepostEnabled:'Y'})
                 complete=true
             } finally {
                 if(!disabled)ec.artifactExecution.enableAuthz()

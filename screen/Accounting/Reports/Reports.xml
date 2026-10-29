@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Reports" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <widgets>
+        <label text="Accounting reports" type="h5"/>
+        <link url="../TrialBalance" text="Trial balance" link-type="anchor-button" btn-type="primary"/>
+        <link url="../GeneralLedger" text="General ledger" link-type="anchor-button"/>
+    </widgets>
+</screen>

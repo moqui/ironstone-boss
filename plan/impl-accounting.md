@@ -209,7 +209,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 29 (§6 F48–F55); access regressions accompany P1 |
 | P1 Foundation | Mantle, BOSS | the Accounting root and menu, Home |built Oct 29; see build record below |
-| P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | — |
+| P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger |built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | — |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | — |
 | P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | — |
@@ -1032,3 +1032,11 @@ unavailable and names independent health/count failures. The ledger model is add
 `AccountingShell` exercises every role, palette source and quick-create grant; `AccountingAccess` and
 `AccountingIsolation` cover service, REST, export, file and search boundaries, including disabled artifact authz.
 
+
+### P2 build — Oct 29, 2026
+
+P2a and P2b are implemented: native posting guard, dated reversal and forward adjustment, configured fiscal
+calendar, chart/journal/period editors, trial balance/general ledger, independent batch results, immutable template
+versions, dimensions and journal files. Reviewed retries recheck authoritative inputs under lock. No closed-period
+bypass or unrestricted posted rewrite was granted. Accounting explicitly adopts the new flags on ORG_ZIZI_CORP;
+standalone Mantle retains the legacy defaults. Native controls and the original 18-check ledger baseline pass.

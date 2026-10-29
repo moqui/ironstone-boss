@@ -37,6 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
             // the create#<X>Content services (each saves the uploaded contentFile through its save#<X>ContentFile), and the
             // enumeration type of the content type field (its relationship title in mr-mantle)
             const services = {
+                'mantle.ledger.transaction.AcctgTrans': ['mantle.ledger.JournalContentServices.create#Content','acctgTransContentId','AcctgTransContentType'],
                 'mantle.product.bom.ProductBom': ['mantle.product.BomServices.create#ProductBomContent', 'productBomContentId', 'ProductBomContentType'],
                 'mantle.party.agreement.Agreement': ['mantle.party.AgreementServices.create#AgreementContent', 'agreementContentId', 'AgreementContentType'],
                 'mantle.product.maintenance.AssetMaintenance': ['mantle.product.EquipmentServices.create#AssetMaintenanceContent', null, 'AssetMaintContentType'],
@@ -59,6 +60,11 @@ along with this software (see the LICENSE.md file). If not, see
             const pkFields = Object.keys(ec.entity.makeValue(content.entityName).getPrimaryKeys())
             contentType = {entityName: content.entityName, keyField: content.keyField, typeField: content.typeField, dateField: content.dateField,
                 pkFields: pkFields, createService: found[0], idField: found[1], enumTypeId: found[2], catalogCanChange: true}
+            if (info.recordEntityName === 'mantle.ledger.transaction.AcctgTrans') {
+                const finance = ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')
+                try {finance.record({kind:'journals',recordId:info.recordId},'glPost');contentType.catalogCanChange=true}
+                catch(error) {contentType.catalogCanChange=false}
+            }
             // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
             // inherited entity permission or having uploaded the file earlier never substitutes for it.
             if (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(info.recordEntityName)) {

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="load" noun="AccountingDemo" authenticate="anonymous-all" allow-remote="false">
+        <description>Idempotent fixed-ID finance fixtures. Only data loading or a system administrator may run it.</description>
+        <out-parameters>
+            <parameter name="complete" type="Boolean"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
+            if (ec.user.userId && !ec.user.isInGroup('ADMIN')) throw new Error('Demo loading requires system administration')
+            const previous = ec.user.username
+            if (!previous) ec.user.internalLoginUser('john.doe')
+            const disabled = ec.artifactExecution.disableAuthz()
+            try {
+                const lib = ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')
+                const org = 'ORG_ZIZI_CORP'
+                const currency = lib.preference(org).baseCurrencyUomId
+                const create = (entity,key,values) => {if(!lib.one(entity,key))lib.call('create#'+entity,Object.assign({},key,values))}
+                create('mantle.account.invoice.Invoice',{invoiceId:'BOSS_ACCT_INVOICE'},{invoiceTypeEnumId:'InvoiceSales',statusId:'InvoiceInProcess',fromPartyId:org,toPartyId:'ORG_ACME',currencyUomId:currency,invoiceDate:ec.user.nowTimestamp,description:'Accounting demo customer invoice'})
+                create('mantle.account.invoice.Invoice',{invoiceId:'BOSS_ACCT_BILL'},{invoiceTypeEnumId:'InvoiceSales',statusId:'InvoiceInProcess',fromPartyId:'ORG_ACME',toPartyId:org,currencyUomId:currency,invoiceDate:ec.user.nowTimestamp,description:'Accounting demo supplier bill'})
+                create('mantle.account.payment.Payment',{paymentId:'BOSS_ACCT_PAYMENT'},{paymentTypeEnumId:'PtDisbursement',paymentInstrumentEnumId:'PiOther',statusId:'PmntProposed',fromPartyId:org,toPartyId:'ORG_ACME',amountUomId:currency,amount:125,description:'Accounting demo proposed payment'})
+                const accounts = lib.rows('mantle.ledger.account.GlAccountAndOrganization',{organizationPartyId:org}).filter(r=>r.disallowPosting!=='Y')
+                if(accounts.length<2)throw new Error('Accounting demo requires two posting accounts')
+                for(const id of ['BOSS_ACCT_ENTRY']) {
+                    if(lib.one('mantle.ledger.transaction.AcctgTrans',{acctgTransId:id}))continue
+                    lib.call('create#mantle.ledger.transaction.AcctgTrans',{acctgTransId:id,organizationPartyId:org,acctgTransTypeEnumId:'AttInternal',amountUomId:currency,transactionDate:ec.user.nowTimestamp,isPosted:'N',glFiscalTypeEnumId:'GLFT_ACTUAL',description:id==='BOSS_ACCT_ENTRY'?'Office expense review':'Posted office expense'})
+                    for(const [i,flag] of ['D','C'].entries())lib.call('mantle.ledger.LedgerServices.create#AcctgTransEntry',{acctgTransId:id,glAccountId:accounts[i].glAccountId,debitCreditFlag:flag,amount:125})
+
+                }
+                complete=true
+            } finally {
+                if(!disabled)ec.artifactExecution.enableAuthz()
+                if(!previous)ec.user.logoutUser()
+            }
+        ]]></script>
+        </actions>
+    </service>
+</services>

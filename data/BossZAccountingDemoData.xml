@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<entity-facade-xml type="demo">
+    <ironstone.accounting.DemoServices.load-AccountingDemo/>
+</entity-facade-xml>

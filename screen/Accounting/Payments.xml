@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payments" default-menu-index="4" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <subscreens default-item="Payments" always-use-full-path="true"/>
+    <widgets>
+        <subscreens-panel id="PaymentsPanel" type="tab"/>
+    </widgets>
+</screen>

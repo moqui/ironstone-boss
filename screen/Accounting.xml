@@ -1,35 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This software is in the public domain under CC0 1.0 Universal plus a
-Grant of Patent License.
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to the
-public domain worldwide. This software is distributed without any
-warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication
-along with this software (see the LICENSE.md file). If not, see
-<http://creativecommons.org/publicdomain/zero/1.0/>.
--->
-<!-- IronStone Accounting: root of the app for finance and bookkeepers (initial-design.md app table); its sections
-    follow design-accounting.md when that file is written. Not yet implemented: its BOSS_ACCOUNTING
-    grant in data/BossSetupData.xml is commented out, so no one may open it and it is in no menu. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Accounting" menu-image="sym_o_account_balance" menu-image-type="icon">
-
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen default-menu-title="Accounting" menu-image="sym_o_account_balance" menu-image-type="icon" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <always-actions>
         <set field="appRoot" value="Accounting"/>
-
         <service-call name="mantle.party.PartyServices.setup#UserOrganizationInfo" out-map="context"/>
+        <service-call name="ironstone.accounting.AccessServices.get#SharedContext" in-map="{organizationPartyId:organizationPartyId}" out-map="accounting"/>
+        <set field="organizationPartyId" from="organizationPartyId || accounting.activeOrganizationPartyId || (accounting.organizationPartyIds.length === 1 ? accounting.organizationPartyIds[0] : null)"/>
     </always-actions>
-
     <subscreens default-item="Home" always-use-full-path="true">
-        <!-- the record panels the chatter and record-files elements load under this app root, hidden from the menu
-            (the theme values STRT_CHATTER_SCREEN and STRT_RECORD_FILES_SCREEN; impl-drawers-commons.md R5) -->
         <subscreens-item name="Chatter" location="component://mr-boss/screen/Shared/Chatter.xml" menu-include="false"/>
         <subscreens-item name="RecordFiles" location="component://mr-boss/screen/Shared/RecordFiles.xml" menu-include="false"/>
     </subscreens>
-
+    <shell-providers>
+        <quick-create kind="accountingNewInvoice" label="Invoice" screen="Accounting/QuickCreate/NewInvoice" icon="sym_o_add" sequence="90"/>
+        <quick-create kind="accountingNewBill" label="Bill" screen="Accounting/QuickCreate/NewBill" icon="sym_o_add" sequence="90"/>
+        <quick-create kind="accountingNewPayment" label="Payment" screen="Accounting/QuickCreate/NewPayment" icon="sym_o_add" sequence="90"/>
+        <quick-create kind="accountingNewEntry" label="Journal entry" screen="Accounting/QuickCreate/NewEntry" icon="sym_o_add" sequence="90"/>
+        <palette-source group="Accounting" label="Finance records" service="ironstone.accounting.AccessServices.search#Records" sequence="47"/>
+        <palette-type doc-type="MantleInvoice"/><palette-type doc-type="MantlePayment"/>
+        <palette-type doc-type="MantleGlAccount"/><palette-type doc-type="MantleAcctgTrans"/>
+        <keymap scope="accounting"><key keys="g j" label="Journal entries" screen="Accounting/GeneralLedger/JournalEntries"/><key keys="g a" label="Chart of accounts" screen="Accounting/GeneralLedger/ChartOfAccounts"/></keymap>
+    </shell-providers>
     <widgets><subscreens-panel id="accounting-panel" type="popup"/></widgets>
 </screen>

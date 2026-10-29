@@ -208,7 +208,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | Phase | Repos | Screens | Status |
 | --- | --- | --- | --- |
 | P0 Checks | all (read) | — | checked Oct 29 (§6 F48–F55); access regressions accompany P1 |
-| P1 Foundation | Mantle, BOSS | the Accounting root and menu, Home | — |
+| P1 Foundation | Mantle, BOSS | the Accounting root and menu, Home |built Oct 29; see build record below |
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | — |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | — |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | — |
@@ -1023,3 +1023,12 @@ Designed, not in this build:
 ### P0 verification — Oct 29, 2026
 
 Source contracts checked against this checkout. Existing AccountingActivities, LedgerMaintenance and PartyTimePeriods: **18/18 passed**, using `./moq test --nobuild mr-mantle --spec LedgerMaintenance,PartyTimePeriods,AccountingActivities` with a disposable database. P1 includes minimal scoped document lists, draft creation and read-only detail routes to fulfill its shell acceptance criteria; complete document workflows remain P4–P5.
+
+### P1 build — Oct 29, 2026
+
+Implemented the complete finance grant matrix and root filters, isolated demo users, permission-derived native
+access, scoped lists/search/record links, draft document creation and read-only routes. Home keeps later aggregates
+unavailable and names independent health/count failures. The ledger model is additive preparation for P2/P3.
+`AccountingShell` exercises every role, palette source and quick-create grant; `AccountingAccess` and
+`AccountingIsolation` cover service, REST, export, file and search boundaries, including disabled artifact authz.
+

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal entries" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId" />
+    <parameter name="recordId" />
+    <parameter name="acctgTransId" />
+    <parameter name="glAccountId" />
+    <parameter name="glJournalId" />
+    <parameter name="acctgTransTemplateId" />
+    <parameter name="previewId" />
+    <parameter name="inputFingerprint" />
+    <parameter name="operationKey" />
+    <parameter name="text" />
+    <parameter name="pageIndex" />
+    <parameter name="pageSize" />
+    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <actions>
+        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'journals'})" out-map="context" />
+        <set field="recordsCount" from="recordCount" />
+        <set from="batchPreview?.results || []" field="batchPreviewResults" />
+        <set from="(batchPreviewResults || []).length" field="batchPreviewResultsCount" />
+        <set from="batchPreviewResultsCount || 1" field="batchPreviewResultsPageSize" />
+        <set from="0" field="batchPreviewResultsPageIndex" />
+        <set from="0" field="batchPreviewResultsPageMaxIndex" />
+        <set from="batchPreviewResultsCount ? 1 : 0" field="batchPreviewResultsPageRangeLow" />
+        <set from="batchPreviewResultsCount" field="batchPreviewResultsPageRangeHigh" />
+    </actions>
+    <widgets>
+        <label text="Journal entries" type="h5" />
+        <form-single name="Find" transition="." map="context">
+            <field name="organizationPartyId">
+                <default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId}" />
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="text">
+                <default-field title="Search">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="submit">
+                <default-field title="Submit">
+                    <submit text="Find" type="primary" />
+                </default-field>
+            </field>
+        </form-single>
+        <link url="//Accounting/QuickCreate/NewEntry" text="Create draft" link-type="anchor-button" btn-type="primary" condition="accounting.capabilities.glPost" />
+        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <field name="acctgTransId">
+                <default-field title="Record">
+                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}" />
+                </default-field>
+            </field>
+            <field name="description">
+                <default-field title="Name">
+                    <text-line />
+                </default-field>
+            </field>
+            <field name="isPosted">
+                <default-field title="Posted">
+                    <display />
+                </default-field>
+            </field>
+            <columns type="mobile">
+                <column>
+                    <field-ref name="acctgTransId" />
+                    <field-ref name="description" />
+                </column>
+                <column>
+                    <field-ref name="isPosted" />
+                </column>
+            </columns>
+        </form-list>
+        <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
+        <section name="BatchReview" condition="previewId">
+            <widgets>
+                <label text="Review and posting results" type="h6" />
+                <form-list name="BatchResults" list="batchPreviewResults" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                    <field name="acctgTransId">
+                        <default-field title="Entry">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="valid">
+                        <default-field title="Ready">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="success">
+                        <default-field title="Posted">
+                            <display />
+                        </default-field>
+                    </field>
+                    <field name="message">
+                        <default-field title="Result">
+                            <display />
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="acctgTransId" />
+                        </column>
+                        <column>
+                            <field-ref name="valid" />
+                            <field-ref name="success" />
+                            <field-ref name="message" />
+                        </column>
+                    </columns>
+                </form-list>
+                <form-single name="PostSelection" transition="postSelection" map="context">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field title="Organization party id">
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="previewId" from="previewId">
+                        <default-field title="Preview id">
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="operationKey" from="operationKey || ('selection-' + ec.user.randomString(24))">
+                        <default-field title="Operation key">
+                            <hidden />
+                        </default-field>
+                    </field>
+                    <field name="changeReason">
+                        <default-field title="Posting reason">
+                            <text-line />
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="Submit">
+                            <submit text="Post reviewed selection" type="primary" />
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

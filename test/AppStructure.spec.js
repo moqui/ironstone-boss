@@ -336,7 +336,12 @@ spec({
     setupSpec() {
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
-        screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products"], (location) => !isPlaceholder(location))
+        screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products", "Accounting"], (location) => !isPlaceholder(location))
+        for (const path of ["Home","Receivables/Invoices","Payables/Bills","Payments/Payments","GeneralLedger/ChartOfAccounts","GeneralLedger/JournalEntries","GeneralLedger/TransactionEntries","GeneralLedger/JournalBatches","GeneralLedger/JournalTemplates","PeriodClose/Periods","PeriodClose/PeriodLocks","Reports/TrialBalance","Reports/GeneralLedger","Settings/Settings","Settings/AccountingPreferences","Settings/PostingDefaults","Settings/PaymentTerms","Settings/Currencies","Settings/PaymentMethods","Settings/DocumentSettings"]) {
+            demoRecords["Accounting/"+path]={parameters:{organizationPartyId:"ORG_ZIZI_CORP"}}
+        }
+        for (const [path,id] of Object.entries({"Receivables/InvoiceDetail":"BOSS_ACCT_INVOICE","Payables/BillDetail":"BOSS_ACCT_BILL","Payments/PaymentDetail":"BOSS_ACCT_PAYMENT","GeneralLedger/JournalEntryDetail":"BOSS_ACCT_ENTRY","GeneralLedger/AccountDetail":"111100000"}))
+            demoRecords["Accounting/"+path]={parameters:{organizationPartyId:"ORG_ZIZI_CORP",recordId:id}}
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path, `${base}/Shared/Product360/${tab}.xml`])
@@ -417,7 +422,7 @@ feature("every placeholder screen renders in qvt without errors, with its menu",
         // fewer as the milestones replace them (129 after M4, 114 after M10 and the Comms mail settings, 110 after M9's
         // Knowledge and Notes, 104 after M8's Files and Shares and the public page moved out of Commons; Projects P1 adds the
         // placeholders of its menu, 25 more, which its phases replace: 102 after P7's Team planner and Allocations, 98 after P8a's billing, 97 after P9's reports; Products P2 replaces Settings; P6 replaces SupplierPrices)
-        placeholders.length >= 80
+        placeholders.length >= 71
         failures.join("\n") == ""
     },
 })

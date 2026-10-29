@@ -1,22 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This software is in the public domain under CC0 1.0 Universal plus a
-Grant of Patent License.
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to the
-public domain worldwide. This software is distributed without any
-warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication
-along with this software (see the LICENSE.md file). If not, see
-<http://creativecommons.org/publicdomain/zero/1.0/>.
--->
-<!-- Placeholder for the Payables & payment runs section of IronStone Accounting (initial-design.md app table);
-    design-accounting.md decides its screens. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Payables &amp; payment runs" default-menu-index="3" menu-image="sym_o_payments" menu-image-type="icon">
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payables" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <subscreens default-item="Bills" always-use-full-path="true"/>
     <widgets>
-        <label text="Placeholder: Payables and payment runs." type="p"/>
+        <subscreens-panel id="PayablesPanel" type="tab"/>
     </widgets>
 </screen>

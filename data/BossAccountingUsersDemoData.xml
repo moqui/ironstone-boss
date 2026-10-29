@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<entity-facade-xml type="demo">
+    <mantle.party.Party partyId="BOSS_ACCT_AR" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_AR" firstName="Finance" lastName="Ar"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_AR_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_AR" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_AR" username="finance.ar" userFullName="Finance Ar" partyId="BOSS_ACCT_AR" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_AR" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_AR" userId="BOSS_ACCT_AR" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_AP" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_AP" firstName="Finance" lastName="Ap"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_AP_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_AP" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_AP" username="finance.ap" userFullName="Finance Ap" partyId="BOSS_ACCT_AP" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_AP" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_AP" userId="BOSS_ACCT_AP" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_MATCH" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_MATCH" firstName="Finance" lastName="Match"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_MATCH_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_MATCH" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_MATCH" username="finance.match" userFullName="Finance Match" partyId="BOSS_ACCT_MATCH" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_MATCH" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_MATCH" userId="BOSS_ACCT_MATCH" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_TREASURY" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_TREASURY" firstName="Finance" lastName="Treasury"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_TREASURY_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_TREASURY" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_TREASURY" username="finance.treasury" userFullName="Finance Treasury" partyId="BOSS_ACCT_TREASURY" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_TREASURY" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_TREASURY" userId="BOSS_ACCT_TREASURY" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_GL" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_GL" firstName="Finance" lastName="Gl"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_GL_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_GL" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_GL" username="finance.gl" userFullName="Finance Gl" partyId="BOSS_ACCT_GL" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_GL" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_GL" userId="BOSS_ACCT_GL" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_TAX" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_TAX" firstName="Finance" lastName="Tax"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_TAX_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_TAX" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_TAX" username="finance.tax" userFullName="Finance Tax" partyId="BOSS_ACCT_TAX" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_TAX" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_TAX" userId="BOSS_ACCT_TAX" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_READ" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_READ" firstName="Finance" lastName="Read"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_READ_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_READ" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_READ" username="finance.read" userFullName="Finance Read" partyId="BOSS_ACCT_READ" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_READ" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_READ" userId="BOSS_ACCT_READ" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_APPROVE" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_APPROVE" firstName="Finance" lastName="Approve"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_APPROVE_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_APPROVE" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_APPROVE" username="finance.approve" userFullName="Finance Approve" partyId="BOSS_ACCT_APPROVE" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_APPROVE" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_APPROVE" userId="BOSS_ACCT_APPROVE" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_ADMIN" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_ADMIN" firstName="Finance" lastName="Admin"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_ADMIN_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_ADMIN" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_ADMIN" username="finance.admin" userFullName="Finance Admin" partyId="BOSS_ACCT_ADMIN" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_ADMIN" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_ADMIN" userId="BOSS_ACCT_ADMIN" fromDate="0"/>
+</entity-facade-xml>

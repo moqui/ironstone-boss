@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Record" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+ <parameter name="recordId"/><parameter name="organizationPartyId"/>
+ <actions><service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'journals',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context"/></actions>
+ <widgets><container style="m-record-header"><container style="m-record-title"><label text="${recordId}" type="h5"/><label text="${record.accountName || record.description || ''}" type="p"/></container></container><label text="Draft financial records can be reviewed here. Ledger editing follows in P2." type="p"/></widgets>
+</screen>

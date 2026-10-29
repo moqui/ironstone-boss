@@ -102,7 +102,10 @@ function tui(root, path, parameters) {
 spec({
     setupSpec() {
         login("john.doe")
-        screens = findScreenFiles(["Commons", "Comms", "Insights", "Products"])
+        screens = findScreenFiles(["Commons", "Comms", "Insights", "Products", "Accounting"])
+        for (const [root,path] of screens) if(root.endsWith('/Accounting.xml')) demoParameters['Accounting/'+path]={organizationPartyId:'ORG_ZIZI_CORP'}
+        for (const [path,id] of Object.entries({"Receivables/InvoiceDetail":"BOSS_ACCT_INVOICE","Payables/BillDetail":"BOSS_ACCT_BILL","Payments/PaymentDetail":"BOSS_ACCT_PAYMENT","GeneralLedger/JournalEntryDetail":"BOSS_ACCT_ENTRY","GeneralLedger/AccountDetail":"111100000"}))
+            demoParameters["Accounting/"+path]={organizationPartyId:"ORG_ZIZI_CORP",recordId:id}
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path])

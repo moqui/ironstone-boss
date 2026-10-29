@@ -784,8 +784,8 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | ironstone.products.CatalogServices | get#CatalogSummary | PRD-ACCESS; P2 | Products/Home |
 | ironstone.products.CatalogServices | get#CatalogOptions | PRD-ACCESS; P2 | Catalog form options |
 | ironstone.products.CatalogServices | search#CatalogChoices | PRD-ACCESS; P2 | Catalog server-search lookups |
-| ironstone.products.SettingsServices | get#CatalogSettings | PRD-SETTINGS | Products/Settings |
-| ironstone.products.SettingsServices | store#CatalogSettings | PRD-SETTINGS | Products/Settings |
+| mantle.product.ProductServices | get#CatalogSettings | PRD-SETTINGS | Products/Settings |
+| mantle.product.ProductServices | store#CatalogSettings | PRD-SETTINGS | Products/Settings |
 
 | ironstone.products.CategoryServices | find#Categories | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/List |
 | ironstone.products.CategoryServices | get#CategoryAncestors | PRD-TAXONOMY; PRD-ACCESS; P3 | Products/Categories/List tree ancestors |
@@ -1226,8 +1226,8 @@ Products uses native guarded replacements for raw catalog writes, bulk assignmen
 | product/ProductImportServices | get#CatalogImport |  | Shared/ProductImport; Products/ProductImport |
 | product/ProductImportServices | get#CatalogImportReport |  | Shared/ProductImport; Products/ProductImport |
 | product/ProductImportServices | get#CatalogImportSample |  | Shared/ProductImport; Products/ProductImport |
-| product/CatalogCheckServices | validate#Catalog |  | Shared/CatalogChecks; Products/Settings/CatalogChecks; Products/Home |
-| product/CatalogCheckServices | get#CatalogChecks |  | Shared/CatalogChecks; Products/Settings/CatalogChecks; Products/Home |
+| product/CatalogCheckServices | validate#Catalog |  | Shared/CatalogChecks; Products/CatalogChecks; Products/Home |
+| product/CatalogCheckServices | get#CatalogChecks |  | Shared/CatalogChecks; Products/CatalogChecks; Products/Home |
 | product/PriceServices | store#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
 | product/PriceServices | replace#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |
 | product/PriceServices | expire#ProductPrice |  | Shared/Prices; Shared/PriceListDetail; Shared/PriceExplain; Shared/SupplierPrices |

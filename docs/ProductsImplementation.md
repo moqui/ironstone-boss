@@ -2,7 +2,7 @@
 
 The Products build covers catalog masters and Product360, taxonomy and features, selected variants, dated sales and supplier prices, stock policy, manufacturing methods, standard estimates, documents and translations, units, packaging, identifiers and labels, durable imports, catalog checks, and authorized outputs.
 
-Business rules and record guards are native Mantle services. BOSS owns app capabilities, screen context and forms. Mantle boots and tests without BOSS, checks shared Moqui permissions, and has no BOSS group or `ironstone.*` references. BOSS group permission assignments are in `data/BossSetupData.xml`.
+Business rules and record guards are native Mantle services, including the organization catalog and variant settings, reviewed bulk price changes and stock totals. BOSS owns app capabilities (derived from the Moqui permissions Mantle checks), screen context and forms; its service scripts share `service/ironstone/products/ProductsLib.js`. Mantle boots and tests without BOSS, checks shared Moqui permissions, and has no BOSS group or `ironstone.*` references. BOSS group permission assignments are in `data/BossSetupData.xml`.
 
 The P8/P9 review decisions are implemented:
 
@@ -16,6 +16,15 @@ Imports stage actor-private CSV and keep mapping, preview and row outcomes durab
 Effective price outputs use `mantle.product.PriceServices.get#EffectivePriceList`. The selected published list, date, quantity, quantity unit and counterparties define the output. Missing prices remain blank; an independent resolution failure is named and does not stop other rows. Products outside the user's owner scope never enter the rows or document. The screen exports CSV/XLSX and opens matching printable HTML/PDF. One output accepts up to 1,000 products; filter by product IDs for a larger catalog.
 
 Other app contexts are extension work described in [ProductsSharedScreens.md](ProductsSharedScreens.md). Configurable products, change notices, and the deferred owner-app workflows remain outside this build.
+
+After the review (impl-products R), on Oct 29, 2026:
+
+- BOSS: **992 passed, 21 skipped** (1,013 features; the alias routes the review removed no longer render).
+- Standalone Mantle: all Products features pass, with the two failures reproduced at the baseline (InboxThreads,
+  MantleSearch); new ProductCatalogSettings, ProductStockTotals and bulk price-change features.
+- Browser: the Products shots at 390, 1280 and 1440 and the walks pass, except ProductsCostWalk and ProductsToolsWalk,
+  which fail the same way at the P14 commits on a machine without Chromium.
+- Screen expression lint: zero parse failures.
 
 Validation on Oct 29, 2026:
 

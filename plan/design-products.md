@@ -119,7 +119,7 @@ query offers Retry and retains the last filter without presenting stale totals a
   - Variants — `VariantSettings`
   - Pricing — `PricingSettings`
   - Identification types — `IdentificationTypes`
-  - Catalog checks — `CatalogChecks`
+- Catalog checks — `CatalogChecks` (outside the menu: Home's Incomplete card and Settings open it, and a catalog reader checks the records it may read)
 
 Landing content is active SKU and variant counts, products missing a current price, products
 approaching discontinuation, incomplete required catalog data, recently changed products and
@@ -191,7 +191,7 @@ a baseline, `later` remains fully designed. Main records marked *proposed* do no
 | VariantSettings | `Products/Settings/VariantSettings` | settings | xml (built P4) | Configure permitted field copying and generation limits | Proposed effective-dated `ProductVariantSetting` rows | own | catalog administrator | new | organization and copy policy |
 | PricingSettings | `Products/Settings/PricingSettings` | settings | xml (built P5b) | Set authorized price purposes, default list and rounding | Proposed organization pricing settings | own | catalog administrator; finance for valuation links | new | organization |
 | IdentificationTypes | `Products/Settings/IdentificationTypes` | settings | xml (built P11) | Configure allowed identifier types and generation rules | `Enumeration` plus proposed identifier policy | own | catalog administrator | new | identifier policy |
-| CatalogChecks | `Products/Settings/CatalogChecks` | report | xml (built P13) | Find incomplete or conflicting catalog data before activation | Proposed validation service | own | catalog administrator | new | organization and checks |
+| CatalogChecks | `Products/CatalogChecks` | report | xml (built P13; one route since the review) | Find incomplete or conflicting catalog data before activation | Proposed validation service | own | catalog administrator | new | organization and checks |
 
 ## 3. Home and products
 
@@ -230,7 +230,7 @@ find use the same row selection and action definitions; there is no separate Sea
 | NewProduct | dialog | Create the smallest valid master | ID, name, product type, asset type, owner, stock/amount UOM | type-aware field visibility | entity create behind proposed catalog validation | Catalog `FindProduct` `NewProductForm` |
 | BulkCategory | list, bulk | Apply or end selected category memberships | category, from/thru, selection | lookup and affected-count confirmation | `mantle.product.ProductServices.add#ProductsToCategory`, `mantle.product.ProductServices.remove#ProductsFromCategory` | Catalog `Search` `AddCategoryForm`, `RemoveCategoryForm`, `AddCategoryFormSelection`, `RemoveCategoryFormSelection` |
 | BulkFeature | list, bulk | Apply or remove selected features | feature, application type, selection | lookup and confirmation | `mantle.product.ProductServices.add#FeatureToProducts`, `mantle.product.ProductServices.remove#FeatureFromProducts` | Catalog `Search` `AddFeatureForm`, `RemoveFeatureForm`, `AddFeatureFormSelection`, `RemoveFeatureFormSelection` |
-| BulkPrice | list, bulk | Stage a reviewed price update | purpose, currency, effective date, selected products | preview before write | proposed `ironstone.products.CatalogServices.preview#PriceChanges`, `ironstone.products.CatalogServices.apply#PriceChanges` | ERPNext Item Price; Prices (§7) |
+| BulkPrice | list, bulk | Stage a reviewed price update | purpose, currency, effective date, selected products | preview before write | `mantle.product.PriceServices.preview#PriceChanges`, `apply#PriceChanges` | ERPNext Item Price; Prices (§7) |
 
 **Actions.** Create is primary. Open record, clone via Product360, export current filter or
 selected rows, and print labels are secondary. Lifecycle actions revalidate each product
@@ -949,7 +949,7 @@ with the quote reference recorded. **Source.** Research §7; Odoo
 
 ### Supplier360 (Context passed)
 
-Mount crosscut §3.3 at `Products/Suppliers/Supplier360`, fixed supplier and internal buyer.
+Mount crosscut §3.3 at `Products/SupplierPrices/Supplier360`, fixed supplier and internal buyer.
 Show Overview/Contacts, Products & prices, Documents and authorized sourcing links. Supplier
 catalog and contact maintenance require distinct grants; AP balances, payment details and
 bank accounts are hidden without finance rights. Actions are add/schedule supplier price,
@@ -1104,7 +1104,7 @@ Dolibarr `htdocs/barcode/printsheet.php`. **Needs.** PRD-LABELS, PRD-IDENTIFIERS
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| CatalogSettings | single | Configure an organization's catalog from a date | effective date, default owner/type/UOM/currency/category, variants/packaging/price-lists flags, required fields, ID policy, cost-estimate self-approval, change reason | visible impact summary | proposed `ironstone.products.SettingsServices.get#CatalogSettings`, `store#CatalogSettings` | AureusERP ProductSettings; ERPNext Stock Settings |
+| CatalogSettings | single | Configure an organization's catalog from a date | effective date, default owner/type/UOM/currency/category, variants/packaging/price-lists flags, required fields, ID policy, cost-estimate self-approval, change reason | visible impact summary | `mantle.product.ProductServices.get#CatalogSettings`, `store#CatalogSettings` | AureusERP ProductSettings; ERPNext Stock Settings |
 
 **Actions.** Save with preview of affected UI and validation rules. The settings are
 effective-dated `ProductCatalogSetting` rows by organization with typed, audit-logged fields and
@@ -1122,7 +1122,7 @@ ERPNext `erpnext/stock/doctype/stock_settings/stock_settings.json`.
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| VariantPolicy | single | Control safe propagation | allowed copy fields, category copy, identifier pattern, batch limit, update existing flag | field allowlist; impact preview | proposed `ironstone.products.SettingsServices.store#VariantSettings` | ERPNext Item Variant Settings |
+| VariantPolicy | single | Control safe propagation | allowed copy fields, category copy, identifier pattern, batch limit, update existing flag | field allowlist; impact preview | `mantle.product.ProductServices.store#VariantSettings` | ERPNext Item Variant Settings |
 
 **Actions.** Save, as an effective-dated `ProductVariantSetting` row with a change reason, as
 CatalogSettings saves; preview propagation to a selected virtual product. Identity, transactional
@@ -1135,7 +1135,7 @@ an explicit bulk preview selects their replacement. **Source.** Research §4, §
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| PricingPolicy | single | Set defaults without a second resolver | organization, default list/currency/purpose, rounding, effective-date policy, permitted cost base | read-only finance-owned links | proposed `ironstone.products.SettingsServices.store#PricingSettings` | Odoo pricelist configuration; ERPNext Price List |
+| PricingPolicy | single | Set defaults without a second resolver | organization, default list/currency/purpose, rounding, effective-date policy, permitted cost base | read-only finance-owned links | `mantle.product.PriceServices.store#PricingSettings` | Odoo pricelist configuration; ERPNext Price List |
 
 **Actions.** Save and test with PriceExplain. Currency/tax defaults are suggestions for new
 records, not bulk edits to existing rows. Inventory valuation method and GL accounts remain
@@ -1308,7 +1308,7 @@ collects these IDs with the other app needs. Source paths in this table are rela
 | PRD-KITS — kit components | service type | Proposed `mantle.product.ProductServices.store#KitComponent` over `ProductAssoc` `PatMfgBom` rows on `PtPickAssembly` products | Product360 Kit components; Warehouse Pack; Manufacturing (exclusion) | Create, update and end-date kit components on pick-assembly products only; refuse other product types, cycles and non-positive quantities; never write a manufacturing BOM. Existing `get#AvailableInventory` and `produce#AvailableAssemblies` keep reading these rows. |
 | PRD-IDENTIFIERS — identifier/scanning policy | data model | Proposed organization identifier policy over existing enum types; shared parser/validation service | IdentificationTypes, Labels, Products, Warehouse | Allowed type, format/check digit, generation source and uniqueness scope; GS1 decode is shared framework functionality. One code per type per product (the `ProductIdentification` key); further codes use `PidtOther` or `ProductOtherIdentification`; the store service enforces `idValue` uniqueness. Supplier codes stay party-qualified; no silent renumbering. |
 | PRD-LABELS — label preparation/rendering | tool | Proposed BOSS label services consuming framework barcode and print tooling | Labels | Approved templates, selected existing codes, quantity/UOM and locale, preview of encoded payload, render/print outcomes; identify unsupported printer/symbology explicitly. |
-| PRD-SETTINGS — organization catalog defaults | data model | Proposed `mantle.product.ProductCatalogSetting` and `ProductVariantSetting` records; `ironstone.products.SettingsServices` | Settings, VariantSettings, PricingSettings | Effective-dated settings rows by organization with typed, audit-logged fields and a change reason; a change ends the current row and starts the next, a read takes an as-of date, and there are no revisions with a version sequence (impl-products §4). Field-copy allowlist; UI feature flags never grant permissions or make used records inaccessible; finance owns valuation/posting defaults. |
+| PRD-SETTINGS — organization catalog defaults | data model | Proposed `mantle.product.ProductCatalogSetting` and `ProductVariantSetting` records; `mantle.product.ProductServices` get#/store#CatalogSettings and VariantSettings, `mantle.product.PriceServices` get#/store#PricingSettings | Settings, VariantSettings, PricingSettings | Effective-dated settings rows by organization with typed, audit-logged fields and a change reason; a change ends the current row and starts the next, a read takes an as-of date, and there are no revisions with a version sequence (impl-products §4). Field-copy allowlist; UI feature flags never grant permissions or make used records inaccessible; finance owns valuation/posting defaults. |
 | PRD-VALIDATION — catalog readiness | service type | Proposed `CatalogServices.validate#Catalog` | CatalogChecks, activation, imports, Home | Return per-record issues and source evidence for selected checks, including legacy pack-content data, kit component cycles and case units in price `quantityUomId`; continue independent checks, enforce strict identity/data guards when writing. |
 | PRD-CONFIGURATION — typed versioned configurations | data model | Refined `mantle.product.config` definition/version/question/option/constraint/saved-answer records and `ConfigurationServices` (later) | Configurations/Detail | Refine commented ProductConfig concepts and reuse active ProductParameter semantics; immutable published versions, typed declarative constraints, canonical answer fingerprint, explicit creation of `PatConfigInstance` product and frozen order linkage. |
 | PRD-CHANGE — catalog engineering changes | data model | Proposed `mantle.product.change` notice/affected-record/review records and `ChangeServices` (later) | ChangeNotices/Detail | Draft → review → approved → released/withdrawn with reason and source versions; impacted BOM/routing/order references, conflict detection; released BOM, routing and run lines are never rewritten. |

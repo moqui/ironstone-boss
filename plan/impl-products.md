@@ -147,6 +147,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P12 Import | Mantle, BOSS | ProductImport | built Oct 29; Mantle f5d4a419; BOSS cc1d5b6 |
 | P13 Catalog checks | Mantle, BOSS | CatalogChecks | built Oct 29 before P12; Mantle 6f070c9f; BOSS 042c2e3 |
 | P14 Finish | Mantle, BOSS, mr-moqui docs | — | built Oct 29; Mantle 82a0e9ad; BOSS 366f9d1; mr-moqui bd1eca3c |
+| R Review | Mantle, BOSS | all Products screens | reviewed and revised Oct 29 (R0–R6 below); Mantle c75836c3–2eac1b16, BOSS 82b0d3b–c51070d |
 
 ### P0 — Checks
 
@@ -630,6 +631,42 @@ services only call Mantle's. Validation evidence was kept by the build session.
 
 P14 validation: BOSS **1025/1025** (100 specs), including the extended Products server-static compatibility report and terminal twins; standalone Mantle **804 passed, four reproduced baseline failures, 17 skipped** (825 features); native pricing/output focus **14/14**; 11 final browser list/import/output cases plus the saved XLSX export case. The output UI was inspected at 390/1280/1440 in light/dark; the XLSX archive contains the authorized product and resolved price and excludes the foreign product. Screen expression lint has **zero parse failures** (125 existing idiom/hazard sites unchanged). Baseline Mantle failures: InboxThreads, MantleSearch, WorkTimeEntries and WorkTimesheets. `docs/ProductsImplementation.md` records the shipped boundaries. The `plan/` edits remain uncommitted at the user's request.
 
+### R — Review (Oct 29)
+
+A review of the built app against this plan, design-products and style-guide, with the Projects app as the reference
+for the archetypes, found about fifteen bugs (two in access checks), screens that missed the style guide's record
+headers, row actions, phone columns, buttons and status display, minified service scripts with repeated parameter
+lists, whole-table reads per request, and logic that belonged in Mantle. Each part was committed with both suites
+passing (BOSS 992 passed, 21 skipped; Mantle with only the InboxThreads and MantleSearch baseline failures).
+
+- **R0 Formatting** (Mantle c75836c3, 2eac1b16; BOSS 82b0d3b, f69d245). Prettier over the Products scripts and specs
+  in Mantle's style (4 spaces, double quotes, no semicolons, width 130); one XML declaration, the CC0 header and one
+  element per line in the Products screens, service blocks and setup data, each checked equal by canonical XML.
+- **R1 Bugs** (Mantle 62a4817f; BOSS 877814c). Catalog capabilities come from the permissions Mantle checks, not
+  BOSS group names; price notices pick recipients by permission and lock nothing global; PricePolicy refuses with a
+  reason code instead of callers testing its wording; bulk results survive the redirect as messages; product
+  drop-downs search the whole catalog (they stopped at 200); Product360 tabs in design order; screen children in XSD
+  order; `target-window`; JSON tui text; standard times hidden without cost read; smaller fixes in the commit.
+- **R2 Structure and reads** (Mantle dccc9cdd, 57d0e559; BOSS 25a2a16, 1dd6ab5, 65c44ad, 78d0c9c). Each shared
+  parameter set is one `type="interface"` service (BOSS service definitions 4,435 lines to 832, Mantle's 2,092 to
+  802); `ProductsLib.js` replaces the copied script helpers; Prices, Suppliers, Pricing, Inventory, Methods and Costs
+  rewritten with named functions; lists decorate only the page shown and read by condition instead of whole tables;
+  connections are read by their tab alone; the price-list and pricing-settings pass-throughs are gone.
+- **R3 Logic to Mantle** (Mantle 400c6ca4; BOSS 41b8a32). Catalog and variant settings (`CatalogSettings.js`, get#
+  and store# in ProductServices), reviewed bulk price changes (`PriceChanges.js`, preview#, apply# and get#
+  PriceChanges, rounded to the currency) and stock totals (`get#ProductStockTotals`) are Mantle services with their
+  own specs; the cost roll-up answers per-path totals.
+- **R4/R5 Screens** (BOSS 9bc9314, 0e77b38, fc9c9ca, 6882952, 22b485d, 46866ba, 3d24e34, c51070d). Home is a landing
+  with number cards and an empty state; record headers on Product360, categories, features, groups, Supplier360 and
+  price lists; row actions in their rows; phone columns on 78 lists; names instead of IDs, amounts in their
+  currency, states as chips; one route per screen (`Products/CatalogChecks` keeps readers' access); numbered import
+  steps; one primary at a time; confirmations and danger styling on status changes and ends.
+- **R6** this record, the design's routes and service names, and the inventories.
+
+Not done in the review, and listed in §7: the method, routing and document detail headers; the stock tab across all
+facilities; bulk price as a Products list selection action; Connections links into other apps' lists; locale
+choices on Translations; consolidating the twelve `*Shots` client specs.
+
 ## 4. Decisions
 
 These are made before and during the build. Each one that changes the design is also written into design-products.md,
@@ -721,6 +758,10 @@ is written there too.
 | F39 | P3: ProductFeatureGroup had no owner, though groups must obey the catalog owner boundary | Add audited ownerPartyId, retain null/_NA_ legacy groups as shared, extend org filters and record callbacks, and keep shared writes ADMIN-only |
 | F40 | P9 review (I-PRD-06, `review-impl-core-apps/products.md`): the roll-up's rules were unstated. P8's `BmirByproduct` lines carry `allocationShare`; `PccOverheadPercent` has no base; `get#OperationCostBasis` charges the full setup to the quantity asked, uses fractional batches and ignores `WorkCenter.efficiencyPercent`; rounding (per component or on the total) is unstated | P9's roll-up rules: by-products follow `allocationShare`, else quantity (Manufacturing P15); overhead percent on material plus conversion, single level; the costing lot size is the BOM's `baseQuantity`, with setup divided by it; cycles round up and efficiency applies; the total is rounded once. A by-product BOM is in the usable-when |
 | F41 | P9 review (I-PRD-07, `review-impl-core-apps/products.md`): Mantle's receipt takes `OrderItem.standardCost` as the new asset's `acquireCost`, and an intercompany order (vendor and customer both internal) is a sale and a purchase, so a sales standard would become the buyer's receipt cost | P9 sets the sales `standardCost` only when the customer is not an `OrgInternal` party; its spec covers an intercompany order |
+| F42 | Review: `ec.user.context` lives for one request, so the bulk results stored there before a redirect were always empty | Messages, which the render saves across the redirect |
+| F43 | Review: a `container-dialog` inside a `button-menu` in a form-list cell does not open from its menu item (probably closed with the menu; not investigated in the framework, nor checked in a header) | Row actions are inline dialogs (Schedule, Correct, End); menus in rows hold links only |
+| F44 | Review: `always-actions` of a parent run for a standalone tab render (the terminal, a reloaded tab), its `actions` do not, so Product360's detail reads stay in always-actions | The costly reads moved to the tabs that show them (connections, stock) |
+| F45 | Review: ProductsCostWalk and ProductsToolsWalk fail on this machine at the P14 commits too (the labels walk needs Chromium for its PDF) | Not changed by the review; to be rerun where Chromium is installed |
 
 ## 7. Later
 
@@ -745,6 +786,10 @@ Designed, not in this build:
     - WorkCenter capacity, alternates and load;
     - its BillsOfMaterials, Routings and OperationTemplates screens.
   - Accounting: the InventoryValuation report, and CostDataRepair.
+- **From the review (R):** the BillOfMaterialsDetail, RoutingDetail and DocumentDetail header cards; the stock tab
+  across all authorized facilities with incoming quantities and lot links; BulkPrice offered as a row-selection action
+  of the Products list; Connections links into each type's list once Sales, Purchasing and Accounting have them;
+  locale choices on Translations; one table-driven client shots spec.
 - **Other:** a GS1 company-prefix provider (§16); pivot and graph views (design §3); a global matrix widget
   (PRD-VARIANT-UI).
 

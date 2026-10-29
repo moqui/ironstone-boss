@@ -4,6 +4,10 @@ feature("an editor generates one choice, retries it, resumes a durable batch and
         page.allowProblems(/userPhoto\?userId=/)
         page.goto("/qapps/Products/Products/VariantBuilder?productId=BOSS_PRD_VIRT").status == 200
         page.waitFor(() => document.querySelectorAll("[data-feature-key]").length === 4)
+        page.evaluate(() => {
+            window.confirm = () => true
+            return true
+        }) == true
         page.getByRole("checkbox", {name: "BOSS_PRD_VIRT_BL_L", exact: true}).click()
         page.getByRole("button", {name: "Generate selected", exact: true}).click()
         page.waitFor(() => document.querySelector("[role=status]")?.textContent.includes("1 created"))

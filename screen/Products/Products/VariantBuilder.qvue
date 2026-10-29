@@ -11,7 +11,7 @@
         <div v-if="axes.length > 2" class="row q-col-gutter-sm">
             <div v-for="axis in extraAxes" :key="axis.enumId" class="col-12 col-md-4"><m-drop-down v-model="filters[axis.enumId]" :name="'filter-'+axis.enumId" :label="axis.description" :options="axisOptions(axis)" :allow-empty="true" @update:model-value="invalidate"></m-drop-down></div>
         </div>
-        <div class="row items-center q-gutter-sm q-mt-sm"><q-btn label="Preview combinations" color="primary" no-caps unelevated :loading="busy" :disable="!form.productId" @click="load(0)"></q-btn><q-btn label="Combination list / terminal setup" flat no-caps @click="openTwin"></q-btn></div>
+        <div class="row items-center q-gutter-sm q-mt-sm"><q-btn :label="revision ? 'Refresh preview' : 'Preview combinations'" :color="revision ? undefined : 'primary'" :class="revision ? 'm-btn-tonal text-primary' : ''" no-caps unelevated :loading="busy" :disable="!form.productId" @click="load(0)"></q-btn><q-btn label="Combination list / terminal setup" flat no-caps @click="openTwin"></q-btn></div>
         <p v-if="error" role="alert" class="text-negative q-mt-sm">{{error}}</p>
     </m-container-box>
 
@@ -70,7 +70,7 @@ module.exports = {
         selectPage(){this.selected=[...new Set(this.selected.concat(this.rows.filter(r=>r.allowed).map(r=>r.featureKey)))]},
         selectedParameters(){return Object.assign(this.parameters(),{previewRevision:this.revision,selectedFeatureSetsJson:JSON.stringify(this.selected.map(k=>JSON.parse(k)))})},
         showResults(out){this.results=out.results||[];this.summary=(out.createdCount||0)+' created · '+(out.existingCount||0)+' existing · '+(out.failedCount||0)+' failed';this.pendingCount=out.pendingCount||0;this.operationTotal=out.totalCount||0;this.resultPage=out.pageIndex||0},
-        async generate(){this.busy=true;this.error='';try{const out=await this.request('generate',this.selectedParameters(),true);this.operationKey='';this.showResults(out);await this.load(this.pageIndex,true)}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
+        async generate(){if(!window.confirm('Create '+this.selected.length+' variant'+(this.selected.length===1?'':'s')+' of '+this.form.productId+'?'))return;this.busy=true;this.error='';try{const out=await this.request('generate',this.selectedParameters(),true);this.operationKey='';this.showResults(out);await this.load(this.pageIndex,true)}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
         async queue(){this.busy=true;this.error='';try{const operationKey='variants-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10),out=await this.request('queue',Object.assign(this.selectedParameters(),{operationKey}),true);this.operationKey=operationKey;this.showResults(out);this.summary+=' · Operation '+operationKey}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
         async readBatch(page){this.busy=true;this.error='';try{this.showResults(await this.request('batch',{operationKey:this.operationKey,pageIndex:page}));}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},
         async runBatch(retryFailed){this.busy=true;this.error='';try{this.showResults(await this.request('run',{operationKey:this.operationKey,retryFailed},true));if(this.revision)await this.load(this.pageIndex,true)}catch(e){this.error=String(e.message||e)}finally{this.busy=false}},

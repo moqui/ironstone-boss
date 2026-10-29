@@ -63,8 +63,9 @@ feature("a method engineer imports legacy material, releases a routing and metho
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("DEMO_RM_1"))
         page.screenshot("Method-browser-explosion", {fullPage: true})
         page.getByRole("tab", {name: "Method", exact: true}).click()
+        // the link reloads with the line selected and opens its component dialog
         page.getByRole("link", {name: "Stage change", exact: true}).first().click()
-        page.getByRole("button", {name: "Component draft", exact: true}).click()
+        page.waitFor(() => !!document.querySelector("#BomItem input[name=quantity]"))
         page.fill("#BomItem input[name=quantity]", "3")
         page.fill("#BomItem input[name=changeReason]", "Browser revised component")
         page.locator("#BomItem").getByRole("button", {name: "Save component draft", exact: true}).click()

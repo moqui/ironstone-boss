@@ -12,25 +12,41 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- The printed customer invoice (mantle.account.InvoiceServices.get#InvoiceOutput, Mantle's invoice print template):
+    with renderMode=html-print or in the html webapp the print itself, and under /fop the same as a PDF; in the browser and
+    terminal clients a link to the printed page. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice print"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Invoice print"
         default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="invoiceId"/>
     <parameter name="recordId"/>
     <actions>
         <service-call name="mantle.account.InvoiceServices.get#InvoiceOutput"
-                in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="invoiceOutput"
-                transaction="force-new" ignore-error="true"/>
+                out-map="invoiceOutput"
+                in-map="{organizationPartyId:organizationPartyId, invoiceId:invoiceId || recordId}"
+                transaction="force-new"
+                ignore-error="true"/>
         <set field="printAvailable" from="!!invoiceOutput?.printHtml"/>
         <set field="printUrl"
-                from="'/apps/Accounting/Receivables/InvoicePrint?renderMode=html-print&amp;invoiceId=' + encodeURIComponent(invoiceId || recordId || '') + '&amp;organizationPartyId=' + encodeURIComponent(organizationPartyId || '')"/>
+                from="'/apps' + sharedLinks['Receivables/InvoicePrint'].replace(/^\/\//, '/')
+                    + '?renderMode=html-print&amp;invoiceId=' + encodeURIComponent(invoiceId || recordId || '')
+                    + '&amp;organizationPartyId=' + encodeURIComponent(organizationPartyId || '')"/>
     </actions>
     <widgets>
         <section name="InvoicePrintUnavailable" condition="!printAvailable">
             <widgets>
-                <label type="h5" text="Invoice not available"/>
-                <link url="//Accounting/Receivables/Invoices" text="Back to invoices"/>
+                <container-box type="warning">
+                    <box-header title="Invoice not available"/>
+                    <box-body>
+                        <label type="p" text="The invoice does not exist, or you may not see it."/>
+                        <link url="${sharedLinks['Receivables/Invoices']}"
+                                text="Back to invoices"
+                                link-type="anchor"
+                                parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
         <section name="InvoicePrintAvailable" condition="printAvailable">
@@ -38,8 +54,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <render-mode>
                     <text type="html-print"><![CDATA[${invoiceOutput.printHtml}]]></text>
                     <text type="html"><![CDATA[${invoiceOutput.printHtml}]]></text>
-                    <text type="qvt"><![CDATA[<p><a href="${WebUtilities.encodeHtml(printUrl)}" target="_blank">${ec.l10n.localize('Open the printable invoice')}</a></p>]]></text>
-                    <text type="tui"><![CDATA[${JSON.stringify({t: "link", id: "AccountingInvoicePrint", text: ec.l10n.localize("Open the printable invoice"), url: printUrl})}]]></text>
+                    <text type="qvt"><![CDATA[<p><a href="${WebUtilities.encodeHtml(printUrl)}" target="_blank">${
+                        ec.l10n.localize('Open the printable invoice')}</a></p>]]></text>
+                    <text type="tui"><![CDATA[${JSON.stringify({t: "link", id: "AccountingInvoicePrint",
+                        text: ec.l10n.localize("Open the printable invoice"), url: printUrl})}]]></text>
                 </render-mode>
             </widgets>
         </section>

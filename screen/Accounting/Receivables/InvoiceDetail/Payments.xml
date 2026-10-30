@@ -12,38 +12,148 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- InvoiceDetail's Payments and credits tab: the receipts and credits applied to the invoice, and Apply a credit. It
+    reads the invoice when the client loads the tab alone. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Payments and credits"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Payments and credits"
         default-menu-index="3">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition name="financeApplyCredit">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.apply#InvoiceCredit"
+                    out-map="financeResult"
+                    in-map="{organizationPartyId:organizationPartyId, invoiceId:creditInvoiceId,
+                        toInvoiceId:invoiceId, amount:amount, operationKey:operationKey, changeReason:changeReason}"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <if condition="typeof receivable === 'undefined' || receivable === null">
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                    transaction="force-new" ignore-error="true"/>
-            <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                    deliveryRecipients:[], totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue"
-                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue"
-                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="InvoicePayments" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoicePayments" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Payments and credits"/>
+                    <box-toolbar>
+                        <container-dialog id="ApplyReceivableCredit"
+                                button-text="Apply a credit"
+                                title="Apply credit to invoice ${invoiceId}"
+                                width="720"
+                                condition="receivable.canApply">
+                            <form-single name="FinanceApplyCredit" transition="financeApplyCredit">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="invoiceId" from="invoiceId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="operationKey" from="'apply-' + ec.user.randomString(24)">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="creditInvoiceId">
+                                    <default-field title="Credit memo">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'receivableCredits',
+                                                        organizationPartyId:organizationPartyId,
+                                                        selected:creditInvoiceId, invoiceId:invoiceId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="amount">
+                                    <default-field title="Amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="changeReason">
+                                    <default-field title="Reason">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Apply credit"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="FinanceInvoicePayments" list="receivable.payments" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <header-field title="Payment or credit"/>
+                                <conditional-field condition="!!paymentId">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${paymentId}"
+                                            parameter-map="{recordId:paymentId, organizationPartyId:organizationPartyId}"/>
+                                </conditional-field>
+                                <conditional-field condition="!!counterpartInvoiceId">
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}"
+                                            text="${counterpartInvoiceId}"
+                                            parameter-map="{recordId:counterpartInvoiceId,
+                                                organizationPartyId:organizationPartyId}"/>
+                                </conditional-field>
+                                <default-field>
+                                    <display text=""/>
+                                </default-field>
+                            </field>
+                            <field name="appliedDate">
+                                <header-field title="Applied"/>
+                                <default-field>
+                                    <display text="${appliedDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="amountApplied" align="right">
+                                <header-field title="Amount"/>
+                                <default-field>
+                                    <display currency-unit-field="invoiceCurrencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="counterpartInvoiceId">
+                                <header-field title="Related invoice"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="appliedDate"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amountApplied"/>
+                                    <field-ref name="counterpartInvoiceId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No receipts or credits are applied to this invoice."
+                                type="p"
+                                style="m-muted"
+                                condition="!receivable.payments.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

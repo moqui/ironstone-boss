@@ -13,7 +13,8 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Billing queue"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Billing queue"
         default-menu-index="2">
     <parameter name="organizationPartyId"/>
     <parameter name="direction"/>
@@ -22,10 +23,12 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="throughDate"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="createTimeInvoice">
         <actions>
-            <service-call name="mantle.account.InvoiceServices.create#InvoiceFromApprovedTime" in-map="context" out-map="created"/>
+            <service-call name="mantle.account.InvoiceServices.create#InvoiceFromApprovedTime"
+                    in-map="context"
+                    out-map="created"/>
             <set field="recordId" from="created.invoiceId"/>
         </actions>
         <default-response url="${sharedLinks[direction === 'payable' ? 'Payables/BillDetail' : 'Receivables/InvoiceDetail']}">
@@ -36,17 +39,13 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="billingRows" from="[]"/>
-        <set field="direction" from="direction || 'receivable'"/>
-        <set field="billingCanCreate" from="false"/>
-        <set field="billingDirectionOptions" from="[]"/>
         <if condition="organizationPartyId">
             <service-call name="ironstone.accounting.ReceivableServices.get#BillingQueue" in-map="context" out-map="context"/>
         </if>
     </actions>
     <widgets>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
-        <label text="Choose an organization to review approved unbilled work." type="p" condition="!organizationPartyId"/>
+        <label text="Choose an organization to see its approved unbilled work." type="p" condition="!organizationPartyId"/>
         <section name="OrganizationChosen" condition="organizationPartyId">
             <widgets>
                 <label text="Billing queue" type="h5"/>
@@ -66,16 +65,22 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="customerPartyId">
                         <default-field title="Customer">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0"
-                                        parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'parties',
+                                            organizationPartyId:organizationPartyId, selected:customerPartyId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="workEffortId">
                         <default-field title="Project">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0"
-                                        parameter-map="{choice:'projects',organizationPartyId:organizationPartyId,selected:workEffortId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'projects',
+                                            organizationPartyId:organizationPartyId, selected:workEffortId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -90,134 +95,154 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                 </form-single>
-                <form-list name="ApprovedUnbilledWork" list="billingRows" skip-form="true" paginate="true">
-                    <field name="workEffortId">
-                        <header-field title="Project"/>
-                        <default-field>
-                            <display text="${workEffortName || projectName || workEffortId}"/>
-                        </default-field>
-                    </field>
-                    <field name="customerName">
-                        <header-field title="Customer"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="workerName">
-                        <default-field title="Worker">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="approvedHours" align="right">
-                        <header-field title="Approved hours"/>
-                        <default-field>
-                            <display format="#,##0.###"/>
-                        </default-field>
-                    </field>
-                    <field name="amount" align="right">
-                        <header-field title="Amount"/>
-                        <default-field>
-                            <display currency-unit-field="currencyUomId"/>
-                        </default-field>
-                    </field>
-                    <field name="expenseAmount" align="right">
-                        <header-field title="Expenses"/>
-                        <default-field>
-                            <display currency-unit-field="currencyUomId"/>
-                        </default-field>
-                    </field>
-                    <field name="reason">
-                        <header-field title="Readiness"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="actions">
-                        <header-field title=""/>
-                        <default-field>
-                            <container-dialog id="TimeInvoice_${workEffortId}_${workerPartyId}"
-                                    button-text="${direction === 'payable' ? 'Create draft bill' : 'Create draft invoice'}"
-                                    title="${direction === 'payable' ? 'Create bill from approved work' : 'Create invoice from approved work'}"
-                                    width="720" condition="billingCanCreate &amp;&amp; canInvoice">
-                                <form-single name="CreateApprovedTimeInvoice" transition="createTimeInvoice">
-                                    <field name="organizationPartyId" from="organizationPartyId">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="workEffortId" from="workEffortId">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="operationKey" from="'time-' + ec.user.randomString(24)">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="direction" from="direction">
-                                        <default-field>
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="workerPartyId" from="workerPartyId">
-                                        <default-field title="Worker">
-                                            <display text="${workerName || workerPartyId}" also-hidden="true"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="throughDate">
-                                        <default-field title="Through">
-                                            <date-time type="date"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="entryGrouping">
-                                        <default-field title="Group lines by">
-                                            <drop-down>
-                                                <option key="entry" text="Time entry"/>
-                                                <option key="workEffort" text="Work item"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="invoiceId">
-                                        <default-field title="Existing draft">
-                                            <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0"
-                                                        parameter-map="{choice:direction === 'payable' ? 'bills' : 'invoices',organizationPartyId:organizationPartyId,selected:invoiceId}"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="settlementTermId">
-                                        <default-field title="Payment terms">
-                                            <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0"
-                                                        parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="submit">
-                                        <default-field title="">
-                                            <submit text="${direction === 'payable' ? 'Create draft bill' : 'Create draft invoice'}"/>
-                                        </default-field>
-                                    </field>
-                                </form-single>
-                            </container-dialog>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column>
-                            <field-ref name="workEffortId"/>
-                            <field-ref name="customerName"/>
-                            <field-ref name="workerName"/>
-                        </column>
-                        <column>
-                            <field-ref name="approvedHours"/>
-                            <field-ref name="amount"/>
-                            <field-ref name="actions"/>
-                        </column>
-                    </columns>
-                </form-list>
-                <label text="No approved unbilled work matches these filters." type="p" style="m-muted"
-                        condition="!billingRows.length"/>
+                <container-box>
+                    <box-header title="Approved unbilled work"/>
+                    <box-body-nopad>
+                        <form-list name="ApprovedUnbilledWork" list="billingRows" skip-form="true" paginate="true">
+                            <field name="workEffortId">
+                                <header-field title="Project"/>
+                                <default-field>
+                                    <display text="${workEffortName || projectName || workEffortId}"/>
+                                </default-field>
+                            </field>
+                            <field name="customerName">
+                                <header-field title="Customer"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="workerName">
+                                <default-field title="Worker">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="approvedHours" align="right">
+                                <header-field title="Approved hours"/>
+                                <default-field>
+                                    <display format="#,##0.###"/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <header-field title="Amount"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="expenseAmount" align="right">
+                                <header-field title="Expenses"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <header-field title="Readiness"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <header-field title=""/>
+                                <default-field>
+                                    <container-dialog id="TimeInvoice_${workEffortId}_${workerPartyId}"
+                                            button-text="${direction === 'payable' ? 'Create draft bill'
+                                                : 'Create draft invoice'}"
+                                            title="${direction === 'payable' ? 'Create bill from approved work'
+                                                : 'Create invoice from approved work'}"
+                                            width="720"
+                                            condition="billingCanCreate &amp;&amp; canInvoice">
+                                        <form-single name="CreateApprovedTimeInvoice" transition="createTimeInvoice">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="workEffortId" from="workEffortId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="operationKey" from="'time-' + ec.user.randomString(24)">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="direction" from="direction">
+                                                <default-field>
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="workerPartyId" from="workerPartyId">
+                                                <default-field title="Worker">
+                                                    <display text="${workerName || workerPartyId}" also-hidden="true"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="throughDate">
+                                                <default-field title="Through">
+                                                    <date-time type="date"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="entryGrouping">
+                                                <default-field title="Group lines by">
+                                                    <drop-down>
+                                                        <option key="entry" text="Time entry"/>
+                                                        <option key="workEffort" text="Work item"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="invoiceId">
+                                                <default-field title="Existing draft">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="{choice:direction === 'payable' ? 'bills'
+                                                                    : 'invoices',
+                                                                    organizationPartyId:organizationPartyId,
+                                                                    selected:invoiceId}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="settlementTermId">
+                                                <default-field title="Payment terms">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="{choice:'terms',
+                                                                    organizationPartyId:organizationPartyId,
+                                                                    selected:settlementTermId}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="${direction === 'payable' ? 'Create draft bill'
+                                                                : 'Create draft invoice'}"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="workEffortId"/>
+                                    <field-ref name="customerName"/>
+                                    <field-ref name="workerName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="approvedHours"/>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No approved unbilled work matches these filters."
+                                type="p"
+                                style="m-muted q-pa-md"
+                                condition="!billingRows.length"/>
+                    </box-body-nopad>
+                </container-box>
             </widgets>
         </section>
     </widgets>

@@ -17,7 +17,10 @@ along with this software (see the LICENSE.md file). If not, see
     missing mappings, and the error journal's transactions that a missing account sent there (impl-accounting F10). The
     service gives the kind's key and account fields: the mapping form shows those, and a row's Edit extends it with the
     key fixed. A missing mapping's Map opens the form for its kind with its key filled. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Posting defaults" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Posting defaults"
+        default-menu-index="3"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="mappingKind"/>
     <parameter name="pageIndex"/>
@@ -26,15 +29,21 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.store#PostingDefault" in-map="Object.assign({},context,{mapping:context})" out-map="result"/>
+            <service-call name="mantle.ledger.SetupServices.store#PostingDefault"
+                    in-map="Object.assign({}, context, {mapping:context})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#PostingDefaults" in-map="{organizationPartyId:organizationPartyId,mappingKind:mappingKind,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="mantle.ledger.SetupServices.get#PostingDefaults"
+                in-map="{organizationPartyId:organizationPartyId, mappingKind:mappingKind,
+                    pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
         <set field="mappingToken" from="null"/>
-        <set field="mappingKindLabel" from="(mappingKindOptions.find(option =&gt; option.key == mappingKind) || {}).label || mappingKind"/>
+        <set field="mappingKindLabel"
+                from="(mappingKindOptions.find(option =&gt; option.key == mappingKind) || {}).label || mappingKind"/>
     </actions>
     <widgets>
         <label text="Posting defaults" type="h5"/>
@@ -59,7 +68,11 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container>
                     <container style="col-auto">
-                        <container-dialog id="AddMappingDialog" button-text="Add mapping" type="primary" icon="sym_o_add" title="Add a mapping: ${mappingKindLabel}">
+                        <container-dialog id="AddMappingDialog"
+                                button-text="Add mapping"
+                                type="primary"
+                                icon="sym_o_add"
+                                title="Add a mapping: ${mappingKindLabel}">
                             <form-single name="PostingMapping" transition="save">
                                 <field name="organizationPartyId" from="organizationPartyId">
                                     <default-field>
@@ -80,12 +93,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="glAccountTypeEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('glAccountTypeEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('glAccountTypeEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('glAccountTypeEnumId')" title="Account type">
+                                    <conditional-field condition="mappingFields.includes('glAccountTypeEnumId')"
+                                            title="Account type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:GlAccountType',
+                                                        organizationPartyId:organizationPartyId, selected:glAccountTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -93,12 +112,17 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="itemTypeEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('itemTypeEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('itemTypeEnumId')">
                                         <hidden/>
                                     </conditional-field>
                                     <conditional-field condition="mappingFields.includes('itemTypeEnumId')" title="Item type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:ItemType',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:ItemType',
+                                                        organizationPartyId:organizationPartyId, selected:itemTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -121,12 +145,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="invoiceTypeEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('invoiceTypeEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('invoiceTypeEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('invoiceTypeEnumId')" title="Invoice type">
+                                    <conditional-field condition="mappingFields.includes('invoiceTypeEnumId')"
+                                            title="Invoice type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InvoiceType',organizationPartyId:organizationPartyId,selected:invoiceTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:InvoiceType',
+                                                        organizationPartyId:organizationPartyId, selected:invoiceTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -149,12 +179,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="paymentTypeEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('paymentTypeEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('paymentTypeEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('paymentTypeEnumId')" title="Payment type">
+                                    <conditional-field condition="mappingFields.includes('paymentTypeEnumId')"
+                                            title="Payment type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:PaymentType',organizationPartyId:organizationPartyId,selected:paymentTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:PaymentType',
+                                                        organizationPartyId:organizationPartyId, selected:paymentTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -177,12 +213,19 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="paymentInstrumentEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('paymentInstrumentEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('paymentInstrumentEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('paymentInstrumentEnumId')" title="Instrument">
+                                    <conditional-field condition="mappingFields.includes('paymentInstrumentEnumId')"
+                                            title="Instrument">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:PaymentInstrument',organizationPartyId:organizationPartyId,selected:paymentInstrumentEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:PaymentInstrument',
+                                                        organizationPartyId:organizationPartyId,
+                                                        selected:paymentInstrumentEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -190,12 +233,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="finAccountTypeId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('finAccountTypeId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('finAccountTypeId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('finAccountTypeId')" title="Financial account type">
+                                    <conditional-field condition="mappingFields.includes('finAccountTypeId')"
+                                            title="Financial account type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'financialTypes',organizationPartyId:organizationPartyId,selected:finAccountTypeId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'financialTypes',
+                                                        organizationPartyId:organizationPartyId, selected:finAccountTypeId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -203,12 +252,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="reasonEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('reasonEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('reasonEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('reasonEnumId')" title="Financial account reason">
+                                    <conditional-field condition="mappingFields.includes('reasonEnumId')"
+                                            title="Financial account reason">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:FinancialAccountTransReason',organizationPartyId:organizationPartyId,selected:reasonEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:FinancialAccountTransReason',
+                                                        organizationPartyId:organizationPartyId, selected:reasonEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -216,12 +271,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="varianceReasonEnumId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('varianceReasonEnumId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('varianceReasonEnumId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('varianceReasonEnumId')" title="Variance reason">
+                                    <conditional-field condition="mappingFields.includes('varianceReasonEnumId')"
+                                            title="Variance reason">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InventoryVarianceReason',organizationPartyId:organizationPartyId,selected:varianceReasonEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:InventoryVarianceReason',
+                                                        organizationPartyId:organizationPartyId, selected:varianceReasonEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -234,7 +295,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     </conditional-field>
                                     <conditional-field condition="mappingFields.includes('productId')" title="Product">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'products',
+                                                        organizationPartyId:organizationPartyId, selected:productId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -242,12 +307,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="productCategoryId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('productCategoryId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('productCategoryId')">
                                         <hidden/>
                                     </conditional-field>
-                                    <conditional-field condition="mappingFields.includes('productCategoryId')" title="Product category">
+                                    <conditional-field condition="mappingFields.includes('productCategoryId')"
+                                            title="Product category">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'categories',organizationPartyId:organizationPartyId,selected:productCategoryId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'categories',
+                                                        organizationPartyId:organizationPartyId, selected:productCategoryId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -260,7 +331,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     </conditional-field>
                                     <conditional-field condition="mappingFields.includes('partyId')" title="Party">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:partyId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'parties',
+                                                        organizationPartyId:organizationPartyId, selected:partyId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -268,12 +343,17 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="roleTypeId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('roleTypeId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('roleTypeId')">
                                         <hidden/>
                                     </conditional-field>
                                     <conditional-field condition="mappingFields.includes('roleTypeId')" title="Party role">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'roles',organizationPartyId:organizationPartyId,selected:roleTypeId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'roles',
+                                                        organizationPartyId:organizationPartyId, selected:roleTypeId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -281,7 +361,8 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="assetTypeGlAccountId">
-                                    <conditional-field condition="mappingToken &amp;&amp; mappingKeyFields.includes('assetTypeGlAccountId')">
+                                    <conditional-field condition="mappingToken
+                                                &amp;&amp; mappingKeyFields.includes('assetTypeGlAccountId')">
                                         <hidden/>
                                     </conditional-field>
                                     <default-field>
@@ -289,9 +370,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="acctgTransTypeEnumId">
-                                    <conditional-field condition="mappingFields.includes('acctgTransTypeEnumId')" title="Transaction type">
+                                    <conditional-field condition="mappingFields.includes('acctgTransTypeEnumId')"
+                                            title="Transaction type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:AcctgTransType',
+                                                        organizationPartyId:organizationPartyId, selected:acctgTransTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -301,7 +387,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="assetTypeEnumId">
                                     <conditional-field condition="mappingFields.includes('assetTypeEnumId')" title="Asset type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AssetType',organizationPartyId:organizationPartyId,selected:assetTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:AssetType',
+                                                        organizationPartyId:organizationPartyId, selected:assetTypeEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -311,7 +401,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="classEnumId">
                                     <conditional-field condition="mappingFields.includes('classEnumId')" title="Asset class">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AssetClass',organizationPartyId:organizationPartyId,selected:classEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'enum:AssetClass',
+                                                        organizationPartyId:organizationPartyId, selected:classEnumId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -321,7 +415,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="assetId">
                                     <conditional-field condition="mappingFields.includes('assetId')" title="Specific asset">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'assets',organizationPartyId:organizationPartyId,selected:assetId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'assets',
+                                                        organizationPartyId:organizationPartyId, selected:assetId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -331,7 +429,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="glAccountId">
                                     <conditional-field condition="mappingFields.includes('glAccountId')" title="Posting account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:glAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -339,9 +441,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="contraGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('contraGlAccountId')" title="Contra account">
+                                    <conditional-field condition="mappingFields.includes('contraGlAccountId')"
+                                            title="Contra account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:contraGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:contraGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -349,9 +456,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="assetGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('assetGlAccountId')" title="Asset account">
+                                    <conditional-field condition="mappingFields.includes('assetGlAccountId')"
+                                            title="Asset account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:assetGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:assetGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -359,9 +471,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="wipAssetGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('wipAssetGlAccountId')" title="Work in process account">
+                                    <conditional-field condition="mappingFields.includes('wipAssetGlAccountId')"
+                                            title="Work in process account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:wipAssetGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:wipAssetGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -369,9 +486,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="receiptGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('receiptGlAccountId')" title="Receipt account">
+                                    <conditional-field condition="mappingFields.includes('receiptGlAccountId')"
+                                            title="Receipt account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:receiptGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:receiptGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -379,9 +501,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="issuanceGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('issuanceGlAccountId')" title="Issuance account">
+                                    <conditional-field condition="mappingFields.includes('issuanceGlAccountId')"
+                                            title="Issuance account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:issuanceGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:issuanceGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -389,9 +516,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="transferGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('transferGlAccountId')" title="Transfer account">
+                                    <conditional-field condition="mappingFields.includes('transferGlAccountId')"
+                                            title="Transfer account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:transferGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:transferGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -399,9 +531,15 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="accDepreciationGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('accDepreciationGlAccountId')" title="Accumulated depreciation account">
+                                    <conditional-field condition="mappingFields.includes('accDepreciationGlAccountId')"
+                                            title="Accumulated depreciation account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:accDepreciationGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId,
+                                                        selected:accDepreciationGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -409,9 +547,15 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="depreciationGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('depreciationGlAccountId')" title="Depreciation account">
+                                    <conditional-field condition="mappingFields.includes('depreciationGlAccountId')"
+                                            title="Depreciation account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:depreciationGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId,
+                                                        selected:depreciationGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -419,9 +563,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="profitGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('profitGlAccountId')" title="Gain on disposal account">
+                                    <conditional-field condition="mappingFields.includes('profitGlAccountId')"
+                                            title="Gain on disposal account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:profitGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:profitGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -429,9 +578,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="lossGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('lossGlAccountId')" title="Loss on disposal account">
+                                    <conditional-field condition="mappingFields.includes('lossGlAccountId')"
+                                            title="Loss on disposal account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:lossGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:lossGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -439,9 +593,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="shrinkageGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('shrinkageGlAccountId')" title="Shrinkage account">
+                                    <conditional-field condition="mappingFields.includes('shrinkageGlAccountId')"
+                                            title="Shrinkage account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:shrinkageGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:shrinkageGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -449,9 +608,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     </default-field>
                                 </field>
                                 <field name="foundGlAccountId">
-                                    <conditional-field condition="mappingFields.includes('foundGlAccountId')" title="Found inventory account">
+                                    <conditional-field condition="mappingFields.includes('foundGlAccountId')"
+                                            title="Found inventory account">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:foundGlAccountId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'accounts',
+                                                        organizationPartyId:organizationPartyId, selected:foundGlAccountId}"/>
                                         </drop-down>
                                     </conditional-field>
                                     <default-field>
@@ -472,8 +636,19 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                     </container>
                 </container>
-                <label text="A specific asset, product, category or item mapping comes before the organization's account-type default, and an organization inherits its accounting parents' defaults. For an invoice's product line the category, product and asset-type accounts come before the item type's." type="p" style="text-caption m-muted"/>
-                <form-list name="PostingMappings" list="mappingRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <label type="p" style="text-caption m-muted"
+                        text="An asset, product, category or item mapping comes before the account-type default."/>
+                <label type="p" style="text-caption m-muted"
+                        text="An organization inherits its accounting parents' defaults."/>
+                <label type="p" style="text-caption m-muted"
+                        text="On an invoice's product line, the category, product and asset-type accounts come first."/>
+                <form-list name="PostingMappings"
+                        list="mappingRows"
+                        skip-form="true"
+                        paginate="true"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="mappingKeyText">
                         <default-field title="${mappingKindLabel}">
                             <display/>
@@ -481,12 +656,17 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="glAccountId">
                         <default-field title="Account">
-                            <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}" default-text="—"/>
+                            <display-entity entity-name="mantle.ledger.account.GlAccount"
+                                    text="${accountCode} ${accountName}"
+                                    default-text="—"/>
                         </default-field>
                     </field>
                     <field name="mappingActions">
                         <default-field title="">
-                            <container-dialog id="EditMapping_${mappingToken}" button-text="Edit" icon="sym_o_edit" title="Edit the mapping of ${mappingKeyText}">
+                            <container-dialog id="EditMapping_${mappingToken}"
+                                    button-text="Edit"
+                                    icon="sym_o_edit"
+                                    title="Edit the mapping of ${mappingKeyText}">
                                 <form-single name="EditMapping" transition="save" extends="PostingMapping">
                                     <field name="lastUpdatedStamp" from="lastUpdatedStamp">
                                         <default-field>
@@ -507,11 +687,18 @@ along with this software (see the LICENSE.md file). If not, see
                         </column>
                     </columns>
                 </form-list>
-                <label text="No ${mappingKindLabel.toLowerCase()} mappings yet. Add one, or map a missing default below." type="p" condition="!mappingRows.length"/>
+                <label text="No ${mappingKindLabel.toLowerCase()} mappings yet. Add one, or map a missing default below."
+                        type="p"
+                        condition="!mappingRows.length"/>
                 <section name="MissingMappings" condition="missingMappings.length">
                     <widgets>
                         <label text="Missing mappings" type="h6"/>
-                        <form-list name="MissingMappings" list="missingMappings" skip-form="true" paginate="false" select-columns="true" show-csv-button="true">
+                        <form-list name="MissingMappings"
+                                list="missingMappings"
+                                skip-form="true"
+                                paginate="false"
+                                select-columns="true"
+                                show-csv-button="true">
                             <field name="description">
                                 <default-field title="Needs an account">
                                     <display/>
@@ -519,7 +706,13 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="mapAction">
                                 <default-field title="">
-                                    <link url="." text="Map" icon="sym_o_add_link" parameter-map="{organizationPartyId:organizationPartyId,mappingKind:mappingKind,glAccountTypeEnumId:mappingKind == 'type' ? mappingKey : null,itemTypeEnumId:itemTypeEnumId,direction:direction,_openDialog:'AddMappingDialog'}"/>
+                                    <link url="."
+                                            text="Map"
+                                            icon="sym_o_add_link"
+                                            parameter-map="{organizationPartyId:organizationPartyId,
+                                                mappingKind:mappingKind, glAccountTypeEnumId:mappingKind == 'type' ? mappingKey
+                                                : null, itemTypeEnumId:itemTypeEnumId,
+                                                direction:direction, _openDialog:'AddMappingDialog'}"/>
                                 </default-field>
                             </field>
                             <columns type="mobile">
@@ -536,10 +729,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ErrorJournal" condition="errorTransactions.length">
                     <widgets>
                         <label text="Postings waiting in the error journal" type="h6"/>
-                        <form-list name="ErrorJournal" list="errorTransactions" skip-form="true" paginate="false" select-columns="true" show-csv-button="true">
+                        <form-list name="ErrorJournal"
+                                list="errorTransactions"
+                                skip-form="true"
+                                paginate="false"
+                                select-columns="true"
+                                show-csv-button="true">
                             <field name="acctgTransId">
                                 <default-field title="Entry">
-                                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${description || acctgTransId}" link-type="anchor" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                                    <link url="//Accounting/GeneralLedger/JournalEntryDetail"
+                                            text="${description || acctgTransId}"
+                                            link-type="anchor"
+                                            parameter-map="{recordId:acctgTransId, organizationPartyId:organizationPartyId}"/>
                                 </default-field>
                             </field>
                             <field name="postingFailureMessage">

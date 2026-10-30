@@ -12,37 +12,527 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- A customer invoice (style-guide §3.3 Detail): the header with the invoice, its customer, dates and status chip, the
+    action its status calls for (Approve or Finalize a draft, Send a finalized invoice), Print and the More menu (edit,
+    credit memo, reverse a draft, resume, cancel, PDF), its totals, and the tabs, each of which reads the invoice itself
+    when the client loads it alone (ironstone.accounting.ReceivableServices.get#InvoiceContext). An invoice the user may
+    not see is "not available". -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Invoice"
         default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition name="financeChangeStatus">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.change#InvoiceState" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="financeSaveHeader">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.store#InvoiceDraft" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="financeSendInvoice">
+        <actions>
+            <!-- each chosen supporting file is invoiceContentId~version, the version the sender saw -->
+            <set field="attachmentTokens"
+                    from="!reviewedAttachmentList ? [] : typeof reviewedAttachmentList != 'string'
+                        ? Array.from(reviewedAttachmentList).map(String) : reviewedAttachmentList.trim().startsWith('[')
+                        ? JSON.parse(reviewedAttachmentList) : [reviewedAttachmentList]"/>
+            <set field="attachmentContentIdList" from="attachmentTokens.map((token) =&gt; token.split('~')[0])"/>
+            <set field="attachmentVersions"
+                    from="Object.fromEntries(attachmentTokens.map((token) =&gt; [token.split('~')[0],
+                        token.split('~').slice(1).join('~')]))"/>
+            <service-call name="mantle.account.InvoiceServices.send#Invoice" in-map="context" out-map="financeResult"/>
+            <iterate list="financeResult.recipientResults ?? []" entry="recipient">
+                <if condition="recipient.status == 'failed'">
+                    <then>
+                        <message type="warning">${recipient.recipient}: ${recipient.errorMessage}</message>
+                    </then>
+                    <else>
+                        <set field="recipientOutcome" from="recipient.status == 'queued' ? 'Queued for delivery' : 'Sent'"/>
+                        <message type="success">${recipient.recipient}: ${recipientOutcome}</message>
+                    </else>
+                </if>
+            </iterate>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="financeCreditInvoice">
+        <actions>
+            <!-- create#InvoiceCreditMemo checks the finance access itself for a linked credit -->
+            <service-call name="mantle.account.InvoiceServices.create#InvoiceCreditMemo"
+                    out-map="financeResult"
+                    disable-authz="true"
+                    in-map="{originalInvoiceId:invoiceId, organizationPartyId:organizationPartyId,
+                        amount:creditAmount, description:description, operationKey:operationKey,
+                        linkToOriginal:true, allocateToLines:true}"/>
+        </actions>
+        <default-response url="${sharedLinks['Receivables/InvoiceDetail']}">
+            <parameter name="recordId" from="financeResult.invoiceId"/>
+            <parameter name="organizationPartyId" from="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="financeReverseInvoice">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.reverse#DraftInvoice" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
         <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                transaction="force-new" ignore-error="true"/>
-        <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-        <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-            {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                deliveryRecipients:[], totals:{}} : receivable"/>
-        <set field="invoiceHeaderValue"
-                from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-        <set field="invoiceSendValue"
-                from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
+                in-map="context"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
+        <set field="statusParameters"
+                from="{invoiceId:invoiceId,
+                    organizationPartyId:organizationPartyId,
+                    lastUpdatedStamp:receivable?.lastUpdatedStamp, operationKey:invoiceOperationKey}"/>
+        <set field="customerParameters"
+                from="{customerPartyId:receivable?.customerPartyId, organizationPartyId:organizationPartyId}"/>
+        <!-- the printed invoice in the html webapp, and the same as a PDF -->
+        <set field="printPath"
+                from="sharedLinks['Receivables/InvoicePrint'].replace(/^\/\//, '/') + '?invoiceId='
+                    + encodeURIComponent(invoiceId || '') + '&amp;organizationPartyId='
+                    + encodeURIComponent(organizationPartyId || '')"/>
     </actions>
     <widgets>
-        <section-include name="ReceivableInvoiceContent" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoiceNotAvailable" condition="!recordFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Invoice not available"/>
+                    <box-body>
+                        <label type="p"
+                                text="Invoice ${invoiceId || recordId
+                                    || ''} is not available: it does not exist, or you may not see it."/>
+                        <link url="${sharedLinks['Receivables/Invoices']}"
+                                text="Back to invoices"
+                                link-type="anchor"
+                                parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="InvoiceFound" condition="recordFound">
+            <widgets>
+                <context record-entity="mantle.account.invoice.Invoice" record-id="${invoiceId}" title="${receivable.title}"/>
+                <link url="${sharedLinks['Receivables/Invoices']}"
+                        text="Invoices"
+                        link-type="anchor"
+                        icon="arrow_back"
+                        parameter-map="{organizationPartyId:organizationPartyId}"/>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${
+                                        WebUtilities.encodeHtml(invoiceId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "InvoiceKey", style: "strong",
+                                        text: invoiceId})}]]></text>
+                                </render-mode>
+                                <label text="${receivable.title}" type="h5"/>
+                            </container>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                    receivable.statusColor}">${
+                                    WebUtilities.encodeHtml(receivable.statusDescription)}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "InvoiceStatus", style: "strong",
+                                    text: receivable.statusDescription})}]]></text>
+                                <text type="html">${receivable.statusDescription}</text>
+                                <text type="html-print">${receivable.statusDescription}</text>
+                            </render-mode>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md">
+                            <link url="${sharedLinks['Receivables/Customer360']}"
+                                    text="${receivable.customerName}"
+                                    link-type="anchor"
+                                    parameter-map="customerParameters"/>
+                            <label type="p"
+                                    style="text-caption m-muted"
+                                    text="${receivable.invoiceDateText || 'No invoice date'} · Due ${receivable.dueDateText
+                                        || 'not set'}"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-sm m-record-actions">
+                            <link url="financeChangeStatus"
+                                    text="Approve invoice"
+                                    btn-type="primary"
+                                    link-type="hidden-form"
+                                    icon="sym_o_task_alt"
+                                    condition="receivable.isDraft &amp;&amp; receivable.canApprove
+                                        &amp;&amp; !receivable.canFinalize"
+                                    confirmation="Approve invoice ${invoiceId} for ${receivable.totalText}?"
+                                    parameter-map="Object.assign({action:'approve'}, statusParameters)"/>
+                            <link url="financeChangeStatus"
+                                    text="Finalize invoice"
+                                    btn-type="primary"
+                                    link-type="hidden-form"
+                                    icon="sym_o_task_alt"
+                                    condition="receivable.isDraft &amp;&amp; receivable.canFinalize"
+                                    confirmation="Finalize invoice ${invoiceId} for ${receivable.totalText}?"
+                                    parameter-map="Object.assign({action:'finalize'}, statusParameters)"/>
+                            <!-- Send is the primary action of a finalized invoice; a draft's Send finalizes it first -->
+                            <container-dialog id="AccountingInvoiceSend"
+                                    width="720"
+                                    condition="receivable.canSend"
+                                    button-text="${receivable.isDraft ? 'Finalize and send' : 'Send invoice'}"
+                                    title="${receivable.isDraft ? 'Finalize and send' : 'Send'} invoice ${invoiceId}">
+                                <form-single name="FinanceSendInvoice" transition="financeSendInvoice" map="invoiceSendValue">
+                                    <field name="sourceVersion" from="receivable.sourceVersion">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="invoiceId" from="invoiceId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="operationKey" from="invoiceOperationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="toAddresses">
+                                        <default-field title="Recipients">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="note">
+                                        <default-field title="Message">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reviewedAttachmentList">
+                                        <conditional-field condition="receivable.canAttach"
+                                                title="Supporting files"
+                                                tooltip="Up to 10 files, 10 MiB each, 20 MiB in all">
+                                            <drop-down allow-empty="true" allow-multiple="true">
+                                                <dynamic-options transition="choices"
+                                                        server-search="true"
+                                                        min-length="0"
+                                                        parameter-map="{choice:'reviewedInvoiceAttachments',
+                                                            organizationPartyId:organizationPartyId, invoiceId:invoiceId}"/>
+                                            </drop-down>
+                                        </conditional-field>
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="attachmentHelp">
+                                        <default-field>
+                                            <label type="p"
+                                                    style="text-caption m-muted"
+                                                    condition="receivable.canAttach"
+                                                    text="The invoice PDF is included; add supporting files as needed."/>
+                                            <label type="p"
+                                                    style="text-caption m-muted"
+                                                    condition="!receivable.canAttach"
+                                                    text="The invoice PDF is included. Add supporting documents in Files first."/>
+                                            <label type="p"
+                                                    style="text-caption text-warning"
+                                                    condition="receivable.attachmentDiscoveryIncomplete"
+                                                    text="Not every file is listed: check Files for a missing one."/>
+                                        </default-field>
+                                    </field>
+                                    <field name="draftHelp">
+                                        <default-field>
+                                            <label text="Sending this draft finalizes it first."
+                                                    type="p"
+                                                    condition="receivable.isDraft"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Send invoice"/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </container-dialog>
+                            <link url="/apps${printPath}"
+                                    text="Print"
+                                    icon="sym_o_print"
+                                    target-window="_blank"
+                                    url-type="plain"/>
+                            <button-menu text="More" icon="more_horiz">
+                                <container-dialog id="AccountingInvoiceEdit"
+                                        button-text="Edit invoice"
+                                        title="Edit invoice ${invoiceId}"
+                                        width="720"
+                                        condition="receivable.canEdit">
+                                    <form-single name="FinanceInvoiceHeader"
+                                            transition="financeSaveHeader"
+                                            map="invoiceHeaderValue">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceId" from="invoiceId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceDate">
+                                            <default-field title="Invoice date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="dueDate">
+                                            <default-field title="Due">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="settlementTermId">
+                                            <default-field title="Payment terms">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'terms',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:settlementTermId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="description">
+                                            <default-field title="Description">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceMessage">
+                                            <default-field title="Message">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Save invoice"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="invoiceId"/>
+                                            <field-ref name="lastUpdatedStamp"/>
+                                            <field-row>
+                                                <field-ref name="invoiceDate"/>
+                                                <field-ref name="dueDate"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="settlementTermId"/>
+                                                <field-ref name="referenceNumber"/>
+                                            </field-row>
+                                            <field-ref name="description"/>
+                                            <field-ref name="invoiceMessage"/>
+                                            <field-ref name="submit"/>
+                                        </field-layout>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="AccountingCreditMemo"
+                                        button-text="Create credit memo"
+                                        title="Credit invoice ${invoiceId}"
+                                        width="720"
+                                        condition="receivable.canCredit">
+                                    <form-single name="FinanceCreditMemo" transition="financeCreditInvoice">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceId" from="invoiceId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="operationKey" from="'credit-' + ec.user.randomString(24)">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="creditAmount">
+                                            <default-field title="Credit amount">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="description">
+                                            <default-field title="Description">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Create credit memo"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="AccountingReverseDraft"
+                                        button-text="Reverse draft direction"
+                                        title="Reverse draft ${invoiceId}"
+                                        width="720"
+                                        condition="receivable.canEdit">
+                                    <form-single name="FinanceReverseDraft" transition="financeReverseInvoice">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceId" from="invoiceId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Reverse draft direction"
+                                                        confirmation="Reverse the direction of draft ${invoiceId}?"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="InvoiceState_resume"
+                                        button-text="Resume changes"
+                                        title="Resume changes ${invoiceId}"
+                                        condition="receivable.canResume">
+                                    <form-single name="InvoiceStateResume" transition="financeChangeStatus">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceId" from="invoiceId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'resume'">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="operationKey" from="'state-' + ec.user.randomString(24)">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-area rows="2"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field>
+                                                <submit text="Resume changes" confirmation="Resume changes ${invoiceId}?"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="InvoiceState_cancel"
+                                        button-text="Cancel invoice"
+                                        title="Cancel invoice ${invoiceId}"
+                                        condition="receivable.canCancel"
+                                        type="danger">
+                                    <form-single name="InvoiceStateCancel" transition="financeChangeStatus">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="invoiceId" from="invoiceId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'cancel'">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="operationKey" from="'state-' + ec.user.randomString(24)">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-area rows="2"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field>
+                                                <submit text="Cancel invoice" confirmation="Cancel invoice ${invoiceId}?"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <link url="/fop${printPath}" text="Download PDF" url-type="plain" target-window="_blank"/>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <dashboard min-width="180">
+                    <number-card title="Invoice total" value="${receivable.totalText}"/>
+                    <number-card title="Applied" value="${receivable.appliedText}"/>
+                    <number-card title="Unpaid" value="${receivable.unpaidText}"/>
+                </dashboard>
+                <subscreens-panel id="AccountingInvoiceTabs" type="tab"/>
+            </widgets>
+        </section>
     </widgets>
 </screen>

@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Trial balance (design-accounting §13): each account's beginning, debits, credits and ending by currency, from closed
     periods' summaries and open periods' posted entries (impl-accounting §4, F16), with an optional comparison. An account
     opens its detail with the report's options, and comes back to the report. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Trial balance" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Trial balance"
+        default-menu-index="2"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="glAccountId"/>
     <parameter name="timePeriodId"/>
@@ -28,12 +31,18 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="compareThruDate"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="reportOptions" from="{organizationPartyId, glAccountId, timePeriodId, fromDate, thruDate, amountUomId, facilityId, costCenterId, compareFromDate, compareThruDate}"/>
+        <set field="reportOptions"
+                from="{organizationPartyId, glAccountId, timePeriodId, fromDate, thruDate, amountUomId, facilityId,
+                    costCenterId, compareFromDate, compareThruDate}"/>
         <set field="reportRows" from="[]"/>
         <if condition="organizationPartyId">
             <service-call name="mantle.ledger.FinanceReportServices.run#TrialBalance" in-map="reportOptions" out-map="context"/>
         </if>
-        <set field="printUrl" from="'/apps/Accounting/Reports/TrialBalance?' + Object.entries(Object.assign({renderMode: 'html-print'}, reportOptions)).filter(entry =&gt; entry[1]).map(entry =&gt; entry[0] + '=' + encodeURIComponent(entry[1])).join('&amp;')"/>
+        <set field="printUrl"
+                from="'/apps/Accounting/Reports/TrialBalance?'
+                    + Object.entries(Object.assign({renderMode: 'html-print'},
+                    reportOptions)).filter(entry =&gt; entry[1]).map(entry =&gt; entry[0] + '='
+                    + encodeURIComponent(entry[1])).join('&amp;')"/>
         <set field="hasComparison" from="!!(compareFromDate || compareThruDate)"/>
     </actions>
     <widgets>
@@ -42,7 +51,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Trial balance" type="h5"/>
             </container>
             <container style="col-auto">
-                <link url="${printUrl}" url-type="plain" text="Print" icon="sym_o_print" target-window="_blank" condition="organizationPartyId"/>
+                <link url="${printUrl}"
+                        url-type="plain"
+                        text="Print"
+                        icon="sym_o_print"
+                        target-window="_blank"
+                        condition="organizationPartyId"/>
             </container>
         </container>
         <section-include name="ReportOptions" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -50,10 +64,21 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="Results" condition="organizationPartyId">
             <widgets>
                 <label text="No posted entries match these options." type="p" condition="!reportRows.length"/>
-                <form-list name="ReportRows" list="reportRows" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true" saved-finds="true">
+                <form-list name="ReportRows"
+                        list="reportRows"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true"
+                        saved-finds="true">
                     <field name="glAccountId">
                         <default-field title="Account">
-                            <link url="//Accounting/GeneralLedger/AccountDetail" text="${accountName || glAccountId}" link-type="anchor" parameter-map="Object.assign({recordId: glAccountId, reportReturn: 'TrialBalance'}, reportOptions)"/>
+                            <link url="//Accounting/GeneralLedger/AccountDetail"
+                                    text="${accountName || glAccountId}"
+                                    link-type="anchor"
+                                    parameter-map="Object.assign({recordId: glAccountId,
+                                        reportReturn: 'TrialBalance'}, reportOptions)"/>
                         </default-field>
                     </field>
                     <field name="amountUomId">

@@ -4,13 +4,12 @@ const invoiceTabs = helper.invoiceTabs
 const customerTabs = helper.customerTabs
 const destinations = [
     {path: "Receivables/Invoices", text: "Invoices"},
-    {path: "Receivables/Invoices", text: "Invoices", parameters: {view: "pivot"}},
-    {path: "Receivables/Invoices", text: "Invoices", parameters: {view: "graph"}},
-    {path: "Receivables/Invoices", text: "Invoices", parameters: {view: "calendar"}},
+    {path: "Receivables/Invoices", text: "Open receivables by customer", parameters: {summary: "table"}},
+    {path: "Receivables/Invoices", text: "Open receivables by customer", parameters: {summary: "chart"}},
     {path: "Receivables/BillingQueue", text: "Billing queue"},
     {path: "Receivables/Statements", text: "Customer statements"},
     {path: "Receivables/StatementPrint", text: "Customer statement"},
-    {path: "Receivables/InvoiceBatch", text: "Review selected invoices", parameters: {invoiceIdList: [ids.invoiceId]}},
+    {path: "Receivables/InvoiceBatch", text: "Selected invoices", parameters: {invoiceIdList: [ids.invoiceId]}},
     ...invoiceTabs.map(([tab, text]) => ({
         path: "Receivables/InvoiceDetail/" + tab,
         text,
@@ -115,7 +114,7 @@ feature("customer aging and latest receipt presentation uses the authorized curr
                 const header = helper.page("Receivables/Customer360", {customerPartyId: ids.customerPartyId}, mode)
                 for (const title of ["Receivables aging", "Current", "1–30 days", "31–60 days", "61–90 days", "Over 90 days"])
                     if (!money.output.includes(title)) failures.push(mode + " missing " + title)
-                if (!header.output.includes("Last payment amount")) failures.push(mode + " missing latest payment amount")
+                if (!header.output.includes("Last payment")) failures.push(mode + " missing latest payment")
                 if (money.status !== 200 || money.errors.length || header.status !== 200 || header.errors.length)
                     failures.push(mode + " failed rendering a customer summary")
             }
@@ -274,5 +273,31 @@ feature("a customer statement shows the open balance on its screen and its print
         print.status == 200
         print.errors == []
         balances.every(caption => screen.output.includes(caption) && print.output.includes(caption))
+    }
+})
+
+feature("an invoice's header colors its status, links its print and leaves the way back out of its actions", {
+    when() {
+        return helper.asUser("finance.ar", () => {
+            const finalized = helper.page("Receivables/InvoiceDetail", {recordId: ids.finalizedInvoiceId}, "qvt")
+            return {
+                draft: helper.page("Receivables/InvoiceDetail", {recordId: ids.invoiceId}, "qvt"),
+                finalized,
+                finalizedColored: /m-tonal text-(primary|info|positive)/.test(finalized.output),
+                customer: helper.page("Receivables/Customer360", {customerPartyId: ids.customerPartyId}, "html")
+            }
+        })
+    },
+    then({draft, finalized, finalizedColored, customer}) {
+        draft.errors == []
+        finalized.errors == []
+        draft.output.includes("m-tonal text-grey-7")
+        finalizedColored
+        finalized.output.includes("/apps/Accounting/Receivables/InvoicePrint?invoiceId=" + ids.finalizedInvoiceId)
+        finalized.output.includes("/fop/Accounting/Receivables/InvoicePrint?invoiceId=" + ids.finalizedInvoiceId)
+        !finalized.output.includes("Back to invoices")
+        customer.errors == []
+        customer.output.includes("Open receivable")
+        customer.output.includes("Last payment")
     }
 })

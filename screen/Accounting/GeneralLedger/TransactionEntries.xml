@@ -14,7 +14,10 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <!-- Transaction entries (design-accounting §8 TransactionEntries): the organization's journal lines, each with its entry,
     account, side and amount. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Transaction entries" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Transaction entries"
+        default-menu-index="3"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="glAccountId"/>
     <parameter name="isPosted"/>
@@ -23,15 +26,27 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="pageSize"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'entries',organizationPartyId:organizationPartyId,glAccountId:glAccountId,isPosted:isPosted,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'entries', organizationPartyId:organizationPartyId, glAccountId:glAccountId,
+                    isPosted:isPosted, text:text, pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
     </actions>
     <widgets>
         <label text="Transaction entries" type="h5"/>
         <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
-        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+        <form-list name="Records"
+                list="records"
+                skip-form="true"
+                paginate="true"
+                select-columns="true"
+                show-csv-button="true"
+                show-xlsx-button="true">
             <field name="txDescription">
                 <default-field title="Entry">
-                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${txDescription || 'Journal entry ' + acctgTransId}" link-type="anchor" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                    <link url="//Accounting/GeneralLedger/JournalEntryDetail"
+                            text="${txDescription || 'Journal entry ' + acctgTransId}"
+                            link-type="anchor"
+                            parameter-map="{recordId:acctgTransId, organizationPartyId:organizationPartyId}"/>
                 </default-field>
             </field>
             <field name="glAccountId">
@@ -57,8 +72,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="isPosted">
                 <default-field title="State">
                     <render-mode>
-                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ? 'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Draft'}</q-chip>]]></text>
-                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted' : 'Draft'})}]]></text>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ?
+                            'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Draft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted'
+                            : 'Draft'})}]]></text>
                     </render-mode>
                 </default-field>
             </field>

@@ -7,19 +7,46 @@ const money = (value, currency) => (value == null ? "" : ec.l10n.formatCurrency(
 const plainRows = value => array(value).map(policy.display)
 const emailStatus = statusId =>
     ({ES_SENT: "Sent", ES_READY: "Queued for delivery", ES_SCHEDULED: "Queued for delivery"})[statusId] || "Failed"
+// The color of an invoice status chip (style guide §5.2): draft grey, in progress primary, sent info, paid positive,
+// ended negative.
+const statusColors = {
+    InvoiceInProcess: "grey-7",
+    InvoiceIncoming: "grey-7",
+    InvoiceReceived: "grey-7",
+    InvoiceApproved: "primary",
+    InvoiceFinalized: "primary",
+    InvoiceSent: "info",
+    InvoiceAcked: "info",
+    InvoicePmtRecvd: "positive",
+    InvoicePmtSent: "positive",
+    InvoiceCancelled: "negative",
+    InvoiceWriteOff: "negative"
+}
+const statusColor = statusId => statusColors[statusId] || "grey-7"
+
+// A user without the view permission is refused; a record that does not exist or is not visible is only not found.
+const refused = error => String(error.message).includes("PERMISSION_DENIED")
 
 function access(parameters) {
     if (parameters.appRoot && parameters.appRoot !== "Accounting") throw new Error("Receivables context is not available")
     return policy.scope(parameters)
 }
 
-function invoiceContext(parameters, isolated = false) {
+// The invoice for its detail screen, with every list and flag present: an invoice that does not exist or is not visible
+// to the user has recordFound false and empty parts, so a screen shows its "not available" state.
+function invoiceContext(parameters) {
     const scope = access(parameters)
     const invoiceId = parameters.invoiceId || parameters.recordId
     const request = {organizationPartyId: scope.organizationPartyId, invoiceId}
-    const output = isolated
-        ? policy.probe(nativeInvoice + "get#InvoiceFinanceDetail", request)
-        : policy.call(nativeInvoice + "get#InvoiceFinanceDetail", request)
+    let output = {}
+    if (invoiceId) {
+        try {
+            output = policy.probe(nativeInvoice + "get#InvoiceFinanceDetail", request)
+        } catch (error) {
+            if (refused(error)) throw error
+            ec.logger.info("Invoice " + invoiceId + " is not available: " + error.message)
+        }
+    }
     const invoice = policy.display(output.invoice || {})
     const totals = output.totals || {}
     const capabilities = output.capabilities || {}
@@ -39,6 +66,7 @@ function invoiceContext(parameters, isolated = false) {
             })
         ),
         sources: plainRows(output.sourceRows),
+        orders: plainRows(output.sourceRows).filter(row => !!row.orderId),
         shipments: plainRows(output.shipmentRows),
         ledger: plainRows(output.ledgerRows),
         content: plainRows(output.contentRows),
@@ -55,7 +83,7 @@ function invoiceContext(parameters, isolated = false) {
             sentFilesText: issuedFiles.map(file => file.contentLocation.split("/").pop()).join(", ")
         })),
         budgets: plainRows(output.budgetRows),
-        budgetEvidenceAvailable: !!output.budgetAvailable,
+        budgetAvailable: !!output.budgetAvailable,
         budgetUnavailableReason: output.budgetUnavailableReason,
         totals,
         totalText: money(totals.invoiceTotal, currency),
@@ -71,16 +99,7 @@ function invoiceContext(parameters, isolated = false) {
         canCancel: !!capabilities.canCancel,
         canResume: !!capabilities.canResume,
         isDraft: invoice.statusId === "InvoiceInProcess",
-        printUrl:
-            "/apps/Accounting/Receivables/InvoicePrint?invoiceId=" +
-            encodeURIComponent(invoiceId) +
-            "&organizationPartyId=" +
-            encodeURIComponent(organizationPartyId),
-        pdfUrl:
-            "/fop/Accounting/Receivables/InvoicePrint?invoiceId=" +
-            encodeURIComponent(invoiceId) +
-            "&organizationPartyId=" +
-            encodeURIComponent(organizationPartyId)
+        statusColor: statusColor(invoice.statusId)
     })
     return {
         receivable,
@@ -104,28 +123,26 @@ function invoices(parameters) {
             ? {customerPartyId: row.toPartyId, customerName: row.toName}
             : {customerPartyId: row.fromPartyId, customerName: row.fromName}
     const routeParameters = row => ({organizationPartyId: scope.organizationPartyId, recordId: row.invoiceId})
+    // each row with its customer, link, status color and the due day the calendar view places it on
     const records = plainRows(output.records).map(row =>
-        Object.assign(row, customerOf(row), {routeParameters: routeParameters(row)})
+        Object.assign(row, customerOf(row), {
+            routeParameters: routeParameters(row),
+            statusColor: statusColor(row.statusId),
+            dueDay: row.dueDateText ? row.dueDateText.slice(0, 10) : null,
+            dueAllDay: "Y"
+        })
     )
     const selectedQueue = parameters.queue || "all"
     let summaryGroups = [],
         summaryErrors = [],
-        summaryComplete = true,
-        calendarRows = records
-    if (["pivot", "graph", "calendar"].includes(parameters.view)) {
+        summaryComplete = true
+    if (["table", "chart"].includes(parameters.summary)) {
         const summary = policy.call(
             nativeInvoice + "get#ReceivableSummary",
             Object.assign({}, parameters, {organizationPartyId: scope.organizationPartyId})
         )
         summaryComplete = summary.complete
         summaryErrors = array(summary.errors)
-        calendarRows = plainRows(summary.calendarRows).map(row =>
-            Object.assign(row, customerOf(row), {
-                dueDay: row.dueDateText ? row.dueDateText.slice(0, 10) : null,
-                dueAllDay: "Y",
-                routeParameters: routeParameters(row)
-            })
-        )
         const groups = {}
         for (const row of plainRows(summary.summaryRows)) {
             if (!groups[row.currencyUomId]) groups[row.currencyUomId] = []
@@ -153,7 +170,7 @@ function invoices(parameters) {
                 },
                 panel: {
                     title: "Open receivables · " + currencyUomId,
-                    visualization: parameters.view === "graph" ? "bar" : "table",
+                    visualization: parameters.summary === "chart" ? "bar" : "table",
                     stacked: true
                 }
             }
@@ -161,11 +178,9 @@ function invoices(parameters) {
     }
     return Object.assign({}, output, {
         records,
-        calendarRows,
         summaryGroups,
         summaryErrors,
         summaryComplete,
-        view: ["list", "calendar", "pivot", "graph"].includes(parameters.view) ? parameters.view : "list",
         queue: selectedQueue,
         queueTabs: [
             ["draft", "Draft"],
@@ -177,7 +192,7 @@ function invoices(parameters) {
             key,
             title,
             active: key === selectedQueue,
-            parameters: Object.assign({}, parameters, {queue: key, pageIndex: 0})
+            parameters: Object.assign({}, parameters, {queue: key, pageIndex: 0, summary: null})
         })),
         invoiceListCapabilities: scope.capabilities
     })
@@ -230,13 +245,23 @@ function contactValue(row) {
         .filter(Boolean)
         .join(", ")
 }
+// The customer for Customer360, with every list present: a customer that does not exist or that the user may not read has
+// customerFound false and empty lists, so the screen shows its "not available" state.
 function customerContext(parameters) {
     const scope = access(parameters)
     const customerPartyId = parameters.customerPartyId
-    const output = policy.call("mantle.account.CustomerFinanceServices.get#CustomerFinance", {
-        organizationPartyId: scope.organizationPartyId,
-        customerPartyId
-    })
+    let output = {}
+    if (customerPartyId) {
+        try {
+            output = policy.probe("mantle.account.CustomerFinanceServices.get#CustomerFinance", {
+                organizationPartyId: scope.organizationPartyId,
+                customerPartyId
+            })
+        } catch (error) {
+            if (refused(error)) throw error
+            ec.logger.info("Customer " + customerPartyId + " is not available: " + error.message)
+        }
+    }
     const customer = output.customer || {}
     const allowed = output.capabilities || {}
     const kinds = {CmtEmailAddress: "Email", CmtTelecomNumber: "Phone", CmtPostalAddress: "Address"}
@@ -255,7 +280,16 @@ function customerContext(parameters) {
         paymentMethods: plainRows(output.paymentMethods),
         identifications: plainRows(output.identifications),
         taxRegistrations: plainRows(output.taxRegistrations),
-        summaryRows: plainRows(output.summaryRows),
+        // the key numbers of the header, one set for each currency
+        summaryRows: plainRows(output.summaryRows).map(row =>
+            Object.assign(row, {
+                openReceivableText: money(row.openReceivable, row.currencyUomId),
+                overdueText: money(row.overdue, row.currencyUomId),
+                billedThisYearText: money(row.billedThisYear, row.currencyUomId),
+                lastPaymentText:
+                    row.lastPaymentAmount == null ? "No payment received" : money(row.lastPaymentAmount, row.currencyUomId)
+            })
+        ),
         incomplete: !!output.incomplete,
         capabilities: Object.assign({}, allowed, {
             bankEdit: !!allowed.canEditPaymentMethods,
@@ -291,16 +325,17 @@ function batchContext(parameters) {
     if (ids.length > 100) throw new Error("Select no more than 100 invoices")
     const batchRows = []
     for (const invoiceId of ids) {
+        let result = {recordFound: false}
         try {
-            const result = invoiceContext(
-                Object.assign({}, parameters, {invoiceId, organizationPartyId: scope.organizationPartyId}),
-                true
-            )
-            batchRows.push(Object.assign({}, result.receivable, {available: true}))
+            result = invoiceContext(Object.assign({}, parameters, {invoiceId, organizationPartyId: scope.organizationPartyId}))
         } catch (error) {
-            ec.logger.error("Invoice batch review " + invoiceId + ": " + error.message)
-            batchRows.push({invoiceId, available: false, reviewError: "Invoice is not available for this review"})
+            ec.logger.error("Invoice batch " + invoiceId + ": " + error.message)
         }
+        batchRows.push(
+            result.recordFound
+                ? Object.assign({}, result.receivable, {available: true})
+                : {invoiceId, available: false, reviewError: "This invoice is not available"}
+        )
     }
     const batchResults = array(batchResult(scope, parameters.operationKey).results).flatMap(row => {
         const recipients = array(row.result?.recipientResults)

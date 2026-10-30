@@ -14,22 +14,31 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <!-- Document settings (design-accounting §15 DocumentSettings): the organization's invoice and order numbering, kept on
     PartyAcctgPreference where Mantle reads it (issued numbers are never rewritten), and the document layouts, with a
-    preview of the invoice layout (ironstone.accounting.DocumentServices). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Document settings" default-menu-index="7" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    preview of the invoice layout over a sample invoice (ironstone.accounting.DocumentServices.preview#Output). -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Document settings"
+        default-menu-index="7"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result"/>
+            <service-call name="mantle.ledger.SetupServices.store#Preferences"
+                    in-map="Object.assign({}, context, {settings:context})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <service-call name="mantle.ledger.SetupServices.get#Context"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="context"/>
         <if condition="organizationPartyId">
-            <service-call name="ironstone.accounting.DocumentServices.preview#Output" in-map="{organizationPartyId:organizationPartyId,template:settings.invoiceDocumentTemplate}" out-map="context"/>
+            <service-call name="ironstone.accounting.DocumentServices.preview#Output"
+                    out-map="context"
+                    in-map="{organizationPartyId:organizationPartyId, template:settings.invoiceDocumentTemplate}"/>
         </if>
     </actions>
     <widgets>
@@ -56,7 +65,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="invoiceSequenceEnumId">
                         <default-field title="Invoice numbering">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InvoiceSequence',organizationPartyId:organizationPartyId,selected:invoiceSequenceEnumId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'enum:InvoiceSequence',
+                                            organizationPartyId:organizationPartyId, selected:invoiceSequenceEnumId}"/>
                             </drop-down>
                         </default-field>
                     </field>

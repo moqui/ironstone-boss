@@ -12,38 +12,34 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- InvoiceDetail's Conversation tab: the invoice's messages and activity log. It reads the invoice when the client
+    loads the tab alone. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Conversation"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Conversation"
         default-menu-index="9">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <actions>
-        <if condition="typeof receivable === 'undefined' || receivable === null">
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                    transaction="force-new" ignore-error="true"/>
-            <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                    deliveryRecipients:[], totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue"
-                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue"
-                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="InvoiceConversation" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoiceConversation" condition="recordFound">
+            <widgets>
+                <label text="Conversation" type="h6"/>
+                <chatter id="AccountingInvoiceConversation"
+                        record-entity="mantle.account.invoice.Invoice"
+                        record-id="${invoiceId}"
+                        default-tab="log"/>
+            </widgets>
+        </section>
     </widgets>
 </screen>

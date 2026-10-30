@@ -12,38 +12,292 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- InvoiceDetail's Items and taxes tab: the invoice's lines, which a draft's editor adds, changes and removes. It reads
+    the invoice when the client loads the tab alone. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Items and taxes"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Items and taxes"
         default-menu-index="2">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition name="financeStoreItem">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.store#InvoiceDraftItem" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="financeDeleteItem">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.delete#InvoiceDraftItem" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <if condition="typeof receivable === 'undefined' || receivable === null">
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                    transaction="force-new" ignore-error="true"/>
-            <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                    deliveryRecipients:[], totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue"
-                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue"
-                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="InvoiceItems" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoiceItems" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Items and taxes"/>
+                    <box-toolbar>
+                        <container-dialog id="AddReceivableLine"
+                                button-text="Add line"
+                                title="Add invoice line"
+                                width="720"
+                                type="primary"
+                                condition="receivable.canEdit">
+                            <form-single name="FinanceAddInvoiceItem" transition="financeStoreItem">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="invoiceId" from="invoiceId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="itemTypeEnumId">
+                                    <default-field title="Line type">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'invoiceItemTypes',
+                                                        organizationPartyId:organizationPartyId, selected:itemTypeEnumId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="productId">
+                                    <default-field title="Product">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'products',
+                                                        organizationPartyId:organizationPartyId, selected:productId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="description">
+                                    <default-field title="Description">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="quantity">
+                                    <default-field title="Quantity">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="amount">
+                                    <default-field title="Unit amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="itemDate">
+                                    <default-field title="Date">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Save line"/>
+                                    </default-field>
+                                </field>
+                                <field-layout>
+                                    <field-ref name="organizationPartyId"/>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="lastUpdatedStamp"/>
+                                    <field-row>
+                                        <field-ref name="itemTypeEnumId"/>
+                                        <field-ref name="productId"/>
+                                    </field-row>
+                                    <field-ref name="description"/>
+                                    <field-row>
+                                        <field-ref name="quantity"/>
+                                        <field-ref name="amount"/>
+                                    </field-row>
+                                    <field-ref name="itemDate"/>
+                                    <field-ref name="submit"/>
+                                </field-layout>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="FinanceInvoiceItems" list="receivable.lines" skip-form="true" paginate="false">
+                            <field name="invoiceItemSeqId">
+                                <header-field title="Line"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <header-field title="Description"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="itemTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
+                                </default-field>
+                            </field>
+                            <field name="quantity" align="right">
+                                <header-field title="Quantity"/>
+                                <default-field>
+                                    <display format="#,##0.###"/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <header-field title="Unit amount"/>
+                                <default-field>
+                                    <display currency-unit-field="invoiceCurrencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="lineTotal" align="right">
+                                <header-field title="Total"/>
+                                <default-field>
+                                    <display currency-unit-field="invoiceCurrencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <header-field title=""/>
+                                <default-field>
+                                    <container-dialog id="EditReceivableLine_${invoiceItemSeqId}"
+                                            button-text="Edit"
+                                            title="Edit invoice line ${invoiceItemSeqId}"
+                                            width="720"
+                                            condition="receivable.canEdit">
+                                        <form-single name="FinanceEditInvoiceItem" transition="financeStoreItem">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="invoiceId" from="invoiceId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="invoiceItemSeqId" from="invoiceItemSeqId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="lastUpdatedStamp" from="lastUpdatedStamp">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="itemTypeEnumId">
+                                                <default-field title="Line type">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="{choice:'invoiceItemTypes',
+                                                                    organizationPartyId:organizationPartyId,
+                                                                    selected:itemTypeEnumId}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="productId">
+                                                <default-field title="Product">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="{choice:'products',
+                                                                    organizationPartyId:organizationPartyId,
+                                                                    selected:productId}"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="description">
+                                                <default-field title="Description">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="quantity">
+                                                <default-field title="Quantity">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="amount">
+                                                <default-field title="Unit amount">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save line"/>
+                                                </default-field>
+                                            </field>
+                                            <field-layout>
+                                                <field-ref name="organizationPartyId"/>
+                                                <field-ref name="invoiceId"/>
+                                                <field-ref name="invoiceItemSeqId"/>
+                                                <field-ref name="lastUpdatedStamp"/>
+                                                <field-row>
+                                                    <field-ref name="itemTypeEnumId"/>
+                                                    <field-ref name="productId"/>
+                                                </field-row>
+                                                <field-ref name="description"/>
+                                                <field-row>
+                                                    <field-ref name="quantity"/>
+                                                    <field-ref name="amount"/>
+                                                </field-row>
+                                                <field-ref name="submit"/>
+                                            </field-layout>
+                                        </form-single>
+                                    </container-dialog>
+                                    <link url="financeDeleteItem"
+                                            text="Remove"
+                                            link-type="hidden-form"
+                                            btn-type="danger"
+                                            condition="receivable.canEdit"
+                                            confirmation="Remove line ${invoiceItemSeqId} from invoice ${invoiceId}?"
+                                            parameter-map="{organizationPartyId:organizationPartyId,
+                                                invoiceId:invoiceId,
+                                                invoiceItemSeqId:invoiceItemSeqId, lastUpdatedStamp:lastUpdatedStamp}"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="invoiceItemSeqId"/>
+                                    <field-ref name="description"/>
+                                </column>
+                                <column>
+                                    <field-ref name="lineTotal"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="This invoice has no lines. Add a line before finalizing it."
+                                type="p"
+                                style="m-muted"
+                                condition="!receivable.lines.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

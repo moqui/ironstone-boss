@@ -13,80 +13,42 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoices and payments"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Invoices and payments"
         default-menu-index="3">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
     <parameter name="appRoot"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
-    <transition name="saveIdentification">
-        <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context"
-                    out-map="financeResult"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="customerPartyId"/>
-            <parameter name="organizationPartyId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="saveTaxRegistration">
-        <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context"
-                    out-map="financeResult"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="customerPartyId"/>
-            <parameter name="organizationPartyId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
-    <transition name="saveCustomerBank">
-        <actions>
-            <script><![CDATA[
-const bankFields = {organizationPartyId:context.organizationPartyId, customerPartyId:context.customerPartyId,
-    paymentMethodId:context.paymentMethodId || null, bankName:context.bankName, description:context.description,
-    typeEnumId:context.typeEnumId || null, lastUpdatedStamp:context.lastUpdatedStamp || null,
-    fromDate:context.fromDate || null, thruDate:context.thruDate || null}
-if (context.accountNumber) bankFields.accountNumber = context.accountNumber
-if (context.routingNumber) bankFields.routingNumber = context.routingNumber
-financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.store#CustomerBankAccount').parameters(bankFields).call()
-]]></script>
-        </actions>
-        <default-response url=".">
-            <parameter name="customerPartyId"/>
-            <parameter name="organizationPartyId"/>
-        </default-response>
-        <error-response url="."/>
-    </transition>
     <actions>
-        <if condition="typeof customerDetail === 'undefined' || customerDetail === null">
-            <if condition="organizationPartyId">
-                <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
-                        in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}"
-                        out-map="context" transaction="force-new" ignore-error="true"/>
-            </if>
-            <set field="customerFound" from="typeof customerDetail !== 'undefined' &amp;&amp; !!customerDetail?.partyId"/>
-            <set field="customerDetail"
-                    from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
+        <!-- Customer360's actions read the customer when it renders with the tab -->
+        <if condition="customerDetail == null &amp;&amp; organizationPartyId">
+            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
     </actions>
     <widgets>
-        <section-include name="CustomerOrganizationPrompt" location="component://mr-boss/template/AccountingReceivables.xml"/>
         <section name="CustomerTabMoney" condition="customerFound">
             <widgets>
                 <label text="Invoices and payments" type="h6"/>
-                <label text="The customer financial summary is unavailable because this result is incomplete. Open customer invoices to refine the selection."
-                        type="p" style="text-warning" condition="customerDetail.incomplete"/>
-                <link url="${sharedLinks['Receivables/Invoices']}" text="Open customer invoices"
-                        condition="customerDetail.incomplete" parameter-map="customerLinkParameters"/>
+                <label text="The totals are not complete. Open the customer's invoices to narrow the selection."
+                        type="p"
+                        style="text-warning"
+                        condition="customerDetail.incomplete"/>
+                <link url="${sharedLinks['Receivables/Invoices']}"
+                        text="Open customer invoices"
+                        condition="customerDetail.incomplete"
+                        parameter-map="customerLinkParameters"/>
                 <section name="CustomerAgingAvailable" condition="customerDetail.summaryRows.length">
                     <widgets>
                         <container-box>
                             <box-header title="Receivables aging"/>
                             <box-body>
-                                <form-list name="CustomerAgingSummary" list="customerDetail.summaryRows" skip-form="true"
+                                <form-list name="CustomerAgingSummary"
+                                        list="customerDetail.summaryRows"
+                                        skip-form="true"
                                         paginate="false">
                                     <field name="currencyUomId">
                                         <header-field title="Currency"/>
@@ -148,8 +110,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             <field name="invoiceId">
                                 <header-field title="Invoice"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}"
-                                            parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}"
+                                            text="${description || invoiceId}"
+                                            parameter-map="{recordId:invoiceId, organizationPartyId:organizationPartyId}"/>
                                 </default-field>
                             </field>
                             <field name="dueDate">
@@ -187,7 +150,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No invoices are linked to this customer and organization." type="p" style="m-muted"
+                        <label text="No invoices are linked to this customer and organization."
+                                type="p"
+                                style="m-muted"
                                 condition="!customerDetail.invoices.length"/>
                     </box-body>
                 </container-box>
@@ -198,8 +163,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             <field name="paymentId">
                                 <header-field title="Payment"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}"
-                                            parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${paymentId}"
+                                            parameter-map="{recordId:paymentId, organizationPartyId:organizationPartyId}"/>
                                 </default-field>
                             </field>
                             <field name="effectiveDate">
@@ -231,7 +197,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No permitted receipts are linked to this customer and organization." type="p" style="m-muted"
+                        <label text="No permitted receipts are linked to this customer and organization."
+                                type="p"
+                                style="m-muted"
                                 condition="!customerDetail.payments.length"/>
                     </box-body>
                 </container-box>

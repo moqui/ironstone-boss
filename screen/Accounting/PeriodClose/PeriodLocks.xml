@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Posting locks (design-accounting §12 PeriodLocks; AC-06): the organization's lock-through dates by scope. A hard lock
     never moves back and takes no exception; a soft lock takes named, expiring exceptions for a user or group, optionally
     one entry. The guard is mantle.ledger.LedgerServices.post#AcctgTrans; the writers check ACCOUNTING_ADMIN. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Posting locks" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Posting locks"
+        default-menu-index="2"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="text"/>
     <parameter name="pageIndex"/>
@@ -36,8 +39,13 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'locks',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'exceptions',organizationPartyId:organizationPartyId,pageSize:100}" out-map="exceptionsOut"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'locks', organizationPartyId:organizationPartyId, text:text,
+                    pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'exceptions', organizationPartyId:organizationPartyId, pageSize:100}"
+                out-map="exceptionsOut"/>
         <set field="exceptions" from="exceptionsOut.records || []"/>
         <set field="isAdmin" from="!!accounting.capabilities.admin"/>
         <set field="scopeLabels" from="{all:'All postings', sales:'Sales', purchases:'Purchases', tax:'Tax'}"/>
@@ -49,12 +57,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Posting locks" type="h5"/>
             </container>
             <container style="col-auto">
-                <container-dialog id="AddLockDialog" button-text="Add posting lock" type="primary" icon="sym_o_lock" title="Add a posting lock" condition="isAdmin">
+                <container-dialog id="AddLockDialog"
+                        button-text="Add posting lock"
+                        type="primary"
+                        icon="sym_o_lock"
+                        title="Add a posting lock"
+                        condition="isAdmin">
                     <form-single name="PostingLock" transition="lock" map="newLock">
                         <field name="organizationPartyId">
                             <default-field title="Organization">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'organizations',
+                                                organizationPartyId:organizationPartyId, selected:organizationPartyId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -88,7 +105,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </field>
                         <field name="submit">
                             <default-field title="">
-                                <submit text="Save lock" confirmation="Save this posting lock? A hard lock can never be moved back or excepted."/>
+                                <submit text="Save lock"
+                                        confirmation="Save this posting lock? A hard lock can never be moved back or excepted."/>
                             </default-field>
                         </field>
                     </form-single>
@@ -96,7 +114,13 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
         </container>
         <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
-        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+        <form-list name="Records"
+                list="records"
+                skip-form="true"
+                paginate="true"
+                select-columns="true"
+                show-csv-button="true"
+                show-xlsx-button="true">
             <field name="lockScope">
                 <default-field title="Scope">
                     <display text="${scopeLabels[lockScope] || lockScope || ''}"/>
@@ -110,8 +134,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="isHard">
                 <default-field title="Kind">
                     <render-mode>
-                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isHard == 'Y' ? 'negative' : 'primary'}">${isHard == 'Y' ? 'Hard' : 'Soft'}</q-chip>]]></text>
-                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isHard == 'Y' ? 'Hard' : 'Soft'})}]]></text>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isHard == 'Y' ? 'negative'
+                            : 'primary'}">${isHard == 'Y' ? 'Hard' : 'Soft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isHard == 'Y' ? 'Hard'
+                            : 'Soft'})}]]></text>
                     </render-mode>
                 </default-field>
             </field>
@@ -122,7 +148,11 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="lockActions">
                 <default-field title="">
-                    <container-dialog id="EditLock_${accountingLockId}" button-text="Edit" icon="sym_o_edit" title="Edit the ${scopeLabels[lockScope] || lockScope} lock" condition="isAdmin">
+                    <container-dialog id="EditLock_${accountingLockId}"
+                            button-text="Edit"
+                            icon="sym_o_edit"
+                            title="Edit the ${scopeLabels[lockScope] || lockScope} lock"
+                            condition="isAdmin">
                         <form-single name="EditLock" transition="lock" extends="PostingLock">
                             <field name="accountingLockId" from="accountingLockId">
                                 <default-field>
@@ -146,7 +176,11 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                         </form-single>
                     </container-dialog>
-                    <container-dialog id="GrantException_${accountingLockId}" button-text="Grant exception" icon="sym_o_key" title="An exception to the ${scopeLabels[lockScope] || lockScope} lock through ${lockThroughDateText}" condition="isAdmin &amp;&amp; isHard != 'Y'">
+                    <container-dialog id="GrantException_${accountingLockId}"
+                            button-text="Grant exception"
+                            icon="sym_o_key"
+                            title="An exception to the ${scopeLabels[lockScope] || lockScope} lock through ${lockThroughDateText}"
+                            condition="isAdmin &amp;&amp; isHard != 'Y'">
                         <form-single name="LockException" transition="exception">
                             <field name="organizationPartyId" from="organizationPartyId">
                                 <default-field>
@@ -161,21 +195,33 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="userId">
                                 <default-field title="User">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'users',organizationPartyId:organizationPartyId,selected:userId}"/>
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'users',
+                                                    organizationPartyId:organizationPartyId, selected:userId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
                             <field name="userGroupId">
                                 <default-field title="Or group">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'groups',organizationPartyId:organizationPartyId,selected:userGroupId}"/>
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'groups',
+                                                    organizationPartyId:organizationPartyId, selected:userGroupId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
                             <field name="acctgTransId">
                                 <default-field title="Entry" tooltip="Leave empty to let any entry of the user or group post">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'journals',organizationPartyId:organizationPartyId,selected:acctgTransId}"/>
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'journals',
+                                                    organizationPartyId:organizationPartyId, selected:acctgTransId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -213,10 +259,17 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="Exceptions" condition="exceptions.length">
             <widgets>
                 <label text="Exceptions to soft locks" type="h6"/>
-                <form-list name="LockExceptions" list="exceptions" skip-form="true" paginate="false" select-columns="true" show-csv-button="true">
+                <form-list name="LockExceptions"
+                        list="exceptions"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true">
                     <field name="userId">
                         <default-field title="For">
-                            <display-entity entity-name="moqui.security.UserAccount" text="${userFullName || username}" default-text="${userGroupId ? 'Group ' + userGroupId : ''}"/>
+                            <display-entity entity-name="moqui.security.UserAccount"
+                                    text="${userFullName || username}"
+                                    default-text="${userGroupId ? 'Group ' + userGroupId : ''}"/>
                         </default-field>
                     </field>
                     <field name="acctgTransId">

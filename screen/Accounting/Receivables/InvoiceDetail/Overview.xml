@@ -12,38 +12,127 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- InvoiceDetail's Overview tab: the invoice's facts and the emails that sent it. It reads the invoice when the client
+    loads the tab alone. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Overview" default-menu-index="1">
+        default-menu-title="Overview"
+        default-menu-index="1">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <actions>
-        <if condition="typeof receivable === 'undefined' || receivable === null">
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                    transaction="force-new" ignore-error="true"/>
-            <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                    deliveryRecipients:[], totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue"
-                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue"
-                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="InvoiceOverview" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoiceOverview" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Overview"/>
+                    <box-body>
+                        <form-single name="FinanceInvoiceOverview" transition="." map="receivable">
+                            <field name="fromName">
+                                <default-field title="From">
+                                    <display text="${receivable.fromName || receivable.fromPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="toName">
+                                <default-field title="Customer">
+                                    <display text="${receivable.customerName}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceDate">
+                                <default-field title="Invoice date">
+                                    <display text="${receivable.invoiceDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDate">
+                                <default-field title="Due">
+                                    <display text="${receivable.dueDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="referenceNumber">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceMessage">
+                                <default-field title="Message">
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </box-body>
+                </container-box>
+                <section name="InvoiceDeliveries" condition="receivable.deliveryRecipients.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Delivery outcomes"/>
+                            <box-body>
+                                <form-list name="InvoiceDeliveries"
+                                        list="receivable.deliveryRecipients"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="recipient">
+                                        <default-field title="Recipient">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="createdDateText">
+                                        <default-field title="When">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="statusDescription">
+                                        <default-field title="Outcome">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="errorMessage">
+                                        <default-field title="Failure">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="emailMessageId">
+                                        <default-field title="Mail reference">
+                                            <display style="text-mono"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sentFilesText">
+                                        <default-field title="Delivery files">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="recipient"/>
+                                            <field-ref name="createdDateText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="statusDescription"/>
+                                            <field-ref name="errorMessage"/>
+                                            <field-ref name="emailMessageId"/>
+                                            <field-ref name="sentFilesText"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
     </widgets>
 </screen>

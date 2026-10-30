@@ -16,8 +16,10 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="get" noun="InvoiceContext" allow-remote="false">
         <description>A receivable for InvoiceDetail (mantle.account.InvoiceServices.get#InvoiceFinanceDetail) with the
-            screen's labels, links and send form values: what may be done, the files that may be attached and the emails
-            sent. Refuses an invoice the user may not read.</description>
+            screen's labels, links, status color and send form values: what may be done, the files that may be attached and
+            the emails sent. Every part is there: an invoice that does not exist or is not visible to the user has
+            recordFound false and empty lists. Refuses a user without the invoice view permission and an organization
+            the user may not work in.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
             <parameter name="invoiceId" type="String"/>
@@ -46,11 +48,14 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
     </service>
     <service verb="find" noun="Invoices" allow-remote="false">
-        <description>A page of the receivables queue (find#Receivables) with the queue tabs, and for the pivot, graph and
-            calendar views the summary of all of them (get#ReceivableSummary).</description>
+        <description>A page of the receivables queue (find#Receivables) with the queue tabs, each row with its status color
+            and due day, and with summary the totals of all of them (get#ReceivableSummary).</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
-            <parameter name="view" type="String"/>
+            <parameter name="summary" type="String">
+                <description>table or chart: the summary of all the invoices found,
+                by customer and status.</description>
+            </parameter>
             <parameter name="queue" type="String"/>
             <parameter name="customerPartyId" type="String"/>
             <parameter name="statusId" type="String"/>
@@ -65,8 +70,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="pageSize" type="Integer"/>
         </in-parameters>
         <out-parameters>
-            <parameter name="view" type="String"/>
-            <parameter name="calendarRows" type="List"/>
             <parameter name="summaryGroups" type="List"/>
             <parameter name="summaryErrors" type="List"/>
             <parameter name="summaryComplete" type="Boolean"/>
@@ -84,8 +87,6 @@ along with this software (see the LICENSE.md file). If not, see
         <actions>
             <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
             <set field="screenContext" from="ec.resource.script(screen).execute('invoices', context)"/>
-            <set field="view" from="screenContext.view"/>
-            <set field="calendarRows" from="screenContext.calendarRows"/>
             <set field="summaryGroups" from="screenContext.summaryGroups"/>
             <set field="summaryErrors" from="screenContext.summaryErrors"/>
             <set field="summaryComplete" from="screenContext.summaryComplete"/>
@@ -159,7 +160,9 @@ along with this software (see the LICENSE.md file). If not, see
     </service>
     <service verb="get" noun="CustomerContext" allow-remote="false">
         <description>A customer of the organization for Customer360 (get#CustomerFinance, which leaves out the finance
-            details the user may not read), with the screen's labels.</description>
+            details the user may not read), with the screen's labels and key numbers. A customer that does not exist or
+            is not visible has customerFound false and empty lists. Refuses a user without receivables view and an
+            organization the user may not work in.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
             <parameter name="customerPartyId" type="String"/>

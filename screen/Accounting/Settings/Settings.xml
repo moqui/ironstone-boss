@@ -14,14 +14,22 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <!-- The Accounting settings index (design-accounting §15 Settings): the organization's setup readiness, each finding with
     the screen that fixes it (mantle.ledger.SetupServices.get#Preferences). The settings themselves are the other tabs. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Overview" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Overview"
+        default-menu-index="1"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Preferences" in-map="{organizationPartyId:organizationPartyId}" out-map="readiness"/>
+        <service-call name="mantle.ledger.SetupServices.get#Preferences"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="readiness"/>
         <set field="findings" from="readiness?.findings || []"/>
-        <set field="fixPaths" from="{PREFERENCES: '../AccountingPreferences', BASE_CURRENCY: '../AccountingPreferences', ERROR_JOURNAL: '../AccountingPreferences', PERIODS: '//Accounting/PeriodClose/Periods', FISCAL_PERIODS: '//Accounting/PeriodClose/Periods', CHART: '//Accounting/GeneralLedger/ChartOfAccounts'}"/>
+        <set field="fixPaths"
+                from="{PREFERENCES: '../AccountingPreferences', BASE_CURRENCY: '../AccountingPreferences',
+                    ERROR_JOURNAL: '../AccountingPreferences', PERIODS: '//Accounting/PeriodClose/Periods',
+                    FISCAL_PERIODS: '//Accounting/PeriodClose/Periods', CHART: '//Accounting/GeneralLedger/ChartOfAccounts'}"/>
     </actions>
     <widgets>
         <label text="Accounting settings" type="h5"/>
@@ -41,7 +49,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="fix">
                                         <default-field title="">
-                                            <link url="${fixPaths[code]}" text="Fix" icon="sym_o_arrow_forward" condition="fixPaths[code]" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                                            <link url="${fixPaths[code]}"
+                                                    text="Fix"
+                                                    icon="sym_o_arrow_forward"
+                                                    condition="fixPaths[code]"
+                                                    parameter-map="{organizationPartyId:organizationPartyId}"/>
                                         </default-field>
                                     </field>
                                     <columns type="mobile">

@@ -12,38 +12,80 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- InvoiceDetail's History tab: the changes made to the invoice. It reads the invoice when the client loads the tab
+    alone. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="History" default-menu-index="10">
+        default-menu-title="History"
+        default-menu-index="10">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
-    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <actions>
-        <if condition="typeof receivable === 'undefined' || receivable === null">
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
-                    transaction="force-new" ignore-error="true"/>
-            <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
-                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
-                    deliveryRecipients:[], totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue"
-                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue"
-                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
-        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="InvoiceHistory" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="InvoiceHistory" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="History"/>
+                    <box-body>
+                        <form-list name="FinanceInvoiceHistory" list="receivable.history" skip-form="true" paginate="false">
+                            <field name="changedDate">
+                                <header-field title="When"/>
+                                <default-field>
+                                    <display text="${changedDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="changedFieldName">
+                                <header-field title="Field"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="oldValueText">
+                                <header-field title="Before"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="newValueText">
+                                <header-field title="After"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="changedByUserId">
+                                <header-field title="User"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="changedDate"/>
+                                    <field-ref name="changedFieldName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="newValueText"/>
+                                    <field-ref name="changedByUserId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No changes have been recorded for this invoice."
+                                type="p"
+                                style="m-muted"
+                                condition="!receivable.history.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

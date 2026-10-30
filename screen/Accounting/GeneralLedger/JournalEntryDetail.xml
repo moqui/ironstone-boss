@@ -16,7 +16,11 @@ along with this software (see the LICENSE.md file). If not, see
     (preview, then post with the preview's fingerprint and an operation key), and for a posted entry a dated reversal and
     the audited description correction. The record header's primary action is Review posting for a draft; the other
     actions are in its More menu. Opened from a report (reportReturn), it links back with the report's options. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal entry" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Journal entry"
+        default-menu-index="1"
+        default-menu-include="false"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="previewId"/>
@@ -35,49 +39,63 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#DraftEntry" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.store#DraftEntry"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="line">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#DraftLine" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.store#DraftLine"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="removeLine">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.delete#DraftLine" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.delete#DraftLine"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="move">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.move#DraftLine" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.move#DraftLine"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="metadata">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.update#PostedMetadata" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.update#PostedMetadata"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="reverse">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.reverse#Entry" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.reverse#Entry"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="delete">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.delete#DraftEntry" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.delete#DraftEntry"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="//Accounting/GeneralLedger/JournalEntries">
             <parameter name="organizationPartyId"/>
@@ -95,24 +113,36 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="post">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.post#Entry" in-map="Object.assign({},context,{acctgTransId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.post#Entry"
+                    in-map="Object.assign({}, context, {acctgTransId:recordId})"
+                    out-map="result"/>
             <set field="previewId" from="null"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'journals',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" transaction="force-new" ignore-error="true"/>
+        <service-call name="mantle.ledger.AccountingServices.get#Record"
+                in-map="{kind:'journals', recordId:recordId, organizationPartyId:organizationPartyId}"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
         <set field="recordFound" from="!!record"/>
         <set field="isDraft" from="recordFound &amp;&amp; record.isPosted !== 'Y'"/>
         <set field="canPost" from="!!accounting.capabilities.glPost"/>
         <set field="entryName" from="recordFound ? (record.description || 'Journal entry ' + recordId) : ''"/>
-        <set field="stateLabel" from="!recordFound ? '' : record.reversedByAcctgTransId ? 'Reversed' : isDraft ? 'Draft' : 'Posted'"/>
+        <set field="stateLabel"
+                from="!recordFound ? '' : record.reversedByAcctgTransId ? 'Reversed' : isDraft ? 'Draft' : 'Posted'"/>
         <set field="stateColor" from="stateLabel === 'Posted' ? 'positive' : stateLabel === 'Draft' ? 'warning' : 'grey-8'"/>
-        <set field="totalsText" from="!recordFound ? '' : [['Debits', debitTotal], ['Credits', creditTotal], ['Difference', debitCreditDifference]].map(pair =&gt; pair[0] + ' ' + (record.amountUomId ? ec.l10n.formatCurrency(pair[1] ?? 0, record.amountUomId) : String(pair[1] ?? 0))).join(' · ')"/>
+        <set field="totalsText"
+                from="!recordFound ? '' : [['Debits', debitTotal], ['Credits', creditTotal],
+                    ['Difference', debitCreditDifference]].map(pair =&gt; pair[0] + ' ' + (record.amountUomId
+                    ? ec.l10n.formatCurrency(pair[1] ?? 0, record.amountUomId) : String(pair[1] ?? 0))).join(' · ')"/>
         <set field="operationKey" from="operationKey || ('journal-' + ec.user.randomString(24))"/>
         <if condition="isDraft &amp;&amp; previewId">
-            <service-call name="mantle.ledger.JournalServices.get#Preview" in-map="{acctgTransId:recordId,previewId:previewId}" out-map="postingPreview"/>
+            <service-call name="mantle.ledger.JournalServices.get#Preview"
+                    in-map="{acctgTransId:recordId, previewId:previewId}"
+                    out-map="postingPreview"/>
         </if>
         <set field="postingPreviewFindings" from="postingPreview?.findings || []"/>
     </actions>
@@ -122,7 +152,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-box type="warning">
                     <box-header title="Not available"/>
                     <box-body>
-                        <label text="Journal entry ${recordId || ''} is not available: it does not exist, or it belongs to an organization you do not work in." type="p"/>
+                        <label type="p"
+                                text="Journal entry ${recordId || ''} does not exist, or you do not work in its organization."/>
                         <link url="//Accounting/GeneralLedger/JournalEntries" text="Back to journal entries" link-type="anchor"/>
                     </box-body>
                 </container-box>
@@ -136,28 +167,50 @@ along with this software (see the LICENSE.md file). If not, see
                         <container style="col-12 col-md m-record-title">
                             <container style="row items-center no-wrap">
                                 <render-mode>
-                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(recordId)}</q-chip>]]></text>
-                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: recordId})}]]></text>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${
+                                        WebUtilities.encodeHtml(recordId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                        text: recordId})}]]></text>
                                 </render-mode>
                                 <label text="${entryName}" type="h5"/>
                             </container>
-                            <label text="${record.transactionDateText || 'No date'} · ${totalsText}" type="p" style="text-caption m-muted q-mb-none"/>
+                            <label text="${record.transactionDateText || 'No date'} · ${totalsText}"
+                                    type="p"
+                                    style="text-caption m-muted q-mb-none"/>
                         </container>
                         <container style="col-12 col-md-auto m-record-status">
                             <render-mode>
-                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${stateColor}">${stateLabel}</q-chip>]]></text>
-                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: stateLabel})}]]></text>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${stateColor}">${
+                                    stateLabel}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                    text: stateLabel})}]]></text>
                             </render-mode>
                         </container>
                     </container>
                     <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
                         <container style="col-12 col-md">
-                            <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="Reversed by ${record.reversedByAcctgTransId}" link-type="anchor" condition="record.reversedByAcctgTransId" parameter-map="{recordId:record.reversedByAcctgTransId,organizationPartyId:record.organizationPartyId}"/>
+                            <link url="//Accounting/GeneralLedger/JournalEntryDetail"
+                                    text="Reversed by ${record.reversedByAcctgTransId}"
+                                    link-type="anchor"
+                                    condition="record.reversedByAcctgTransId"
+                                    parameter-map="{recordId:record.reversedByAcctgTransId,
+                                        organizationPartyId:record.organizationPartyId}"/>
                         </container>
                         <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
-                            <link url="preview" link-type="hidden-form" text="Review posting" btn-type="primary" icon="sym_o_fact_check" condition="isDraft &amp;&amp; canPost" parameter-map="{recordId:recordId,organizationPartyId:record.organizationPartyId,operationKey:operationKey}"/>
+                            <link url="preview"
+                                    link-type="hidden-form"
+                                    text="Review posting"
+                                    btn-type="primary"
+                                    icon="sym_o_fact_check"
+                                    condition="isDraft &amp;&amp; canPost"
+                                    parameter-map="{recordId:recordId,
+                                        organizationPartyId:record.organizationPartyId, operationKey:operationKey}"/>
                             <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="canPost">
-                                <container-dialog id="AddLineDialog" button-text="Add line" icon="sym_o_add" title="Add a line to ${entryName}" condition="isDraft">
+                                <container-dialog id="AddLineDialog"
+                                        button-text="Add line"
+                                        icon="sym_o_add"
+                                        title="Add a line to ${entryName}"
+                                        condition="isDraft">
                                     <form-single name="AddLine" transition="line">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -172,7 +225,12 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="glAccountId">
                                             <default-field title="Account">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:record.organizationPartyId,selected:glAccountId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'accounts',
+                                                                organizationPartyId:record.organizationPartyId,
+                                                                selected:glAccountId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -197,14 +255,24 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="facilityId">
                                             <default-field title="Facility">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:record.organizationPartyId,selected:facilityId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'facilities',
+                                                                organizationPartyId:record.organizationPartyId,
+                                                                selected:facilityId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
                                         <field name="costCenterId">
                                             <default-field title="Cost centre">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:record.organizationPartyId,selected:costCenterId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'costCenters',
+                                                                organizationPartyId:record.organizationPartyId,
+                                                                selected:costCenterId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -215,7 +283,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="EditDraftDialog" button-text="Edit draft" icon="sym_o_edit" title="Edit ${entryName}" condition="isDraft">
+                                <container-dialog id="EditDraftDialog"
+                                        button-text="Edit draft"
+                                        icon="sym_o_edit"
+                                        title="Edit ${entryName}"
+                                        condition="isDraft">
                                     <form-single name="DraftHeader" transition="save" map="record">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -249,7 +321,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="CorrectDescriptionDialog" button-text="Correct description" icon="sym_o_edit_note" title="Correct the description of ${entryName}" condition="!isDraft">
+                                <container-dialog id="CorrectDescriptionDialog"
+                                        button-text="Correct description"
+                                        icon="sym_o_edit_note"
+                                        title="Correct the description of ${entryName}"
+                                        condition="!isDraft">
                                     <form-single name="CorrectDescription" transition="metadata" map="record">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -278,7 +354,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="ReverseEntryDialog" button-text="Reverse entry" icon="sym_o_undo" title="Reverse ${entryName}" condition="!isDraft &amp;&amp; !record.reversedByAcctgTransId">
+                                <container-dialog id="ReverseEntryDialog"
+                                        button-text="Reverse entry"
+                                        icon="sym_o_undo"
+                                        title="Reverse ${entryName}"
+                                        condition="!isDraft &amp;&amp; !record.reversedByAcctgTransId">
                                     <form-single name="ReverseEntry" transition="reverse">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -302,12 +382,18 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                         <field name="submit">
                                             <default-field title="">
-                                                <submit text="Reverse entry" type="danger" confirmation="Post a dated reversal of ${entryName}?"/>
+                                                <submit text="Reverse entry"
+                                                        type="danger"
+                                                        confirmation="Post a dated reversal of ${entryName}?"/>
                                             </default-field>
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="DeleteDraftDialog" button-text="Delete draft" icon="sym_o_delete" title="Delete ${entryName}" condition="isDraft">
+                                <container-dialog id="DeleteDraftDialog"
+                                        button-text="Delete draft"
+                                        icon="sym_o_delete"
+                                        title="Delete ${entryName}"
+                                        condition="isDraft">
                                     <form-single name="DeleteDraft" transition="delete" map="record">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -326,7 +412,9 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                         <field name="submit">
                                             <default-field title="">
-                                                <submit text="Delete draft" type="danger" confirmation="Delete the draft ${entryName}?"/>
+                                                <submit text="Delete draft"
+                                                        type="danger"
+                                                        confirmation="Delete the draft ${entryName}?"/>
                                             </default-field>
                                         </field>
                                     </form-single>
@@ -340,7 +428,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <container-box>
                             <box-header title="Posting review"/>
                             <box-body>
-                                <label text="No findings: the entry is ready to post." type="p" condition="!postingPreviewFindings.length"/>
+                                <label text="No findings: the entry is ready to post."
+                                        type="p"
+                                        condition="!postingPreviewFindings.length"/>
                                 <form-list name="PostingFindings" list="postingPreviewFindings" skip-form="true" paginate="false">
                                     <field name="code">
                                         <default-field title="Check">
@@ -398,8 +488,16 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets>
                 </section>
                 <label text="Lines" type="h6"/>
-                <label text="This draft has no lines yet. Add them from More, Add line." type="p" condition="!lines.length &amp;&amp; isDraft"/>
-                <form-list name="TransactionLines" list="lines" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <label text="This draft has no lines yet. Add them from More, Add line."
+                        type="p"
+                        condition="!lines.length &amp;&amp; isDraft"/>
+                <form-list name="TransactionLines"
+                        list="lines"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="glAccountId">
                         <default-field title="Account">
                             <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}"/>
@@ -422,7 +520,11 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="lineActions">
                         <default-field title="">
-                            <container-dialog id="EditLine_${acctgTransEntrySeqId}" button-text="Edit" icon="sym_o_edit" title="Edit line ${acctgTransEntrySeqId} of ${entryName}" condition="isDraft &amp;&amp; canPost">
+                            <container-dialog id="EditLine_${acctgTransEntrySeqId}"
+                                    button-text="Edit"
+                                    icon="sym_o_edit"
+                                    title="Edit line ${acctgTransEntrySeqId} of ${entryName}"
+                                    condition="isDraft &amp;&amp; canPost">
                                 <form-single name="EditLine" transition="line" extends="AddLine">
                                     <field name="acctgTransEntrySeqId" from="acctgTransEntrySeqId">
                                         <default-field>
@@ -442,7 +544,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 </form-single>
                             </container-dialog>
                             <button-menu text="More" icon="more_horiz" condition="isDraft &amp;&amp; canPost">
-                                <container-dialog id="MoveLine_${acctgTransEntrySeqId}" button-text="Move to another draft" icon="sym_o_drive_file_move" title="Move line ${acctgTransEntrySeqId} of ${entryName}">
+                                <container-dialog id="MoveLine_${acctgTransEntrySeqId}"
+                                        button-text="Move to another draft"
+                                        icon="sym_o_drive_file_move"
+                                        title="Move line ${acctgTransEntrySeqId} of ${entryName}">
                                     <form-single name="MoveDraftLine" transition="move">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -462,7 +567,12 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="destinationAcctgTransId">
                                             <default-field title="Destination draft">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'drafts',organizationPartyId:record.organizationPartyId,selected:destinationAcctgTransId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'drafts',
+                                                                organizationPartyId:record.organizationPartyId,
+                                                                selected:destinationAcctgTransId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -478,7 +588,15 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <link url="removeLine" link-type="hidden-form-link" text="Remove line" icon="sym_o_delete" btn-type="danger" confirmation="Remove line ${acctgTransEntrySeqId} (${description || 'no description'}) from ${entryName}?" parameter-map="{recordId:recordId,acctgTransEntrySeqId:acctgTransEntrySeqId,lastUpdatedStamp:lastUpdatedStamp}"/>
+                                <link url="removeLine"
+                                        link-type="hidden-form-link"
+                                        text="Remove line"
+                                        icon="sym_o_delete"
+                                        btn-type="danger"
+                                        confirmation="Remove line ${acctgTransEntrySeqId} (${description
+                                            || 'no description'}) from ${entryName}?"
+                                        parameter-map="{recordId:recordId,
+                                            acctgTransEntrySeqId:acctgTransEntrySeqId, lastUpdatedStamp:lastUpdatedStamp}"/>
                             </button-menu>
                         </default-field>
                     </field>
@@ -497,7 +615,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Files" type="h6"/>
                 <record-files record-entity="mantle.ledger.transaction.AcctgTrans" record-id="${recordId}"/>
                 <label text="Audit trail" type="h6"/>
-                <form-list name="Audit" list="auditRows" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <form-list name="Audit"
+                        list="auditRows"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="changedDate">
                         <default-field title="Changed">
                             <display text="${changedDateText}"/>

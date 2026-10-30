@@ -767,9 +767,10 @@ along with this software (see the LICENSE.md file). If not, see
     <service verb="send" noun="Invoice">
         <description>InvoiceDetail's Send (design-projects.md §10, §14): a client invoice by email to toAddresses, through
             Mantle's send#Invoice with the BOSS_PROJECT_INVOICE template from the vendor's billing address: a draft is
-            approved (finalized) first, its print is frozen as a PDF and attached, and it becomes Sent. An address that is
-            not one is named and the others are sent; an email the mail server does not take waits in the Outbox, which is
-            said. Sending the same again answers the first result.</description>
+            approved (finalized) first, its print with the time detail (Billing/InvoicePrint.xml) is frozen as a PDF and
+            attached, and it becomes Sent. An address that is not one is named and the others are sent; an email the mail
+            server does not take waits in the Outbox, which is said. Sending the same again answers the first
+            result.</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="toAddresses" required="true"/>
@@ -789,7 +790,8 @@ along with this software (see the LICENSE.md file). If not, see
                         lastUpdatedStamp:access.invoice.lastUpdatedStamp, emailTemplateId:'BOSS_PROJECT_INVOICE',
                         operationKey:'project-invoice-' + ec.user.singleUseCodeHash(JSON.stringify(request)).replace(/[^A-Za-z0-9]/g, '').slice(0, 24),
                         toAddresses:toAddresses, note:note, attachmentContentIdList:attachmentContentIdList ?? [],
-                        attachmentVersions:attachmentVersions ?? {}}"/>
+                        attachmentVersions:attachmentVersions ?? {},
+                        printLocation:'component://mr-boss/screen/Projects/Billing/InvoicePrint.xml'}"/>
             <set field="recipients" from="Array.from(sent.recipientResults ?? [])"/>
             <set field="emailMessageId" from="recipients.find((row) => row.emailMessageId)?.emailMessageId ?? null"/>
             <set field="failed" from="recipients.filter((row) => row.status == 'failed')"/>

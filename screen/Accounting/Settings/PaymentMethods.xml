@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Payment methods (design-accounting §15 PaymentMethods): the organization's own methods with masked identifiers, and
     the gateway each may use among those Admin permitted the organization (PaymentGatewayOrganization; impl-accounting
     F59). Credentials and gateway services stay in Admin; bank details are P9's. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payment methods" default-menu-index="6" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Payment methods"
+        default-menu-index="6"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -27,8 +30,12 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#PaymentMethods" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
-        <set field="gatewayNames" from="Object.fromEntries((gateways || []).map(gateway =&gt; [gateway.paymentGatewayConfigId, gateway.description || gateway.paymentGatewayConfigId]))"/>
+        <service-call name="mantle.ledger.SetupServices.get#PaymentMethods"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="context"/>
+        <set field="gatewayNames"
+                from="Object.fromEntries((gateways || []).map(gateway =&gt; [gateway.paymentGatewayConfigId,
+                    gateway.description || gateway.paymentGatewayConfigId]))"/>
     </actions>
     <widgets>
         <container style="row items-center q-col-gutter-sm">
@@ -36,7 +43,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Payment methods" type="h5"/>
             </container>
             <container style="col-auto">
-                <container-dialog id="NewMethodDialog" button-text="New payment method" type="primary" icon="sym_o_add" title="New payment method" condition="organizationPartyId">
+                <container-dialog id="NewMethodDialog"
+                        button-text="New payment method"
+                        type="primary"
+                        icon="sym_o_add"
+                        title="New payment method"
+                        condition="organizationPartyId">
                     <form-single name="NewMethod" transition="save">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field>
@@ -51,7 +63,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="currencyUomId">
                             <default-field title="Currency">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'currencies',
+                                                organizationPartyId:organizationPartyId, selected:currencyUomId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -90,7 +106,13 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="Methods" condition="organizationPartyId">
             <widgets>
                 <label text="Identifiers are masked; gateway credentials stay in Admin." type="p" style="text-caption m-muted"/>
-                <form-list name="PaymentMethodList" list="methods" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <form-list name="PaymentMethodList"
+                        list="methods"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="description">
                         <default-field title="Method">
                             <display text="${description || paymentMethodId}"/>
@@ -118,7 +140,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="methodActions">
                         <default-field title="">
-                            <container-dialog id="EditMethod_${paymentMethodId}" button-text="Edit" icon="sym_o_edit" title="Edit ${description || paymentMethodId}">
+                            <container-dialog id="EditMethod_${paymentMethodId}"
+                                    button-text="Edit"
+                                    icon="sym_o_edit"
+                                    title="Edit ${description || paymentMethodId}">
                                 <form-single name="EditMethod" transition="save" extends="NewMethod">
                                     <field name="paymentMethodId" from="paymentMethodId">
                                         <default-field>

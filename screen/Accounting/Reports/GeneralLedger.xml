@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- General ledger (design-accounting §13): the posted lines of each account by currency with a running balance, and with
     comparison dates the same for the comparison period. An account or entry opens its detail with the report's options,
     and comes back to the report. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="General ledger" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="General ledger"
+        default-menu-index="3"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="glAccountId"/>
     <parameter name="timePeriodId"/>
@@ -28,13 +31,19 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="compareThruDate"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="reportOptions" from="{organizationPartyId, glAccountId, timePeriodId, fromDate, thruDate, amountUomId, facilityId, costCenterId, compareFromDate, compareThruDate}"/>
+        <set field="reportOptions"
+                from="{organizationPartyId, glAccountId, timePeriodId, fromDate, thruDate, amountUomId, facilityId,
+                    costCenterId, compareFromDate, compareThruDate}"/>
         <set field="reportRows" from="[]"/>
         <set field="comparisonRows" from="[]"/>
         <if condition="organizationPartyId">
             <service-call name="mantle.ledger.FinanceReportServices.run#GeneralLedger" in-map="reportOptions" out-map="context"/>
         </if>
-        <set field="printUrl" from="'/apps/Accounting/Reports/GeneralLedger?' + Object.entries(Object.assign({renderMode: 'html-print'}, reportOptions)).filter(entry =&gt; entry[1]).map(entry =&gt; entry[0] + '=' + encodeURIComponent(entry[1])).join('&amp;')"/>
+        <set field="printUrl"
+                from="'/apps/Accounting/Reports/GeneralLedger?'
+                    + Object.entries(Object.assign({renderMode: 'html-print'},
+                    reportOptions)).filter(entry =&gt; entry[1]).map(entry =&gt; entry[0] + '='
+                    + encodeURIComponent(entry[1])).join('&amp;')"/>
         <set field="hasComparison" from="!!(compareFromDate || compareThruDate)"/>
     </actions>
     <widgets>
@@ -43,7 +52,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="General ledger" type="h5"/>
             </container>
             <container style="col-auto">
-                <link url="${printUrl}" url-type="plain" text="Print" icon="sym_o_print" target-window="_blank" condition="organizationPartyId"/>
+                <link url="${printUrl}"
+                        url-type="plain"
+                        text="Print"
+                        icon="sym_o_print"
+                        target-window="_blank"
+                        condition="organizationPartyId"/>
             </container>
         </container>
         <section-include name="ReportOptions" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -51,10 +65,21 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="Results" condition="organizationPartyId">
             <widgets>
                 <label text="No posted entries match these options." type="p" condition="!reportRows.length"/>
-                <form-list name="ReportRows" list="reportRows" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true" saved-finds="true">
+                <form-list name="ReportRows"
+                        list="reportRows"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true"
+                        saved-finds="true">
                     <field name="glAccountId">
                         <default-field title="Account">
-                            <link url="//Accounting/GeneralLedger/AccountDetail" text="${accountName || glAccountId}" link-type="anchor" parameter-map="Object.assign({recordId: glAccountId, reportReturn: 'GeneralLedger'}, reportOptions)"/>
+                            <link url="//Accounting/GeneralLedger/AccountDetail"
+                                    text="${accountName || glAccountId}"
+                                    link-type="anchor"
+                                    parameter-map="Object.assign({recordId: glAccountId,
+                                        reportReturn: 'GeneralLedger'}, reportOptions)"/>
                         </default-field>
                     </field>
                     <field name="transactionDate">
@@ -64,7 +89,11 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="acctgTransId">
                         <default-field title="Entry">
-                            <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" link-type="anchor" parameter-map="Object.assign({recordId: acctgTransId, reportReturn: 'GeneralLedger'}, reportOptions)"/>
+                            <link url="//Accounting/GeneralLedger/JournalEntryDetail"
+                                    text="${acctgTransId}"
+                                    link-type="anchor"
+                                    parameter-map="Object.assign({recordId: acctgTransId,
+                                        reportReturn: 'GeneralLedger'}, reportOptions)"/>
                         </default-field>
                     </field>
                     <field name="amountUomId">
@@ -103,7 +132,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <widgets>
                         <label text="Comparison period" type="h6"/>
                         <label text="No posted entries in the comparison period." type="p" condition="!comparisonRows.length"/>
-                        <form-list name="ComparisonRows" list="comparisonRows" extends="ReportRows" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" saved-finds="false"/>
+                        <form-list name="ComparisonRows"
+                                list="comparisonRows"
+                                extends="ReportRows"
+                                skip-form="true"
+                                paginate="false"
+                                select-columns="true"
+                                show-csv-button="true"
+                                saved-finds="false"/>
                     </widgets>
                 </section>
                 <label text="As of ${asOf}" type="p" style="text-caption m-muted"/>

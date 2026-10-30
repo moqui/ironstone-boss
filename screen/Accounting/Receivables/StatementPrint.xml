@@ -14,7 +14,8 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Statement print" default-menu-include="false">
+        default-menu-title="Statement print"
+        default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
     <parameter name="currencyUomId"/>
@@ -23,10 +24,13 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="statements" from="{}"/>
         <if condition="organizationPartyId">
-            <service-call name="mantle.account.CollectionServices.get#Statements" out-map="statements" transaction="force-new"
-                    ignore-error="true" in-map="{organizationPartyId:organizationPartyId,
-                        customerPartyIdList:(customerPartyId ? [customerPartyId] : null), currencyUomId:currencyUomId || null,
-                        asOfDate:asOfDate || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
+            <service-call name="mantle.account.CollectionServices.get#Statements"
+                    out-map="statements"
+                    transaction="force-new"
+                    ignore-error="true"
+                    in-map="{organizationPartyId:organizationPartyId, customerPartyIdList:(customerPartyId ? [customerPartyId]
+                        : null), currencyUomId:currencyUomId || null, asOfDate:asOfDate
+                        || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
         </if>
         <set field="statementsAvailable" from="!!statements.previewHtml"/>
     </actions>

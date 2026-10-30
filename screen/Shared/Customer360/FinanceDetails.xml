@@ -13,16 +13,17 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Finance details"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Finance details"
         default-menu-index="5">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
     <parameter name="appRoot"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
-    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="saveIdentification">
         <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context"
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification"
+                    in-map="context"
                     out-map="financeResult"/>
         </actions>
         <default-response url=".">
@@ -33,7 +34,8 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="saveTaxRegistration">
         <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context"
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration"
+                    in-map="context"
                     out-map="financeResult"/>
         </actions>
         <default-response url=".">
@@ -44,15 +46,17 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="saveCustomerBank">
         <actions>
-            <script><![CDATA[
-const bankFields = {organizationPartyId:context.organizationPartyId, customerPartyId:context.customerPartyId,
-    paymentMethodId:context.paymentMethodId || null, bankName:context.bankName, description:context.description,
-    typeEnumId:context.typeEnumId || null, lastUpdatedStamp:context.lastUpdatedStamp || null,
-    fromDate:context.fromDate || null, thruDate:context.thruDate || null}
-if (context.accountNumber) bankFields.accountNumber = context.accountNumber
-if (context.routingNumber) bankFields.routingNumber = context.routingNumber
-financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.store#CustomerBankAccount').parameters(bankFields).call()
-]]></script>
+            <!-- an account or routing number left empty keeps the stored one -->
+            <set field="bankFields"
+                    from="Object.assign({organizationPartyId:organizationPartyId,
+                        customerPartyId:customerPartyId, paymentMethodId:paymentMethodId || null,
+                        bankName:bankName, description:description, typeEnumId:typeEnumId
+                        || null, lastUpdatedStamp:lastUpdatedStamp || null, fromDate:fromDate || null, thruDate:thruDate
+                        || null}, accountNumber ? {accountNumber:accountNumber} : {}, routingNumber
+                        ? {routingNumber:routingNumber} : {})"/>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerBankAccount"
+                    in-map="bankFields"
+                    out-map="financeResult"/>
         </actions>
         <default-response url=".">
             <parameter name="customerPartyId"/>
@@ -61,26 +65,25 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
         <error-response url="."/>
     </transition>
     <actions>
-        <if condition="typeof customerDetail === 'undefined' || customerDetail === null">
-            <if condition="organizationPartyId">
-                <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
-                        in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}"
-                        out-map="context" transaction="force-new" ignore-error="true"/>
-            </if>
-            <set field="customerFound" from="typeof customerDetail !== 'undefined' &amp;&amp; !!customerDetail?.partyId"/>
-            <set field="customerDetail"
-                    from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
+        <!-- Customer360's actions read the customer when it renders with the tab -->
+        <if condition="customerDetail == null &amp;&amp; organizationPartyId">
+            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
     </actions>
     <widgets>
-        <section-include name="CustomerOrganizationPrompt" location="component://mr-boss/template/AccountingReceivables.xml"/>
         <section name="CustomerTabFinanceDetails" condition="customerFound">
             <widgets>
                 <label text="Finance details" type="h6"/>
                 <container-box>
                     <box-header title="Payment details"/>
                     <box-body>
-                        <container-dialog id="CustomerNewBank" button-text="Add bank account" title="Add customer bank account"
+                        <container-dialog id="CustomerNewBank"
+                                button-text="Add bank account"
+                                title="Add customer bank account"
                                 width="720"
                                 condition="customerDetail.capabilities.bankEdit || customerDetail.capabilities.paymentEdit">
                             <form-single name="CustomerBankAccount" transition="saveCustomerBank">
@@ -107,8 +110,11 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 <field name="typeEnumId">
                                     <default-field title="Account type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0"
-                                                    parameter-map="{choice:'bankAccountTypes',organizationPartyId:organizationPartyId,selected:typeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'bankAccountTypes',
+                                                        organizationPartyId:organizationPartyId, selected:typeEnumId}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
@@ -139,7 +145,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <form-list name="CustomerBankAccounts" list="customerDetail.paymentMethods" skip-form="true"
+                        <form-list name="CustomerBankAccounts"
+                                list="customerDetail.paymentMethods"
+                                skip-form="true"
                                 paginate="false">
                             <field name="paymentMethodId">
                                 <header-field title="Method"/>
@@ -173,8 +181,10 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             </field>
                             <field name="actions">
                                 <default-field title="">
-                                    <container-dialog id="EditCustomerBank_${paymentMethodId}" button-text="Edit"
-                                            title="Edit customer bank account" width="720"
+                                    <container-dialog id="EditCustomerBank_${paymentMethodId}"
+                                            button-text="Edit"
+                                            title="Edit customer bank account"
+                                            width="720"
                                             condition="customerDetail.capabilities.bankEdit">
                                         <form-single name="EditCustomerBankForm" transition="saveCustomerBank">
                                             <field name="organizationPartyId" from="organizationPartyId">
@@ -243,16 +253,21 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No permitted payment methods are recorded." type="p" style="m-muted"
+                        <label text="No permitted payment methods are recorded."
+                                type="p"
+                                style="m-muted"
                                 condition="!customerDetail.paymentMethods.length"/>
                     </box-body>
                 </container-box>
                 <container-box>
                     <box-header title="Identifications"/>
                     <box-body>
-                        <container-dialog id="CustomerIdentification" button-text="Add identification"
-                                title="Add customer identification" width="720"
-                                condition="customerDetail.capabilities.identificationEdit || customerDetail.capabilities.partyEdit">
+                        <container-dialog id="CustomerIdentification"
+                                button-text="Add identification"
+                                title="Add customer identification"
+                                width="720"
+                                condition="customerDetail.capabilities.identificationEdit
+                                    || customerDetail.capabilities.partyEdit">
                             <form-single name="CustomerIdentification" transition="saveIdentification">
                                 <field name="organizationPartyId" from="organizationPartyId">
                                     <default-field title="">
@@ -267,8 +282,11 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 <field name="partyIdTypeEnumId">
                                     <default-field title="Identification type">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0"
-                                                    parameter-map="{choice:'identificationTypes',organizationPartyId:organizationPartyId,selected:partyIdTypeEnumId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'identificationTypes',
+                                                        organizationPartyId:organizationPartyId, selected:partyIdTypeEnumId}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
@@ -294,7 +312,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <form-list name="CustomerIdentifications" list="customerDetail.identifications" skip-form="true"
+                        <form-list name="CustomerIdentifications"
+                                list="customerDetail.identifications"
+                                skip-form="true"
                                 paginate="false">
                             <field name="partyIdTypeEnumId">
                                 <header-field title="Type"/>
@@ -322,8 +342,10 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             </field>
                             <field name="actions">
                                 <default-field title="">
-                                    <container-dialog id="EditCustomerIdentification_${partyIdTypeEnumId}" button-text="Edit"
-                                            title="Edit identification" width="720"
+                                    <container-dialog id="EditCustomerIdentification_${partyIdTypeEnumId}"
+                                            button-text="Edit"
+                                            title="Edit identification"
+                                            width="720"
                                             condition="customerDetail.capabilities.identificationEdit">
                                         <form-single name="EditCustomerIdentificationForm" transition="saveIdentification">
                                             <field name="organizationPartyId" from="organizationPartyId">
@@ -382,15 +404,20 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No permitted identifications are recorded." type="p" style="m-muted"
+                        <label text="No permitted identifications are recorded."
+                                type="p"
+                                style="m-muted"
                                 condition="!customerDetail.identifications.length"/>
                     </box-body>
                 </container-box>
                 <container-box>
                     <box-header title="Tax registrations"/>
                     <box-body>
-                        <container-dialog id="CustomerTaxRegistration" button-text="Add tax registration"
-                                title="Add customer tax registration" width="720" condition="customerDetail.capabilities.taxEdit">
+                        <container-dialog id="CustomerTaxRegistration"
+                                button-text="Add tax registration"
+                                title="Add customer tax registration"
+                                width="720"
+                                condition="customerDetail.capabilities.taxEdit">
                             <form-single name="CustomerTaxRegistration" transition="saveTaxRegistration">
                                 <field name="organizationPartyId" from="organizationPartyId">
                                     <default-field title="">
@@ -405,8 +432,11 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 <field name="taxAuthorityId">
                                     <default-field title="Tax authority">
                                         <drop-down allow-empty="true">
-                                            <dynamic-options transition="choices" server-search="true" min-length="0"
-                                                    parameter-map="{choice:'taxAuthorities',organizationPartyId:organizationPartyId,selected:taxAuthorityId}"/>
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="{choice:'taxAuthorities',
+                                                        organizationPartyId:organizationPartyId, selected:taxAuthorityId}"/>
                                         </drop-down>
                                     </default-field>
                                 </field>
@@ -446,7 +476,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </field>
                             </form-single>
                         </container-dialog>
-                        <form-list name="CustomerTaxRegistrations" list="customerDetail.taxRegistrations" skip-form="true"
+                        <form-list name="CustomerTaxRegistrations"
+                                list="customerDetail.taxRegistrations"
+                                skip-form="true"
                                 paginate="false">
                             <field name="taxAuthorityId">
                                 <header-field title="Authority"/>
@@ -486,8 +518,10 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             </field>
                             <field name="actions">
                                 <default-field title="">
-                                    <container-dialog id="EditCustomerTax_${taxAuthorityId}_${fromDate}" button-text="Edit"
-                                            title="Edit tax registration" width="720"
+                                    <container-dialog id="EditCustomerTax_${taxAuthorityId}_${fromDate}"
+                                            button-text="Edit"
+                                            title="Edit tax registration"
+                                            width="720"
                                             condition="customerDetail.capabilities.taxEdit">
                                         <form-single name="EditCustomerTaxForm" transition="saveTaxRegistration">
                                             <field name="organizationPartyId" from="organizationPartyId">
@@ -560,7 +594,9 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No permitted tax registrations are recorded." type="p" style="m-muted"
+                        <label text="No permitted tax registrations are recorded."
+                                type="p"
+                                style="m-muted"
                                 condition="!customerDetail.taxRegistrations.length"/>
                     </box-body>
                 </container-box>

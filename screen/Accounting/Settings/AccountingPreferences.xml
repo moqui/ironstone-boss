@@ -16,39 +16,54 @@ along with this software (see the LICENSE.md file). If not, see
     default due term, error journal and the opt-in controls, and the copy of another organization's missing configuration
     with its conflict preview (mantle.ledger.SetupServices.clone#Preferences). A change to the basis of posted history is
     refused. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Preferences" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Preferences"
+        default-menu-index="2"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="sourceOrganizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result"/>
+            <service-call name="mantle.ledger.SetupServices.store#Preferences"
+                    in-map="Object.assign({}, context, {settings:context})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="clone">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="{organizationPartyId:organizationPartyId,sourceOrganizationPartyId:sourceOrganizationPartyId}" out-map="result"/>
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences"
+                    in-map="{organizationPartyId:organizationPartyId, sourceOrganizationPartyId:sourceOrganizationPartyId}"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="applyClone">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="Object.assign({},context,{apply:true})" out-map="result"/>
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences"
+                    in-map="Object.assign({}, context, {apply:true})"
+                    out-map="result"/>
             <set field="sourceOrganizationPartyId" from="null"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <service-call name="mantle.ledger.SetupServices.get#Context"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="context"/>
         <if condition="organizationPartyId &amp;&amp; sourceOrganizationPartyId">
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="{organizationPartyId:organizationPartyId,sourceOrganizationPartyId:sourceOrganizationPartyId}" out-map="clonePreview"/>
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences"
+                    in-map="{organizationPartyId:organizationPartyId, sourceOrganizationPartyId:sourceOrganizationPartyId}"
+                    out-map="clonePreview"/>
         </if>
         <set field="cloneConflicts" from="clonePreview?.conflicts || []"/>
+        <set field="cloneConfirmation"
+                from="'Copy the missing setup? ' + cloneConflicts.length + ' existing entries stay as they are.'"/>
     </actions>
     <widgets>
         <label text="Accounting preferences" type="h5"/>
@@ -69,7 +84,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="baseCurrencyUomId">
                         <default-field title="Base currency">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:baseCurrencyUomId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'currencies',
+                                            organizationPartyId:organizationPartyId, selected:baseCurrencyUomId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -99,19 +118,28 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="settlementTermId">
                         <default-field title="Default due term">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'terms',
+                                            organizationPartyId:organizationPartyId, selected:settlementTermId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="errorGlJournalId">
                         <default-field title="Error journal" tooltip="Where an automatic posting that fails waits for review">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:errorGlJournalId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'batches',
+                                            organizationPartyId:organizationPartyId, selected:errorGlJournalId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="postingGuardEnabled">
-                        <default-field title="Posting guard" tooltip="Check locks, the organization and dimensions on every posting">
+                        <default-field title="Posting guard"
+                                tooltip="Check locks, the organization and dimensions on every posting">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -119,7 +147,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="requiredLedgerDimensionsEnabled">
-                        <default-field title="Required dimensions" tooltip="Refuse a posting that lacks a facility or cost centre its account requires">
+                        <default-field title="Required dimensions"
+                                tooltip="Refuse a posting that lacks a facility or cost centre its account requires">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -127,7 +156,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="forwardIssuanceRepostEnabled">
-                        <default-field title="Forward issuance adjustments" tooltip="Post a dated adjustment for a changed issuance instead of reposting it">
+                        <default-field title="Forward issuance adjustments"
+                                tooltip="Post a dated adjustment for a changed issuance instead of reposting it">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -135,7 +165,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="allowAccountingSelfApproval">
-                        <default-field title="Self approval" tooltip="Let the person who drafted a record approve it; each such approval is marked">
+                        <default-field title="Self approval"
+                                tooltip="Let the person who drafted a record approve it; each such approval is marked">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -143,7 +174,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="singleCurrencyDocumentsOnly">
-                        <default-field title="Base currency documents" tooltip="Require invoices and bills to use the organization's base currency">
+                        <default-field title="Base currency documents"
+                                tooltip="Require invoices and bills to use the organization's base currency">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -151,7 +183,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="invoiceApprovalRequired">
-                        <default-field title="Invoice approval" tooltip="Require a finance approver to approve an invoice before it is finalized or sent">
+                        <default-field title="Invoice approval"
+                                tooltip="Require a finance approver to approve an invoice before it is finalized or sent">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -159,7 +192,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="settlementApplicationGuardEnabled">
-                        <default-field title="Settlement controls" tooltip="Protect every payment application against over-application and closed accounting dates; required for reviewed settlements">
+                        <default-field title="Settlement controls"
+                                tooltip="Protect every payment application against over-application and closed accounting dates">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -167,7 +201,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="paymentGatewayWorkflowEnabled">
-                        <default-field title="Reviewed payment processing" tooltip="Enable a configured payment provider with reviewed authorization and capture; requires Settlement controls">
+                        <default-field title="Payment provider processing"
+                                tooltip="Authorize and capture through a configured payment provider; needs Settlement controls">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -175,7 +210,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="paymentAutoApplicationEnabled">
-                        <default-field title="Automatic application" tooltip="Allow reviewed oldest-due allocation plans for unapplied payments">
+                        <default-field title="Automatic application"
+                                tooltip="Allocate unapplied payments to the oldest due invoices">
                             <radio>
                                 <option key="N" text="Off"/>
                                 <option key="Y" text="On"/>
@@ -247,7 +283,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="sourceOrganizationPartyId">
                         <default-field title="Copy the missing configuration of">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:sourceOrganizationPartyId}"/>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'organizations',
+                                            organizationPartyId:organizationPartyId, selected:sourceOrganizationPartyId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -266,7 +306,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="CloneReview" condition="sourceOrganizationPartyId &amp;&amp; clonePreview">
                     <widgets>
                         <container-box>
-                            <box-header title="${cloneConflicts.length ? cloneConflicts.length + ' existing entries stay as they are' : 'Nothing here conflicts'}"/>
+                            <box-header title="${cloneConflicts.length ? cloneConflicts.length
+                                        + ' existing entries stay as they are' : 'Nothing here conflicts'}"/>
                             <box-body>
                                 <form-list name="CloneConflicts" list="cloneConflicts" skip-form="true" paginate="false">
                                     <field name="kind">
@@ -311,7 +352,8 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="submit">
                                         <default-field title="">
-                                            <submit text="Copy missing configuration" confirmation="Copy the missing configuration? ${cloneConflicts.length} existing entries stay as they are."/>
+                                            <submit text="Copy missing configuration"
+                                                    confirmation="${cloneConfirmation}"/>
                                         </default-field>
                                     </field>
                                 </form-single>

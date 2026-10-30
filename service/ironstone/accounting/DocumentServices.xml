@@ -12,22 +12,59 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
-    <service verb="define" noun="Parameters" type="interface">
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="preview" noun="Output" allow-remote="false">
+        <description>The organization's invoice layout over a sample invoice of forty lines in its base currency, numbering
+            and footer, rendered by Mantle's invoice print template (the one get#InvoiceOutput renders), so a layout is
+            checked across pages. No number is issued. Refuses a layout that is not offered and a user who may not
+            administer accounting; says what is missing when there is no organization or base currency.</description>
         <in-parameters>
-            <parameter name="organizationPartyId" type="String"/>
-            <parameter name="template" type="String"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="template"/>
         </in-parameters>
         <out-parameters>
-            <parameter name="previewHtml" type="String"/>
-            <parameter name="previewText" type="String"/>
+            <parameter name="previewHtml"/>
+            <parameter name="previewText"/>
         </out-parameters>
-    </service>
-    <service verb="preview" noun="Output" allow-remote="false">
-        <description>Render representative long lines and multi-page output without issuing a number.</description>
-        <implements service="ironstone.accounting.DocumentServices.define#Parameters"/>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Documents.js').execute('preview', context))</script>
+            <set field="policy" from="ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')"/>
+            <set field="scope" from="policy.scope({organizationPartyId:organizationPartyId}, 'admin')"/>
+            <set field="previewHtml" value=""/>
+            <if condition="!scope.organizationPartyId">
+                <set field="previewText" value="Choose an organization to preview a document"/>
+                <return/>
+            </if>
+            <if condition="template &amp;&amp; template != 'standard'">
+                <return error="true" message="Choose an offered document layout"/>
+            </if>
+            <set field="settings" from="policy.preference(scope.organizationPartyId)"/>
+            <set field="currencyUomId" from="settings.baseCurrencyUomId"/>
+            <if condition="!currencyUomId">
+                <set field="previewText" value="Choose the organization's base currency to preview a document"/>
+                <return/>
+            </if>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="organization" disable-authz="true">
+                <field-map field-name="partyId" from="scope.organizationPartyId"/>
+            </entity-find-one>
+            <set field="lineCount" from="40"/>
+            <set field="lineAmount" from="ec.l10n.roundCurrency(toDecimal('12.34'), currencyUomId)"/>
+            <set field="invoiceItemList"
+                    from="Array.from({length:lineCount}, (_, index) =&gt; ({invoiceItemSeqId:String(index
+                        + 1), description:'Service with project and delivery details, long enough to wrap',
+                        quantity:1, amount:lineAmount}))"/>
+            <set field="invoiceTotal" from="lineAmount.multiply(lineCount)"/>
+            <set field="printData"
+                    from="{invoiceId:(settings.invoiceIdPrefix || '') + 'PREVIEW',
+                        isCredit:false, invoice:{currencyUomId:currencyUomId,
+                        description:'Invoice layout preview'}, issuerName:organization?.organizationName
+                        || scope.organizationPartyId,
+                        recipientName:'Sample customer', invoiceDateText:ec.l10n.format(ec.user.nowTimestamp,
+                        'yyyy-MM-dd'), invoiceItemList:invoiceItemList, invoiceTotal:invoiceTotal,
+                        unpaidTotal:invoiceTotal, appliedPaymentsTotal:0, documentFooter:settings.documentFooter}"/>
+            <set field="previewHtml"
+                    from="ec.resource.template('component://mr-mantle/template/account/Invoice.print.html.fancy', printData)"/>
+            <set field="previewText" from="'Invoice preview with ' + lineCount + ' sample lines in ' + currencyUomId"/>
         </actions>
     </service>
 </services>

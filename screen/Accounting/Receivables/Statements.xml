@@ -14,35 +14,44 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
-        default-menu-title="Statements" default-menu-index="3">
+        default-menu-title="Statements"
+        default-menu-index="3">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
     <parameter name="currencyUomId"/>
     <parameter name="asOfDate"/>
     <parameter name="includeZeroBalance"/>
     <parameter name="showStatements"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="previewStatements">
-        <actions><set field="showStatements" value="Y"/></actions>
+        <actions>
+            <set field="showStatements" value="Y"/>
+        </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="sendStatements">
         <actions>
-            <set field="statementSelection" from="{organizationPartyId:organizationPartyId,
-                customerPartyIdList:(customerPartyId ? [customerPartyId] : null), currencyUomId:currencyUomId || null,
-                asOfDate:asOfDate || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
-            <service-call name="mantle.account.CollectionServices.send#Statements" out-map="delivery"
+            <set field="statementSelection"
+                    from="{organizationPartyId:organizationPartyId, customerPartyIdList:(customerPartyId ? [customerPartyId]
+                        : null), currencyUomId:currencyUomId || null, asOfDate:asOfDate
+                        || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
+            <service-call name="mantle.account.CollectionServices.send#Statements"
+                    out-map="delivery"
                     in-map="Object.assign({operationKey:operationKey, toAddresses:toAddresses || null}, statementSelection)"/>
             <iterate list="delivery.results ?? []" entry="result">
-                <set field="outcome" from="result.status == 'queued' ? 'Queued for delivery' : result.status == 'sent' ? 'Sent' :
-                    (result.errorMessage || 'Failed')"/>
-                <if condition="result.status == 'failed'"><then>
-                    <message type="warning">${result.recipient || result.customerPartyId}: ${outcome}</message>
-                </then><else>
-                    <message type="success">${result.recipient}: ${outcome}</message>
-                </else></if>
+                <set field="outcome"
+                        from="result.status == 'queued' ? 'Queued for delivery' : result.status == 'sent' ? 'Sent'
+                            : (result.errorMessage || 'Failed')"/>
+                <if condition="result.status == 'failed'">
+                    <then>
+                        <message type="warning">${result.recipient || result.customerPartyId}: ${outcome}</message>
+                    </then>
+                    <else>
+                        <message type="success">${result.recipient}: ${outcome}</message>
+                    </else>
+                </if>
             </iterate>
             <set field="showStatements" value="Y"/>
         </actions>
@@ -52,13 +61,17 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="statements" from="{}"/>
         <if condition="organizationPartyId &amp;&amp; showStatements == 'Y'">
-            <service-call name="mantle.account.CollectionServices.get#Statements" out-map="statements" transaction="force-new"
-                    ignore-error="true" in-map="{organizationPartyId:organizationPartyId,
-                        customerPartyIdList:(customerPartyId ? [customerPartyId] : null), currencyUomId:currencyUomId || null,
-                        asOfDate:asOfDate || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
+            <service-call name="mantle.account.CollectionServices.get#Statements"
+                    out-map="statements"
+                    transaction="force-new"
+                    ignore-error="true"
+                    in-map="{organizationPartyId:organizationPartyId, customerPartyIdList:(customerPartyId ? [customerPartyId]
+                        : null), currencyUomId:currencyUomId || null, asOfDate:asOfDate
+                        || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
         </if>
-        <set field="printParameters" from="{organizationPartyId:organizationPartyId, customerPartyId:customerPartyId,
-            currencyUomId:currencyUomId, asOfDate:asOfDate, includeZeroBalance:includeZeroBalance}"/>
+        <set field="printParameters"
+                from="{organizationPartyId:organizationPartyId, customerPartyId:customerPartyId,
+                    currencyUomId:currencyUomId, asOfDate:asOfDate, includeZeroBalance:includeZeroBalance}"/>
     </actions>
     <widgets>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -75,7 +88,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="customerPartyId">
                         <default-field title="Customer">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
                                         parameter-map="{choice:'parties',
                                             organizationPartyId:organizationPartyId, selected:customerPartyId}"/>
                             </drop-down>
@@ -90,7 +105,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="currencyUomId">
                         <default-field title="Currency">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
                                         parameter-map="{choice:'currencies',
                                             organizationPartyId:organizationPartyId, selected:currencyUomId}"/>
                             </drop-down>
@@ -112,7 +129,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="StatementPreview" condition="showStatements == 'Y'">
                     <widgets>
                         <label text="Statement preview" type="h6"/>
-                        <label text="No customer has an open balance for this selection." type="p" style="m-muted"
+                        <label text="No customer has an open balance for this selection."
+                                type="p"
+                                style="m-muted"
                                 condition="!(statements.statementRows ?? []).length"/>
                         <section-iterate name="StatementCurrencies" list="statements.statementRows ?? []" entry="statementRow">
                             <widgets>
@@ -122,13 +141,17 @@ along with this software (see the LICENSE.md file). If not, see
                                         <label type="p" text="Unpaid ${statementRow.unpaidText}"/>
                                         <label type="p" text="Unapplied ${statementRow.unappliedText}"/>
                                         <label type="p" text="Balance due ${statementRow.closingBalanceText}"/>
-                                        <label type="p" style="text-caption m-muted"
+                                        <label type="p"
+                                                style="text-caption m-muted"
                                                 text="Recipients: ${statementRow.recipients.join(', ') || 'none'}"/>
-                                        <form-list name="StatementInvoices" list="statementRow.invoiceRows" skip-form="true"
+                                        <form-list name="StatementInvoices"
+                                                list="statementRow.invoiceRows"
+                                                skip-form="true"
                                                 paginate="false">
                                             <field name="invoiceId">
                                                 <default-field title="Invoice">
-                                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}"
+                                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}"
+                                                            text="${invoiceId}"
                                                             parameter-map="{recordId:invoiceId,
                                                                 organizationPartyId:organizationPartyId}"/>
                                                 </default-field>
@@ -164,7 +187,9 @@ along with this software (see the LICENSE.md file). If not, see
                                                 </column>
                                             </columns>
                                         </form-list>
-                                        <form-list name="StatementReceipts" list="statementRow.paymentRows" skip-form="true"
+                                        <form-list name="StatementReceipts"
+                                                list="statementRow.paymentRows"
+                                                skip-form="true"
                                                 paginate="false">
                                             <field name="paymentId">
                                                 <default-field title="Receipt">
@@ -202,51 +227,56 @@ along with this software (see the LICENSE.md file). If not, see
                         </section-iterate>
                         <section name="StatementActions" condition="(statements.statementRows ?? []).length">
                             <widgets>
-                                <link url="${sharedLinks['Receivables/StatementPrint']}" text="Print statements"
-                                        target-window="_blank" parameter-map="printParameters"/>
-                                <form-single name="StatementDelivery" transition="sendStatements"
-                                        condition="accounting.capabilities.arEdit">
-                                    <field name="organizationPartyId" from="organizationPartyId">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="customerPartyId" from="customerPartyId">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="currencyUomId" from="currencyUomId">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="asOfDate" from="asOfDate">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="includeZeroBalance" from="includeZeroBalance">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="operationKey" from="'statement-' + ec.user.randomString(24)">
-                                        <default-field title="">
-                                            <hidden/>
-                                        </default-field>
-                                    </field>
-                                    <field name="toAddresses">
-                                        <default-field title="Recipient override">
-                                            <text-line/>
-                                        </default-field>
-                                    </field>
-                                    <field name="submit">
-                                        <default-field title="">
-                                            <submit text="Send statements" confirmation="Send these statements?"/>
-                                        </default-field>
-                                    </field>
-                                </form-single>
+                                <link url="${sharedLinks['Receivables/StatementPrint']}"
+                                        text="Print statements"
+                                        target-window="_blank"
+                                        parameter-map="printParameters"/>
+                                <section name="StatementSend" condition="accounting.capabilities.arEdit">
+                                    <widgets>
+                                        <form-single name="StatementDelivery" transition="sendStatements">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="customerPartyId" from="customerPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="currencyUomId" from="currencyUomId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="asOfDate" from="asOfDate">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="includeZeroBalance" from="includeZeroBalance">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="operationKey" from="'statement-' + ec.user.randomString(24)">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="toAddresses">
+                                                <default-field title="Recipient override">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Send statements" confirmation="Send these statements?"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </widgets>
+                                </section>
                             </widgets>
                         </section>
                     </widgets>

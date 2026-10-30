@@ -679,7 +679,7 @@ feature("every settings screen renders for a finance admin with its organization
         {path: "Settings/PaymentTerms", texts: ["New due term"]},
         {path: "Settings/Currencies", texts: ["Add exchange rate", "Import rates", "Currency units"]},
         {path: "Settings/PaymentMethods", texts: ["New payment method"]},
-        {path: "Settings/DocumentSettings", texts: ["Save document settings", "Invoice preview"]}
+        {path: "Settings/DocumentSettings", texts: ["Save document settings", "Invoice preview", "PREVIEW", "Sample customer"]}
     ],
     when({path, parameters, texts, absent}) {
         const {output, errorMessages} = finance("finance.admin", () => page(path, parameters || {}))

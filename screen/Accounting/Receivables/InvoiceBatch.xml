@@ -12,8 +12,12 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
+<!-- The invoices chosen on Invoices, to send, print or export together: each with its customer, total, status and
+    recipients, or named as not available; the batch (mantle.account.InvoiceServices.process#InvoiceBatch) goes on past a
+    failed invoice and names it in the results, with each recipient's outcome and each printed PDF. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice batch"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Invoice batch"
         default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="invoiceIdList"/>
@@ -21,232 +25,259 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="batchAction"/>
     <parameter name="sourceVersions"/>
     <parameter name="toAddresses"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="processBatch">
         <actions>
-            <script><![CDATA[
-if (reviewed !== 'Y') throw new Error('Review the selected invoices before processing')
-invoiceIdList = Array.isArray(invoiceIdList) ? invoiceIdList : /^\s*\[/.test(String(invoiceIdList || '')) ? JSON.parse(invoiceIdList) : String(invoiceIdList || '').split(',').filter(Boolean)
-sourceVersions = typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions
-]]></script>
+            <set field="invoiceIdList"
+                    from="Array.isArray(invoiceIdList) ? invoiceIdList : /^\s*\[/.test(String(invoiceIdList || ''))
+                        ? JSON.parse(invoiceIdList) : String(invoiceIdList || '').split(',').filter(Boolean)"/>
+            <set field="sourceVersions" from="typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions"/>
             <service-call name="mantle.account.InvoiceServices.process#InvoiceBatch"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,action:batchAction,operationKey:operationKey,sourceVersions:typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions,template:'standard',toAddresses:toAddresses}"
-                    out-map="batchResult"/>
-            <script><![CDATA[
-for (const result of Array.from(batchResult.results || [])) {
-    const text = (result.invoiceId || 'Invoice') + ': ' + (result.message || result.errorMessage || result.error || result.status || (result.success ? 'Completed' : 'Failed'))
-    if (result.success === false || result.error) ec.message.addMessage(text, 'warning')
-    else ec.message.addMessage(text, 'success')
-}
-]]></script>
+                    out-map="batchResult"
+                    in-map="{organizationPartyId:organizationPartyId, invoiceIdList:invoiceIdList,
+                        action:batchAction, operationKey:operationKey, sourceVersions:sourceVersions,
+                        template:'standard', toAddresses:toAddresses}"/>
+            <iterate list="batchResult.results ?? []" entry="result">
+                <set field="resultText"
+                        from="(result.invoiceId || 'Invoice') + ': ' + (result.message || result.errorMessage || result.error
+                            || result.status || (result.success ? 'Completed' : 'Failed'))"/>
+                <if condition="result.success === false || result.error">
+                    <then>
+                        <message type="warning">${resultText}</message>
+                    </then>
+                    <else>
+                        <message type="success">${resultText}</message>
+                    </else>
+                </if>
+            </iterate>
         </actions>
         <default-response url=".">
-            <parameter name="operationKey"/>
-            <parameter name="invoiceIdList"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="batchAction"/>
             <parameter name="sourceVersions" from="JSON.stringify(sourceVersions)"/>
-            <parameter name="toAddresses"/>
         </default-response>
         <error-response url="."/>
     </transition>
     <transition name="exportInvoices" read-only="true">
         <actions>
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context"
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext"
+                    in-map="context"
                     out-map="exported"/>
-            <script>ec.web.sendTextResponse(exported.batchCsv,'text/csv','Accounting-invoices.csv')</script>
+            <script>ec.web.sendTextResponse(exported.batchCsv, 'text/csv', 'Accounting-invoices.csv')</script>
         </actions>
         <default-response type="none"/>
     </transition>
     <transition name="downloadPrintedInvoice" read-only="true">
         <actions>
             <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchOutput"
-                    in-map="{organizationPartyId:organizationPartyId,invoiceId:downloadInvoiceId,operationKey:operationKey}"
-                    out-map="printed"/>
-            <script>ec.web.sendResourceResponse(printed.fileLocation,false,printed.fileName)</script>
+                    out-map="printed"
+                    in-map="{organizationPartyId:organizationPartyId, invoiceId:downloadInvoiceId, operationKey:operationKey}"/>
+            <script>ec.web.sendResourceResponse(printed.fileLocation, false, printed.fileName)</script>
         </actions>
         <default-response type="none"/>
     </transition>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="batchRows" from="[]"/>
-        <set field="batchResults" from="[]"/>
-        <set field="batchCount" from="0"/>
-        <set field="sourceVersions" from="sourceVersions || null"/>
         <if condition="organizationPartyId">
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context"
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext"
+                    in-map="context"
                     out-map="context"/>
         </if>
+        <set field="selectionParameters" from="{organizationPartyId:organizationPartyId, invoiceIdList:invoiceIdList}"/>
+        <set field="againParameters"
+                from="Object.assign({operationKey:'', sourceVersions:'', toAddresses:'',
+                    batchAction:'send'}, selectionParameters)"/>
     </actions>
     <widgets>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
-        <label text="Choose an organization to review selected invoices." type="p" condition="!organizationPartyId"/>
+        <label text="Choose an organization to see the selected invoices." type="p" condition="!organizationPartyId"/>
         <section name="OrganizationChosen" condition="organizationPartyId">
             <widgets>
-                <label text="Review selected invoices" type="h5"/>
-                <label text="Review each customer, amount and recipient before sending. A failed invoice leaves the rest available to process."
-                        type="p"/>
-                <form-list name="InvoiceBatchReview" list="batchRows" skip-form="true" paginate="false">
-                    <field name="invoiceId">
-                        <header-field title="Invoice"/>
-                        <default-field>
-                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}"
-                                    parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
-                        </default-field>
-                    </field>
-                    <field name="customerName">
-                        <header-field title="Customer"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="totalText">
-                        <header-field title="Total"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="statusDescription">
-                        <header-field title="Status"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="recipientsText">
-                        <default-field title="Recipients">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="reviewError">
-                        <header-field title="Review"/>
-                        <default-field>
-                            <display/>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column>
-                            <field-ref name="invoiceId"/>
-                            <field-ref name="customerName"/>
-                        </column>
-                        <column>
-                            <field-ref name="totalText"/>
-                            <field-ref name="statusDescription"/>
-                            <field-ref name="recipientsText"/>
-                            <field-ref name="reviewError"/>
-                        </column>
-                    </columns>
-                </form-list>
-                <label text="Select invoices from the invoice list to start a review." type="p" style="m-muted"
-                        condition="!batchRows.length"/>
-                <section name="InvoiceBatchConfirmation" condition="batchCount &gt; 0 &amp;&amp; batchAction !== 'export'">
-                    <widgets>
-                        <form-single name="InvoiceBatchConfirm" transition="processBatch" map="context">
-                            <field name="organizationPartyId" from="organizationPartyId">
-                                <default-field title="">
-                                    <hidden/>
-                                </default-field>
-                            </field>
-                            <field name="invoiceIdList" from="invoiceIdList">
-                                <default-field title="">
-                                    <hidden/>
-                                </default-field>
-                            </field>
-                            <field name="operationKey" from="batchOperationKey">
-                                <default-field title="">
-                                    <hidden/>
-                                </default-field>
-                            </field>
-                            <field name="sourceVersions" from="JSON.stringify(sourceVersions)">
-                                <default-field title="">
-                                    <hidden/>
-                                </default-field>
-                            </field>
-                            <field name="batchAction">
-                                <default-field title="Action">
-                                    <drop-down>
-                                        <option key="send" text="Send"/>
-                                        <option key="print" text="Print"/>
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="toAddresses">
-                                <default-field title="Recipient override">
-                                    <text-line/>
-                                </default-field>
-                            </field>
-                            <field name="reviewed">
-                                <default-field title="Review">
-                                    <check>
-                                        <option key="Y" text="I reviewed the selected invoices and recipients"/>
-                                    </check>
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field title="">
-                                    <submit text="Process reviewed invoices"
-                                            confirmation="Process ${batchCount} reviewed invoices? Each failure will be named."/>
-                                </default-field>
-                            </field>
-                        </form-single>
-                    </widgets>
-                </section>
-                <link url="." text="Review another send" link-type="anchor-button" condition="batchResults.length"
-                        parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,operationKey:'',sourceVersions:'',toAddresses:'',batchAction:'send'}"/>
-                <link url="exportInvoices" text="Export reviewed invoices" link-type="anchor-button" icon="sym_o_download"
-                        condition="batchCount &gt; 0"
-                        parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList}"/>
-                <section name="InvoiceBatchResults" condition="batchResults.length">
-                    <widgets>
-                        <label text="Invoice results" type="h6"/>
-                        <form-list name="InvoiceBatchResults" list="batchResults" skip-form="true" paginate="false">
+                <link url="${sharedLinks['Receivables/Invoices']}"
+                        text="Invoices"
+                        link-type="anchor"
+                        icon="arrow_back"
+                        parameter-map="{organizationPartyId:organizationPartyId}"/>
+                <label text="Selected invoices" type="h5"/>
+                <label type="p"
+                        text="Check each customer, amount and recipient. A failed invoice leaves the others to go on."/>
+                <container-box>
+                    <box-header title="Invoices"/>
+                    <box-toolbar>
+                        <link url="exportInvoices"
+                                text="Export"
+                                link-type="anchor-button"
+                                icon="sym_o_download"
+                                condition="batchCount &gt; 0"
+                                parameter-map="selectionParameters"/>
+                    </box-toolbar>
+                    <box-body-nopad>
+                        <form-list name="InvoiceBatchReview" list="batchRows" skip-form="true" paginate="false">
                             <field name="invoiceId">
-                                <default-field title="Invoice">
+                                <header-field title="Invoice"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}"
+                                            text="${invoiceId}"
+                                            parameter-map="{recordId:invoiceId, organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="customerName">
+                                <header-field title="Customer"/>
+                                <default-field>
                                     <display/>
                                 </default-field>
                             </field>
-                            <field name="recipient">
-                                <default-field title="Recipient">
+                            <field name="totalText" align="right">
+                                <header-field title="Total"/>
+                                <default-field>
                                     <display/>
                                 </default-field>
                             </field>
-                            <field name="outcome">
-                                <default-field title="Outcome">
+                            <field name="statusDescription">
+                                <header-field title="Status"/>
+                                <default-field>
                                     <display/>
                                 </default-field>
                             </field>
-                            <field name="errorMessage">
-                                <default-field title="Failure">
+                            <field name="recipientsText">
+                                <header-field title="Recipients"/>
+                                <default-field>
                                     <display/>
                                 </default-field>
                             </field>
-                            <field name="emailMessageId">
-                                <default-field title="Mail reference">
-                                    <display style="text-mono"/>
-                                </default-field>
-                            </field>
-                            <field name="download">
-                                <default-field title="Output">
-                                    <link url="downloadPrintedInvoice" text="Download reviewed PDF" condition="hasPrint"
-                                            parameter-map="{organizationPartyId:organizationPartyId,operationKey:operationKey,downloadInvoiceId:invoiceId}"/>
+                            <field name="reviewError">
+                                <header-field title="Note"/>
+                                <default-field>
+                                    <display/>
                                 </default-field>
                             </field>
                             <columns type="mobile">
                                 <column>
                                     <field-ref name="invoiceId"/>
-                                    <field-ref name="recipient"/>
+                                    <field-ref name="customerName"/>
                                 </column>
                                 <column>
-                                    <field-ref name="outcome"/>
-                                    <field-ref name="errorMessage"/>
-                                    <field-ref name="emailMessageId"/>
-                                    <field-ref name="download"/>
+                                    <field-ref name="totalText"/>
+                                    <field-ref name="statusDescription"/>
+                                    <field-ref name="recipientsText"/>
+                                    <field-ref name="reviewError"/>
                                 </column>
                             </columns>
                         </form-list>
+                        <label text="Select invoices on the invoice list first."
+                                type="p"
+                                style="m-muted q-pa-md"
+                                condition="!batchRows.length"/>
+                    </box-body-nopad>
+                </container-box>
+                <section name="InvoiceBatchConfirmation" condition="batchCount &gt; 0 &amp;&amp; batchAction !== 'export'">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Send or print"/>
+                            <box-body>
+                                <form-single name="InvoiceBatchConfirm" transition="processBatch" map="context">
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="invoiceIdList" from="invoiceIdList">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="operationKey" from="batchOperationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceVersions" from="JSON.stringify(sourceVersions)">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="batchAction">
+                                        <default-field title="Action">
+                                            <drop-down>
+                                                <option key="send" text="Send"/>
+                                                <option key="print" text="Print"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="toAddresses">
+                                        <default-field title="Recipients" tooltip="In place of each customer's billing addresses">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Process ${batchCount} invoices"
+                                                    confirmation="Process ${batchCount} invoices? Each failure will be named."/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </box-body>
+                        </container-box>
                     </widgets>
                 </section>
-                <link url="${sharedLinks['Receivables/Invoices']}" text="Back to invoices"
-                        parameter-map="{organizationPartyId:organizationPartyId}"/>
+                <section name="InvoiceBatchResults" condition="batchResults.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Results"/>
+                            <box-toolbar>
+                                <link url="." text="Send again" link-type="anchor-button" parameter-map="againParameters"/>
+                            </box-toolbar>
+                            <box-body-nopad>
+                                <form-list name="InvoiceBatchResults" list="batchResults" skip-form="true" paginate="false">
+                                    <field name="invoiceId">
+                                        <default-field title="Invoice">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="recipient">
+                                        <default-field title="Recipient">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="outcome">
+                                        <default-field title="Outcome">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="errorMessage">
+                                        <default-field title="Failure">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="emailMessageId">
+                                        <default-field title="Mail reference">
+                                            <display style="text-mono"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="download">
+                                        <default-field title="Output">
+                                            <link url="downloadPrintedInvoice"
+                                                    text="Download PDF"
+                                                    condition="hasPrint"
+                                                    parameter-map="{organizationPartyId:organizationPartyId,
+                                                        operationKey:operationKey, downloadInvoiceId:invoiceId}"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="invoiceId"/>
+                                            <field-ref name="recipient"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="outcome"/>
+                                            <field-ref name="errorMessage"/>
+                                            <field-ref name="emailMessageId"/>
+                                            <field-ref name="download"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body-nopad>
+                        </container-box>
+                    </widgets>
+                </section>
             </widgets>
         </section>
     </widgets>

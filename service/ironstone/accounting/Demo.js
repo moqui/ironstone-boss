@@ -131,6 +131,18 @@ function configuration() {
         settlementApplicationGuardEnabled: "Y",
         paymentAutoApplicationEnabled: "Y"
     })
+    createOnce("mantle.ledger.account.GlAccountOrganization", {organizationPartyId, glAccountId: "258300000"}, {fromDate: 0})
+    for (const isPayable of ["Y", "N"])
+        createOnce(
+            "mantle.ledger.config.PaymentTypeGlAccount",
+            {
+                organizationPartyId,
+                paymentTypeEnumId: "PtInternalTransfer",
+                isApplied: "N",
+                isPayable
+            },
+            {glAccountId: "258300000"}
+        )
     createOnce(
         "mantle.ledger.account.GlAccountOrganization",
         {organizationPartyId, glAccountId: "BOSS_INVENTORY_REVALUATION"},

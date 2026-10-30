@@ -161,16 +161,16 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | BulkPaymentCheck | PaymentList | Accounting/Payables/PaymentRunDetail |  |
 | BulkPaymentCheck | PaymentListAssignRef | Accounting/Payables/PaymentRunDetail |  |
 | BulkPaymentCheck | PaymentListActions | Accounting/Payables/PaymentRunDetail |  |
-| EditPayment | RefundPaymentForm | Accounting/Payments/PaymentDetail |  |
+| EditPayment | RefundPaymentForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewManualRefund (reviewed native replacement) |
 | EditPayment | AuditLogList | Accounting/Payments/PaymentDetail |  |
 | EditPayment | EditPayment | Accounting/Payments/PaymentDetail |  |
 | EditPayment | GatewayAuthorizeForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewGatewayAuthorize (reviewed native replacement) |
 | EditPayment | GatewayCaptureForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewGatewayCapture (reviewed native replacement) |
-| EditPayment | GatewayRefundForm | Accounting/Payments/PaymentDetail |  |
+| EditPayment | GatewayRefundForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewProviderRefund (original-capture native replacement) |
 | EditPayment | SetRefundForForm | Accounting/Payments/PaymentDetail |  |
-| EditPayment | GatewayRefundForForm | Accounting/Payments/PaymentDetail |  |
-| EditPayment | RefundPaymentList | Accounting/Payments/PaymentDetail |  |
-| EditPayment | PaymentApplicationList | Accounting/Payments/PaymentDetail |  |
+| EditPayment | GatewayRefundForForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewProviderRefund (reviewed draft conversion; no raw link writer) |
+| EditPayment | RefundPaymentList | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#PaymentRefunds |
+| EditPayment | PaymentApplicationList | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#PaymentApplications |
 | EditPayment | UnpaidInvoiceList | Accounting/Payments/PaymentDetail |  |
 | EditPayment | UnappliedPaymentList | Accounting/Payments/PaymentDetail |  |
 | EditPayment | PaymentTxList | Accounting/Payments/PaymentDetail |  |
@@ -178,8 +178,8 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | EditPayment | NewContentForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | UpdateContentForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | GatewayResponseList | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#PaymentGatewayEvidence |
-| FindPayment | NewInPaymentForm | Accounting/Payments/Payments |  |
-| FindPayment | NewOutPaymentForm | Accounting/Payments/Payments | Accounting/QuickCreate/NewPayment#CreateDraft (draft only) |
+| FindPayment | NewInPaymentForm | Accounting/Payments/Payments | Accounting/Payments/Payments#NewAccountingPayment; Accounting/QuickCreate/NewPayment#CreateDraft (reviewed native lifecycle) |
+| FindPayment | NewOutPaymentForm | Accounting/Payments/Payments | Accounting/Payments/Payments#NewAccountingPayment; Accounting/QuickCreate/NewPayment#CreateDraft (reviewed native lifecycle) |
 | FindPayment | PaymentList | Accounting/Payments/Payments | Accounting/Payments/Payments#Records |
 | AccountBalance | AccountBalanceHistory | Accounting/Reports/AccountBalance |  |
 | AccountLedger | AccountLedger | Accounting/Reports/GeneralLedger | Accounting/Reports/GeneralLedger#ReportRows |
@@ -990,3 +990,10 @@ Accounting P0–P3 (Oct 29): foundation lists/drafts, ledger/configuration edito
 are implemented. Coverage above names the built forms. Posted financial rewrite, arbitrary period editing/close,
 full invoice/bill/payment workflows, gateway operations and banking remain outside this phase; those parity cells
 remain blank. Numbering/templates, due-only terms and masked method metadata are documented in AccountingImplementation.
+
+Accounting P4–P5 checkpoint: native invoice delivery/batches/statements, shared customer/invoice contexts, reviewed
+settlement/payment state/unapplication, gateway capture/lookup/recovery, manual/provider refunds and atomic paired
+transfers are implemented. Payments' `ReviewInternalTransfer`/`ConfirmInternalTransfer` and actual pair/detail-output
+forms have no legacy SimpleScreens form to claim. Old unrestricted financial writers and raw refund-link forms stay
+unadopted. Payable intake/holds, payment runs, bank sessions and later-phase forms remain planned. Execution is paused
+before P6; broader presentation/access regression is retained for P21 under the user's code-completion priority.

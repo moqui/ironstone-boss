@@ -17,6 +17,8 @@ along with this software (see the LICENSE.md file). If not, see
         <description>Project the authorized native payment list, filters, masked identities and draft capabilities. No financial write.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
+            <parameter name="transferPreviewId" type="String"/>
+            <parameter name="transferEditPreviewId" type="String"/>
             <parameter name="queue" type="String"/>
             <parameter name="partyId" type="String"/>
             <parameter name="paymentInstrumentEnumId" type="String"/>
@@ -29,6 +31,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="pageSize" type="Integer"/>
         </in-parameters>
         <out-parameters>
+            <parameter name="transferPreviewId" type="String"/>
+            <parameter name="transferEditPreviewId" type="String"/>
+            <parameter name="transferReview" type="Map"/>
+            <parameter name="transferValue" type="Map"/>
+            <parameter name="transferUnavailable" type="Boolean"/>
             <parameter name="organizationPartyId" type="String"/>
             <parameter name="queue" type="String"/>
             <parameter name="partyId" type="String"/>

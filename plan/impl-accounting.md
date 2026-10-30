@@ -1,7 +1,6 @@
 # IronStone BOSS — Accounting implementation
 
-P0–P4, P5a, P5b1 and P5b2 gateway/manual/provider refunds are built and verified. P5b3 transfers and later phases
-remain planned.
+P0–P5 are code complete and reviewed. Work is paused at the requested checkpoint before P6. P6–P21 remain planned.
 The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
@@ -1753,7 +1752,7 @@ definitive decline, consume only inside accepted local completion and never recy
 declined attempts show their own historical release after the same draft is reused; they cannot borrow another
 attempt's held/consumed state. Neither provider ancestors nor browser return values gain financial admission.
 
-### P5b3 transfer assignment contract (planned; starts after refunds)
+### P5b3 transfer assignment contract (completed)
 
 The native author owns `PaymentTransferEntities.xml`/EECAs, `PaymentTransfers.js`/`PaymentTransferGuard.js`, native
 declarations, transfer-specific payment projections and standalone specs. The app author owns the Payments list's
@@ -1790,3 +1789,47 @@ posting (including failure after the first actual posting), identical retries/ch
 current permission/private/foreign refusals, stale methods/policy, closed day, currency/scale, missing mappings and
 fee account, no trade settlement and immutable completed cash. Application checks cover actual pair/output identities
 and retained intent/results. Per the current execution priority, no new screenshot/browser cycles are required.
+
+### P5b3 acceptance and requested checkpoint
+
+The coordinator accepts the independently reviewed native, application and shared assignments. Treasury creates an
+owner-bound native transfer review, then confirms only its preview/fingerprint/40-character operation key. Principal
+P and fee F create exactly two native-managed linked Payments and two verified actual ledger transactions: source
+cash P+F through transit P and explicit expense F, destination cash P through the same transit P. Distinct methods
+may share one cash control account. Leg-specific method slots and cash direction preserve independent statement
+matching. There is no trade application, gateway operation, refund or legacy org-self autoposter on either leg.
+
+Permanent pair/source guards survive flags N and protect money, links, original headers/entries, reversal, unpost,
+duplicate posting and candidate source reparenting. Descriptions and reconciliation remain editable. Reviewed bank
+identity/subtype, organization/private authority, mappings, accounts, fiscal/typed locks and currency are rechecked
+under lock; completed exact retries return the recorded pair before stale checks. Each leg owns one immutable detail
+document, with principal, fee-on-outgoing-leg and leg identity; no receipt/check is issued for an internal transfer.
+
+The final standalone Mantle gate passes **45/45** across 13 specs, including all **10 new transfer cases** plus focused
+payment/manual/provider/source/fence regressions. An inert explicitly targeted native-fixture SECA proves a failure
+after the first actual posted outgoing leg rolls back pair, both Payments, postings, outputs and operation; the same
+review/key then succeeds. Real concurrent same-key confirms create one pair; independent reviewed transfers sharing
+banks/transit both succeed. Valid negative cases cover permissions, private owners, stale banking/policy, currency,
+precision, fees, mapping consistency and flags-N boundaries. BOSS passes **40/40** across four specs, including all
+**eight new transfer cases**, actual Treasury/admin pair/output identities and rendered QVT/TUI/HTML links, same-payload
+AR refusal, current ledger omission and canonical retained pair/key binding. Changed XML validates (nine schemas,
+three data parses); the final separate screen lint report retains zero parse failures and the same 121 baseline sites (1,124 files / 25,015 expression sites).
+The two final markup schema repairs are static valid dialog type and removal of an empty mobile column.
+
+**F113 — transit assignment and fee eligibility.** The existing 258300000 transit chart account lacked a default
+organization assignment. Its missing template assignment is now installed with the new PtInternalTransfer mappings;
+demo setup adds only missing organization assignment/mappings. Fee 550000000 is cost of sales and correctly refuses
+the expense-only contract. Focused fixtures explicitly assign/use banking expense 710000000; no account restriction
+was weakened to satisfy a test. New methods/accounts/choices retain native scope and masked labels.
+
+**F114 — transfer queue eligibility.** Transfer projection reports no unapplied trade funding, and the Unapplied SQL
+query now excludes PtInternalTransfer before counting/paging while preserving ordinary null legacy types. Both real
+legs remain in Transfers. The affected two core cases pass after this final read-only correction.
+
+**Checkpoint.** P4 and every P5 slice are code complete, independently reviewed and committed in delivery order.
+The user's later instruction prioritized code completion: no further screenshot/browser/full-suite sweeps were run
+for manual/provider refunds or transfers. Focused financial/server checks and final XML/lint passed; prior P5b2a full
+suite evidence and the four reproduced standalone Mantle baseline failures remain recorded above. No new route was
+introduced by the last three slices. P21 retains the broader finish/access/visual/regression work. P6 and all later
+phases are unstarted, including SupplierProfile/payable intake/holds and the framework notification topic filter.
+Work stops here at the user's requested end-of-P5 checkpoint.

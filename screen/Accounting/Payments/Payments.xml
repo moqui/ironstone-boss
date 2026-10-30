@@ -24,6 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="text"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
+    <parameter name="transferPreviewId"/>
+    <parameter name="transferEditPreviewId"/>
     <transition name="choices" read-only="true">
         <actions>
             <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
@@ -42,6 +44,34 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="${sharedLinks['Payments/PaymentDetail']}">
             <parameter name="recordId"/>
             <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewInternalTransfer">
+        <actions>
+            <script>transferInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').transferInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.preview#InternalTransfer" in-map="transferInput" out-map="preparedTransfer"/>
+            <set field="transferPreviewId" from="preparedTransfer.previewId"/>
+            <set field="transferEditPreviewId" value=""/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="transferPreviewId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="createInternalTransfer">
+        <actions>
+            <script>if (reviewed !== 'Y') throw new Error('Review both transfer legs, the fee and posting effects before confirming')</script>
+            <service-call name="mantle.account.PaymentServices.create#InternalTransfer" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="createdTransfer"/>
+            <script><![CDATA[
+    // A successful pair starts a new preparation context; failed requests keep their submitted inputs.
+    if (!ec.message.hasError() && createdTransfer.fromPaymentId && createdTransfer.toPaymentId) void ec.web.errorParameters
+]]></script>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="transferPreviewId"/>
         </default-response>
         <error-response url="."/>
     </transition>
@@ -185,9 +215,358 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                     </widgets>
                 </section>
+                <section name="InternalTransferDialogSection" condition="paymentList.canTransfer">
+                    <widgets>
+                        <container-dialog id="AccountingInternalTransferDialog" button-text="Transfer funds" title="Transfer funds" width="760">
+                            <label text="Choose two organization cash methods. A nonzero fee requires an expense account." type="p"/>
+                            <form-single name="ReviewInternalTransfer" transition="previewInternalTransfer" map="transferValue || {}">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="fromMethodToken">
+                                    <default-field title="Source method">
+                                        <drop-down>
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'internalTransferMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewInternalTransfer' ? ec.web.errorParameters.fromMethodToken : transferValue.fromMethodToken) || null}">
+                                                <depends-on field="currencyUomId"/>
+                                                <depends-on field="effectiveDate"/>
+                                            </dynamic-options>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="toMethodToken">
+                                    <default-field title="Destination method">
+                                        <drop-down>
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'internalTransferMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewInternalTransfer' ? ec.web.errorParameters.toMethodToken : transferValue.toMethodToken) || null}">
+                                                <depends-on field="currencyUomId"/>
+                                                <depends-on field="effectiveDate"/>
+                                            </dynamic-options>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="amount">
+                                    <default-field title="Principal amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="currencyUomId">
+                                    <default-field title="Currency">
+                                        <drop-down>
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewInternalTransfer' ? ec.web.errorParameters.currencyUomId : transferValue.currencyUomId) || null}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="effectiveDate">
+                                    <default-field title="Accounting date">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="feeAmount">
+                                    <default-field title="Fee">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="feeGlAccountId">
+                                    <default-field title="Fee account">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'internalTransferFeeAccounts',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewInternalTransfer' ? ec.web.errorParameters.feeGlAccountId : transferValue.feeGlAccountId) || null}">
+                                                <depends-on field="currencyUomId"/>
+                                                <depends-on field="effectiveDate"/>
+                                            </dynamic-options>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="referenceNumber">
+                                    <default-field title="Reference">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="reason">
+                                    <default-field title="Reason">
+                                        <text-area rows="3"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Review transfer"/>
+                                    </default-field>
+                                </field>
+                                <field-layout>
+                                    <field-ref name="organizationPartyId"/>
+                                    <field-row>
+                                        <field-ref name="fromMethodToken"/>
+                                        <field-ref name="toMethodToken"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="amount"/>
+                                        <field-ref name="currencyUomId"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="effectiveDate"/>
+                                        <field-ref name="feeAmount"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="feeGlAccountId"/>
+                                        <field-ref name="referenceNumber"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="reason"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="submit"/>
+                                    </field-row>
+                                </field-layout>
+                            </form-single>
+                        </container-dialog>
+                    </widgets>
+                </section>
             </container>
         </container>
-        <section name="PaymentListReady" condition="paymentList.ready">
+        <label text="The selected transfer review or preparation is not available." type="p" style="text-warning" condition="transferUnavailable"/>
+        <section name="InternalTransferRetainedSection" condition="paymentList.hasTransferReview">
+            <widgets>
+                <label text="Reviewed internal transfer" type="h6"/>
+                <section name="InternalTransferMoneySummary" condition="transferReview.summaryAvailable">
+                    <widgets>
+                        <label text="Principal ${ec.l10n.formatCurrency(toDecimal(transferReview.principalAmount),transferReview.currencyUomId)} · Fee ${ec.l10n.formatCurrency(toDecimal(transferReview.feeAmount),transferReview.currencyUomId)} · Outgoing total ${ec.l10n.formatCurrency(toDecimal(transferReview.totalAmount),transferReview.currencyUomId)}" type="p"/>
+                        <label text="From ${transferReview.maskedMethods?.from?.label || ''}" type="p"/>
+                        <label text="To ${transferReview.maskedMethods?.to?.label || ''}" type="p"/>
+                        <label text="Accounting date ${transferReview.accountingDateText || ''}" type="p"/>
+                        <label text="Fee account ${transferReview.feeAccountLabel || transferReview.feeGlAccountId || ''}" type="p" condition="!!transferReview.feeGlAccountId"/>
+                    </widgets>
+                </section>
+                <label text="This transfer summary is not available. Prepare a current review." type="p" style="text-warning" condition="!transferReview.summaryAvailable"/>
+                <label text="Review ${transferReview.previewId} · Expires ${transferReview.expiresDateText || ''}" type="p" style="text-caption m-muted"/>
+                <label text="Reference ${transferReview.referenceNumber || ''}" type="p"/>
+                <label text="Reason ${transferReview.reason || ''}" type="p"/>
+                <label text="Amounts describe this operation's movements; they are not bank balances." type="p" style="text-caption m-muted"/>
+                <section name="InternalTransferMovementsSection" condition="!!transferReview.movementRows?.length">
+                    <widgets>
+                        <label text="Reviewed movements" type="h6"/>
+                        <form-list name="InternalTransferMovements" list="transferReview.movementRows || []" skip-form="true" paginate="false">
+                            <field name="label">
+                                <default-field title="Movement">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeAmount">
+                                <default-field title="Before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterAmount">
+                                <default-field title="Planned after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="label"/>
+                                    <field-ref name="beforeAmount"/>
+                                </column>
+                                <column>
+                                    <field-ref name="afterAmount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="InternalTransferPlannedLegsSection" condition="!!transferReview.plannedLegRows?.length">
+                    <widgets>
+                        <label text="Planned cash legs" type="h6"/>
+                        <form-list name="InternalTransferPlannedLegs" list="transferReview.plannedLegRows || []" skip-form="true" paginate="false">
+                            <field name="legText">
+                                <default-field title="Leg">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="maskedMethodLabel">
+                                <default-field title="Cash method">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="legText"/>
+                                    <field-ref name="maskedMethodLabel"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="InternalTransferLedgerSection" condition="!!transferReview.ledgerRows?.length">
+                    <widgets>
+                        <form-list name="InternalTransferLedgerPreview" list="transferReview.ledgerRows || []" skip-form="true" paginate="false">
+                            <field name="accountName">
+                                <default-field title="Account">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="debitCreditFlag">
+                                <default-field title="Side">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="accountName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="debitCreditFlag"/>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="InternalTransferConfirmSection" condition="transferReview.canConfirm">
+                    <widgets>
+                        <form-single name="ConfirmInternalTransfer" transition="createInternalTransfer">
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="transferPreviewId" from="transferReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewId" from="transferReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint" from="transferReview.inputFingerprint">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey" from="transferReview.operationKey">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="reviewed">
+                                <default-field title="">
+                                    <check>
+                                        <option key="Y" text="I reviewed both cash legs, the fee and posting effects"/>
+                                    </check>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Confirm transfer" type="primary" confirmation="Post both reviewed cash transfer legs atomically?"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <section name="InternalTransferCompletedSection" condition="transferReview.hasResults">
+                    <widgets>
+                        <label text="Internal transfer completed" type="h6"/>
+                        <label text="Pair ${transferReview.results.transferId}" type="p" style="m-status-text"/>
+                        <form-list name="InternalTransferActualLegs" list="transferReview.actualLegRows || []" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <conditional-field condition="canOpen" title="Payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="recordParameters" style="block m-status-text"/>
+                                </conditional-field>
+                                <default-field title="Payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="legText">
+                                <default-field title="Leg">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="maskedMethodLabel">
+                                <default-field title="Cash method">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="legText"/>
+                                    <field-ref name="maskedMethodLabel"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <section name="InternalTransferPostingsSection" condition="!!transferReview.postingRows?.length">
+                            <widgets>
+                                <form-list name="InternalTransferActualPostings" list="transferReview.postingRows || []" skip-form="true" paginate="false">
+                                    <field name="acctgTransId">
+                                        <default-field title="Posted transaction">
+                                            <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId}" parameter-map="{organizationPartyId:organizationPartyId,recordId:acctgTransId,acctgTransId:acctgTransId}"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="acctgTransId"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </widgets>
+                        </section>
+                        <section name="InternalTransferOutputsSection" condition="!!transferReview.outputRows?.length">
+                            <widgets>
+                                <form-list name="InternalTransferOutputs" list="transferReview.outputRows || []" skip-form="true" paginate="false">
+                                    <field name="fileName">
+                                        <conditional-field condition="canOpen" title="Issued detail">
+                                            <link url="${sharedLinks['Payments/PaymentPrint']}" text="${fileName || outputId}" parameter-map="outputParameters"/>
+                                        </conditional-field>
+                                        <default-field title="Issued detail">
+                                            <display text="${fileName || outputId || ''}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentId">
+                                        <default-field title="Payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="fileName"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="paymentId"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </widgets>
+                        </section>
+                        <link url="createInternalTransfer" text="Check saved transfer result" link-type="hidden-form" parameter-map="Object.assign({},transferReview.confirmParameters,{reviewed:'Y'})"/>
+                    </widgets>
+                </section>
+                <label text="This review cannot be confirmed. Prepare a current transfer review." type="p" style="m-muted" condition="!transferReview.canConfirm &amp;&amp; !transferReview.hasResults"/>
+                <link url="." text="Edit transfer preparation" parameter-map="transferReview.editParameters" condition="!transferReview.hasResults"/>
+                <link url="." text="Back to payments" parameter-map="{organizationPartyId:organizationPartyId,queue:'transfers',transferPreviewId:'',transferEditPreviewId:'',operationKey:''}"/>
+            </widgets>
+        </section>
+        <section name="PaymentListReady" condition="paymentList.ready &amp;&amp; !paymentList.hasTransferReview">
             <widgets>
                 <container style="row q-gutter-xs q-mb-md">
                     <section-iterate name="PaymentQueues" list="paymentList.queues || []" entry="paymentQueue">

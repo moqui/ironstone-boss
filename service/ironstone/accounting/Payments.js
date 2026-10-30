@@ -547,6 +547,163 @@ function gatewayRefundPreparedValue(retained) {
     ])
 }
 
+function transferInput(parameters) {
+    const input = Object.fromEntries(
+        [
+            "organizationPartyId",
+            "amount",
+            "currencyUomId",
+            "effectiveDate",
+            "feeAmount",
+            "feeGlAccountId",
+            "referenceNumber",
+            "reason"
+        ].map(field => [field, parameters[field]])
+    )
+    for (const prefix of ["from", "to"]) {
+        const method = reviewedToken(parameters[prefix + "MethodToken"], "transfer method")
+        input[prefix + "PaymentMethodId"] = method.id
+        input[prefix + "MethodVersion"] = method.version
+    }
+    return input
+}
+
+function transferPreparedValue(retained) {
+    return {
+        fromMethodToken:
+            retained.fromPaymentMethodId && retained.fromMethodVersion
+                ? retained.fromPaymentMethodId + "~" + retained.fromMethodVersion
+                : null,
+        toMethodToken:
+            retained.toPaymentMethodId && retained.toMethodVersion
+                ? retained.toPaymentMethodId + "~" + retained.toMethodVersion
+                : null,
+        amount: retained.principalAmount,
+        currencyUomId: retained.currencyUomId,
+        effectiveDate: retained.accountingDateText,
+        feeAmount: retained.feeAmount,
+        feeGlAccountId: retained.feeGlAccountId || null,
+        referenceNumber: retained.referenceNumber || "",
+        reason: retained.reason || ""
+    }
+}
+
+function transferPresentation(retained, organizationPartyId) {
+    if (!retained?.previewId) return null
+    if (retained.previewKind !== "internalTransfer") throw new Error("The selected transfer review is not available")
+    const result = retained.results || {},
+        complete =
+            retained.status === "complete" &&
+            !!retained.operationKey &&
+            !!retained.internalTransferId &&
+            !!result.transferId &&
+            result.transferId === retained.internalTransferId &&
+            result.internalTransferId === result.transferId &&
+            result.operationKey === retained.operationKey &&
+            !!result.fromPaymentId &&
+            !!result.toPaymentId &&
+            result.fromPaymentId !== result.toPaymentId,
+        summaryAvailable =
+            retained.principalAmount != null &&
+            retained.feeAmount != null &&
+            retained.totalAmount != null &&
+            !!retained.currencyUomId &&
+            !!retained.accountingDateText,
+        operationKey =
+            retained.operationKey || "trf-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
+        actualIds = {outgoing: result.fromPaymentId, incoming: result.toPaymentId}
+    return Object.assign({}, policy.display(retained), {
+        hasResults: complete,
+        summaryAvailable,
+        operationKey,
+        canConfirm:
+            retained.status === "review" && retained.canApply === true && summaryAvailable && !array(retained.blockers).length,
+        blockers: array(retained.blockers),
+        confirmParameters: {
+            organizationPartyId,
+            transferPreviewId: retained.previewId,
+            previewId: retained.previewId,
+            inputFingerprint: retained.inputFingerprint,
+            operationKey
+        },
+        editParameters: {
+            organizationPartyId,
+            transferPreviewId: "",
+            transferEditPreviewId: retained.previewId,
+            operationKey: "",
+            _openDialog: "AccountingInternalTransferDialog"
+        },
+        movementRows: [
+            ["principalAmount", "Principal"],
+            ["feeAmount", "Fee"],
+            ["outgoingCashAmount", "Outgoing cash"],
+            ["incomingCashAmount", "Incoming cash"],
+            ["transitNetAmount", "Transit net"]
+        ]
+            .filter(([field]) => retained.before?.[field] != null || retained.after?.[field] != null)
+            .map(([field, label]) => ({
+                label,
+                beforeAmount: retained.before?.[field] ?? null,
+                afterAmount: retained.after?.[field] ?? null,
+                currencyUomId: retained.currencyUomId
+            })),
+        plannedLegRows: rows(retained.legRows).map(row =>
+            Object.assign(row, {legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg})
+        ),
+        actualLegRows: complete
+            ? rows(result.legRows).map(row =>
+                  Object.assign(row, {
+                      legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg,
+                      canOpen: !!row.paymentId && row.paymentId === actualIds[row.leg],
+                      recordParameters: {
+                          organizationPartyId,
+                          paymentId: row.paymentId === actualIds[row.leg] ? row.paymentId : "",
+                          recordId: row.paymentId === actualIds[row.leg] ? row.paymentId : "",
+                          previewId: "",
+                          previewKind: ""
+                      }
+                  })
+              )
+            : [],
+        ledgerRows:
+            retained.capabilities?.canReadLedger === true
+                ? array(retained.ledgerPreview).flatMap(plan =>
+                      plan.lines
+                          ? rows(plan.lines).map(line =>
+                                Object.assign(line, {
+                                    leg: plan.leg,
+                                    currencyUomId: plan.currencyUomId || plan.amountUomId || retained.currencyUomId,
+                                    accountName: line.accountName || line.accountCode || line.glAccountId
+                                })
+                            )
+                          : rows([plan])
+                  )
+                : [],
+        postingRows: complete
+            ? array(result.acctgTransIds).map(acctgTransId => ({
+                  acctgTransId,
+                  canOpen: retained.capabilities?.canReadLedger === true
+              }))
+            : [],
+        outputRows: complete
+            ? rows(result.outputRows).map(row => {
+                  const owner = row.paymentId === result.fromPaymentId || row.paymentId === result.toPaymentId
+                  return Object.assign(row, {
+                      canOpen: owner && !!row.outputId && row.outputType === "detail" && row.canOpen === true,
+                      outputParameters: {
+                          organizationPartyId,
+                          paymentId: owner ? row.paymentId : "",
+                          recordId: owner ? row.paymentId : "",
+                          sourceVersion: "",
+                          outputId: row.outputId,
+                          outputType: row.outputType
+                      }
+                  })
+              })
+            : []
+    })
+}
+
 function refundInput(parameters) {
     const input = Object.fromEntries(
         [
@@ -716,6 +873,32 @@ function listContext(parameters) {
         : {}
     const cap = result.capabilities || {}
     const records = cap.canRead === true ? array(result.rows).map(paymentRow) : []
+    let transferReview = null,
+        transferEdit = null,
+        transferUnavailable = false
+    for (const [field, target] of [
+        ["transferPreviewId", "review"],
+        ["transferEditPreviewId", "edit"]
+    ]) {
+        if (!parameters[field]) continue
+        try {
+            if (!scope.organizationPartyId) throw new Error("Choose an organization before opening a transfer")
+            const retained = policy.probe(native + "get#InternalTransferPreview", {
+                organizationPartyId: scope.organizationPartyId,
+                previewId: parameters[field]
+            })
+            if (
+                retained.previewKind !== "internalTransfer" ||
+                (retained.organizationPartyId && retained.organizationPartyId !== scope.organizationPartyId)
+            )
+                throw new Error("Transfer review scope changed")
+            if (target === "review") transferReview = transferPresentation(retained, scope.organizationPartyId)
+            else transferEdit = transferPreparedValue(retained)
+        } catch (error) {
+            ec.logger.warn("Internal transfer " + parameters[field] + " is unavailable: " + error.message)
+            transferUnavailable = true
+        }
+    }
     return Object.assign({}, filters, {
         organizationPartyId: scope.organizationPartyId,
         records,
@@ -725,13 +908,34 @@ function listContext(parameters) {
         recordsPageMaxIndex: result.pageMaxIndex ?? 0,
         recordsPageRangeLow: result.pageRangeLow ?? 0,
         recordsPageRangeHigh: result.pageRangeHigh ?? 0,
+        transferPreviewId: parameters.transferPreviewId || "",
+        transferEditPreviewId: parameters.transferEditPreviewId || "",
+        transferReview: transferReview || {},
+        transferUnavailable,
+        transferValue: Object.assign(
+            {
+                organizationPartyId: scope.organizationPartyId,
+                fromMethodToken: null,
+                toMethodToken: null,
+                amount: "",
+                currencyUomId: scope.organizationPartyId ? policy.preference(scope.organizationPartyId).baseCurrencyUomId : null,
+                effectiveDate: today(),
+                feeAmount: "0",
+                feeGlAccountId: null,
+                referenceNumber: "",
+                reason: ""
+            },
+            transferEdit || {}
+        ),
         paymentList: {
             ready: !!scope.organizationPartyId,
             available: !scope.organizationPartyId || (cap.canRead === true && result.complete === true),
             incomplete: !!result.incomplete,
             errors: array(result.errors),
             capabilities: cap,
-            canCreate: cap.canCreate === true,
+            canCreate: !transferReview && filters.queue !== "transfers" && cap.canCreate === true,
+            canTransfer: !transferReview && cap.canTransfer === true,
+            hasTransferReview: !!transferReview,
             guardDisabled: cap.guardEnabled === false,
             totals: result.totals || {},
             filters: Object.assign({organizationPartyId: scope.organizationPartyId}, filters),
@@ -1093,6 +1297,19 @@ function detailContext(parameters) {
                 })
             ),
             refundRows: array(result.refundRows).map(paymentRow),
+            transferSummary: policy.display(result.transferSummary || {}),
+            transferLegRows: rows(result.transferLegRows).map(row =>
+                Object.assign(row, {
+                    legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg,
+                    recordParameters: {
+                        organizationPartyId: scope.organizationPartyId,
+                        paymentId: row.paymentId,
+                        recordId: row.paymentId,
+                        previewId: "",
+                        previewKind: ""
+                    }
+                })
+            ),
             refundSummary: policy.display(result.refundSummary || {}),
             refundSummaryAvailable: result.refundSummary?.complete === true,
             gatewayRefundValue: Object.assign(
@@ -1270,6 +1487,9 @@ function detailContext(parameters) {
     refundPreparedValue,
     gatewayRefundPreparedValue,
     refundFundingRows,
+    transferInput,
+    transferPreparedValue,
+    transferPresentation,
     reviewPresentation,
     execute: (operation, parameters) => {
         if (operation === "list") return listContext(parameters)

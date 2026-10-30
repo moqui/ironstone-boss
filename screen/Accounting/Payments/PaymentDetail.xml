@@ -2122,6 +2122,44 @@ along with this software (see the LICENSE.md file). If not, see
                     <widgets>
                         <label text="Payment overview" type="h6"/>
                         <link url="${sharedLinks['Payments/PaymentDetail']}" text="Original payment ${financePayment.refundForPaymentId}" parameter-map="{recordId:financePayment.refundForPaymentId,paymentId:financePayment.refundForPaymentId,previewId:'',previewKind:'',organizationPartyId:organizationPartyId}" condition="!!financePayment.refundForPaymentId"/>
+                        <section name="PaymentTransferPairSection" condition="!!financePayment.transferSummary?.internalTransferId">
+                            <widgets>
+                                <label text="Internal transfer ${financePayment.transferSummary.internalTransferId}" type="h6" style="m-status-text"/>
+                                <label text="Principal ${ec.l10n.formatCurrency(toDecimal(financePayment.transferSummary.principalAmount),financePayment.transferSummary.currencyUomId)} · Fee ${ec.l10n.formatCurrency(toDecimal(financePayment.transferSummary.feeAmount),financePayment.transferSummary.currencyUomId)}" type="p"/>
+                                <form-list name="PaymentTransferPairLegs" list="financePayment.transferLegRows || []" skip-form="true" paginate="false">
+                                    <field name="paymentId">
+                                        <default-field title="Transfer payment">
+                                            <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="recordParameters" style="block m-status-text"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="legText">
+                                        <default-field title="Leg">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="maskedMethodLabel">
+                                        <default-field title="Cash method">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="legText"/>
+                                            <field-ref name="maskedMethodLabel"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </widgets>
+                        </section>
                         <form-single name="PaymentSummary" map="financePayment">
                             <field name="partyName">
                                 <default-field title="Counterparty">

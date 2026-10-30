@@ -450,6 +450,29 @@ function paymentChoices(parameters, scope) {
     const chosen = selectedValues(parameters.selected),
         native = "mantle.account.PaymentServices.",
         request = {organizationPartyId: scope.organizationPartyId}
+    if (parameters.choice === "internalTransferFeeAccounts") {
+        const result = policy.call(
+                native + "find#InternalTransferFeeAccounts",
+                Object.assign({}, request, {
+                    effectiveDate: parameters.effectiveDate,
+                    text: parameters.term || null,
+                    selectedIdList: chosen,
+                    pageIndex: 0,
+                    pageSize: choiceLimit
+                })
+            ),
+            options = []
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.glAccountId))
+                options.push({value: row.glAccountId, label: accountLabel(row)})
+        if (result.complete === false || result.incomplete)
+            options.push({
+                value: "unavailable:internalTransferFeeAccounts",
+                label: "Some transfer fee accounts are unavailable",
+                disable: true
+            })
+        return {options}
+    }
     if (parameters.choice === "payments") {
         const result = policy.call(
             native + "find#Payments",
@@ -499,7 +522,24 @@ function paymentChoices(parameters, scope) {
         idField,
         label,
         incomplete = false
-    if (["reviewedOrganizationPaymentMethods", "reviewedCounterpartyPaymentMethods"].includes(parameters.choice)) {
+    if (parameters.choice === "internalTransferMethods") {
+        const result = policy.call(
+            native + "find#InternalTransferMethods",
+            Object.assign({}, request, {
+                currencyUomId: parameters.currencyUomId,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                selectedIdList: selections.map(item => item.id),
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        rows = Array.from(result.rows || [])
+        selectedRows = Array.from(result.selectedRows || [])
+        idField = "paymentMethodId"
+        label = row => row.label || row.paymentMethodId
+        incomplete = result.incomplete || result.complete === false
+    } else if (["reviewedOrganizationPaymentMethods", "reviewedCounterpartyPaymentMethods"].includes(parameters.choice)) {
         const result = policy.call(
             native + "find#PaymentMethods",
             Object.assign({}, request, {
@@ -705,6 +745,8 @@ function choices(parameters) {
             "reviewedCounterpartyPaymentMethods",
             "reviewedPaymentGatewayBindings",
             "reviewedRefundDrafts",
+            "internalTransferMethods",
+            "internalTransferFeeAccounts",
             "paymentGatewayProviders",
             "reviewedPaymentEvidence",
             "reviewedPaymentApplications"

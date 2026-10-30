@@ -144,7 +144,7 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | PaymentServices | cancel#PaymentAndInvoices |  |  |
 | PaymentServices | void#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | unapply#PaymentApplication | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payables/PayablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
-| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail | Native adopted controller (not directly mounted) |
 | PaymentServices | authorize#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | capture#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | release#Payment | Accounting/Payments/PaymentDetail |  |
@@ -234,6 +234,40 @@ gateway writer/poller design references; private reserve/dispatch/lookup/evidenc
 | PaymentServices | refresh#PaymentGatewayAttempt |  | Accounting/Payments/GatewayTransactions |
 | PaymentServices | preview#PaymentGatewayRecovery |  | Accounting/Payments/GatewayTransactions |
 | PaymentServices | complete#PaymentGatewayAttempt |  | Accounting/Payments/PaymentDetail |
+
+Added or adopted through the Accounting P5 checkpoint. Financial authority is Mantle; private reservation/provider
+stages and fixture services are excluded. The existing reviewed gateway rows also cover original-capture refunds.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| PaymentServices | find#OpenItems | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | find#SettlementAdjustmentAccounts | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench (explicit account choices) |
+| PaymentServices | preview#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | get#SettlementPreview | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | apply#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | preview#PaymentAutoApplication | Accounting/Payments/PaymentDetail | Native adopted contract (not directly mounted) |
+| PaymentServices | find#Payments | Accounting/Payments/Payments | Accounting/Payments/Payments |
+| PaymentServices | get#PaymentFinanceDetail | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail and its seven tabs |
+| PaymentServices | find#PaymentMethods | Accounting/Payments | Accounting/Payments/Payments; Accounting/Payments/PaymentDetail (reviewed choices) |
+| PaymentServices | create#PaymentDraft | Accounting/Payments | Accounting/Payments/Payments; Accounting/QuickCreate/NewPayment |
+| PaymentServices | store#PaymentDraft | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | preview#PaymentState | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | get#PaymentStatePreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | change#PaymentState | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | preview#PaymentUnapply | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Applications |
+| PaymentServices | get#PaymentUnapplyPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | unapply#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Applications |
+| PaymentServices | get#PaymentOutput | Accounting/Payments/PaymentPrint | Accounting/Payments/PaymentPrint |
+| PaymentServices | get#PaymentRefundSummary | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Refunds |
+| PaymentServices | find#PaymentRefundDrafts | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail (reviewed draft choices) |
+| PaymentServices | preview#PaymentRefund | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewManualRefund |
+| PaymentServices | get#PaymentRefundPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | refund#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ConfirmManualRefund |
+| PaymentServices | find#InternalTransferMethods | Accounting/Payments/Payments | Accounting/Payments/Payments (reviewed methods) |
+| PaymentServices | find#InternalTransferFeeAccounts | Accounting/Payments/Payments | Accounting/Payments/Payments (explicit expense account) |
+| PaymentServices | preview#InternalTransfer | Accounting/Payments/Payments | Accounting/Payments/Payments#ReviewInternalTransfer |
+| PaymentServices | get#InternalTransferPreview | Accounting/Payments/Payments | Accounting/Payments/Payments |
+| PaymentServices | create#InternalTransfer | Accounting/Payments/Payments | Accounting/Payments/Payments#ConfirmInternalTransfer |
 
 ## Facility (15 services)
 

@@ -13,7 +13,7 @@ activation P19, and foreign-currency posting/provider refresh P20.
 | --- | --- |
 | Foundation | Home; Receivables/Invoices and InvoiceDetail; Payables/Bills and BillDetail; Payments/Payments and PaymentDetail; QuickCreate/NewInvoice, NewBill, NewPayment and NewEntry |
 | Receivables | Invoices list/calendar/pivot/graph; shared InvoiceDetail with ten tabs; BillingQueue; InvoiceBatch; Statements and retained StatementPrint; InvoicePrint; shared Customer360 Contact, Orders, Money, Agreements, FinanceDetails and Files |
-| Settlement and payments | ReceivablesWorkbench; native payment drafts and reviewed state/application correction; PaymentDetail Overview, Applications, Gateway, Refunds, GeneralLedger, Files and History; scoped GatewayTransactions evidence and issued PaymentPrint receipt/detail/check |
+| Settlement and payments | ReceivablesWorkbench; native drafts/state/application correction; manual/provider refunds; paired internal transfer review/results; PaymentDetail Overview, Applications, Gateway, Refunds, GeneralLedger, Files and History; GatewayTransactions; child-owned PaymentPrint receipt/detail/check (transfers detail only) |
 | Ledger | GeneralLedger/ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches and JournalTemplates |
 | Periods | PeriodClose/Periods and PeriodLocks |
 | Reports | Reports/Reports, TrialBalance and GeneralLedger |
@@ -337,3 +337,22 @@ optional draft reuse and owner-bound preparation. QVT/TUI/HTML enabled output li
 new money/hold/recovery/rollback/concurrency cases also pass. Independent review is complete; changed XML validates.
 No additional screenshot/browser/full-suite cycles were run. Transfers are next, followed by the P5 checkpoint and a
 pause before P6.
+
+## P5b3 paired transfers and checkpoint
+
+Payments now offers Transfer funds with reviewed native method revisions, explicit principal/day/currency/fee/expense
+account/reference/reason. The owner-bound retained review displays native movements and exact plans; BOSS computes
+no money. Confirmation accepts only preview/fingerprint/key. Results bind the canonical retained pair and operation
+key before showing actual leg, separately authorized GL or child-owned output links. Transfer detail presents both
+native legs; each opens its own immutable detail document through the existing PaymentPrint route.
+
+All eight new server cases pass within the final 40/40 app gate, alongside unchanged payment/manual/provider cases.
+Actual Treasury/admin pairs have correct outgoing principal+fee, incoming principal, zero transit net and exact retry;
+AR cannot use the same payload. Retained token/day intent and malformed result binding are covered, and QVT/TUI/HTML
+links own the actual native children. The native 45/45 focused gate covers all 10 new transfer cases, real first-post
+rollback, concurrency and permanent flags-N invariants. Final changed XML validates; screen lint retains zero parse
+failures and the same 121 baseline sites. No new route or browser/screenshot cycle was added.
+
+P0–P5 are code complete and independently reviewed. Work is paused at the requested checkpoint before P6. P6–P21,
+including payable intake/holds, framework notification topic filtering and P21's broader finish verification, remain
+unstarted. Detailed delivery commits and verification records are in `plan/impl-accounting.md`.

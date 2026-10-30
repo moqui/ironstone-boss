@@ -15,52 +15,451 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Gateway transactions" default-menu-index="2">
     <parameter name="organizationPartyId"/>
     <parameter name="paymentId"/>
+    <parameter name="partyId"/>
+    <parameter name="paymentGatewayConfigId"/>
+    <parameter name="action"/>
+    <parameter name="outcome"/>
+    <parameter name="fromDay"/>
+    <parameter name="throughDay"/>
+    <parameter name="text"/>
+    <parameter name="attemptId"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
     <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="refreshGatewayAttempt">
+        <actions>
+            <service-call name="mantle.account.PaymentServices.refresh#PaymentGatewayAttempt" in-map="{organizationPartyId:organizationPartyId,attemptId:attemptId,attemptVersion:attemptVersion,operationKey:operationKey}" out-map="lookupResult"/>
+            <script>if (!lookupResult.attemptId || !lookupResult.attemptVersion) throw new Error('Provider status is not available')</script>
+            <set field="attemptId" from="lookupResult.attemptId"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="paymentId"/>
+            <parameter name="partyId"/>
+            <parameter name="paymentGatewayConfigId"/>
+            <parameter name="action"/>
+            <parameter name="outcome"/>
+            <parameter name="fromDay"/>
+            <parameter name="throughDay"/>
+            <parameter name="text"/>
+            <parameter name="attemptId"/>
+            <parameter name="pageIndex"/>
+            <parameter name="pageSize"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewGatewayRecovery">
+        <actions>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentGatewayRecovery" in-map="{organizationPartyId:organizationPartyId,attemptId:attemptId,attemptVersion:attemptVersion,reason:reason}" out-map="recoveryPreview"/>
+            <script>if (!recoveryPreview.previewId || !recoveryPreview.paymentId) throw new Error('The cash posting review is not available')</script>
+            <set field="paymentId" from="recoveryPreview.paymentId"/>
+            <set field="previewId" from="recoveryPreview.previewId"/>
+            <set field="previewKind" value="gatewayRecovery"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
+            <parameter name="organizationPartyId"/>
+            <parameter name="paymentId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+            <parameter name="gatewayFindJson"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
     <actions>
-        <set field="paymentContext" from="{}"/>
-        <if condition="paymentId">
-            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
-        </if>
-        <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
-        <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},gatewayRows:[]}"/>
+        <set field="gatewayContext" from="{}"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#GatewayTransactionsContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId,partyId:partyId,paymentGatewayConfigId:paymentGatewayConfigId,action:action,outcome:outcome,fromDay:fromDay,throughDay:throughDay,text:text,attemptId:attemptId,pageIndex:pageIndex,pageSize:pageSize}" out-map="gatewayContext" transaction="force-new" ignore-error="true"/>
+        <set field="gatewayTransactions" from="gatewayContext.gatewayTransactions || {ready:!!organizationPartyId,available:false,filters:{},errors:[]}"/>
+        <set field="records" from="gatewayContext.records || []"/>
+        <set field="recordsCount" from="gatewayContext.recordsCount || 0"/>
+        <set field="recordsPageIndex" from="gatewayContext.recordsPageIndex || 0"/>
+        <set field="recordsPageSize" from="gatewayContext.recordsPageSize || 20"/>
+        <set field="recordsPageMaxIndex" from="gatewayContext.recordsPageMaxIndex || 0"/>
+        <set field="recordsPageRangeLow" from="gatewayContext.recordsPageRangeLow || 0"/>
+        <set field="recordsPageRangeHigh" from="gatewayContext.recordsPageRangeHigh || 0"/>
+        <set field="selectedGatewayAttempt" from="gatewayTransactions.selectedAttempt || {capabilities:{},recoveryValue:{},outputRows:[],postingRows:[]}"/>
     </actions>
     <widgets>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
         <label text="Gateway transactions" type="h5"/>
-        <label text="Choose a payment to inspect its recorded gateway evidence." type="p" style="m-muted"/>
-        <form-single name="GatewayPaymentFind" transition="." map="context">
-            <field name="organizationPartyId" from="organizationPartyId">
-                <default-field title="">
-                    <hidden/>
-                </default-field>
-            </field>
-            <field name="paymentId">
-                <default-field title="Payment">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'payments',organizationPartyId:organizationPartyId,selected:paymentId}"/>
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="">
-                    <submit text="Inspect payment evidence"/>
-                </default-field>
-            </field>
-            <field-layout>
-                <field-ref name="organizationPartyId"/>
-                <field-row>
-                    <field-ref name="paymentId"/>
-                    <field-ref name="submit"/>
-                </field-row>
-            </field-layout>
-        </form-single>
-        <section name="GatewaySelectedPayment" condition="recordFound">
+        <label text="Inspect recorded provider operations and the cash payments created after acceptance." type="p" style="m-muted"/>
+        <label text="Choose an organization to inspect gateway transactions." type="p" condition="!gatewayTransactions.ready"/>
+        <label text="Gateway transactions are not available. Treasury access is required; review the organization or try again." type="p" style="text-warning" condition="gatewayTransactions.ready &amp;&amp; !gatewayTransactions.available"/>
+        <section name="GatewayTransactionFiltersSection" condition="gatewayTransactions.available">
             <widgets>
-                <link url="${sharedLinks['Payments/PaymentDetail']}" text="Open payment ${paymentId}" parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
-                <section-include name="PaymentGatewayContent" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+                <form-single name="GatewayTransactionFind" transition="." map="context">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="pageIndex" from="0">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="paymentId">
+                        <default-field title="Payment">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'payments',organizationPartyId:organizationPartyId,selected:paymentId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="partyId">
+                        <default-field title="Counterparty">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'paymentParties',organizationPartyId:organizationPartyId,selected:partyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="paymentGatewayConfigId">
+                        <default-field title="Provider">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'paymentGatewayProviders',organizationPartyId:organizationPartyId,selected:paymentGatewayConfigId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="action">
+                        <default-field title="Provider action">
+                            <drop-down allow-empty="true">
+                                <option key="" text="All"/>
+                                <option key="authorize" text="Authorize"/>
+                                <option key="capture" text="Capture"/>
+                                <option key="release" text="Release"/>
+                                <option key="refund" text="Refund"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="outcome">
+                        <default-field title="Outcome">
+                            <drop-down allow-empty="true">
+                                <option key="" text="All"/>
+                                <option key="reserved" text="Reserved"/>
+                                <option key="dispatched" text="Submitted"/>
+                                <option key="pending" text="Pending"/>
+                                <option key="uncertain" text="Uncertain"/>
+                                <option key="declined" text="Declined"/>
+                                <option key="quarantined" text="Needs investigation"/>
+                                <option key="accepted_unposted" text="Cash posting needs review"/>
+                                <option key="completed" text="Completed"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fromDay">
+                        <default-field title="Provider from date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="throughDay">
+                        <default-field title="Provider through date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="text">
+                        <default-field title="Search">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Find gateway transactions"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-ref name="organizationPartyId"/>
+                        <field-ref name="pageIndex"/>
+                        <field-row>
+                            <field-ref name="paymentId"/>
+                            <field-ref name="partyId"/>
+                            <field-ref name="paymentGatewayConfigId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="action"/>
+                            <field-ref name="outcome"/>
+                            <field-ref name="text"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fromDay"/>
+                            <field-ref name="throughDay"/>
+                            <field-ref name="submit"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
             </widgets>
         </section>
-        <label text="Payment evidence is not available." type="p" condition="!!paymentId &amp;&amp; !recordFound"/>
+        <section name="GatewayTransactionResultsSection" condition="gatewayTransactions.available">
+            <widgets>
+                <label text="Some provider labels are unavailable; their recorded identifiers are shown." type="p" style="text-warning" condition="gatewayTransactions.providerLabelsUnavailable"/>
+                <form-list name="GatewayTransactionResults" list="records" paginate="true" skip-form="true">
+                    <field name="attemptId">
+                        <conditional-field condition="!!attemptId" title="Attempt">
+                            <link url="." text="${attemptId}" parameter-map="attemptParameters" style="${context._uiType === 'mobile' ? 'block m-status-text' : 'block'}"/>
+                        </conditional-field>
+                        <default-field title="Response">
+                            <display text="${paymentGatewayResponseId || ''}" style="${context._uiType === 'mobile' ? 'm-status-text' : ''}"/>
+                        </default-field>
+                    </field>
+                    <field name="paymentId">
+                        <default-field title="Payment">
+                            <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway" text="${paymentId}" parameter-map="paymentParameters" style="${context._uiType === 'mobile' ? 'block m-status-text' : ''}"/>
+                        </default-field>
+                    </field>
+                    <field name="providerName">
+                        <default-field title="Provider">
+                            <display style="${context._uiType === 'mobile' ? 'm-status-text' : ''}"/>
+                        </default-field>
+                    </field>
+                    <field name="action">
+                        <default-field title="Action">
+                            <display text="${action || paymentOperationEnumId || ''}"/>
+                        </default-field>
+                    </field>
+                    <field name="amount" align="right">
+                        <default-field title="Provider amount">
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="transactionDateText">
+                        <default-field title="Provider date">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="providerStateText">
+                        <default-field title="Provider state">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${providerState === 'accepted' ? 'positive' : ['declined','quarantined'].includes(providerState) ? 'negative' : ['pending','uncertain'].includes(providerState) ? 'warning' : 'primary'}">${WebUtilities.encodeHtml((context._uiType === 'mobile' ? {pending:'Pending',uncertain:'Uncertain',quarantined:'Investigate'}[providerState] : null) || providerStateText || '')}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t:'text',style:'strong',text:providerStateText || ''})}]]></text>
+                                <text type="html">${providerStateText || ''}</text>
+                            </render-mode>
+                        </default-field>
+                    </field>
+                    <field name="financialStateText">
+                        <default-field title="Local outcome">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${financialState === 'completed' ? 'positive' : financialState === 'accepted_unposted' ? 'warning' : 'primary'}">${WebUtilities.encodeHtml(context._uiType === 'mobile' && financialState ? (financialState === 'completed' ? (['authorize','release'].includes(action) ? 'No cash needed' : 'Posted') : financialState === 'accepted_unposted' ? 'Posting needed' : 'No cash posted') : financialStateText || '')}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t:'text',style:'strong',text:financialStateText || ''})}]]></text>
+                                <text type="html">${financialStateText || ''}</text>
+                            </render-mode>
+                        </default-field>
+                    </field>
+                    <field name="cashPaymentId">
+                        <conditional-field condition="!!cashPaymentParameters" title="Cash payment">
+                            <link url="${sharedLinks['Payments/PaymentDetail']}" text="${cashPaymentId}" parameter-map="cashPaymentParameters"/>
+                        </conditional-field>
+                        <default-field title="Cash payment">
+                            <display text=""/>
+                        </default-field>
+                    </field>
+                    <field name="referenceNum">
+                        <default-field title="Reference">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="responseCode">
+                        <default-field title="Code">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="reasonCode">
+                        <default-field title="Reason">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="attemptId"/>
+                            <field-ref name="paymentId"/>
+                            <field-ref name="providerName"/>
+                            <field-ref name="action"/>
+                            <field-ref name="transactionDateText"/>
+                        </column>
+                        <column>
+                            <field-ref name="amount"/>
+                            <field-ref name="currencyUomId"/>
+                            <field-ref name="providerStateText"/>
+                            <field-ref name="financialStateText"/>
+                        </column>
+                    </columns>
+                </form-list>
+                <label text="No provider records match these filters." type="p" style="m-muted" condition="!recordsCount"/>
+            </widgets>
+        </section>
+        <label text="The selected provider attempt is not available." type="p" style="text-warning" condition="gatewayTransactions.attemptUnavailable"/>
+        <section name="GatewaySelectedAttemptSection" condition="!!selectedGatewayAttempt.attemptId">
+            <widgets>
+                <label text="Provider attempt ${selectedGatewayAttempt.attemptId}" type="h6"/>
+                <label text="${selectedGatewayAttempt.gatewaySummary?.description || ''}" type="p"/>
+                <form-single name="GatewayAttemptSummary" map="selectedGatewayAttempt">
+                    <field name="action">
+                        <default-field title="Provider action">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="amount">
+                        <default-field title="Action amount">
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="accountingDateText">
+                        <default-field title="Accounting date">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="providerStateText">
+                        <default-field title="Provider state">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${providerState === 'accepted' ? 'positive' : ['declined','quarantined'].includes(providerState) ? 'negative' : ['pending','uncertain'].includes(providerState) ? 'warning' : 'primary'}">${WebUtilities.encodeHtml(providerStateText || '')}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t:'text',style:'strong',text:providerStateText || ''})}]]></text>
+                                <text type="html">${providerStateText || ''}</text>
+                            </render-mode>
+                        </default-field>
+                    </field>
+                    <field name="financialStateText">
+                        <default-field title="Local outcome">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${financialState === 'completed' ? 'positive' : financialState === 'accepted_unposted' ? 'warning' : 'primary'}">${WebUtilities.encodeHtml(financialStateText || '')}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t:'text',style:'strong',text:financialStateText || ''})}]]></text>
+                                <text type="html">${financialStateText || ''}</text>
+                            </render-mode>
+                        </default-field>
+                    </field>
+                    <field name="providerOperationId">
+                        <default-field title="Provider operation">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="providerReference">
+                        <default-field title="Provider reference">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="providerResponseCode">
+                        <default-field title="Response code">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="reasonCode">
+                        <default-field title="Outcome">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="action"/>
+                            <field-ref name="amount"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="currencyUomId"/>
+                            <field-ref name="accountingDateText"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="providerStateText"/>
+                            <field-ref name="financialStateText"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="providerOperationId"/>
+                            <field-ref name="reasonCode"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="providerReference"/>
+                            <field-ref name="providerResponseCode"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+                <label text="${selectedGatewayAttempt.errorMessage || ''}" type="p" style="text-warning" condition="!!selectedGatewayAttempt.errorMessage"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway" text="Authorization instruction ${selectedGatewayAttempt.paymentId}" parameter-map="selectedGatewayAttempt.paymentParameters"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}" text="Actual cash payment ${selectedGatewayAttempt.cashPaymentId}" parameter-map="selectedGatewayAttempt.cashPaymentParameters" condition="!!selectedGatewayAttempt.cashPaymentParameters"/>
+                <link url="refreshGatewayAttempt" text="Check provider status" link-type="hidden-form" btn-type="primary" parameter-map="selectedGatewayAttempt.lookupParameters" condition="selectedGatewayAttempt.capabilities.canGatewayRefresh"/>
+                <label text="Status checks look up this recorded provider operation." type="p" style="text-caption m-muted" condition="selectedGatewayAttempt.capabilities.canGatewayRefresh"/>
+                <container-dialog id="GatewayRecoveryDialog" button-text="Review cash posting" title="Review cash posting for ${selectedGatewayAttempt.attemptId}" type="primary" width="760" condition="selectedGatewayAttempt.capabilities.canGatewayRecover">
+                    <label text="The provider accepted this operation. Review the local accounting before completing its cash posting." type="p"/>
+                    <form-single name="ReviewGatewayRecovery" transition="previewGatewayRecovery" map="selectedGatewayAttempt.recoveryValue || {}">
+                        <field name="organizationPartyId">
+                            <default-field title="">
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="attemptId">
+                            <default-field title="">
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="attemptVersion">
+                            <default-field title="">
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="gatewayFindJson">
+                            <default-field title="">
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="reason">
+                            <default-field title="Reason">
+                                <text-area rows="3"/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Review cash posting"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+                <section name="GatewayAttemptPostingsSection" condition="!!selectedGatewayAttempt.postingRows?.length">
+                    <widgets>
+                        <label text="Posted transactions" type="h6"/>
+                        <form-list name="GatewayAttemptPostings" list="selectedGatewayAttempt.postingRows || []" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <conditional-field condition="canOpen" title="Posted transaction">
+                                    <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId}" parameter-map="{organizationPartyId:organizationPartyId,recordId:acctgTransId,acctgTransId:acctgTransId}"/>
+                                </conditional-field>
+                                <default-field title="Posted transaction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="GatewayAttemptOutputsSection" condition="!!selectedGatewayAttempt.outputRows?.length">
+                    <widgets>
+                        <label text="Issued cash documents" type="h6"/>
+                        <form-list name="GatewayAttemptOutputs" list="selectedGatewayAttempt.outputRows || []" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <conditional-field condition="canOpen" title="Issued file">
+                                    <link url="${sharedLinks['Payments/PaymentPrint']}" text="${fileName || outputId}" parameter-map="outputParameters"/>
+                                </conditional-field>
+                                <default-field title="Issued file">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="outputType">
+                                <default-field title="Document">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="outputType"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
     </widgets>
 </screen>

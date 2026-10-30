@@ -2964,4 +2964,17 @@ methods return masked identifiers. Active PaymentGatewayOrganization records are
 forms may select those bindings but cannot write gateway credentials or executable service configuration.
 DocumentSettings retains Mantle numbering fields and issued identities and previews the approved standard layout.
 PASS Billing/Supplier runtime remains P18; its mount, target, invitation, media, canonical URL and gateway CSP
-contracts are documented in mr-pass/plan/design-forum.md. A durable pending-provider fixture is still required by P18.
+contracts are documented in mr-pass/plan/design-forum.md. P5b2a supplies durable pending/uncertain/accepted-unposted
+provider fixtures; P18 adds the portal-specific capability, gateway and remote-frontend integration coverage.
+
+## P5b2a implemented gateway contract
+
+PaymentDetail and GatewayTransactions use Mantle's reviewed gateway action/lookup/recovery services, superseding the
+older legacy writer/poller names in the design tables above. Authorization parents remain noncash; each accepted
+partial capture owns a separate actual cash payment, original posting and immutable issued documents. Reservations,
+provider identity/evidence and local money are durable separate stages. Exact lookup never initiates another charge;
+financial-only recovery preserves accepted amount/currency/SQL day. Current permission/organization/private checks
+apply with artifact authorization disabled; credentials and executable adapter configuration never reach the app.
+The app presents distinct provider/local outcomes, retained reviewed identity and actual cash/output links. Full
+contracts, acceptance cases and implementation commits are recorded in [impl-accounting](impl-accounting.md).
+Manual/provider refunds and linked internal transfers remain the separately reviewed remaining P5 deliveries.

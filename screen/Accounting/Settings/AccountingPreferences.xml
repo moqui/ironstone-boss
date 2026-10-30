@@ -166,6 +166,14 @@ along with this software (see the LICENSE.md file). If not, see
                             </radio>
                         </default-field>
                     </field>
+                    <field name="paymentGatewayWorkflowEnabled">
+                        <default-field title="Reviewed payment processing" tooltip="Enable a configured payment provider with reviewed authorization and capture; requires Settlement controls">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
                     <field name="paymentAutoApplicationEnabled">
                         <default-field title="Automatic application" tooltip="Allow reviewed oldest-due allocation plans for unapplied payments">
                             <radio>
@@ -219,6 +227,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <field-ref name="paymentAutoApplicationEnabled"/>
                         </field-row>
                         <field-ref name="inventoryRevaluationEnabled"/>
+                        <field-ref name="paymentGatewayWorkflowEnabled"/>
                         <field-ref name="changeReason"/>
                         <field-ref name="submit"/>
                     </field-layout>

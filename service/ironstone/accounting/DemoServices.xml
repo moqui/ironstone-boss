@@ -22,4 +22,26 @@ along with this software (see the LICENSE.md file). If not, see
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Demo.js').execute('load', context))</script>
         </actions>
     </service>
+    <service verb="load" noun="AccountingGatewayDemo" transaction="ignore" authenticate="anonymous-all" allow-remote="false">
+        <description>After the primary demonstration commits, provision its reviewed gateway drafts with independent named row results.</description>
+        <out-parameters>
+            <parameter name="complete" type="Boolean"/>
+            <parameter name="errors" type="List"/>
+        </out-parameters>
+        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Demo.js').execute('loadGateway', context))</script></actions>
+    </service>
+    <service verb="load" noun="AccountingGatewaySetup" transaction="force-new" allow-remote="false">
+        <description>Commit the administrator-only gateway demonstration configuration and methods before independent draft creation.</description>
+        <out-parameters><parameter name="complete" type="Boolean"/></out-parameters>
+        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Demo.js').execute('loadGatewaySetup', context))</script></actions>
+    </service>
+    <service verb="load" noun="AccountingGatewayDraft" transaction="force-new" allow-remote="false">
+        <description>Administrator-only atomic fixed-ID demonstration draft, adopted through native payment services after its shared methods commit.</description>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="currencyUomId" required="true"/>
+        </in-parameters>
+        <out-parameters><parameter name="complete" type="Boolean"/></out-parameters>
+        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Demo.js').execute('loadGatewayDraft', context))</script></actions>
+    </service>
 </services>

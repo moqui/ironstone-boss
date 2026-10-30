@@ -4,7 +4,7 @@ The Accounting app uses permission-derived native services in mr-mantle. BOSS ow
 choices, Home and forms. It adds no financial pass-through service. Later workflow sections are hidden until their
 implemented destinations exist. Receivables P4, settlement P5a and payment lifecycle P5b1 are implemented and reviewed.
 Gateway/refunds/transfers remain P5;
-payable intake remains P6. The current execution stops after P6. Close execution is P11,
+payable intake remains P6. The current execution stops after P5 with a recorded checkpoint. Close execution is P11,
 activation P19, and foreign-currency posting/provider refresh P20.
 
 ## Routes and users
@@ -272,4 +272,35 @@ receiving a fresh review version, and unchanged refusal after another page edits
 only after a successful native save; failed saves and native revision validation remain intact. All 24 retained review/
 completed variants and unapplication/void results passed independent visual review. Three unchanged print features
 also pass. Gateway/provider refunds and transfers remain
-unavailable until the separately reviewed P5b2/P5b3 deliveries. P6 follows; execution pauses before P7.
+unavailable until the separately reviewed P5b2/P5b3 deliveries. Execution pauses after P5, before P6.
+
+## Reviewed provider operations P5b2a
+
+Native implementation commit: Mantle `5c24c2fa`. Native, app and coordinator assignments passed independent review
+and final coordinator acceptance; bounded app commits are recorded in the implementation plan.
+
+Mantle owns retained authorization/capture/release reviews, durable provider attempts and reservations, exact lookup
+and financial-only recovery. BOSS presents explicit SQL day/amount/currency, immutable selected identity tokens,
+separate provider/local outcomes and actual cash-child/output links. Parent authorization amounts never appear as
+delivered cash or available settlement balances. Treasury investigation stays scoped and paged; AR cannot see its
+provider controls or evidence. Unsupported adapters remain unavailable; gateway adoption defaults off and requires
+settlement controls.
+
+The final full BOSS gate passes 1,162/0/5 (1,167 features, 112 specs), including unchanged Projects, Products and legacy
+flows. Standalone Mantle has 1,139
+passes, only its same four reproduced baseline failures and 17 skips (1,160 features, 130 specs); all 65 new cases pass.
+Thirty actual gateway state/review/attempt renders pass in QVT/TUI/HTML, including error-content detection, Treasury
+versus AR controls and selected choices outside the filtered page. All six financial walks pass without skips,
+including actual partial cash/output ownership, remaining release, pending/uncertain lookup and original-day recovery.
+All 72 route/dialog/theme screenshot cases pass at 390/1280/1440. Those captures, 24 retained review/result variants
+and actual receipt passed independent visual review. The corrected phone table fits its 359 px container, actual
+amounts and both outcome chips remain visible, and 18 selected-attempt block-link hit checks pass before normal clicks.
+Empty generic Change grids are omitted while actual B1 effects remain. Final browser acceptance is 78/78 without skips.
+
+Financial fixture corruption/cleanup now uses transactional generic writes so the new shared Payment locks cover
+it. Assertions and default-off business flows are retained. The first ClientBilling cleanup abort explained all seven
+later health/hours/timer failures; the corrected full run passes. Two isolated fresh-load Code assertions also
+reproduce at accepted P5b1 commits, while the final full BOSS run passes all eight Code cases; no Accounting exception
+or Git reset was added. Changed XML validates apart from the already reproduced preferences box schema mismatch.
+Screen lint scans 1,124 files/24,858 sites with zero parse failures and the same 121 flagged sites. New native XML uses canonical four-space
+formatting; unrelated legacy service formatting is retained. No Node test dependency was introduced.

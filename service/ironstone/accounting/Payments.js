@@ -9,12 +9,63 @@ const paymentRow = value =>
     })
 const today = () => ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
 const filterNames = ["queue", "partyId", "paymentInstrumentEnumId", "statusId", "currencyUomId", "fromDay", "throughDay", "text"]
+const gatewayFilterNames = [
+    "paymentId",
+    "partyId",
+    "paymentGatewayConfigId",
+    "action",
+    "outcome",
+    "fromDay",
+    "throughDay",
+    "text"
+]
+const gatewayCapacityFields = [
+    ["authorizedAmount", "Authorized"],
+    ["capturedAmount", "Captured cash"],
+    ["providerCapturedAmount", "Accepted captures"],
+    ["authorizationHeldAmount", "Authorization reserved"],
+    ["captureHeldAmount", "Capture reserved"],
+    ["releaseHeldAmount", "Release reserved"],
+    ["releasedAmount", "Released"],
+    ["capturableAmount", "Available to capture"]
+]
+const gatewayStateDescriptions = {
+    reserved: "Reserved",
+    dispatched: "Submitted",
+    pending: "Pending provider confirmation",
+    uncertain: "Provider status uncertain",
+    declined: "Declined",
+    accepted: "Accepted",
+    quarantined: "Needs investigation",
+    none: "No cash posting",
+    accepted_unposted: "Cash posting needs review",
+    completed: "Completed"
+}
+const gatewayReasonMessages = {
+    PERMISSION_DENIED: "Gateway actions require treasury access.",
+    SETTLEMENT_GUARD_REQUIRED: "Enable settlement application controls before using gateway actions.",
+    GATEWAY_WORKFLOW_REQUIRED: "Enable gateway processing for this organization.",
+    GATEWAY_DRAFT_REQUIRED: "Prepare a proposed payment before reviewing a gateway action.",
+    GATEWAY_PAYMENT_INELIGIBLE: "This payment uses the manual payment workflow.",
+    GATEWAY_ADAPTER_UNSUPPORTED: "Choose an approved gateway with the required operation and status checks.",
+    GATEWAY_BINDING_UNAVAILABLE: "No approved gateway is available for this payment and date."
+}
 function findParameters(value) {
     if (!value) return {}
     if (typeof value !== "string" || value.length > 8192) throw new Error("Payment filters are not available")
     const decoded = JSON.parse(value)
     return Object.fromEntries(
         [...filterNames, "pageIndex", "pageSize"].filter(key => decoded[key] != null).map(key => [key, decoded[key]])
+    )
+}
+function gatewayFindParameters(value) {
+    if (!value) return {}
+    if (typeof value !== "string" || value.length > 8192) throw new Error("Gateway filters are not available")
+    const decoded = JSON.parse(value)
+    return Object.fromEntries(
+        [...gatewayFilterNames, "pageIndex", "pageSize", "attemptId"]
+            .filter(field => decoded[field] != null)
+            .map(field => [field, decoded[field]])
     )
 }
 
@@ -47,6 +98,287 @@ function reviewedSelection(value, label = "evidence file", maximum = 10) {
         versions.set(item.id, item.version)
     }
     return {ids: Array.from(versions.keys()), versions: Object.fromEntries(versions)}
+}
+
+function gatewayConfirmationKey(retained) {
+    if (!retained?.previewId || !["gatewayAction", "gatewayRecovery"].includes(retained.previewKind))
+        throw new Error("Review the gateway action before confirming it")
+    return (
+        retained.operationKey ||
+        "gw-" +
+            policy.hash({previewId: retained.previewId, previewKind: retained.previewKind, userId: ec.user.userId}).slice(0, 32)
+    )
+}
+
+function gatewayOutputRows(retained, organizationPartyId) {
+    if (retained.results?.financialState !== "completed") return []
+    return rows(retained.results.outputRows).map(row =>
+        Object.assign(row, {
+            // Issued cash documents belong to the actual capture child, never the authorization parent.
+            canOpen: row.canOpen === true && !!row.paymentId && !!row.outputId,
+            outputParameters: {
+                organizationPartyId,
+                paymentId: row.paymentId || "",
+                recordId: row.paymentId || "",
+                sourceVersion: "",
+                outputId: row.outputId,
+                outputType: row.outputType
+            }
+        })
+    )
+}
+
+function gatewayReviewPresentation(retained, organizationPartyId, currencyUomId = null) {
+    if (!retained?.previewId) return null
+    const operationKey = gatewayConfirmationKey(retained),
+        review = reviewPresentation(retained, currencyUomId),
+        result = retained.results || {},
+        completed = result.financialState === "completed",
+        stateText = gatewayStateDescriptions
+    return Object.assign(review, {
+        isGateway: true,
+        previewKind: retained.previewKind,
+        financialOnly: retained.financialOnly === true,
+        gatewaySummary: policy.display(retained.gatewaySummary || {}),
+        capacityEffectRows: gatewayCapacityFields
+            .filter(([field]) => retained.before?.[field] != null || retained.after?.[field] != null)
+            .map(([field, label]) => ({
+                label,
+                beforeAmount: retained.before?.[field] ?? null,
+                afterAmount: retained.after?.[field] ?? null,
+                currencyUomId:
+                    retained.after?.currencyUomId || retained.before?.currencyUomId || review.paymentSummary.currencyUomId
+            })),
+        plannedCapacityAssumption: retained.after?.assumption || null,
+        reservationRows: rows(retained.reservationEffects),
+        operationKey,
+        confirmParameters: {previewId: retained.previewId, inputFingerprint: retained.inputFingerprint, operationKey},
+        canConfirm: retained.canApply === true && !review.summaryUnavailable && !array(retained.blockers).length,
+        hasResults: !!result.attemptId && !!retained.operationKey && ["submitted", "complete"].includes(retained.status),
+        financialCompleted: completed,
+        providerStateText: stateText[result.providerState] || "",
+        financialStateText:
+            completed && ["authorize", "release"].includes(retained.action || result.action)
+                ? "No cash posting required"
+                : stateText[result.financialState] || "",
+        resultsTitle: completed ? "Gateway action completed" : "Gateway status recorded",
+        resultRows: ["attemptId", "providerOperationId", "reasonCode"]
+            .filter(field => result[field] != null)
+            .map(field => ({
+                label: {attemptId: "Attempt", providerOperationId: "Provider operation", reasonCode: "Outcome"}[field],
+                value: result[field]
+            })),
+        actualPaymentRows:
+            completed && result.cashPaymentId
+                ? [
+                      {
+                          paymentId: result.cashPaymentId,
+                          label: "Captured payment",
+                          recordParameters: {
+                              organizationPartyId,
+                              paymentId: result.cashPaymentId,
+                              recordId: result.cashPaymentId,
+                              previewId: "",
+                              previewKind: ""
+                          }
+                      }
+                  ]
+                : [],
+        applicationResultRows: completed ? review.applicationResultRows : [],
+        postingResultRows: completed ? review.postingResultRows : [],
+        outputResultRows: gatewayOutputRows(retained, organizationPartyId)
+    })
+}
+
+function gatewayCapacityRows(summary) {
+    return gatewayCapacityFields
+        .filter(([field]) => summary?.[field] != null)
+        .map(([field, label]) => ({label, amount: summary[field], currencyUomId: summary.currencyUomId}))
+}
+
+function gatewayAttemptPresentation(value, organizationPartyId) {
+    if (!value?.attemptId || !value.attemptVersion) throw new Error("The selected gateway attempt is not available")
+    const result = policy.display(
+        policy.pick(value, [
+            "attemptId",
+            "attemptVersion",
+            "providerOperationId",
+            "paymentId",
+            "cashPaymentId",
+            "action",
+            "outcome",
+            "providerState",
+            "financialState",
+            "amount",
+            "currencyUomId",
+            "accountingDateText",
+            "operationKey",
+            "reasonCode",
+            "errorMessage"
+        ])
+    )
+    result.capabilities = value.capabilities || {}
+    result.paymentSummary = policy.display(value.paymentSummary || {})
+    result.gatewaySummary = policy.display(value.gatewaySummary || {})
+    result.providerStateText = gatewayStateDescriptions[value.providerState] || value.providerState || ""
+    result.financialStateText =
+        value.financialState === "completed" && ["authorize", "release"].includes(value.action)
+            ? "No cash posting required"
+            : gatewayStateDescriptions[value.financialState] || value.financialState || ""
+    result.financialCompleted = value.financialState === "completed"
+    if (!result.financialCompleted) delete result.cashPaymentId
+    result.paymentParameters = {
+        organizationPartyId,
+        paymentId: value.paymentId,
+        recordId: value.paymentId,
+        previewId: "",
+        previewKind: ""
+    }
+    result.cashPaymentParameters =
+        result.financialCompleted && value.cashPaymentId
+            ? {organizationPartyId, paymentId: value.cashPaymentId, recordId: value.cashPaymentId, previewId: "", previewKind: ""}
+            : null
+    result.outputRows = gatewayOutputRows({results: value}, organizationPartyId)
+    result.postingRows = result.financialCompleted
+        ? array(value.acctgTransIds).map(acctgTransId => ({acctgTransId, canOpen: value.capabilities?.canReadLedger === true}))
+        : []
+    result.lookupParameters = {
+        organizationPartyId,
+        attemptId: value.attemptId,
+        attemptVersion: value.attemptVersion,
+        operationKey:
+            "gwl-" +
+            policy.hash({attemptId: value.attemptId, attemptVersion: value.attemptVersion, userId: ec.user.userId}).slice(0, 32)
+    }
+    result.recoveryValue = {organizationPartyId, attemptId: value.attemptId, attemptVersion: value.attemptVersion}
+    return result
+}
+
+function gatewayTransactionRows(value, organizationPartyId, filters = {}, providerNames = {}) {
+    return rows(value).map(row =>
+        Object.assign(row, {
+            currencyUomId: row.currencyUomId || row.amountUomId,
+            providerStateText:
+                gatewayStateDescriptions[row.providerState] ||
+                (row.resultError === "Y"
+                    ? "Error"
+                    : row.resultDeclined === "Y"
+                      ? "Declined"
+                      : row.resultSuccess === "Y"
+                        ? "Accepted"
+                        : "Recorded"),
+            financialStateText:
+                row.financialState === "completed" && ["authorize", "release"].includes(row.action)
+                    ? "No cash posting required"
+                    : gatewayStateDescriptions[row.financialState] || "",
+            providerName: providerNames[row.paymentGatewayConfigId] || row.paymentGatewayConfigId || "",
+            paymentParameters: {
+                organizationPartyId,
+                paymentId: row.paymentId,
+                recordId: row.paymentId,
+                previewId: "",
+                previewKind: ""
+            },
+            attemptParameters: row.attemptId ? Object.assign({}, filters, {organizationPartyId, attemptId: row.attemptId}) : null,
+            cashPaymentParameters:
+                row.financialState === "completed" && row.cashPaymentId
+                    ? {
+                          organizationPartyId,
+                          paymentId: row.cashPaymentId,
+                          recordId: row.cashPaymentId,
+                          previewId: "",
+                          previewKind: ""
+                      }
+                    : null
+        })
+    )
+}
+
+function gatewayTransactionsContext(parameters) {
+    const scope = access(parameters),
+        filters = Object.fromEntries(gatewayFilterNames.map(field => [field, parameters[field] || ""])),
+        result = scope.organizationPartyId
+            ? policy.call(
+                  native + "find#PaymentGatewayTransactions",
+                  Object.assign({}, filters, {
+                      organizationPartyId: scope.organizationPartyId,
+                      pageIndex: parameters.pageIndex,
+                      pageSize: parameters.pageSize,
+                      selectedAttemptIdList: parameters.attemptId ? [parameters.attemptId] : []
+                  })
+              )
+            : {}
+    let selectedAttempt = null,
+        attemptUnavailable = false
+    if (scope.organizationPartyId && parameters.attemptId && result.complete === true) {
+        try {
+            const attempt = policy.probe(native + "get#PaymentGatewayAttempt", {
+                organizationPartyId: scope.organizationPartyId,
+                attemptId: parameters.attemptId
+            })
+            if (attempt.attemptId !== parameters.attemptId) throw new Error("Gateway attempt identity changed")
+            selectedAttempt = gatewayAttemptPresentation(attempt, scope.organizationPartyId)
+            const response = [...array(result.selectedRows), ...array(result.rows)].find(
+                row => row.attemptId === attempt.attemptId && row.paymentId === attempt.paymentId
+            )
+            if (response) {
+                selectedAttempt.providerReference = response.referenceNum || ""
+                selectedAttempt.providerResponseCode = response.responseCode || ""
+            }
+            selectedAttempt.recoveryValue.gatewayFindJson = JSON.stringify(
+                Object.assign({}, filters, {
+                    attemptId: parameters.attemptId,
+                    pageIndex: result.pageIndex,
+                    pageSize: result.pageSize
+                })
+            )
+            Object.assign(selectedAttempt.lookupParameters, filters)
+        } catch (error) {
+            ec.logger.warn("Gateway attempt " + parameters.attemptId + " is unavailable: " + error.message)
+            attemptUnavailable = true
+        }
+    }
+    const nativeRows = result.complete === true ? array(result.rows) : [],
+        providerIds = [...new Set(nativeRows.map(row => row.paymentGatewayConfigId).filter(Boolean))]
+    let providerNames = {},
+        providerLabelsUnavailable = false
+    if (scope.organizationPartyId && providerIds.length) {
+        try {
+            const providers = policy.probe(native + "find#PaymentGatewayProviders", {
+                organizationPartyId: scope.organizationPartyId,
+                selectedIdList: providerIds,
+                pageSize: 1
+            })
+            if (providers.complete !== true) throw new Error("Gateway provider labels are incomplete")
+            providerNames = Object.fromEntries(
+                array(providers.selectedRows).map(row => [row.paymentGatewayConfigId, row.description])
+            )
+        } catch (error) {
+            ec.logger.warn("Gateway provider labels are unavailable: " + error.message)
+            providerLabelsUnavailable = true
+        }
+    }
+    return Object.assign({}, filters, {
+        organizationPartyId: scope.organizationPartyId,
+        attemptId: parameters.attemptId || "",
+        records: gatewayTransactionRows(nativeRows, scope.organizationPartyId, filters, providerNames),
+        recordsCount: result.recordCount ?? 0,
+        recordsPageIndex: result.pageIndex ?? 0,
+        recordsPageSize: result.pageSize ?? 20,
+        recordsPageMaxIndex: result.pageMaxIndex ?? 0,
+        recordsPageRangeLow: result.pageRangeLow ?? 0,
+        recordsPageRangeHigh: result.pageRangeHigh ?? 0,
+        gatewayTransactions: {
+            ready: !!scope.organizationPartyId,
+            available: result.complete === true,
+            complete: result.complete === true,
+            errors: array(result.errors),
+            filters: Object.assign({organizationPartyId: scope.organizationPartyId}, filters),
+            selectedAttempt,
+            attemptUnavailable,
+            providerLabelsUnavailable
+        }
+    })
 }
 
 function draftInput(parameters) {
@@ -100,6 +432,30 @@ function unapplyInput(parameters) {
         applicationVersions: selected.versions,
         reason: parameters.reason
     }
+}
+
+function gatewayActionInput(parameters) {
+    if (!["authorize", "capture", "release"].includes(parameters.action)) throw new Error("Choose an available gateway action")
+    const input = Object.fromEntries(
+            [
+                "organizationPartyId",
+                "paymentId",
+                "sourceVersion",
+                "action",
+                "amount",
+                "effectiveDate",
+                "reason",
+                "referenceNumber",
+                "parentAttemptId"
+            ].map(field => [field, parameters[field]])
+        ),
+        evidence = reviewedSelection(parameters.evidenceTokenList)
+    if (parameters.gatewayBindingToken) {
+        const binding = reviewedToken(parameters.gatewayBindingToken, "gateway")
+        input.paymentGatewayConfigId = binding.id
+        input.gatewayBindingVersion = binding.version
+    }
+    return Object.assign(input, {evidenceContentIdList: evidence.ids, evidenceVersions: evidence.versions})
 }
 
 function listContext(parameters) {
@@ -280,25 +636,51 @@ function detailContext(parameters) {
     const cap = result.capabilities || {}
     if (!payment.paymentId || cap.canRead !== true) throw new Error("Payment detail is not available")
     const previewKind = parameters.previewKind || "state"
-    if (!["state", "unapply"].includes(previewKind)) throw new Error("Payment review is not available")
+    const isGateway = ["gatewayAction", "gatewayRecovery"].includes(previewKind)
+    if (!["state", "unapply", "gatewayAction", "gatewayRecovery"].includes(previewKind))
+        throw new Error("Payment review is not available")
     const retained = parameters.previewId
-        ? policy.call(native + (previewKind === "unapply" ? "get#PaymentUnapplyPreview" : "get#PaymentStatePreview"), {
-              organizationPartyId: scope.organizationPartyId,
-              previewId: parameters.previewId
-          })
+        ? policy.call(
+              native +
+                  (isGateway
+                      ? "get#PaymentGatewayActionPreview"
+                      : previewKind === "unapply"
+                        ? "get#PaymentUnapplyPreview"
+                        : "get#PaymentStatePreview"),
+              {
+                  organizationPartyId: scope.organizationPartyId,
+                  previewId: parameters.previewId
+              }
+          )
         : null
     if (retained && retained.paymentId !== paymentId)
         throw new Error("PAYMENT_REVIEW_MISMATCH: This review belongs to another payment")
-    const review = reviewPresentation(retained, payment.currencyUomId)
+    if (retained && isGateway && retained.previewKind !== previewKind)
+        throw new Error("PAYMENT_REVIEW_MISMATCH: This review belongs to another gateway action")
+    const review = isGateway
+        ? gatewayReviewPresentation(retained, scope.organizationPartyId, payment.currencyUomId)
+        : reviewPresentation(retained, payment.currencyUomId)
     if (review) {
         Object.assign(review.confirmParameters, {
             organizationPartyId: scope.organizationPartyId,
             paymentId,
             previewKind,
-            findJson: parameters.findJson || ""
+            findJson: parameters.findJson || "",
+            gatewayFindJson: parameters.gatewayFindJson || ""
         })
         review.previewKind = previewKind
-        review.resultsTitle = previewKind === "unapply" ? "Application correction completed" : "Payment change completed"
+        review.gatewayReturnParameters = Object.assign({}, gatewayFindParameters(parameters.gatewayFindJson), {
+            organizationPartyId: scope.organizationPartyId
+        })
+        review.gatewayAttemptParameters = Object.assign(
+            {},
+            parameters.gatewayFindJson
+                ? review.gatewayReturnParameters
+                : {organizationPartyId: scope.organizationPartyId, paymentId},
+            {attemptId: review.results?.attemptId || ""}
+        )
+        if (!isGateway)
+            review.resultsTitle = previewKind === "unapply" ? "Application correction completed" : "Payment change completed"
         for (const row of review.balanceRows) {
             row.recordPath =
                 row.sourceKind === "payment"
@@ -317,18 +699,47 @@ function detailContext(parameters) {
                 previewKind: ""
             }
         }
-        for (const row of review.outputResultRows)
-            row.outputParameters = {
-                organizationPartyId: scope.organizationPartyId,
-                paymentId,
-                outputId: row.outputId,
-                outputType: row.outputType
-            }
+        if (!isGateway)
+            for (const row of review.outputResultRows)
+                row.outputParameters = {
+                    organizationPartyId: scope.organizationPartyId,
+                    paymentId,
+                    outputId: row.outputId,
+                    outputType: row.outputType
+                }
     }
-    const primaryAction = review
-        ? null
-        : ["validate", "deliver", "confirm"].find(action => cap["can" + action[0].toUpperCase() + action.slice(1)] === true) ||
-          null
+    const gatewayInstruction = policy.display(result.gatewayInstruction || {}),
+        gatewayPrimaryAction = review
+            ? null
+            : ["authorize", "capture", "release"].find(
+                  action => cap["canGateway" + action[0].toUpperCase() + action.slice(1)] === true
+              ),
+        gatewayDay = payment.accountingDateText && payment.accountingDateText > today() ? payment.accountingDateText : today(),
+        gatewayActionValues = Object.fromEntries(
+            ["authorize", "capture", "release"].map(action => [
+                action,
+                {
+                    organizationPartyId: scope.organizationPartyId,
+                    paymentId,
+                    sourceVersion: result.sourceVersion,
+                    action,
+                    amount:
+                        action === "authorize" ? payment.amount : action === "release" ? gatewayInstruction.capturableAmount : "",
+                    effectiveDate: gatewayDay,
+                    currencyUomId: payment.currencyUomId,
+                    referenceNumber: payment.referenceNumber || "",
+                    reason: "",
+                    gatewayBindingToken: null,
+                    parentAttemptId: gatewayInstruction.authorizationAttemptId || null
+                }
+            ])
+        )
+    const primaryAction =
+        review || gatewayPrimaryAction
+            ? null
+            : ["validate", "deliver", "confirm"].find(
+                  action => cap["can" + action[0].toUpperCase() + action.slice(1)] === true
+              ) || null
     const methodVersion = id => array(result.maskedMethodRows).find(row => row.paymentMethodId === id)?.version
     const organizationMethodId =
         payment.organizationPaymentMethodId ||
@@ -369,6 +780,7 @@ function detailContext(parameters) {
         paymentHeaderValue: headerValue,
         paymentReview: review || {},
         findJson: parameters.findJson || "",
+        gatewayFindJson: parameters.gatewayFindJson || "",
         financePayment: Object.assign({}, payment, {
             title: payment.description || payment.partyName || payment.paymentId,
             sourceVersion: result.sourceVersion,
@@ -397,6 +809,14 @@ function detailContext(parameters) {
                                 : row.transactionStatus || "Recorded"
                 })
             ),
+            gatewayInstruction,
+            gatewayCapacityRows: gatewayCapacityRows(gatewayInstruction),
+            gatewayReasonRows: array(cap.gatewayReasons).map(reasonCode => ({
+                reasonCode,
+                message: gatewayReasonMessages[reasonCode] || "Gateway actions are unavailable for this payment."
+            })),
+            gatewayActionValues,
+            gatewayPrimaryAction,
             ledgerRows: rows(result.ledgerRows),
             contentRows: rows(result.contentRows).map(row =>
                 Object.assign(row, {
@@ -416,7 +836,11 @@ function detailContext(parameters) {
                     name => cap[name] === true
                 ),
             canReadLedger: cap.canReadLedger === true,
-            canSettle: payment.financeDirection === "receivable" && scope.capabilities.arRead && scope.capabilities.arEdit,
+            canSettle:
+                payment.isCash !== false &&
+                payment.financeDirection === "receivable" &&
+                scope.capabilities.arRead &&
+                scope.capabilities.arEdit,
             hasReview: !!review,
             complete: result.complete === true,
             errors: array(result.errors),
@@ -457,14 +881,23 @@ function detailContext(parameters) {
 ;({
     reviewedToken,
     findParameters,
+    gatewayFindParameters,
     reviewedSelection,
+    gatewayConfirmationKey,
+    gatewayOutputRows,
+    gatewayReviewPresentation,
+    gatewayCapacityRows,
+    gatewayAttemptPresentation,
+    gatewayTransactionRows,
     draftInput,
     stateInput,
     unapplyInput,
+    gatewayActionInput,
     reviewPresentation,
     execute: (operation, parameters) => {
         if (operation === "list") return listContext(parameters)
         if (operation === "detail") return detailContext(parameters)
+        if (operation === "gatewayTransactions") return gatewayTransactionsContext(parameters)
         throw new Error("Unknown payment screen operation")
     }
 })

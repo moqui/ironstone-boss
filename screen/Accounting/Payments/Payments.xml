@@ -53,7 +53,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container style="row items-center q-col-gutter-sm">
             <container style="col-12 col-sm">
                 <label text="Payments" type="h5"/>
-                <label text="Receipts, disbursements and their application balances." type="p" style="m-muted"/>
+                <label text="Receipts, disbursements, authorizations and their current state." type="p" style="m-muted"/>
             </container>
             <container style="col-12 col-sm-auto">
                 <section name="NewPaymentDialog" condition="paymentList.canCreate">
@@ -307,6 +307,9 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="amount" align="right">
+                        <conditional-field condition="isCash === false" title="Amount">
+                            <display text="${ec.l10n.formatCurrency(instructionAmount,currencyUomId)} authorization"/>
+                        </conditional-field>
                         <default-field title="Amount">
                             <display currency-unit-field="currencyUomId"/>
                         </default-field>
@@ -317,11 +320,17 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="appliedTotal" align="right">
+                        <conditional-field condition="isCash === false" title="">
+                            <display text=""/>
+                        </conditional-field>
                         <default-field title="Applied">
                             <display currency-unit-field="currencyUomId"/>
                         </default-field>
                     </field>
                     <field name="unappliedTotal" align="right">
+                        <conditional-field condition="isCash === false" title="">
+                            <display text=""/>
+                        </conditional-field>
                         <default-field title="Unapplied">
                             <display currency-unit-field="currencyUomId"/>
                         </default-field>

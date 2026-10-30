@@ -1,6 +1,6 @@
 # IronStone BOSS — Accounting implementation
 
-P0–P4, P5a and P5b1 are built and verified. P5b2/P5b3 and later phases remain planned.
+P0–P4, P5a, P5b1 and P5b2a are built and verified. P5b2b refunds/P5b3 transfers and later phases remain planned.
 The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
@@ -52,8 +52,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 ## 1. Scope and order
 
-**Current execution boundary (user request, Oct 30, 2026):** complete the remaining P5 work and P6, then pause
-before P7. The later phase definitions remain the plan for a future continuation.
+**Current execution boundary (latest user request, Oct 30, 2026):** complete the remaining P5 work, record its
+checkpoint and commits, then pause before P6. The later phase definitions remain the plan for a future continuation.
 
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
@@ -212,7 +212,7 @@ before P7. The later phase definitions remain the plan for a future continuation
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built and independently reviewed; verification record below |
-| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement and P5b1 lifecycle/outputs accepted; gateway/refunds/transfers follow |
+| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement, P5b1 lifecycle/outputs and P5b2a gateway accepted; refunds/transfers follow |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
 | P8 Payment runs | Mantle, BOSS | PayablesWorkbench, PaymentRuns, PaymentRunDetail | — |
@@ -1020,6 +1020,13 @@ design, it is written there too.
 | F98 | P5b1 rendered-output proof: an isolated app root cannot resolve mounted shared links; Treasury correctly omits ledger IDs | Real admin/Treasury-owned operations render through the actual mount at the correct standalone level in QVT/TUI/HTML, asserting enabled file identities and separately authorized ledger presence/omission |
 | F99 | P5b1 screenshot review: full-page Chromium capture can hide a 15px scrollbar after choosing its clip width and crop the light document's right edge | Final-theme outer/inner/root bounds and viewport companion captures prove actual check fit. Generic full-page capture correction remains tooling work; no further product-layout change is inferred from the cropped artifact |
 | F100 | P5b1 browser: a successful draft edit from 21 to 22 left a previous failed delivery form's sourceVersion in session restoration; a new form instance received that old initial value | After successful native store only, the app consumes the prior saved failed-submit values through the existing errorParameters getter. Same-revision reference/reason/evidence remains retained, failed saves stay untouched, own-edit review receives its new revision, and external stale confirmation still refuses |
+| F101 | P5b2 legacy provider entry could race first native adoption, including a manual instrument with an explicit configured provider; an outer rollback could otherwise erase the only evidence of old I/O | Durable per-payment admission fences commit before old provider I/O and serialize first adoption. Shipped and configured legacy leaves, wrappers, refund links, order/invoice loops and polling reload stored identity and exclude managed records. Real competing calls, native adoption and caller rollback are covered |
+| F102 | P5b2 interstage reads could retain a caller's repeatable-read snapshot, and interrupted lookup replay omitted its claimed attempt version | Orchestrator-only fresh attempt reads join separate committed stages; lookup claim results retain the exact version and summary. Actual outer rollback and concurrent pre-finish lookup replay prove durable result identities |
+| F103 | P5b2 credential preparation could validate an ordinary old PaymentMethod read while projecting newer locked bank/card data | Private preparation projects only freshly locked method/subtype rows, compares the hash of those same values to the retained revision, and commits before adapter I/O. Safe adapters explicitly guarantee consumption of this by-value snapshot; lookup retains original identity independently of rotated credentials |
+| F104 | P5b2 source checks could miss target-only payments, accept a real APP id with altered links/currency, or inspect only a candidate's replacement source | Common guards inspect stored and candidate payment identities under stable locks, validate all APP links/currency, and preserve positive application identity with flags off. Exact negative proofs include a real initially unmanaged AP-header/adoption race. The held manual-source reparent proof is required before P5b2b enables cash holds |
+| F105 | P5b2 full-suite verification exposed legacy fixture cleanup/corruption using raw financial EntityValue/deleteAll writes without a transaction; guarded source locks refused and ClientBilling cleanup left later Projects fixtures behind | Financial fixture mutations use the existing transactional generic services, retaining their original assertions and default-off business behavior. Full BOSS rerun passes 1,161/0/5; standalone Mantle passes 1,139 with only the same four reproduced baseline failures and 17 skips |
+| F106 | P5b2 visual review found the phone gateway table scrolling 560 px inside a 359 px container, with the actual provider amount beyond the visible right edge | Mobile identity links wrap, the two columns retain actual amount/currency and separate compact provider/local outcomes, and full reference/code details remain on the exact selected authorized attempt. Per-row geometry checks include amounts and chip content, beyond document-width checks. Gateway reviews also omit the empty generic state-effects grid; real B1 effects still render |
+| F107 | P5b2 browser retries exposed data-dependent clicks on wrapped inline attempt IDs: the locator's union-rectangle center can fall between actual text fragments and hit the surrounding form-group | Attempt links have a rectangular block target at every width; tests verify the actual single rectangle and center hit before the unchanged normal click. Generic locator hit-point selection remains test-tooling work; no forced clicks or native financial identity changes are used |
 
 ## 7. Later
 
@@ -1379,15 +1386,15 @@ Changed XML validates. Screen lint scans 1,124 files and 24,666 expression sites
 121 flagged sites. Framework resource exclusion specs pass 4/4. Framework search exclusion and data-load PDF fixes
 are `e9ee50fb` and `d7235859`; the latter passes develop build/lint/lint-min, and both host failures reproduce without
 its two-line initialization change. Implementation commits: Mantle `ea31a0aa`; BOSS `59a4060`.
-F75–F77 remain their previously assigned P15/P21 work; F99 remains generic capture tooling work. P5b2/P5b3 and P6 are
-next, with the user's pause before P7 unchanged.
+F75–F77 remain their previously assigned P15/P21 work; F99 remains generic capture tooling work. P5b2/P5b3 are next;
+the latest user request moves the execution checkpoint to the end of P5, before P6.
 
 ### P5b2 reviewed assignment contract
 
 The native author, app author, independent reviewer and coordinator approved the following written interface and
 integration prerequisites. Implementation starts after P5b1 acceptance and commits. Gateway instructions and recovery
-come first; manual/provider refunds form a separate bounded delivery. P5b3 transfers follow their acceptance. P6 is
-the final phase authorized for this execution; work pauses before P7.
+come first; manual/provider refunds form a separate bounded delivery. P5b3 transfers follow their acceptance. P5 is
+the final phase authorized for this execution; work pauses before P6 with a recorded checkpoint.
 
 | Owner | Owned files and integration boundary |
 | --- | --- |
@@ -1424,6 +1431,14 @@ provider/merchant namespace, action, parent provider reference, amount/currency 
 It returns that same identity, typed accepted/declined/pending/uncertain outcome, exact amount/currency, provider
 reference/timestamps and narrow codes. It cannot mutate Payment, applications or GL. Dispatch and lookup never inherit
 trusted financial-finalizer admission in common guards. The finalizer never calls a provider.
+
+Safe invocation also requires each action's explicit `reviewedMethodSnapshot: true` guarantee. The private
+`prepare#PaymentGatewayDispatch` stage locks and rechecks the reviewed method/subtype revisions, including
+`gatewayCimId`, and returns credential snapshots only to its immediate dispatch caller. It commits and releases
+those locks before external I/O. Adapters consume those provided snapshots and original method versions rather
+than rereading mutable method IDs. No CVV, arbitrary address reads, credential persistence or public credential DTO
+is introduced. Exact-identity lookup uses the original operation identity and versions without requiring currently
+active or unchanged funding credentials; local financial completion still validates the original reviewed methods.
 
 Legacy interfaces have no request identity, may infer a response from a recent method transaction, and can mutate the
 whole payment after a partial capture. Their behavior and existing providers remain unchanged for legacy records.
@@ -1462,6 +1477,8 @@ there is no fallback to an unsafe legacy orchestrator.
   receives only gateway ID/description, `bindingVersion`, `adapterVersion`, per-action/lookup capabilities, actual page
   metadata/completeness/errors and selected rows. An ID~bindingVersion choice decodes to gateway ID and
   `gatewayBindingVersion` on preview. Native defaults are equally frozen in the retained review.
+- `find#PaymentGatewayProviders` supplies the organization-wide transaction filter with scoped provider IDs and
+  descriptions, selected labels and actual page metadata. It does not expose executable binding configuration.
 
 **Durability and capacity.** Reserve and commit immutable identity/capacity before I/O; invoke the provider without
 financial locks; persist its outcome durably; then atomically create/post the exact local cash, applications and
@@ -1476,6 +1493,10 @@ refunds reserve both provider refundable capacity and the original cash leg's cu
 native/raw application writers and source apply/unapply/void/reversal/destruction serialize on those same holds. They
 cannot spend reserved cash. A proven decline/nonexecution releases a hold; accepted local completion consumes it in
 the same transaction as the exact refund application. No temporary fake positive application represents a hold.
+The original cash source is native-managed before its first hold. A reviewed manual-refund reservation may adopt a
+legacy manual source under the same organization-then-Payment lock, retaining its authoritative cash evidence.
+Default-off unmanaged writers take sorted Payment-only locks and re-read provenance, scope and holds; a waited
+source that entered the reviewed workflow refuses with a retry instead of acquiring an organization lock afterward.
 
 **Manual refunds.** `preview#PaymentRefund` takes organization, original cash payment/revision, explicit amount/day,
 reason/reference, optional linked refund draft/revision, reviewed organization/counterparty methods and evidence.
@@ -1492,6 +1513,10 @@ refunded. Closed periods and unavailable mappings refuse without partial local m
 authorize/capture/release/refund/details entry point, including direct leaf services, order/invoice wrappers and poller
 selection. Exclude instruction parents from legacy payment posting/application SECAs. Guarding only the poller or a
 single high-level wrapper is insufficient. Existing unmanaged/default-off paths and tests retain their behavior.
+Legacy refund creation/linking and raw refund links cannot manufacture a local refund against a native-managed
+original. Legacy provider-capable instructions cannot be adopted while an old provider request may be in flight;
+check their original persisted instrument and methods before applying any caller edits. New native drafts remain
+eligible for the reviewed gateway workflow, and clean manual legacy sources retain reviewed adoption.
 
 **Acceptance.** Use valid same-payload treasury positives versus AR-only/read-only/edit-without-read/private/foreign
 negatives; stale source/method/binding/reservation and currency/scale/day/lock refusals; authorization60 with captures20
@@ -1532,3 +1557,121 @@ The coordinator/native integration interface is fixed before releasing the first
   actual amount/applied/unapplied/reserved/available totals. Instruction/provider amounts are labeled separately from
   posted cash. Recovery's recorded operation key is the financial-confirm key; an attempt's key is its original
   provider-operation key. Neither is guessed or replaced when reopening a result.
+
+### P5b2a build and acceptance
+
+Native implementation is Mantle `5c24c2fa`; the app implementation/acceptance commits are recorded after its final gate.
+Coordinator and independent reviewer accepted each native, shared-integration and application assignment after
+returned findings were corrected. New methods/configuration are audited and default off. Safe adapter provisioning,
+owner-bound action/recovery reviews, durable reserve/dispatch/evidence/complete stages, original credential snapshots,
+typed outcomes, exact lookup and atomic actual cash/output ownership are implemented. Authorization parents remain
+noncash. Legacy leaf/wrapper/poller entry and first adoption serialize on permanent admission fences. Common guards
+protect stored/candidate sources and accepted cash with flags off. No provider ancestor receives finalizer admission.
+
+Full standalone Mantle: 1,139 passed, the same four reproduced baseline failures, 17 skipped; 1,160 features/130 specs.
+All 65 new cases pass, including real concurrency, original caller rollback, authority loss, large retained evidence,
+credential-lock contention, interrupted lookup replay, unsafe legacy I/O and source/adoption races. Final safe
+identity/recovery DTO assertions pass after correcting unsupported test registration/ASI syntax; none were dropped.
+The earlier transient notification failure did not recur; final actual-worker cases pass without a manual publisher.
+
+Full BOSS: 1,162 passed, zero failed, five skipped; 1,167 features/112 specs. Unchanged Projects/Products/legacy flows,
+the actual transactional ClientBilling cleanup, 30 state/review/attempt QVT/TUI/HTML renders, selected choices outside
+search and role pairs pass. Final focused presentation gate passes 35/35. Browser acceptance passes 78/78 without
+skips: 72 route/dialog/role width/theme cases plus six real financial walks. Independent visual review accepted all
+route captures, 24 retained review/result variants and issued receipt. Actual phone geometry is 359 px client/scroll,
+with amounts/chip content visible; all 18 selected-attempt links have a valid single-rectangle center hit before the
+unchanged normal click. The empty state-effects grid is absent from gateway reviews, with real B1 effects retained.
+
+Changed XML parses and validates except the previously reproduced preferences box schema mismatch. Lint scans 1,124
+files/24,858 sites, zero parse failures and the same 121 flagged sites. Two isolated fresh Code assertions also
+reproduce at accepted B1 component commits, while both final full BOSS reruns pass all Code cases; no Git reset or
+Accounting baseline exception was added. F75–F77 retain their assigned P15/P21 work; F99/F107 are generic capture/click
+tooling work. The real held-manual-source reparent proof remains mandatory before P5b2b enables its cash-hold writer.
+
+### P5b2b bounded refund assignments
+
+The coordinator, native author, app author and independent reviewer reviewed these refinements before refund code.
+Release follows P5b2a acceptance/commits. Deliver manual refunds/shared funding first (P5b2b1), then provider refunds
+(P5b2b2), reviewing and committing each bounded delivery before P5b3 transfers. The execution checkpoint remains the
+end of P5, before P6.
+
+**Ownership and prerequisite contract.** The native author owns new `PaymentRefundEntities.xml`, its EECAs,
+`PaymentRefunds.js`/`PaymentRefundGuard.js`, native service declarations, bounded payment DTO/capability additions,
+refund/draft-choice reads, and standalone fixtures/specs. Provider extensions to GatewayWorkflow/Execution/Guard/
+Reservations and the explicit test adapter belong to the native author in P5b2b2. The app author owns PaymentDetail's
+refund dialogs/review/results, Refunds/Gateway contexts, GatewayTransactions refund presentation, `Payments.js`,
+`PaymentScreenServices.xml` and refund server/client specs. Dependent forms start after the native read/preview
+contract is approved. The coordinator retains common guards, original legacy writers/SECAs, grants/choices, other-tab
+transition includes, demo/central registries/docs and all execution/commits. The independent reviewer traces each
+success/refusal/rollback path and rendered output before coordinator acceptance.
+
+**Manual API and reads.** `preview#PaymentRefund` takes organization, original actual cash `paymentId`/`sourceVersion`,
+amount, explicit effective day, reason/reference, optional `refundPaymentId`/`refundSourceVersion`, payment instrument,
+reviewed organization/counterparty method IDs and versions, and selected evidence IDs/versions. The original ID never
+means the proposed refund child. `get#PaymentRefundPreview` reads owner-bound retained `previewKind='refund'`.
+`refund#ReviewedPayment` accepts only preview/fingerprint/operation key (at most 40 characters). Retain source/draft/
+method/funding/policy/evidence versions; current authority and exact retry precede stale checks.
+
+The preview uses `paymentSummary` for this action's actual amount, `refundSummary`, before/after/application effects,
+posting summary, separately authorized ledger preview, evidence, capabilities, blockers, expiry/status/key/results.
+Results retain original `paymentId`/`originalPaymentId`, actual `refundPaymentId`, exact payment application, actual
+amount/currency/SQL day, event and authorized GL/output identities. Every output owns the refund child. New refund
+records persist original/source/currency identity immediately for P20.
+
+`get#PaymentRefundSummary` and Treasury-only detail `refundSummary` return original actual cash, completed/held refund
+totals, original unapplied/reserved/available cash, provider refunded/refundable amounts where applicable, final
+refundable amount, currency/version/completeness/errors/reasons. Sum authoritative records rather than bounded
+`refundRows`. `canRefund` and `canGatewayRefund` are mutually exclusive. Malformed legacy refund cash/AP evidence is a
+named incomplete/refusal, never an invented zero balance. `find#PaymentRefundDrafts` returns scoped eligible opposing
+clean drafts before count/page plus selected rows, actual source revisions and masked labels. The coordinator's
+`reviewedRefundDrafts` choice preserves selected ID~sourceVersion tokens outside the search page.
+
+**Funding and immutable backing.** Cover incoming AR cash→outgoing customer refund and outgoing AP cash→incoming
+supplier refund. Logical finance side stays inherited; cash direction reverses. Cap actual original cash less completed
+and held refunds against current unapplied cash less every cash hold. Never double-count accepted-unposted provider
+money. Fully allocated cash first requires separately authorized legitimate B1 unapplication. No hidden invoice
+unapplication, legacy clamping refund controller or return-credit orchestration is introduced.
+
+Manual confirmation locks organization, sorted original/draft Payments, authoritative backing/applications/holds and
+current finance policy. A clean legacy manual source may adopt under the existing permanent provider-admission fence;
+provider-capable or previously dispatched legacy sources refuse. Do not backfill old SQL days. Verify complete actual
+cash GL/non-error/non-reversed evidence, source/draft/method revisions, currency/scale/parties, refund day at or after
+original actual GL day, current fiscal/typed locks, accounts/dimensions and evidence. An old closed source may fund a
+genuine open-day refund without rewriting old cash. Post exact opposite cash first, then exact refund→original payment
+application/reclassification with captured currency/SQL day, immutable `PaymentRefundRecord`, event and outputs in one
+transaction. Verify actual postings/accounts/DC/amounts/IDs; rollback leaves none of those local changes.
+
+Protect completed manual/provider refund identities and their exact funding APP at entity/common boundaries even with
+flags N: no raw amount→zero, reparent, deletion, source reversal or ordinary B1 unapply/void may make already-refunded
+funding reusable. B1 can still unapply unrelated invoice allocations on a partially refunded original. No refund
+reversal controller is invented in this delivery. Common financial admissions name only `refund#ReviewedPayment` and
+the existing provider finalizer; dispatch/lookup remain nonfinancial.
+
+**Provider identity and claims.** Refund action uses an actual completed capture cash child, deriving its immutable
+capture operation/reference/merchant/currency natively. Require explicit safe-adapter `originalCaptureOnly`, partial
+refund, idempotency, exact lookup and reviewed identity guarantees. No caller-selected provider reference, destination
+or current replacement credential may reroute it. Rotation/expiry of the original charging credential does not block
+a refund by the original capture reference or its exact lookup. Preserve original method IDs/versions as provenance;
+use operation-specific reference rules instead of B2a's active charging-method validation. Current Treasury/private/
+organization authority, funding and newly reviewed posting policy remain strict.
+
+A durable `PaymentRefundDraftClaim` keyed by an optional existing draft records held/released/consumed state. B1
+edit/state/delivery/cancel and manual refund check held claims, including before a gateway role exists. Provider reserve
+locks original/draft identities, retains immutable attempt `refundDraftPaymentId`, and atomically reserves provider and
+unapplied-cash capacity. Authoritative decline/nonexecution releases both holds and the claim; a new operation can
+claim a still-clean draft only after fresh revision review. Consumed claims never recycle. Pending/uncertain/
+quarantined/accepted-unposted retains all reservations and claims. Actual refund `cashPaymentId` is assigned once
+inside accepted local completion, with child use/creation, verified cash/AP/reclassification, claim/hold consumption,
+event/output and result in the same transaction. Rollback preserves held claims/holds and clean draft. Capture's
+existing preassigned cash identity rules remain unchanged.
+
+**Required proofs.** Same valid Treasury payload versus AR/read-only/edit-only/private/foreign refusals with artifact
+authz disabled; stale original/draft/method/funding/policy/currency/scale/day refusals; both cash directions and partial/
+multiple/linked drafts; exact retries and changed reuse; first-post rollback; real refund/refund and refund/native/raw/
+legacy application races; legacy adoption/fence refusal; fully allocated refusal then independently authorized unapply;
+flags-off immutable completed funding; held original reversal/destruction and old-unheld→new-held source reparent using
+the real hold writer. Provider proofs include per-capture ceilings, both holds/claims, decline draft reuse, timeout/
+mismatched identity quarantine, credential rotation/expiry positive versus reference/merchant/rerouting negatives,
+authority loss, exact lookup, accepted-unposted recovery and caller rollback without repeated external operation.
+App proofs cover actual refund child/output ownership, retained selected revisions/intent/results, safe missing/denied
+states, current roles, and light/dark 390/1280/1440 walks and visual review. No P6 work is included.

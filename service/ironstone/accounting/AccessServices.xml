@@ -59,6 +59,7 @@ along with this software (see the LICENSE.md file). If not, see
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
             <parameter name="choice" type="String" required="true"/>
+            <parameter name="action" type="String"/>
             <parameter name="term" type="String"/>
             <parameter name="selected" type="String"/>
             <parameter name="invoiceId" type="String"/>

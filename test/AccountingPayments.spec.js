@@ -496,7 +496,8 @@ feature("a completed payment owned by #user renders authorized posting reference
                 const rendered = renderer.render("apps/Accounting/Payments/PaymentDetail", parameters, null),
                     output = String(rendered.output || ""),
                     links = []
-                let postingGridPresent = false
+                let postingGridPresent = false,
+                    effectGridPresent = false
                 if (mode === "tui") {
                     const pending = [JSON.parse(output)]
                     while (pending.length) {
@@ -505,11 +506,13 @@ feature("a completed payment owned by #user renders authorized posting reference
                         else if (value && typeof value === "object") {
                             if (value.t === "link") links.push(value)
                             if (value.t === "formList" && value.name === "PaymentActualPostingResults") postingGridPresent = true
+                            if (value.t === "formList" && value.name === "PaymentStateEffects") effectGridPresent = true
                             pending.push(...Object.values(value).filter(item => item && typeof item === "object"))
                         }
                     }
                 } else {
                     postingGridPresent = /\bid="PaymentActualPostingResults[^"]*_table"/.test(output)
+                    effectGridPresent = /\bid="PaymentStateEffects[^"]*_table"/.test(output)
                     for (const match of output.matchAll(/<(a|m-link)\b([^>]*)>([\s\S]*?)<\/\1>/g)) {
                         const href = match[2].match(/\bhref="([^"]*)"/)
                         if (href)
@@ -526,6 +529,7 @@ feature("a completed payment owned by #user renders authorized posting reference
                     output,
                     links,
                     postingGridPresent,
+                    effectGridPresent,
                     errors: Array.from(rendered.errorMessages || []).concat(
                         output.match(/(?:Error rendering|Exception in render)[^\n<]*/g) || []
                     )
@@ -565,6 +569,8 @@ feature("a completed payment owned by #user renders authorized posting reference
                 page.output.includes("Issued files")
         )
         pages.every(page => page.postingGridPresent === expectLedger)
+        presented.effectRows.length > 0
+        pages.every(page => page.effectGridPresent === true)
         pages.every(page => expectedPostingIds.every(id => page.output.includes(id)))
         pages.every(page =>
             retained.results.outputRows.every(row => page.output.includes(row.fileName) && page.output.includes(row.outputId))

@@ -19,21 +19,26 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="previewId"/>
     <parameter name="previewKind"/>
     <parameter name="findJson"/>
+    <parameter name="gatewayFindJson"/>
     <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="savePaymentDraft" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="previewPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="confirmPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="previewPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="confirmPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+    <transition-include name="previewGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+    <transition-include name="confirmGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+    <transition-include name="confirmGatewayRecovery" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <actions>
         <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
         <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
         <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
         <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
         <set field="paymentReview" from="paymentContext.paymentReview || {results:{},effectRows:[],evidenceRows:[],applicationEffects:[],ledgerPreview:[],blockers:[]}"/>
         <set field="paymentId" from="paymentContext.paymentId || paymentId || recordId"/>
         <set field="findJson" from="paymentContext.findJson || ''"/>
+        <set field="gatewayFindJson" from="paymentContext.gatewayFindJson || ''"/>
     </actions>
     <widgets>
         <section-include name="PaymentUnavailable" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>

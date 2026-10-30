@@ -61,6 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="previewId" type="String"/>
             <parameter name="previewKind" type="String"/>
             <parameter name="findJson" type="String"/>
+            <parameter name="gatewayFindJson" type="String"/>
         </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId" type="String"/>
@@ -68,12 +69,53 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordId" type="String"/>
             <parameter name="recordFound" type="Boolean"/>
             <parameter name="findJson" type="String"/>
+            <parameter name="gatewayFindJson" type="String"/>
             <parameter name="financePayment" type="Map"/>
             <parameter name="paymentHeaderValue" type="Map"/>
             <parameter name="paymentReview" type="Map"/>
         </out-parameters>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').execute('detail', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="GatewayTransactionsContext" allow-remote="false">
+        <description>Combine scoped native gateway paging, provider labels and one authorized selected attempt with app navigation and completion-aware issued-file links.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentGatewayConfigId" type="String"/>
+            <parameter name="action" type="String"/>
+            <parameter name="outcome" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="attemptId" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentGatewayConfigId" type="String"/>
+            <parameter name="action" type="String"/>
+            <parameter name="outcome" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="attemptId" type="String"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="gatewayTransactions" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').execute('gatewayTransactions', context))</script>
         </actions>
     </service>
 </services>

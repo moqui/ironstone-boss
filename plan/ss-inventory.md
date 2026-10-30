@@ -164,8 +164,8 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | EditPayment | RefundPaymentForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | AuditLogList | Accounting/Payments/PaymentDetail |  |
 | EditPayment | EditPayment | Accounting/Payments/PaymentDetail |  |
-| EditPayment | GatewayAuthorizeForm | Accounting/Payments/PaymentDetail |  |
-| EditPayment | GatewayCaptureForm | Accounting/Payments/PaymentDetail |  |
+| EditPayment | GatewayAuthorizeForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewGatewayAuthorize (reviewed native replacement) |
+| EditPayment | GatewayCaptureForm | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewGatewayCapture (reviewed native replacement) |
 | EditPayment | GatewayRefundForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | SetRefundForForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | GatewayRefundForForm | Accounting/Payments/PaymentDetail |  |
@@ -177,7 +177,7 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | EditPayment | InvoiceGlaList | Accounting/Payments/PaymentDetail |  |
 | EditPayment | NewContentForm | Accounting/Payments/PaymentDetail |  |
 | EditPayment | UpdateContentForm | Accounting/Payments/PaymentDetail |  |
-| EditPayment | GatewayResponseList | Accounting/Payments/PaymentDetail |  |
+| EditPayment | GatewayResponseList | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#PaymentGatewayEvidence |
 | FindPayment | NewInPaymentForm | Accounting/Payments/Payments |  |
 | FindPayment | NewOutPaymentForm | Accounting/Payments/Payments | Accounting/QuickCreate/NewPayment#CreateDraft (draft only) |
 | FindPayment | PaymentList | Accounting/Payments/Payments | Accounting/Payments/Payments#Records |
@@ -625,7 +625,7 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | EditPaymentMethod | UpdateContentForm | Accounting/Banking/BankAccountDetail; Accounting/Settings/PaymentMethods |  |
 | EditPaymentMethod | UpdateBankAccountMutable | Accounting/Banking/BankAccountDetail; Accounting/Settings/PaymentMethods |  |
 | EditPaymentMethod | UpdatePaymentMethodMutable | Accounting/Banking/BankAccountDetail; Accounting/Settings/PaymentMethods |  |
-| PaymentGatewayResponses | GatewayResponseList | Accounting/Payments/GatewayTransactions |  |
+| PaymentGatewayResponses | GatewayResponseList | Accounting/Payments/GatewayTransactions | Accounting/Payments/GatewayTransactions#GatewayTransactionResults |
 | PaymentMethodChecks | CheckList | Accounting/Banking/BankAccountDetail; Accounting/Payables/PaymentRunDetail |  |
 | PaymentMethodFiles | GenerateNachaFile | Accounting/Banking/BankAccountDetail; Accounting/Payables/PaymentRunDetail |  |
 | PaymentMethodFiles | GeneratePosPayFile | Accounting/Banking/BankAccountDetail; Accounting/Payables/PaymentRunDetail |  |

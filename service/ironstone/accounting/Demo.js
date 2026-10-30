@@ -635,12 +635,187 @@ function paymentDocuments(currency) {
     }
 }
 
-function load() {
+function gatewaySetup(currency) {
+    const partyId = "BOSS_ACCT_PAY_CUSTOMER",
+        gatewayId = "BOSS_ACCT_GW_TEST",
+        orgMethodId = "BOSS_ACCT_GW_BANK",
+        customerMethodId = "BOSS_ACCT_GW_CUSTOMER_BANK",
+        [, glAccountId] = entryAccounts()
+    policy.call("update#mantle.ledger.config.PartyAcctgPreference", {
+        organizationPartyId,
+        paymentGatewayWorkflowEnabled: "Y"
+    })
+    createOnce(
+        "mantle.account.method.PaymentGatewayConfig",
+        {paymentGatewayConfigId: gatewayId},
+        {
+            description: "Demonstration reviewed gateway",
+            paymentGatewayTypeEnumId: "PgtTest",
+            reviewedOperationServiceName: "mantle.account.PaymentGatewayTestServices.invoke#ReviewedOperation",
+            reviewedLookupServiceName: "mantle.account.PaymentGatewayTestServices.lookup#ReviewedOperation",
+            reviewedAdapterVersion: "fixture-v1",
+            reviewedMerchantNamespace: "native-fixture/accounting-demo/" + organizationPartyId,
+            reviewedGuaranteesJson: JSON.stringify({
+                authorize: {enabled: true, idempotent: true, exactLookup: true, reviewedMethodSnapshot: true},
+                capture: {enabled: true, idempotent: true, exactLookup: true, partialCapture: true, reviewedMethodSnapshot: true},
+                release: {
+                    enabled: true,
+                    idempotent: true,
+                    exactLookup: true,
+                    releaseRemaining: true,
+                    reviewedMethodSnapshot: true
+                }
+            })
+        }
+    )
+    createOnce(
+        "mantle.account.method.PaymentGatewayOrganization",
+        {organizationPartyId, paymentGatewayConfigId: gatewayId},
+        {
+            fromDate: "1970-01-01T00:00:00Z",
+            isEnabled: "Y"
+        }
+    )
+    createOnce("mantle.account.payment.PaymentGatewayTestControl", {paymentGatewayConfigId: gatewayId}, {outcomesJson: "{}"})
+    for (const [paymentMethodId, ownerPartyId, accountNumber] of [
+        [orgMethodId, organizationPartyId, "000123456781"],
+        [customerMethodId, partyId, "000123456782"]
+    ]) {
+        createOnce(
+            "mantle.account.method.PaymentMethod",
+            {paymentMethodId},
+            {
+                ownerPartyId,
+                paymentMethodTypeEnumId: "PmtBankAccount",
+                currencyUomId: currency,
+                fromDate: "1970-01-01T00:00:00Z",
+                glAccountId,
+                description:
+                    ownerPartyId === organizationPartyId ? "Demonstration gateway bank" : "Demonstration gateway customer bank",
+                paymentGatewayConfigId: ownerPartyId === partyId ? gatewayId : null
+            }
+        )
+        createOnce(
+            "mantle.account.method.BankAccount",
+            {paymentMethodId},
+            {
+                bankName: "Demonstration gateway bank",
+                typeEnumId: "BatChecking",
+                routingNumber: "000000000",
+                accountNumber
+            }
+        )
+    }
+    return {complete: true}
+}
+
+function gatewayDrafts(currency) {
+    policy.probe("ironstone.accounting.DemoServices.load#AccountingGatewaySetup", {})
+    const errors = []
+    for (const suffix of ["DRAFT", "AUTHORIZED", "PARTIAL", "PENDING", "UNCERTAIN", "RECOVER"]) {
+        const paymentId = "BOSS_ACCT_GW_" + suffix
+        try {
+            policy.probe("ironstone.accounting.DemoServices.load#AccountingGatewayDraft", {paymentId, currencyUomId: currency})
+        } catch (error) {
+            ec.logger.error("Accounting gateway demonstration " + paymentId + ": " + error.message)
+            errors.push({paymentId, message: error.message})
+        }
+    }
+    return {complete: errors.length === 0, errors}
+}
+
+function gatewayDraft(parameters) {
+    const paymentId = parameters.paymentId,
+        currency = parameters.currencyUomId,
+        native = "mantle.account.PaymentServices.",
+        partyId = "BOSS_ACCT_PAY_CUSTOMER",
+        orgMethodId = "BOSS_ACCT_GW_BANK",
+        customerMethodId = "BOSS_ACCT_GW_CUSTOMER_BANK",
+        day = ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
+        at = ec.user.nowTimestamp
+    if (
+        !["DRAFT", "AUTHORIZED", "PARTIAL", "PENDING", "UNCERTAIN", "RECOVER"].some(
+            suffix => paymentId === "BOSS_ACCT_GW_" + suffix
+        )
+    )
+        throw new Error("Unknown gateway demonstration record")
+    // A fixed-ID clean manual draft is explicitly adopted through the same native service as the editor.
+    // Provider calls occur only after load commits, from normal user actions or server test fixtures.
+    createOnce(
+        "mantle.account.payment.Payment",
+        {paymentId},
+        {
+            fromPartyId: partyId,
+            toPartyId: organizationPartyId,
+            paymentTypeEnumId: "PtInvoicePayment",
+            paymentInstrumentEnumId: "PiCash",
+            amount: "60",
+            amountUomId: currency,
+            statusId: "PmntProposed",
+            effectiveDate: at,
+            accountingDate: day,
+            toPaymentMethodId: orgMethodId,
+            comments: "Demonstration provider instruction"
+        }
+    )
+    if (policy.one("mantle.account.payment.Payment", {paymentId}).lifecycleManaged === "Y") return {complete: true}
+    const versions = {}
+    for (const [role, id] of [
+        ["organization", orgMethodId],
+        ["counterparty", customerMethodId]
+    ]) {
+        const result = policy.call(native + "find#PaymentMethods", {
+                organizationPartyId,
+                partyId,
+                cashDirection: "incoming",
+                currencyUomId: currency,
+                effectiveDate: at,
+                methodRole: role,
+                selectedPaymentMethodIdList: [id],
+                pageSize: 1
+            }),
+            method = Array.from(result.selectedRows || []).find(row => row.paymentMethodId === id)
+        if (!method) throw new Error("The demonstration gateway method is unavailable: " + id)
+        versions[role + "MethodVersion"] = method.version
+    }
+    const detail = policy.call(native + "get#PaymentFinanceDetail", {organizationPartyId, paymentId})
+    policy.call(
+        native + "store#PaymentDraft",
+        Object.assign({}, versions, {
+            organizationPartyId,
+            paymentId,
+            sourceVersion: detail.sourceVersion,
+            cashDirection: "incoming",
+            partyId,
+            amount: "60",
+            currencyUomId: currency,
+            effectiveDate: at,
+            paymentInstrumentEnumId: "PiAch",
+            organizationPaymentMethodId: orgMethodId,
+            counterpartyPaymentMethodId: customerMethodId,
+            referenceNumber: paymentId,
+            comments: "Demonstration provider instruction",
+            operationKey: "demo-gw-draft-" + policy.hash(paymentId).slice(0, 20)
+        })
+    )
+    return {complete: true}
+}
+
+function asDemoAdministrator(operation) {
     if (ec.user.userId && !policy.capabilities().systemAdmin) throw new Error("Demo loading requires system administration")
     const loggedIn = !!ec.user.username
     if (!loggedIn) ec.user.internalLoginUser("john.doe")
     const authzDisabled = ec.artifactExecution.disableAuthz()
     try {
+        return operation()
+    } finally {
+        if (!authzDisabled) ec.artifactExecution.enableAuthz()
+        if (!loggedIn) ec.user.logoutUser()
+    }
+}
+
+function load() {
+    return asDemoAdministrator(() => {
         const currency = policy.preference(organizationPartyId).baseCurrencyUomId
         documents(currency)
         journalEntries(currency)
@@ -652,10 +827,22 @@ function load() {
         settlementDocuments(currency)
         paymentDocuments(currency)
         return {complete: true}
-    } finally {
-        if (!authzDisabled) ec.artifactExecution.enableAuthz()
-        if (!loggedIn) ec.user.logoutUser()
-    }
+    })
+}
+function loadGateway() {
+    return asDemoAdministrator(() => gatewayDrafts(policy.preference(organizationPartyId).baseCurrencyUomId))
+}
+function loadGatewaySetup() {
+    return asDemoAdministrator(() => gatewaySetup(policy.preference(organizationPartyId).baseCurrencyUomId))
+}
+function loadGatewayDraft(parameters) {
+    return asDemoAdministrator(() => gatewayDraft(parameters))
 }
 
-;({execute: () => load()})
+const operations = {load, loadGateway, loadGatewaySetup, loadGatewayDraft}
+;({
+    execute: (op, parameters) => {
+        if (!operations[op]) throw new Error("Unknown accounting demonstration operation " + op)
+        return operations[op](parameters)
+    }
+})

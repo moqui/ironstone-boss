@@ -63,17 +63,7 @@ function access(parameters) {
 }
 
 // A count or health read that fails is named as unavailable; the others still show.
-function probe(name, parameters) {
-    ec.message.pushErrors()
-    try {
-        const out = ec.service.sync().name(name).parameters(parameters).disableAuthz().requireNewTransaction(true).call()
-        if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
-        return out
-    } finally {
-        ec.message.clearErrors()
-        ec.message.popErrors()
-    }
-}
+const probe = policy.probe
 
 function summary(parameters) {
     const scope = access(parameters)
@@ -480,6 +470,28 @@ function paymentChoices(parameters, scope) {
             options.push({value: "unavailable:payments", label: "Some payment choices are unavailable", disable: true})
         return {options}
     }
+    if (parameters.choice === "paymentGatewayProviders") {
+        const result = policy.call(
+            native + "find#PaymentGatewayProviders",
+            Object.assign({}, request, {
+                text: parameters.term || null,
+                selectedIdList: chosen,
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        const options = []
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.paymentGatewayConfigId))
+                options.push({value: row.paymentGatewayConfigId, label: row.description || row.paymentGatewayConfigId})
+        if (result.complete === false)
+            options.push({
+                value: "unavailable:paymentGatewayProviders",
+                label: "Some provider choices are unavailable",
+                disable: true
+            })
+        return {options}
+    }
     const decode = ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js").reviewedToken,
         selections = chosen.map(token => ({token, ...decode(token, "reviewed item")}))
     let rows,
@@ -507,6 +519,25 @@ function paymentChoices(parameters, scope) {
         idField = "paymentMethodId"
         label = row => row.label || row.description || row.typeDescription || row.paymentMethodId
         incomplete = result.incomplete || result.complete === false
+    } else if (parameters.choice === "reviewedPaymentGatewayBindings") {
+        const result = policy.call(
+            native + "find#PaymentGatewayBindings",
+            Object.assign({}, request, {
+                paymentId: parameters.paymentId,
+                action: parameters.action,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                selectedIdList: selections.map(item => item.id),
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        const project = row => Object.assign({}, row, {version: row.bindingVersion})
+        rows = Array.from(result.rows || []).map(project)
+        selectedRows = Array.from(result.selectedRows || []).map(project)
+        idField = "paymentGatewayConfigId"
+        label = row => row.description || row.paymentGatewayConfigId
+        incomplete = result.complete === false
     } else {
         const detail = policy.call(
             native + "get#PaymentFinanceDetail",
@@ -646,6 +677,8 @@ function choices(parameters) {
             "payments",
             "reviewedOrganizationPaymentMethods",
             "reviewedCounterpartyPaymentMethods",
+            "reviewedPaymentGatewayBindings",
+            "paymentGatewayProviders",
             "reviewedPaymentEvidence",
             "reviewedPaymentApplications"
         ].includes(parameters.choice)

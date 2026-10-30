@@ -219,6 +219,22 @@ Added in Accounting P4, called by built screens (financial authority remains nat
 | CollectionServices | get#StatementPreview |  | Accounting/Receivables/Statements; Accounting/Receivables/StatementPrint |
 | CollectionServices | send#Statements |  | Accounting/Receivables/Statements |
 
+Added in Accounting P5b2a, called by built screens. Reviewed native gateway services replace the older legacy
+gateway writer/poller design references; private reserve/dispatch/lookup/evidence stages are not screen calls.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| PaymentServices | find#PaymentGatewayBindings |  | Accounting/Payments/PaymentDetail (selected reviewed binding choices) |
+| PaymentServices | find#PaymentGatewayProviders |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | find#PaymentGatewayTransactions |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | get#PaymentGatewayAttempt |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | preview#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | get#PaymentGatewayActionPreview |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | execute#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | refresh#PaymentGatewayAttempt |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | preview#PaymentGatewayRecovery |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | complete#PaymentGatewayAttempt |  | Accounting/Payments/PaymentDetail |
+
 ## Facility (15 services)
 
 | Service XML | Service | Designed in | Implemented in |

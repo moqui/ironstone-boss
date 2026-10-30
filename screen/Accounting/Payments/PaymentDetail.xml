@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="previewId"/>
     <parameter name="previewKind"/>
     <parameter name="findJson"/>
+    <parameter name="gatewayFindJson"/>
     <transition name="choices" read-only="true">
         <actions>
             <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
@@ -99,16 +100,66 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
         <error-response url="."/>
     </transition>
+    <transition name="previewGatewayAction">
+        <actions>
+            <set field="previewKind" value="gatewayAction"/>
+            <script>gatewayInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').gatewayActionInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentGatewayAction" in-map="gatewayInput" out-map="gatewayPreview"/>
+            <set field="previewId" from="gatewayPreview.previewId"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
+            <parameter name="organizationPartyId"/>
+            <parameter name="paymentId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+            <parameter name="findJson"/>
+            <parameter name="gatewayFindJson"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="confirmGatewayAction">
+        <actions>
+            <set field="previewKind" value="gatewayAction"/>
+            <script>if (reviewed !== 'Y') throw new Error('Review the provider instruction, amount, evidence and posting effects before confirming')</script>
+            <service-call name="mantle.account.PaymentServices.execute#PaymentGatewayAction" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="gatewayActionResult"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
+            <parameter name="organizationPartyId"/>
+            <parameter name="paymentId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+            <parameter name="findJson"/>
+            <parameter name="gatewayFindJson"/>
+        </default-response>
+        <error-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway"/>
+    </transition>
+    <transition name="confirmGatewayRecovery">
+        <actions>
+            <set field="previewKind" value="gatewayRecovery"/>
+            <script>if (reviewed !== 'Y') throw new Error('Review the provider instruction, amount, evidence and posting effects before confirming')</script>
+            <service-call name="mantle.account.PaymentServices.complete#PaymentGatewayAttempt" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="gatewayRecoveryResult"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
+            <parameter name="organizationPartyId"/>
+            <parameter name="paymentId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+            <parameter name="findJson"/>
+            <parameter name="gatewayFindJson"/>
+        </default-response>
+        <error-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway"/>
+    </transition>
     <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
         <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
         <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
         <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
         <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
         <set field="paymentReview" from="paymentContext.paymentReview || {results:{},effectRows:[],evidenceRows:[],applicationEffects:[],ledgerPreview:[],blockers:[]}"/>
         <set field="paymentId" from="paymentContext.paymentId || paymentId || recordId"/>
         <set field="findJson" from="paymentContext.findJson || ''"/>
+        <set field="gatewayFindJson" from="paymentContext.gatewayFindJson || ''"/>
     </actions>
     <widgets>
         <section name="PaymentHeaderContent" condition="recordFound">
@@ -359,6 +410,342 @@ along with this software (see the LICENSE.md file). If not, see
                                     </form-single>
                                     <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
                                     <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <section name="GatewayAuthorizeHeaderAction" condition="!financePayment.hasReview &amp;&amp; financePayment.capabilities.canGatewayAuthorize">
+                            <widgets>
+                                <container-dialog id="GatewayAuthorizeDialog" button-text="Authorize payment" title="Authorize payment ${paymentId}" type="primary" width="760">
+                                    <form-single name="ReviewGatewayAuthorize" transition="previewGatewayAction" map="financePayment.gatewayActionValues?.authorize || {}">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'authorize'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="parentAttemptId" from="financePayment.gatewayActionValues?.authorize?.parentAttemptId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayFindJson" from="gatewayFindJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="amount">
+                                            <default-field title="Authorization amount">
+                                                <display currency-unit-field="currencyUomId"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="currencyUomId">
+                                            <default-field title="Currency">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="effectiveDate">
+                                            <default-field title="Accounting date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference (optional)">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayBindingToken">
+                                            <default-field title="Gateway (optional default)">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentGatewayBindings',organizationPartyId:organizationPartyId,paymentId:paymentId,action:'authorize',selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayAuthorize' ? ec.web.errorParameters.gatewayBindingToken : null)}">
+                                                        <depends-on field="effectiveDate"/>
+                                                    </dynamic-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,paymentId:paymentId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayAuthorize' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review gateway action"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="sourceVersion"/>
+                                            <field-ref name="action"/>
+                                            <field-ref name="parentAttemptId"/>
+                                            <field-ref name="findJson"/>
+                                            <field-ref name="gatewayFindJson"/>
+                                            <field-row>
+                                                <field-ref name="amount"/>
+                                                <field-ref name="currencyUomId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="effectiveDate"/>
+                                                <field-ref name="gatewayBindingToken"/>
+                                            </field-row>
+                                            <field-ref name="referenceNumber"/>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                            <field-ref name="submit"/>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Choose an approved gateway, or leave it blank to review the configured default." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting evidence is optional: up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <section name="GatewayCaptureHeaderAction" condition="!financePayment.hasReview &amp;&amp; financePayment.capabilities.canGatewayCapture">
+                            <widgets>
+                                <container-dialog id="GatewayCaptureDialog" button-text="Capture payment" title="Capture payment ${paymentId}" type="primary" width="760">
+                                    <form-single name="ReviewGatewayCapture" transition="previewGatewayAction" map="financePayment.gatewayActionValues?.capture || {}">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'capture'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="parentAttemptId" from="financePayment.gatewayActionValues?.capture?.parentAttemptId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayFindJson" from="gatewayFindJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="amount">
+                                            <default-field title="Capture amount">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="currencyUomId">
+                                            <default-field title="Currency">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="effectiveDate">
+                                            <default-field title="Accounting date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference (optional)">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayBindingToken">
+                                            <default-field title="Gateway (optional default)">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentGatewayBindings',organizationPartyId:organizationPartyId,paymentId:paymentId,action:'capture',selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayCapture' ? ec.web.errorParameters.gatewayBindingToken : null)}">
+                                                        <depends-on field="effectiveDate"/>
+                                                    </dynamic-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,paymentId:paymentId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayCapture' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review gateway action"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="sourceVersion"/>
+                                            <field-ref name="action"/>
+                                            <field-ref name="parentAttemptId"/>
+                                            <field-ref name="findJson"/>
+                                            <field-ref name="gatewayFindJson"/>
+                                            <field-row>
+                                                <field-ref name="amount"/>
+                                                <field-ref name="currencyUomId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="effectiveDate"/>
+                                                <field-ref name="gatewayBindingToken"/>
+                                            </field-row>
+                                            <field-ref name="referenceNumber"/>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                            <field-ref name="submit"/>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Choose an approved gateway, or leave it blank to review the configured default." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting evidence is optional: up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <section name="GatewayReleaseHeaderAction" condition="!financePayment.hasReview &amp;&amp; financePayment.capabilities.canGatewayRelease">
+                            <widgets>
+                                <container-dialog id="GatewayReleaseDialog" button-text="Release authorization" title="Release authorization ${paymentId}" type="danger" width="760">
+                                    <form-single name="ReviewGatewayRelease" transition="previewGatewayAction" map="financePayment.gatewayActionValues?.release || {}">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'release'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="parentAttemptId" from="financePayment.gatewayActionValues?.release?.parentAttemptId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayFindJson" from="gatewayFindJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="amount">
+                                            <default-field title="Remaining authorization">
+                                                <display currency-unit-field="currencyUomId"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="currencyUomId">
+                                            <default-field title="Currency">
+                                                <display/>
+                                            </default-field>
+                                        </field>
+                                        <field name="effectiveDate">
+                                            <default-field title="Accounting date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference (optional)">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="gatewayBindingToken">
+                                            <default-field title="Gateway (optional default)">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentGatewayBindings',organizationPartyId:organizationPartyId,paymentId:paymentId,action:'release',selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayRelease' ? ec.web.errorParameters.gatewayBindingToken : null)}">
+                                                        <depends-on field="effectiveDate"/>
+                                                    </dynamic-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,paymentId:paymentId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewGatewayRelease' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review gateway action"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="sourceVersion"/>
+                                            <field-ref name="action"/>
+                                            <field-ref name="parentAttemptId"/>
+                                            <field-ref name="findJson"/>
+                                            <field-ref name="gatewayFindJson"/>
+                                            <field-row>
+                                                <field-ref name="amount"/>
+                                                <field-ref name="currencyUomId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="effectiveDate"/>
+                                                <field-ref name="gatewayBindingToken"/>
+                                            </field-row>
+                                            <field-ref name="referenceNumber"/>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                            <field-ref name="submit"/>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Choose an approved gateway, or leave it blank to review the configured default." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting evidence is optional: up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
                                 </container-dialog>
                             </widgets>
                         </section>
@@ -658,45 +1045,114 @@ along with this software (see the LICENSE.md file). If not, see
         </section>
         <section name="PaymentRetainedReview" condition="recordFound &amp;&amp; financePayment.hasReview">
             <widgets>
-                <label text="Reviewed payment change" type="h6"/>
+                <label text="${paymentReview.isGateway ? (paymentReview.financialOnly ? 'Reviewed cash posting' : 'Reviewed gateway action') : 'Reviewed payment change'}" type="h6"/>
                 <container id="AccountingPaymentReviewSummary">
                     <label text="${paymentReview.paymentSummary?.partyName || ''} · ${paymentReview.paymentSummary?.cashDirection || ''}" type="p"/>
-                    <label text="Reviewed amount ${paymentReview.paymentSummary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.paymentSummary.amount),paymentReview.paymentSummary.currencyUomId) : 'Unavailable'} · ${paymentReview.paymentSummary?.currencyUomId || ''}" type="p"/>
+                    <label text="${paymentReview.isGateway ? 'Reviewed action amount' : 'Reviewed amount'} ${paymentReview.paymentSummary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.paymentSummary.amount),paymentReview.paymentSummary.currencyUomId) : 'Unavailable'} · ${paymentReview.paymentSummary?.currencyUomId || ''}" type="p"/>
+                    <label text="Authorized amount ${paymentReview.gatewaySummary?.instruction?.authorizedAmount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.gatewaySummary.instruction.authorizedAmount),paymentReview.gatewaySummary.instruction.currencyUomId || paymentReview.paymentSummary.currencyUomId) : ''} · ${paymentReview.gatewaySummary?.instruction?.currencyUomId || ''}" type="p" style="text-caption m-muted" condition="paymentReview.isGateway &amp;&amp; paymentReview.gatewaySummary?.instruction?.authorizedAmount != null"/>
                     <label text="Payment date ${paymentReview.paymentSummary?.accountingDateText || ''} · ${paymentReview.paymentSummary?.maskedMethodLabel || ''}" type="p"/>
                     <label text="${paymentReview.postingSummary?.effect || ''}" type="p"/>
                 </container>
                 <label text="The reviewed payment summary is unavailable. Return to the payment and prepare a new review." type="p" style="text-warning" condition="paymentReview.summaryUnavailable"/>
+                <label text="Gateway ${paymentReview.gatewaySummary?.description || paymentReview.gatewaySummary?.paymentGatewayConfigId || ''}" type="p" condition="paymentReview.isGateway"/>
                 <label text="Reference ${paymentReview.referenceNumber || ''}" type="p"/>
                 <label text="Reason ${paymentReview.reason || ''}" type="p"/>
                 <label text="Review ${paymentReview.previewId} · Expires ${paymentReview.expiresDateText || ''}" type="p" style="text-caption m-muted"/>
                 <label text="${paymentReview.action || ''} · Payment ${paymentId}" type="p"/>
                 <label text="Payment date ${paymentReview.effectiveDateText || ''} · Settlement date ${paymentReview.settlementDateText || ''}" type="p" style="text-caption m-muted"/>
-                <form-list name="PaymentStateEffects" list="paymentReview.effectRows || []" skip-form="true" paginate="false">
-                    <field name="label">
-                        <default-field title="Change">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="beforeText">
-                        <default-field title="Before">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <field name="afterText">
-                        <default-field title="After">
-                            <display/>
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column>
-                            <field-ref name="label"/>
-                            <field-ref name="beforeText"/>
-                        </column>
-                        <column>
-                            <field-ref name="afterText"/>
-                        </column>
-                    </columns>
-                </form-list>
+                <section name="GatewayReviewedCapacitySection" condition="paymentReview.isGateway &amp;&amp; !!paymentReview.capacityEffectRows?.length">
+                    <widgets>
+                        <label text="Reviewed authorization capacity" type="h6"/>
+                        <label text="Planned values assume provider acceptance and completion of the reviewed cash posting." type="p" style="text-caption m-muted"/>
+                        <form-list name="GatewayReviewedCapacity" list="paymentReview.capacityEffectRows || []" skip-form="true" paginate="false">
+                            <field name="label">
+                                <default-field title="Capacity">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeAmount" align="right">
+                                <default-field title="Before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterAmount" align="right">
+                                <default-field title="Planned after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="label"/>
+                                </column>
+                                <column>
+                                    <field-ref name="beforeAmount"/>
+                                    <field-ref name="afterAmount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="GatewayReviewedReservationsSection" condition="paymentReview.isGateway &amp;&amp; !!paymentReview.reservationRows?.length">
+                    <widgets>
+                        <label text="Reviewed capacity reservation" type="h6"/>
+                        <form-list name="GatewayReviewedReservations" list="paymentReview.reservationRows || []" skip-form="true" paginate="false">
+                            <field name="sourceId">
+                                <default-field title="Source">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="holdKind">
+                                <default-field title="Reserved for">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="sourceId"/>
+                                    <field-ref name="holdKind"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentStateEffectsSection" condition="!!paymentReview.effectRows?.length">
+                    <widgets>
+                        <form-list name="PaymentStateEffects" list="paymentReview.effectRows || []" skip-form="true" paginate="false">
+                            <field name="label">
+                                <default-field title="Change">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeText">
+                                <default-field title="Before">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="afterText">
+                                <default-field title="After">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="label"/>
+                                    <field-ref name="beforeText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="afterText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
                 <section name="PaymentReviewEvidenceSection" condition="!!paymentReview.evidenceRows?.length">
                     <widgets>
                         <form-list name="PaymentReviewEvidence" list="paymentReview.evidenceRows || []" skip-form="true" paginate="false">
@@ -964,8 +1420,119 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </widgets>
                 </section>
-                <label text="Completed results" type="h6" condition="!!paymentReview.results.paymentId"/>
-                <label text="${paymentReview.resultsTitle}" type="p" style="text-positive" condition="!!paymentReview.results.paymentId"/>
+                <section name="ConfirmGatewayActionSection" condition="paymentReview.canConfirm &amp;&amp; paymentReview.previewKind === 'gatewayAction'">
+                    <widgets>
+                        <form-single name="ConfirmGatewayAction" transition="confirmGatewayAction">
+                            <field name="findJson" from="findJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="gatewayFindJson" from="gatewayFindJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="paymentId" from="paymentId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewId" from="paymentReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint" from="paymentReview.inputFingerprint">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey" from="paymentReview.operationKey">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="reviewed">
+                                <default-field title="">
+                                    <check>
+                                        <option key="Y" text="I reviewed the provider instruction, amount, evidence and cash posting effects"/>
+                                    </check>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <conditional-field condition="paymentReview.action === 'release'" title="">
+                                    <submit text="Confirm gateway action" type="danger" confirmation="Release the reviewed remaining authorization for payment ${paymentId}?"/>
+                                </conditional-field>
+                                <default-field title="">
+                                    <submit text="Confirm gateway action" confirmation="Confirm the reviewed gateway action for payment ${paymentId}?"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <section name="ConfirmGatewayRecoverySection" condition="paymentReview.canConfirm &amp;&amp; paymentReview.previewKind === 'gatewayRecovery'">
+                    <widgets>
+                        <form-single name="ConfirmGatewayRecovery" transition="confirmGatewayRecovery">
+                            <field name="findJson" from="findJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="gatewayFindJson" from="gatewayFindJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="paymentId" from="paymentId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewId" from="paymentReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint" from="paymentReview.inputFingerprint">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey" from="paymentReview.operationKey">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="reviewed">
+                                <default-field title="">
+                                    <check>
+                                        <option key="Y" text="I reviewed the accepted provider operation and local cash posting"/>
+                                    </check>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Complete cash posting" confirmation="Confirm the reviewed cash posting for payment ${paymentId}?"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <label text="Completed results" type="h6" condition="paymentReview.isGateway ? paymentReview.financialCompleted : !!paymentReview.results.paymentId"/>
+                <label text="Recorded provider outcome" type="h6" condition="paymentReview.isGateway &amp;&amp; paymentReview.hasResults &amp;&amp; !paymentReview.financialCompleted"/>
+                <label text="${paymentReview.providerStateText || ''} · ${paymentReview.financialStateText || ''}" type="p" condition="paymentReview.isGateway &amp;&amp; paymentReview.hasResults"/>
+                <label text="${paymentReview.resultsTitle}" type="p" style="text-positive" condition="paymentReview.isGateway ? paymentReview.financialCompleted : !!paymentReview.results.paymentId"/>
                 <section name="PaymentChangeResultsSection" condition="!!paymentReview.resultRows?.length">
                     <widgets>
                         <form-list name="PaymentChangeResults" list="paymentReview.resultRows || []" skip-form="true" paginate="false">
@@ -1016,6 +1583,31 @@ along with this software (see the LICENSE.md file). If not, see
                                 <column>
                                     <field-ref name="amountOriginallyApplied"/>
                                     <field-ref name="amountApplied"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="GatewayActualCashPaymentsSection" condition="paymentReview.isGateway &amp;&amp; !!paymentReview.actualPaymentRows?.length">
+                    <widgets>
+                        <label text="Actual cash payments" type="h6"/>
+                        <form-list name="GatewayActualCashPayments" list="paymentReview.actualPaymentRows || []" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <default-field title="Cash payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="recordParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="label">
+                                <default-field title="Recorded result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="label"/>
                                 </column>
                             </columns>
                         </form-list>
@@ -1078,10 +1670,15 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                     </widgets>
                 </section>
+                <link url="${sharedLinks['Payments/GatewayTransactions']}" text="Inspect provider attempt" parameter-map="paymentReview.gatewayAttemptParameters" condition="paymentReview.isGateway &amp;&amp; paymentReview.hasResults"/>
+                <link url="confirmGatewayAction" text="Check saved gateway result" link-type="hidden-form" parameter-map="Object.assign({},paymentReview.confirmParameters,{reviewed:'Y'})" condition="paymentReview.hasResults &amp;&amp; paymentReview.previewKind === 'gatewayAction'"/>
+                <link url="confirmGatewayRecovery" text="Check saved posting result" link-type="hidden-form" parameter-map="Object.assign({},paymentReview.confirmParameters,{reviewed:'Y'})" condition="paymentReview.hasResults &amp;&amp; paymentReview.previewKind === 'gatewayRecovery'"/>
                 <link url="confirmPaymentState" text="Check saved payment result" link-type="hidden-form" parameter-map="paymentReview.confirmParameters" condition="!!paymentReview.results.paymentId &amp;&amp; paymentReview.previewKind === 'state'"/>
                 <link url="confirmPaymentUnapply" text="Check saved correction result" link-type="hidden-form" parameter-map="paymentReview.confirmParameters" condition="!!paymentReview.results.paymentId &amp;&amp; paymentReview.previewKind === 'unapply'"/>
-                <label text="This review cannot be confirmed. Return to the payment to prepare a current review." type="p" style="m-muted" condition="!paymentReview.canConfirm &amp;&amp; !paymentReview.results.paymentId &amp;&amp; !paymentReview.summaryUnavailable"/>
-                <link url="." text="Back to payment" parameter-map="financePayment.baseParameters"/>
+                <label text="This review cannot be confirmed. Return to the payment to prepare a current review." type="p" style="m-muted" condition="!paymentReview.canConfirm &amp;&amp; !(paymentReview.isGateway ? paymentReview.hasResults : paymentReview.results.paymentId) &amp;&amp; !paymentReview.summaryUnavailable"/>
+                <link url="." text="Back to payment" parameter-map="financePayment.baseParameters" condition="!paymentReview.isGateway"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway" text="Back to gateway" parameter-map="financePayment.baseParameters" condition="paymentReview.isGateway"/>
+                <link url="${sharedLinks['Payments/GatewayTransactions']}" text="Back to gateway transactions" parameter-map="paymentReview.gatewayReturnParameters" condition="paymentReview.isGateway &amp;&amp; !!gatewayFindJson"/>
             </widgets>
         </section>
         <section name="PaymentUnavailable" condition="!recordFound">
@@ -1118,6 +1715,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="amount">
+                                <conditional-field condition="financePayment.isCash === false" title="Authorization amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </conditional-field>
                                 <default-field title="Amount">
                                     <display currency-unit-field="currencyUomId"/>
                                 </default-field>
@@ -1143,11 +1743,17 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="appliedTotal">
+                                <conditional-field condition="financePayment.isCash === false">
+                                    <ignored/>
+                                </conditional-field>
                                 <default-field title="Applied">
                                     <display currency-unit-field="currencyUomId"/>
                                 </default-field>
                             </field>
                             <field name="unappliedTotal">
+                                <conditional-field condition="financePayment.isCash === false">
+                                    <ignored/>
+                                </conditional-field>
                                 <default-field title="Unapplied">
                                     <display currency-unit-field="currencyUomId"/>
                                 </default-field>
@@ -1353,6 +1959,39 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <section name="PaymentGatewayContent" condition="recordFound">
                     <widgets>
+                        <section name="PaymentGatewayCapacitySection" condition="!!financePayment.gatewayInstruction?.instructionId">
+                            <widgets>
+                                <label text="Authorization capacity" type="h6"/>
+                                <label text="An authorization reserves capacity. Each accepted capture has its own cash payment." type="p" style="m-muted"/>
+                                <form-list name="PaymentGatewayCapacity" list="financePayment.gatewayCapacityRows || []" skip-form="true" paginate="false">
+                                    <field name="label">
+                                        <default-field title="Capacity">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="label"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </widgets>
+                        </section>
+                        <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway" text="Authorization instruction ${financePayment.authorizationPaymentId}" parameter-map="{organizationPartyId:organizationPartyId,paymentId:financePayment.authorizationPaymentId,recordId:financePayment.authorizationPaymentId,previewId:'',previewKind:''}" condition="!!financePayment.authorizationPaymentId"/>
+                        <link url="${sharedLinks['Payments/GatewayTransactions']}" text="Inspect gateway attempts" parameter-map="{organizationPartyId:organizationPartyId,paymentId:paymentId}" condition="financePayment.capabilities.canReadGateway"/>
+                        <section-iterate name="GatewayAvailabilityReasons" list="financePayment.gatewayReasonRows || []" entry="gatewayReason">
+                            <widgets>
+                                <label text="${gatewayReason.message}" type="p" style="m-muted"/>
+                            </widgets>
+                        </section-iterate>
                         <label text="Gateway evidence" type="h6"/>
                         <form-list name="PaymentGatewayEvidence" list="financePayment.gatewayRows || []" skip-form="true" paginate="false">
                             <field name="paymentGatewayResponseId">
@@ -1362,7 +2001,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="paymentOperationEnumId">
                                 <default-field title="Operation">
-                                    <display/>
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
                                 </default-field>
                             </field>
                             <field name="referenceNum">
@@ -1409,8 +2048,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 </column>
                             </columns>
                         </form-list>
-                        <label text="No gateway evidence is available for this payment." type="p" condition="!financePayment.gatewayRows.length"/>
-                        <label text="Gateway processing is unavailable here. Recorded provider evidence is read only." type="p" style="m-muted"/>
+                        <label text="No gateway evidence is available for this payment." type="p" condition="financePayment.capabilities.canReadGateway &amp;&amp; !financePayment.gatewayRows.length"/>
+                        <label text="Recorded provider responses are evidence. Use the reviewed gateway actions and attempt status to process this payment." type="p" style="m-muted" condition="financePayment.capabilities.canReadGateway"/>
+                        <label text="Gateway evidence requires treasury access." type="p" style="m-muted" condition="!financePayment.capabilities.canReadGateway"/>
                     </widgets>
                 </section>
                 <section name="PaymentRefundsContent" condition="recordFound">

@@ -12,23 +12,424 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- The invoices of the organization (template/AccountingDocuments.xml DocumentList). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Invoices" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoices" default-menu-index="1">
     <parameter name="organizationPartyId"/>
     <parameter name="text"/>
+    <parameter name="queue"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="statusId"/>
+    <parameter name="invoiceTypeEnumId"/>
+    <parameter name="fromDate"/>
+    <parameter name="thruDate"/>
+    <parameter name="dueFromDate"/>
+    <parameter name="dueThruDate"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="view"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition name="createReceivable">
+        <actions>
+            <service-call name="mantle.account.InvoiceServices.create#Receivable" in-map="context" out-map="created"/>
+            <set field="recordId" from="created.invoiceId"/>
+        </actions>
+        <default-response url="${sharedLinks['Receivables/InvoiceDetail']}">
+            <parameter name="recordId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="reviewSelection">
+        <actions>
+            <script>invoiceIdList = Array.isArray(invoiceIdList) ? invoiceIdList : String(invoiceIdList || '').split(',').filter(Boolean)</script>
+        </actions>
+        <default-response url="${sharedLinks['Receivables/InvoiceBatch']}">
+            <parameter name="invoiceIdList"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="batchAction"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="documentKind" value="invoices"/>
-        <set field="documentLabel" value="invoice"/>
-        <set field="listTitle" value="Invoices"/>
-        <set field="detailPath" value="Receivables/InvoiceDetail"/>
-        <set field="newPath" value="QuickCreate/NewInvoice"/>
-        <set field="canCreate" from="!!accounting.capabilities.arEdit"/>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:documentKind,organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <set field="records" from="[]"/>
+        <set field="calendarRows" from="[]"/>
+        <set field="queueTabs" from="[]"/>
+        <set field="summaryGroups" from="[]"/>
+        <set field="summaryErrors" from="[]"/>
+        <set field="summaryComplete" from="false"/>
+        <set field="view" from="view || 'list'"/>
+        <if condition="organizationPartyId">
+            <service-call name="ironstone.accounting.ReceivableServices.find#Invoices" in-map="context" out-map="context"/>
+        </if>
     </actions>
     <widgets>
-        <section-include name="DocumentList" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <label text="Choose an organization to review invoices." type="p" condition="!organizationPartyId"/>
+        <section name="OrganizationChosen" condition="organizationPartyId">
+            <widgets>
+                <container style="row items-center justify-between q-mb-md">
+                    <label text="Invoices" type="h5"/>
+                    <container-dialog id="CreateReceivable" button-text="New invoice" title="New receivable" width="720" type="primary" condition="accounting.capabilities.arEdit">
+                        <form-single name="CreateReceivable" transition="createReceivable">
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="customerPartyId">
+                                <default-field title="Customer">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="invoiceTypeEnumId">
+                                <default-field title="Document type">
+                                    <drop-down>
+                                        <option key="InvoiceSales" text="Customer invoice"/>
+                                        <option key="InvoiceCreditMemo" text="Customer credit"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="currencyUomId">
+                                <default-field title="Currency">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="invoiceDate">
+                                <default-field title="Invoice date">
+                                    <date-time type="date"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDate">
+                                <default-field title="Due">
+                                    <date-time type="date"/>
+                                </default-field>
+                            </field>
+                            <field name="settlementTermId">
+                                <default-field title="Payment terms">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="referenceNumber">
+                                <default-field title="Reference">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Create receivable"/>
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-ref name="organizationPartyId"/>
+                                <field-row>
+                                    <field-ref name="customerPartyId"/>
+                                    <field-ref name="invoiceTypeEnumId"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="currencyUomId"/>
+                                    <field-ref name="settlementTermId"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="invoiceDate"/>
+                                    <field-ref name="dueDate"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="referenceNumber"/>
+                                    <field-ref name="description"/>
+                                </field-row>
+                                <field-ref name="submit"/>
+                            </field-layout>
+                        </form-single>
+                    </container-dialog>
+                </container>
+                <container style="row q-gutter-xs q-mb-md">
+                    <section-iterate name="InvoiceQueues" list="queueTabs" entry="queueTab">
+                        <widgets>
+                            <link url="." text="${queueTab.title}" link-type="anchor-button" btn-type="default" style="${queueTab.active ? 'm-tonal text-primary' : ''}" parameter-map="queueTab.parameters"/>
+                        </widgets>
+                    </section-iterate>
+                </container>
+                <form-single name="InvoiceFind" transition="." map="context">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="queue" from="queue">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="text">
+                        <default-field title="Search">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="customerPartyId">
+                        <default-field title="Customer">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="statusId">
+                        <default-field title="Status">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceStatuses',organizationPartyId:organizationPartyId,selected:statusId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="invoiceTypeEnumId">
+                        <default-field title="Document type">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceTypes',organizationPartyId:organizationPartyId,selected:invoiceTypeEnumId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="From">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Through">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="dueFromDate">
+                        <default-field title="Due from">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="dueThruDate">
+                        <default-field title="Due through">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="view">
+                        <default-field title="View">
+                            <drop-down>
+                                <option key="list" text="List"/>
+                                <option key="calendar" text="Calendar"/>
+                                <option key="pivot" text="Pivot"/>
+                                <option key="graph" text="Graph"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Find invoices"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-ref name="organizationPartyId"/>
+                        <field-ref name="queue"/>
+                        <field-row>
+                            <field-ref name="text"/>
+                            <field-ref name="customerPartyId"/>
+                            <field-ref name="statusId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="invoiceTypeEnumId"/>
+                            <field-ref name="currencyUomId"/>
+                            <field-ref name="view"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fromDate"/>
+                            <field-ref name="thruDate"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="dueFromDate"/>
+                            <field-ref name="dueThruDate"/>
+                        </field-row>
+                        <field-row-big>
+                            <field-ref name="submit"/>
+                        </field-row-big>
+                    </field-layout>
+                </form-single>
+                <section name="InvoiceListView" condition="view === 'list'">
+                    <widgets>
+                        <form-list name="InvoiceList" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                            <row-selection id-field="invoiceId" parameter="invoiceIdList" list-mode="true" condition="accounting.capabilities.arEdit">
+                                <action>
+                                    <dialog button-text="Review selected invoices" title="Review selected invoices"/>
+                                    <form-single name="ReviewInvoiceSelection" transition="reviewSelection">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="batchAction">
+                                            <default-field title="Action">
+                                                <drop-down>
+                                                    <option key="send" text="Send"/>
+                                                    <option key="print" text="Print"/>
+                                                    <option key="export" text="Export"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review selected invoices"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </action>
+                            </row-selection>
+                            <field name="invoiceId">
+                                <header-field title="Invoice"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}" parameter-map="routeParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="customerName">
+                                <header-field title="Customer"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}" parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceDate">
+                                <header-field title="Date"/>
+                                <default-field>
+                                    <display text="${invoiceDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDate">
+                                <header-field title="Due"/>
+                                <default-field>
+                                    <display text="${dueDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceTotal" align="right">
+                                <header-field title="Total"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="appliedPayments" align="right">
+                                <header-field title="Paid"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unpaidTotal" align="right">
+                                <header-field title="Unpaid"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="statusDescription">
+                                <header-field title="Status"/>
+                                <default-field>
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-primary">${WebUtilities.encodeHtml(statusDescription)}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t:"text",text:statusDescription})}]]></text>
+                                        <text type="html">${statusDescription}</text>
+                                        <text type="html-print">${statusDescription}</text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="customerName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="unpaidTotal"/>
+                                    <field-ref name="statusDescription"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="InvoiceCalendarView" condition="view === 'calendar'">
+                    <widgets>
+                        <form-list name="InvoiceCalendar" list="calendarRows" skip-form="true" paginate="false" views="calendar">
+                            <field name="invoiceId">
+                                <header-field title="Invoice"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}" parameter-map="routeParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="customerName">
+                                <header-field title="Customer"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}" parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceDate">
+                                <header-field title="Date"/>
+                                <default-field>
+                                    <display text="${invoiceDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDate">
+                                <header-field title="Due"/>
+                                <default-field>
+                                    <display text="${dueDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceTotal" align="right">
+                                <header-field title="Total"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unpaidTotal" align="right">
+                                <header-field title="Unpaid"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="customerName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="unpaidTotal"/>
+                                </column>
+                            </columns>
+                            <view-calendar start-field="dueDay" all-day-field="dueAllDay" title-field="description" color-field="statusId" key-fields="invoiceId"/>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="InvoiceSummaryView" condition="view === 'pivot' || view === 'graph'">
+                    <widgets>
+                        <section-iterate name="ReceivableSummaryErrors" list="summaryErrors" entry="summaryError">
+                            <widgets>
+                                <label text="${summaryError.message || summaryError}" type="p" style="text-negative"/>
+                            </widgets>
+                        </section-iterate>
+                        <label text="The result is incomplete. Narrow the filters before using these totals." type="p" style="text-warning" condition="!summaryComplete"/>
+                        <section-iterate name="ReceivableCurrencySummaries" list="summaryGroups" entry="summaryGroup">
+                            <widgets>
+                                <report-panel id="ReceivableSummary_${summaryGroup.currencyUomId}" frame="summaryGroup.frame" panel="summaryGroup.panel"/>
+                            </widgets>
+                        </section-iterate>
+                        <label text="No invoices match these filters." type="p" condition="!summaryGroups.length"/>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
     </widgets>
 </screen>

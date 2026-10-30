@@ -1,8 +1,8 @@
-# Accounting P0–P3
+# Accounting implementation
 
 The Accounting app uses permission-derived native services in mr-mantle. BOSS owns its access context, routes,
 choices, Home and forms. It adds no financial pass-through service. Later workflow sections are hidden until their
-implemented destinations exist. The full invoice/bill/payment workflows remain P4–P5; close execution is P11,
+implemented destinations exist. Receivables P4 is implemented and reviewed; settlement and payment workflows remain P5; payable intake remains P6. Close execution is P11,
 activation P19, and foreign-currency posting/provider refresh P20.
 
 ## Routes and users
@@ -10,6 +10,7 @@ activation P19, and foreign-currency posting/provider refresh P20.
 | Area | Implemented destinations |
 | --- | --- |
 | Foundation | Home; Receivables/Invoices and InvoiceDetail; Payables/Bills and BillDetail; Payments/Payments and PaymentDetail; QuickCreate/NewInvoice, NewBill, NewPayment and NewEntry |
+| Receivables | Invoices list/calendar/pivot/graph; shared InvoiceDetail with ten tabs; BillingQueue; InvoiceBatch; Statements and retained StatementPrint; InvoicePrint; shared Customer360 Contact, Orders, Money, Agreements, FinanceDetails and Files |
 | Ledger | GeneralLedger/ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches and JournalTemplates |
 | Periods | PeriodClose/Periods and PeriodLocks |
 | Reports | Reports/Reports, TrialBalance and GeneralLedger |
@@ -48,6 +49,9 @@ unassigned expense account support the setup repair walk; the revaluation offset
 | SetupServices | Readiness, posted-basis protection, mapping validation/repair, clone conflict preview/concurrency, due terms and masked method metadata |
 | CurrencyServices | Explicit dated manual rates and independent CSV rows with persisted source/import results |
 | JournalContentServices | Authorized journal evidence upload and RecordFiles ownership |
+| InvoiceServices / InvoiceWorkflow | Authorized state changes and draft edits, native source billing, financial-side credit identity and application, currency refusal and complete bounded read models |
+| InvoiceDelivery / CollectionServices | Frozen PDFs and statements, authorized sender accounts, per-recipient durable results, duplicate suppression and exact operation retries |
+| CustomerFinanceServices | Organization-scoped customer context with explicit field projections and permission-gated, masked finance records |
 
 New financial services check permissions and organization scope even when artifact authorization is disabled.
 Journal previews expire after ten minutes; their fingerprints include authoritative source headers, transaction and
@@ -125,3 +129,47 @@ the client runner's snapshot key includes entity/data files and the binary, rath
 The existing remote-choice widget also retains selected values when parent forms rerender and a later search
 page omits the selected row. Dependency changes still clear the choice. QvtKeys has a real-browser regression
 for that contract (3/3 features passed); no new widget was introduced.
+
+## P4 integration contracts
+
+The native assignment owns InvoiceWorkflowEntities, InvoiceWorkflow/Lib, ApprovedTimeBilling, InvoiceDelivery,
+CustomerFinance, Statements, their service declarations/SECA and standalone specs. The application assignment owns
+ReceivableServices/Receivables, the receivables template, invoice/customer tabs and the phase's walks. The coordinator
+owns common policy/posting helpers, Projects adapters and shared mounts, grants, choices, demo fixtures and this
+record. The independent reviewer owns central route/access/render/screenshot coverage and AccountingBookDates.
+Each assignment and returned correction was inspected before coordinator acceptance. P4 gates are recorded in impl-accounting.md.
+
+`change#InvoiceState` takes organization/invoice, action, current stamp or source fingerprint, optional operation key
+and change reason. It re-reads under organization/invoice locks and returns state, stamp and source version. Issued
+source postings must succeed before finalization commits. Credit operations retain the original financial side and
+source revenue accounts even though legacy credit parties reverse. The Unpaid queue uses positive recorded balances
+before pagination. Draft updates invalidate approvals; self approval is explicit organization policy.
+
+`send#Invoice` takes the reviewed source identity, recipients and operation key. Its prepare transaction records
+intent and exact PDF before finalization; independent recipient transactions use the existing authorized mail
+client. Queued Outbox instructions retain one message identity. A repeated source/recipient is claimed once unless
+an authorized resend was requested. The existing store notice skips the manually prepared version. Projects keeps
+its project/client access boundary, template and detailed print; only its financial mutation calls move to Mantle.
+
+New invoice dates capture the creator's calendar day in SQL DATE accountingDate. Adopted original postings persist
+the same day at actual post, so summaries, single/bulk rebuilds, unpost/repost and reports agree across user zones.
+A later reversal captures its own effective day. No posted legacy transaction is backfilled on adoption, and the raw
+source timestamps are preserved. Legacy ledger input services cannot supply the derived accountingDate field.
+
+There is no InvoiceItemBudget entity in this Mantle checkout. The invoice Budget tab honestly identifies unavailable
+evidence until P15 adds commitments; existing payment budget allocations are not relabelled as invoice commitments.
+Fixtures include a separate finalized receivable, a store-backed draft and approved project time belonging to the
+Accounting organization. No mail or PDF is sent/generated while loading these fixtures.
+
+The send dialog offers explicit supporting-file choices carrying their reviewed content versions. Native preparation
+rechecks ownership/version/size under lock and archives exact bytes; the app never replaces a submitted version by
+a fresh discovery. Durable PDFs and supporting copies are outside the mutable Records invoice folder. InvoiceContent
+identity/removal/replacement guards and equivalent-URI checks apply independently of artifact authorization. The
+shared Files widget respects immutable rows and native per-side edit authority; ordinary live support can change
+without changing issued evidence. Issued documents remain readable through their content key.
+
+P4 final full gates: BOSS 1,110 passed/0 failed/5 skipped; standalone Mantle 901 passed/4 established baseline failures/
+17 skipped, including all 57 new native features. Final changed-surface browser and seven receivables walks 34/34;
+all route/width/theme screenshots and returned corrections were visually reviewed. Screen lint remains at 121 baseline
+flagged sites with zero parse failures. Output finishing items F76/F77 and the remaining P5–P21 phases stay explicit
+in the implementation plan.

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoices and payments" default-menu-index="3">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="appRoot"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="saveIdentification">
+        <actions>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="saveTaxRegistration">
+        <actions>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="saveCustomerBank">
+        <actions>
+            <script><![CDATA[
+const bankFields = {organizationPartyId:context.organizationPartyId, customerPartyId:context.customerPartyId,
+    paymentMethodId:context.paymentMethodId || null, bankName:context.bankName, description:context.description,
+    typeEnumId:context.typeEnumId || null, lastUpdatedStamp:context.lastUpdatedStamp || null,
+    fromDate:context.fromDate || null, thruDate:context.thruDate || null}
+if (context.accountNumber) bankFields.accountNumber = context.accountNumber
+if (context.routingNumber) bankFields.routingNumber = context.routingNumber
+financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.store#CustomerBankAccount').parameters(bankFields).call()
+]]></script>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <if condition="typeof customerDetail === 'undefined' || customerDetail === null">
+            <if condition="organizationPartyId">
+                <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext" in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}" out-map="context" transaction="force-new" ignore-error="true"/>
+            </if>
+            <set field="customerFound" from="typeof customerDetail !== 'undefined' &amp;&amp; !!customerDetail?.partyId"/>
+            <set field="customerDetail" from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="CustomerOrganizationPrompt" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="CustomerTabMoney" condition="customerFound">
+            <widgets>
+                <label text="Invoices and payments" type="h6"/>
+                <label text="The customer financial summary is unavailable because this result is incomplete. Open customer invoices to refine the selection." type="p" style="text-warning" condition="customerDetail.incomplete"/>
+                <link url="${sharedLinks['Receivables/Invoices']}" text="Open customer invoices" condition="customerDetail.incomplete" parameter-map="customerLinkParameters"/>
+                <section name="CustomerAgingAvailable" condition="customerDetail.summaryRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Receivables aging"/>
+                            <box-body>
+                                <form-list name="CustomerAgingSummary" list="customerDetail.summaryRows" skip-form="true" paginate="false">
+                                    <field name="currencyUomId">
+                                        <header-field title="Currency"/>
+                                        <default-field>
+                                            <display-entity entity-name="moqui.basic.Uom"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="current" align="right">
+                                        <header-field title="Current"/>
+                                        <default-field>
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="days1To30" align="right">
+                                        <header-field title="1–30 days"/>
+                                        <default-field>
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="days31To60" align="right">
+                                        <header-field title="31–60 days"/>
+                                        <default-field>
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="days61To90" align="right">
+                                        <header-field title="61–90 days"/>
+                                        <default-field>
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="over90" align="right">
+                                        <header-field title="Over 90 days"/>
+                                        <default-field>
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="currencyUomId"/>
+                                            <field-ref name="current"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="days1To30"/>
+                                            <field-ref name="days31To60"/>
+                                            <field-ref name="days61To90"/>
+                                            <field-ref name="over90"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container-box>
+                    <box-header title="Invoices"/>
+                    <box-body>
+                        <form-list name="CustomerInvoices" list="customerDetail.invoices" skip-form="true" paginate="false">
+                            <field name="invoiceId">
+                                <header-field title="Invoice"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}" parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDate">
+                                <header-field title="Due"/>
+                                <default-field>
+                                    <display text="${dueDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceTotal" align="right">
+                                <header-field title="Total"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unpaidTotal" align="right">
+                                <header-field title="Unpaid"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="statusId">
+                                <header-field title="Status"/>
+                                <default-field>
+                                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="dueDate"/>
+                                </column>
+                                <column>
+                                    <field-ref name="unpaidTotal"/>
+                                    <field-ref name="statusId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No invoices are linked to this customer and organization." type="p" style="m-muted" condition="!customerDetail.invoices.length"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Payments"/>
+                    <box-body>
+                        <form-list name="CustomerReceipts" list="customerDetail.payments" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <header-field title="Payment"/>
+                                <default-field>
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="effectiveDate">
+                                <header-field title="Date"/>
+                                <default-field>
+                                    <display text="${effectiveDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <header-field title="Amount"/>
+                                <default-field>
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="statusId">
+                                <header-field title="Status"/>
+                                <default-field>
+                                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="effectiveDate"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="statusId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No permitted receipts are linked to this customer and organization." type="p" style="m-muted" condition="!customerDetail.payments.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

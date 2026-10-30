@@ -15,5 +15,13 @@ along with this software (see the LICENSE.md file). If not, see
 <entity-facade-xml type="demo">
     <moqui.basic.Enumeration enumId="BOSS_ACCOUNTING_SERVICE_ITEM" enumTypeId="ItemType" description="Accounting service item"/>
     <mantle.ledger.account.GlAccount glAccountId="BOSS_ACCOUNTING_EXPENSE" accountCode="909900001" accountName="Accounting demo purchase expense" glAccountClassEnumId="EXPENSE" glAccountTypeEnumId="GatCogs" glResourceTypeEnumId="GlrtMoney" isDebit="Y" disallowPosting="N"/>
+    <!-- Demo delivery stays on a local sink. A deployment provisions its own server and account sharing. -->
+    <moqui.basic.email.EmailServer emailServerId="BOSS_ACCOUNTING_DEMO" smtpHost="127.0.0.1" smtpPort="9" smtpStartTls="N" smtpSsl="N"/>
+    <moqui.basic.email.EmailAccount emailAccountId="BOSS_ACCOUNTING_MAIL" ownerPartyId="ORG_ZIZI_CORP" accountKindEnumId="EakShared" emailServerId="BOSS_ACCOUNTING_DEMO" emailAddress="accounts@finance.example" accountName="Accounting demo mail" statusId="EasActive" recordFilingEnumId="ErfLinkedOnly"/>
+    <moqui.basic.email.EmailAccountUser emailAccountId="BOSS_ACCOUNTING_MAIL" userId="BOSS_ACCT_AR" fromDate="0" permissionEnumId="EapSend"/>
+    <moqui.basic.email.EmailAccountUser emailAccountId="BOSS_ACCOUNTING_MAIL" userId="BOSS_ACCT_ADMIN" fromDate="0" permissionEnumId="EapSend"/>
+    <moqui.basic.email.EmailAccountUser emailAccountId="BOSS_ACCOUNTING_MAIL" userId="EX_JOHN_DOE" fromDate="0" permissionEnumId="EapSend"/>
+    <moqui.basic.email.EmailAccount emailAccountId="BOSS_PROJECT_BILLING_MAIL" ownerPartyId="ORG_ZIZI_SERVICES" accountKindEnumId="EakShared" emailServerId="BOSS_ACCOUNTING_DEMO" emailAddress="billing@projects.example" accountName="Projects demo billing" statusId="EasActive" recordFilingEnumId="ErfLinkedOnly"/>
+    <moqui.basic.email.EmailAccountUser emailAccountId="BOSS_PROJECT_BILLING_MAIL" userId="EX_JOHN_DOE" fromDate="0" permissionEnumId="EapSend"/>
     <ironstone.accounting.DemoServices.load-AccountingDemo/>
 </entity-facade-xml>

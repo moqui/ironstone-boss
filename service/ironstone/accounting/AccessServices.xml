@@ -61,6 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="choice" type="String" required="true"/>
             <parameter name="term" type="String"/>
             <parameter name="selected" type="String"/>
+            <parameter name="invoiceId" type="String"/>
         </in-parameters>
         <out-parameters>
             <parameter name="options" type="List"/>

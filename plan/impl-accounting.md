@@ -208,7 +208,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P1 Foundation | Mantle, BOSS | root/menu, Home, minimal invoice/bill/payment lists and read-only details, draft quick create | built Oct 29; see build record below |
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
-| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | — |
+| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built and independently reviewed; verification record below |
 | P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | — |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
@@ -740,6 +740,8 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   `mantle.product.InventoryReportServices.run#StockTransactions` and `run#InventoryValuation` (P13).
   `ironstone.accounting.ReportServices` keeps the Reports catalog, its quick options, and the print and export
   shapes.
+  Date filters and drill-downs preserve the source's captured `accountingDate` when present, including documents
+  created and approved in different time zones; later applications and forward reversals retain their own dates.
 - **Screens** (design §13): Reports, the catalog with its quick options; BalanceSheet, IncomeStatement,
   CashFlow, RetainedEarnings, FinancialRatios, PartnerLedger, AccountBalance, PostedSummary and SalesAnalysis.
 - **Home complete:** every card and MyFinanceWork source of design §3.
@@ -985,6 +987,14 @@ design, it is written there too.
 | F68 | Review: a widget that fails renders its error into the output, not `errorMessages`, so the status-only Accounting specs passed broken pages; negative access helpers counted any error, including validation errors, as a refusal; a "reader sees no New batch" check named a button that did not exist | Specs check rendered text and render errors, pair negative cases with positive ones, and check controls present for the users who have them |
 | F69 | Review: the screens copied a 12-parameter block and 7-parameter responses, faked one page with about 60 hand-set page fields, duplicated invoice/bill/payment screens and PostingDefaults' Add and Edit forms, and loaded `Accounting.js` to format dates | `template/AccountingParts.xml` and `AccountingDocuments.xml`; services page their lists and return display text (`AccountingPolicy.display`), party and status names |
 | F70 | Review: the BOSS Accounting scripts and specs used Prettier's defaults rather than the documented style, and the screens a different XML formatter and a one-line license header | Reformatted; `.prettierrc.json` at the mr-moqui root; full headers restored |
+| F71 | P4: the installed generic `ItemSales` mapping points to a non-postable summary account; using it in the finalized demo caused the whole demo data file to roll back | Demo and consulting walks use the valid `ItemTimeEntry` mapping. P19 readiness must identify non-postable mappings explicitly; no global chart remapping is assumed |
+| F72 | P4: legacy customer credits reverse the parties, which made them appear payable and selected purchase-side expense accounts | Native guarded credits retain their financial side and original source account allocations; common lists, links and posting lock scopes use that side |
+| F73 | P4: an invoice timestamp near midnight displayed as different days to its creator and approver, changing the typed lock day | New invoices capture an audited SQL DATE `accountingDate` from the creator's chosen day. Adopted original postings persist that day; locks, summaries, rebuilds, unpost/repost, trial balance, ledger and issued output agree. A later effective reversal uses its own day. Existing posted legacy rows remain undated and retain their original timestamp semantics |
+| F74 | P4: QVT prepares form metadata even when a record's section is hidden; a null invoice context still dereferenced its currency | Detail and shared contexts normalize safe empty maps after computing record availability; unavailable records are covered in QVT and TUI |
+| F75 | P4 review: the design names invoice budget links, but this Mantle checkout has no InvoiceItemBudget entity or invoice-line budget keys; PaymentBudgetAllocation links payments only | Invoice Budget details reports unavailable evidence. P15 supplies the invoice commitment model; no fictitious link or financial writer is introduced in P4 |
+| F76 | P4 visual review: EntityAuditLog stores new SQL DATE accountingDate changes as epoch text, which the generic invoice History values display without formatting | P21 output finishing formats typed audit date values and status/user labels; source audit evidence remains unchanged |
+| F77 | P4 visual review: an unusually long invoice ID makes the 390px HTML print slightly wider than its viewport, and its Description heading can wrap mid-word | P21 output finishing refines narrow-screen print wrapping; the exported PDF and actual monetary values remain correct |
+| F78 | P4 review: generic Files removal and resource-only version replacement could mutate an issued archive even when its InvoiceContent row was guarded | Durable PDFs/supporting copies live outside mutable record folders. Native content invariants protect identity/removal and equivalent DbResource aliases before writes; generic Files respects immutable rows and native per-side edit authority |
 
 ## 7. Later
 
@@ -1097,3 +1107,57 @@ runtime excludes BOSS demo adoption settings; BOSS explicitly opts ORG_ZIZI_CORP
 No ADMIN exemption, closed-period permission or unrestricted rewrite authorization was added. Full standalone
 Mantle retains four pre-existing failures reproduced against archived commit b48e696c: InboxThreads, MantleSearch,
 WorkTimeEntries and WorkTimesheets. They are unrelated to the new finance controls.
+
+### Remaining-phase baseline
+
+Before P4 changes, the clean component heads were frozen and checked with the existing develop binary and Chromium
+on disposable databases. BOSS at `25478b4` reproduced 1,065 passed, zero failed and five skipped. Standalone Mantle at
+`f23f8de6` reproduced 844 passed, 17 skipped and exactly the four failures above. The standalone runtime excludes
+BOSS data and adoption settings. Subsequent phase results are compared to these baselines.
+
+P4 work is split between native Mantle workflows, BOSS screens and independent review. Shared access, routes,
+templates, demo data and test registries are integrated by the coordinator; no later phase starts before P4 passes
+its review and acceptance gates. The implementation decisions and verification are recorded when each phase closes.
+
+### P4 build and acceptance
+
+Implemented native guarded invoice states/draft editing, scoped receivables and customer contexts, currency refusal,
+linked credits with original revenue allocations, approved-time customer/worker billing, reviewed batches and
+currency-separated statement snapshots. Projects retains its labels, BOSS_PROJECT_INVOICE identity, time-detail
+print and client restrictions while financial writes use Mantle. The shared invoice/customer mounts include their
+record tabs and unavailable states. Current customer aging and latest received payments are included; historical
+Aging remains P10. Invoice budget evidence is honestly unavailable until P15 provides its model (F75).
+
+Invoice sends need no store. Authorized sender accounts, frozen PDFs, optional explicitly selected supporting files,
+per-recipient outcomes and queued mail identities are retained. Identical retries return stored results; changed
+requests and stale file versions refuse. The ordinary store notice skips the manually prepared version. Main PDFs
+and supporting copies are outside mutable Records folders; immutable invoice content and path checks prevent
+remove, replacement, restore and URI-alias attacks, including with artifact authorization disabled. Ordinary live
+supporting files remain versionable/removable without altering sent bytes. Supporting-file selection defaults empty,
+including Projects callers.
+
+Each assignment and its returned corrections was independently reviewed before coordinator acceptance. The native
+contract was reviewed before dependent app integration. The coordinator owns shared access/posting/calendar code,
+Projects adapters, mounts, grants, choices, fixtures, test registries and this record. Screen/service sources were
+frozen during browser runs. Compiler and incremental caches were reused; no Node test dependency or Rust rebuild
+was introduced.
+
+Verification on disposable databases with Chromium configured as described in the repository's testing guide:
+
+- Full BOSS: **1,110 passed, zero failed, five skipped** (1,115 features), including unchanged Projects/Products,
+  AppStructure, TuiRender, rendered content and the shared Files regressions.
+- Full standalone Mantle, excluding BOSS adoption data: **901 passed, exactly the four reproduced baseline failures,
+  17 skipped** (922 features). All 57 added P4 features pass. The legacy audit sequence/flow fixtures remain unchanged.
+- Focused shared Files/access/context regressions: **86 passed, zero failed, one existing optional skip**. Native
+  archive/delivery focus: **19/19**.
+- Accounting browser coverage includes all P4 destinations, modes and dialogs at 390/1280/1440, light/dark, plus AR,
+  approver and reader views. The six invoice-edit cases passed their corrected selector rerun; final affected-route
+  and all seven P4 walk checks passed **34/34** after attachment/archive integration. A further **9/9** verified actual
+  issued-file rows at all six width/theme variants plus prints. Screenshots were inspected by
+  coordinator and independent reviewer. Earlier full route inventories plus the affected reruns cover unchanged
+  ledger/settings walks and all new forms; no browser failure remains unresolved.
+- XML schemas/parsing and formatting checked. Separate screen lint report: **zero parse failures, 121 existing flagged
+  sites**, identical to the frozen baseline under the same compiler; no new lint site.
+
+Native implementation commit: `876732f6` (mr-mantle). BOSS implementation commit is recorded after the phase commit.
+P5–P21 remain subsequent deliveries; none is represented as implemented by this P4 acceptance.

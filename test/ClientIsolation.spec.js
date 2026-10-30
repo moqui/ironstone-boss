@@ -141,7 +141,7 @@ const REFUSED = ["Code/Compare", "Code/GitAccess", "Code/RepositoryDetail/Activi
     "Projects/EstimatePrint", "Projects/StatusReport", "Projects/ProjectDetail/Files", "Projects/ProjectDetail/Money",
     "Projects/ProjectDetail/Settings", "Projects/ProjectDetail/Team", "Projects/ProjectDetail/Plan/Calendar", "Projects/ProjectDetail/Plan/CalendarTui",
     "WorkItems/Backlog", "WorkItems/BacklogTui", "WorkItems/Import", "WorkItems/ImportProgress", "WorkItems/SprintDetail", "WorkItems/SprintReport",
-    "Shared/OrderDetail", "Shared/Product360", "Shared/Prices", "Shared/PriceLists", "Shared/PriceListDetail", "Shared/PriceExplain", "Shared/SupplierPrices", "Shared/Supplier360", "Shared/InventoryAvailability", "Shared/BillOfMaterialsDetail", "Shared/BillOfMaterialsExplosion", "Shared/BillOfMaterialsCompare", "Shared/WhereUsed", "Shared/RoutingDetail", "Shared/StandardCosts", "Shared/CostRollup", "Shared/CostHistory", "Shared/InventoryValuation", "Shared/Documents", "Shared/DocumentDetail", "Shared/CategoryContent", "Shared/Translations", "Shared/Units", "Shared/Packaging", "Shared/Labels", "Shared/IdentificationTypes", "Shared/CatalogChecks", "Shared/ProductImport"]
+    "Shared/OrderDetail", "Shared/Customer360", "Shared/Product360", "Shared/Prices", "Shared/PriceLists", "Shared/PriceListDetail", "Shared/PriceExplain", "Shared/SupplierPrices", "Shared/Supplier360", "Shared/InventoryAvailability", "Shared/BillOfMaterialsDetail", "Shared/BillOfMaterialsExplosion", "Shared/BillOfMaterialsCompare", "Shared/WhereUsed", "Shared/RoutingDetail", "Shared/StandardCosts", "Shared/CostRollup", "Shared/CostHistory", "Shared/InventoryValuation", "Shared/Documents", "Shared/DocumentDetail", "Shared/CategoryContent", "Shared/Translations", "Shared/Units", "Shared/Packaging", "Shared/Labels", "Shared/IdentificationTypes", "Shared/CatalogChecks", "Shared/ProductImport"]
 const refusedPath = (path) => REFUSED.some((prefix) => path === prefix || path.startsWith(prefix + "/"))
 
 spec({
@@ -309,6 +309,80 @@ feature("every screen file under Projects and in Shared is either one a client o
         opened >= 15
         refused >= 60
     },
+})
+
+feature("Accounting Customer360 is refused to Projects clients at its mount and shared root in #mode mounted=#mounted", {
+    where: [
+        {mode: "qvt", mounted: true},
+        {mode: "qvt", mounted: false},
+        {mode: "tui", mounted: true},
+        {mode: "tui", mounted: false}
+    ],
+    when({mode, mounted}) {
+        const accounting = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
+        const parameters = {
+            organizationPartyId: "ORG_ZIZI_CORP",
+            customerPartyId: "ORG_ACME",
+            appRoot: "Accounting",
+            lastStandalone: "true"
+        }
+        const renderCustomer = () => {
+            const disabled = ec.artifactExecution.authzDisabled()
+            // Shared roots inherit service grants through their mount; direct rendering exercises the native guard.
+            if (!mounted) ec.artifactExecution.disableAuthz()
+            try {
+                const nativeRefusal = mounted
+                    ? null
+                    : accounting.refusal("mantle.account.CustomerFinanceServices.get#CustomerFinance", parameters)
+                const renderer = ec.screen
+                    .makeTest()
+                    .rootScreen(mounted ? webroot : `${base}/Shared/Customer360.xml`)
+                    .renderMode(mode)
+                    .withStaticData()
+                const result = renderer.render(mounted ? "apps/Accounting/Receivables/Customer360" : "", parameters, null)
+                const output = String(result.output || "")
+                const errors = Array.from(result.errorMessages || []).join(" | ")
+                ec.message.clearErrors()
+                return {
+                    status: result.status,
+                    output,
+                    errors,
+                    nativeRefusal,
+                    refused:
+                        [401, 403].includes(result.status) ||
+                        /not authorized|Accounting access is required|Accounting read authority is required/i.test(
+                            errors + output
+                        )
+                }
+            } finally {
+                if (!mounted && !disabled) ec.artifactExecution.enableAuthz()
+            }
+        }
+        const sheldon = as(SHELDON, renderCustomer)
+        const gob = as(GOB, renderCustomer)
+        const authorized = accounting.asUser("finance.ar", renderCustomer, true)
+        return {mounted, sheldon, gob, authorized}
+    },
+    then({mounted, sheldon, gob, authorized}) {
+        if (mounted) {
+            sheldon.refused == true
+            gob.refused == true
+        } else {
+            sheldon.nativeRefusal.includes("PERMISSION_DENIED")
+            gob.nativeRefusal.includes("PERMISSION_DENIED")
+            authorized.nativeRefusal == ""
+            !sheldon.output.includes("BOSS_ACCT_AR_FINALIZED")
+            !gob.output.includes("BOSS_ACCT_AR_FINALIZED")
+            !sheldon.output.includes("$155.00")
+            !gob.output.includes("$155.00")
+        }
+        !sheldon.output.includes("billing.acme@test.com")
+        !gob.output.includes("billing.acme@test.com")
+        authorized.status == 200
+        authorized.errors == ""
+        authorized.output.includes("billing.acme@test.com")
+        !/Error rendering|Exception in render/.test(authorized.output)
+    }
 })
 
 feature("the lists show a client its own project, its shared items and its organization's requests, nothing of another client", {

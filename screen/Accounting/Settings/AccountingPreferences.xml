@@ -142,6 +142,22 @@ along with this software (see the LICENSE.md file). If not, see
                             </radio>
                         </default-field>
                     </field>
+                    <field name="singleCurrencyDocumentsOnly">
+                        <default-field title="Base currency documents" tooltip="Require invoices and bills to use the organization's base currency">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="invoiceApprovalRequired">
+                        <default-field title="Invoice approval" tooltip="Require a finance approver to approve an invoice before it is finalized or sent">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
                     <field name="inventoryRevaluationEnabled">
                         <default-field title="Inventory revaluation">
                             <radio>
@@ -177,6 +193,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-row>
                             <field-ref name="forwardIssuanceRepostEnabled"/>
                             <field-ref name="allowAccountingSelfApproval"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="singleCurrencyDocumentsOnly"/>
+                            <field-ref name="invoiceApprovalRequired"/>
                         </field-row>
                         <field-ref name="inventoryRevaluationEnabled"/>
                         <field-ref name="changeReason"/>

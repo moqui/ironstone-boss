@@ -1,52 +1,81 @@
-// Every Accounting screen renders in the browser and terminal using actual demo records.
+// Every Accounting route renders real fixtures, including shared mounts and reviewed statement snapshots.
 const root = "component://mr-boss/screen/Accounting.xml"
-const parameters = path =>
-    Object.assign(
-        {organizationPartyId: "ORG_ZIZI_CORP", lastStandalone: "-2"},
-        {
-            "Receivables/InvoiceDetail": {recordId: "BOSS_ACCT_INVOICE"},
-            "Payables/BillDetail": {recordId: "BOSS_ACCT_BILL"},
-            "Payments/PaymentDetail": {recordId: "BOSS_ACCT_PAYMENT"},
-            "GeneralLedger/JournalEntryDetail": {recordId: "BOSS_ACCT_ENTRY"}
-        }[path] || {}
-    )
+const helper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
+
 spec({
     setup() {
         login("john.doe")
         ec.artifactExecution.disableAuthz()
     }
 })
-feature("all implemented Accounting screens render in qvt and tui", {
+feature("all implemented Accounting screens render their fixture content in qvt and tui", {
     when() {
         const files = [],
             failures = []
+        const fixtures = helper.routeFixtures()
         ec.resource.getLocationReference(root).walkChildTree(files, null)
-        const account = ec.entity
-            .find("mantle.ledger.account.GlAccountAndOrganization")
-            .condition("organizationPartyId", "ORG_ZIZI_CORP")
-            .one()
-        for (const file of files) {
-            if (!file.location.endsWith(".xml") || file.path === "Accounting") continue
-            const path = file.path.substring("Accounting/".length)
+        const paths = new Set(
+            files
+                .filter(file => file.location.endsWith(".xml") && file.path !== "Accounting")
+                .map(file => file.path.substring("Accounting/".length))
+        )
+        // Shared Customer360 is mounted by screen location, so a filesystem walk alone misses it and its tabs.
+        for (const path of Object.keys(fixtures)) paths.add(path)
+        for (const path of paths) {
+            const fixture = fixtures[path]
             for (const mode of ["qvt", "tui"]) {
-                const p = parameters(path)
-                if (path === "GeneralLedger/AccountDetail") p.recordId = account.glAccountId
-                const rendered = ec.screen.makeTest().rootScreen(root).renderMode(mode).render(path, p, null)
-                // a widget that fails renders its error into the output, not into errorMessages
+                const renderer = ec.screen.makeTest().rootScreen(root).renderMode(mode)
+                if (mode === "qvt") renderer.withStaticData()
+                const rendered = renderer.render(
+                    path,
+                    Object.assign(
+                        {organizationPartyId: helper.ids.organizationPartyId, lastStandalone: "-2"},
+                        fixture?.parameters || {}
+                    ),
+                    null
+                )
+                const output = String(rendered.output || "")
                 if (
                     rendered.status !== 200 ||
                     rendered.errorMessages.length ||
-                    /Error rendering|Exception in render/.test(String(rendered.output))
+                    /Error rendering|Exception in render/.test(output)
                 )
                     failures.push(path + " " + mode + ": " + rendered.status + " " + rendered.errorMessages.join(" | "))
+                if (fixture && !output.includes(fixture.text))
+                    failures.push(path + " " + mode + ": no " + JSON.stringify(fixture.text))
+                if (fixture && /(?:Invoice|Customer) (?:not available|is unavailable)/.test(output))
+                    failures.push(path + " " + mode + ": fixture record is unavailable")
                 if (mode === "tui") {
                     try {
-                        JSON.parse(rendered.output)
+                        JSON.parse(output)
                     } catch (error) {
-                        failures.push(path + " invalid TUI JSON: " + String(rendered.output).slice(0, 100))
+                        failures.push(path + " invalid TUI JSON: " + output.slice(0, 100))
                     }
                 }
                 ec.message.clearErrors()
+            }
+        }
+        return {failures}
+    },
+    then({failures}) {
+        failures == []
+    }
+})
+
+feature("invoice and reviewed statement print outputs contain the actual finalized document", {
+    when() {
+        const fixtures = helper.routeFixtures()
+        const failures = []
+        for (const path of ["Receivables/InvoicePrint", "Receivables/StatementPrint"]) {
+            for (const mode of ["html", "html-print"]) {
+                const rendered = helper.page(path, fixtures[path].parameters, mode)
+                if (rendered.status !== 200 || rendered.errors.length || !rendered.output.includes(helper.ids.finalizedInvoiceId))
+                    failures.push(path + " " + mode + ": finalized invoice missing or render failed")
+                if (
+                    rendered.output.includes("Preview a statement before printing") ||
+                    rendered.output.includes("Invoice not available")
+                )
+                    failures.push(path + " " + mode + ": empty or unavailable print")
             }
         }
         return {failures}

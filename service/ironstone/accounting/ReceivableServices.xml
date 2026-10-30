@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="InvoiceContext" allow-remote="false">
+        <description>Read an authorized receivable with screen labels, eligible supporting-file metadata and retained delivery manifests; refuses an inaccessible document.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="receivable" type="Map"/>
+            <parameter name="recordFound" type="Boolean"/>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="invoiceHeaderValue" type="Map"/>
+            <parameter name="invoiceSendValue" type="Map"/>
+            <parameter name="invoiceOperationKey" type="String"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('invoiceContext', context))</script>
+        </actions>
+    </service>
+    <service verb="find" noun="Invoices" allow-remote="false">
+        <description>Page the authorized receivable queue with the same records and filters used by exports.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="view" type="String"/>
+            <parameter name="queue" type="String"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="invoiceTypeEnumId" type="String"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="dueFromDate" type="Timestamp"/>
+            <parameter name="dueThruDate" type="Timestamp"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="view" type="String"/>
+            <parameter name="calendarRows" type="List"/>
+            <parameter name="summaryGroups" type="List"/>
+            <parameter name="summaryErrors" type="List"/>
+            <parameter name="summaryComplete" type="Boolean"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="queue" type="String"/>
+            <parameter name="queueTabs" type="List"/>
+            <parameter name="invoiceListCapabilities" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('invoices', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="BillingQueue" allow-remote="false">
+        <description>Show approved unbilled work for finance without requiring the Projects launcher.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="direction" type="String"/>
+            <parameter name="workEffortId" type="String"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="throughDate" type="Timestamp"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="direction" type="String"/>
+            <parameter name="billingCanCreate" type="Boolean"/>
+            <parameter name="billingDirectionOptions" type="List"/>
+            <parameter name="billingRows" type="List"/>
+            <parameter name="billingRowsCount" type="Integer"/>
+            <parameter name="billingRowsPageSize" type="Integer"/>
+            <parameter name="billingRowsPageIndex" type="Integer"/>
+            <parameter name="billingRowsPageMaxIndex" type="Integer"/>
+            <parameter name="billingRowsPageRangeLow" type="Integer"/>
+            <parameter name="billingRowsPageRangeHigh" type="Integer"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="billingCapabilities" type="Map"/>
+            <parameter name="billingOperationKey" type="String"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('billingQueue', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="CustomerContext" allow-remote="false">
+        <description>Read an Accounting customer context; native services omit unauthorized finance details.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="customerPartyId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="customerDetail" type="Map"/>
+            <parameter name="customerFound" type="Boolean"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="customerLinkParameters" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('customerContext', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="InvoiceBatchContext" allow-remote="false">
+        <description>Review selected authorized invoices and identify unavailable rows before a bulk action.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="sourceVersions" type="Object"/>
+            <parameter name="invoiceIdList" type="Object"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="batchRows" type="List"/>
+            <parameter name="batchResults" type="List"/>
+            <parameter name="batchCsv" type="String"/>
+            <parameter name="sourceVersions" type="Map"/>
+            <parameter name="invoiceIdList" type="List"/>
+            <parameter name="batchOperationKey" type="String"/>
+            <parameter name="batchCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('batchContext', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="InvoiceBatchOutput" allow-remote="false">
+        <description>Read one stored PDF from the viewer's authorized reviewed invoice batch.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="fileLocation" type="String"/>
+            <parameter name="fileName" type="String"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').execute('batchOutput', context))</script>
+        </actions>
+    </service>
+</services>

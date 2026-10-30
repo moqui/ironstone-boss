@@ -12,17 +12,29 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- A invoice, read only until its workflow (template/AccountingDocuments.xml DocumentDetail). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Invoice" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice" default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
+    <parameter name="invoiceId"/>
+    <transition-include name="financeChangeStatus" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeSaveHeader" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeStoreItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeDeleteItem" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeSendInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeCreditInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeReverseInvoice" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="financeApplyCredit" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
-        <set field="documentKind" value="invoices"/>
-        <set field="documentLabel" value="invoice"/>
-        <set field="listPath" value="Receivables/Invoices"/>
-        <set field="listTitle" value="Invoices"/>
+        <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context" transaction="force-new" ignore-error="true"/>
+        <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
+        <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ? {lines:[],payments:[],sources:[],shipments:[],ledger:[],content:[],history:[],budgets:[],deliveries:[],deliveryRecipients:[],totals:{}} : receivable"/>
+        <set field="invoiceHeaderValue" from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
+        <set field="invoiceSendValue" from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+        <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>
     <widgets>
-        <section-include name="DocumentDetail" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="AccountingInvoiceDetail" location="component://mr-boss/screen/Shared/InvoiceDetail.xml"/>
     </widgets>
 </screen>

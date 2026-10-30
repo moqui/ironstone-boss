@@ -190,6 +190,35 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | InvoiceServices | create#MilestoneInvoiceItems |  | Projects/Billing/Unbilled; Projects/Billing/Unbilled/CreateInvoice; Projects/Projects/MilestoneDetail |
 | InvoiceServices | get#InvoiceTimeDetail | Shared/InvoiceDetail | Projects/Billing/InvoiceDetail; Projects/Billing/InvoicePrint |
 
+Added in Accounting P4, called by built screens (financial authority remains native). Older design writer names are superseded by these contracts; internal native-to-native primitives are not counted as new screen calls.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| InvoiceServices | change#InvoiceState |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | store#InvoiceDraft |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | store#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items |
+| InvoiceServices | delete#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items; Projects/Billing/InvoiceDetail |
+| InvoiceServices | get#InvoiceFinanceDetail |  | Accounting/Receivables/InvoiceDetail; Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | create#LinkedCreditMemo |  | Accounting/Receivables/InvoiceDetail |
+| InvoiceServices | reverse#DraftInvoice |  | Accounting/Receivables/InvoiceDetail |
+| InvoiceServices | apply#InvoiceCredit |  | Accounting/Receivables/InvoiceDetail/Payments |
+| InvoiceServices | find#Receivables |  | Accounting/Receivables/Invoices |
+| InvoiceServices | get#ReceivableSummary |  | Accounting/Receivables/Invoices |
+| InvoiceServices | create#Receivable |  | Accounting/Receivables/Invoices |
+| InvoiceServices | get#InvoiceOutput |  | Accounting/Receivables/InvoicePrint |
+| InvoiceServices | get#InvoiceDeliveryAttachments |  | Accounting/Receivables/InvoiceDetail (explicit supporting-file choices) |
+| InvoiceServices | send#Invoice |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | process#InvoiceBatch |  | Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | find#ApprovedTimeBilling |  | Accounting/Receivables/BillingQueue |
+| InvoiceServices | create#InvoiceFromApprovedTime |  | Accounting/Receivables/BillingQueue |
+| CustomerFinanceServices | get#CustomerFinance |  | Accounting/Receivables/Customer360 |
+| CustomerFinanceServices | store#CustomerIdentification |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CustomerFinanceServices | store#CustomerBankAccount |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CustomerFinanceServices | store#CustomerTaxRegistration |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CollectionServices | preview#Statements |  | Accounting/Receivables/Statements |
+| CollectionServices | get#StatementPreview |  | Accounting/Receivables/Statements; Accounting/Receivables/StatementPrint |
+| CollectionServices | send#Statements |  | Accounting/Receivables/Statements |
+
 ## Facility (15 services)
 
 | Service XML | Service | Designed in | Implemented in |

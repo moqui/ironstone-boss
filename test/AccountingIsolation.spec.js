@@ -2,6 +2,7 @@ const T = "mantle.ledger.transaction.AcctgTrans",
     INVOICE = "mantle.account.invoice.Invoice",
     PAYMENT = "mantle.account.payment.Payment"
 const invoke = (name, p = {}) => ec.service.sync().name(name).parameters(p).disableAuthz().call() || {}
+const accounting = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
 spec({
     setupSpec() {
         login("john.doe")
@@ -62,16 +63,7 @@ spec({
     }
 })
 function asReader(enabled, fn) {
-    login("finance.read")
-    if (enabled) ec.artifactExecution.enableAuthz()
-    else ec.artifactExecution.disableAuthz()
-    try {
-        return fn()
-    } finally {
-        ec.message.clearErrors()
-        ec.artifactExecution.disableAuthz()
-        login("john.doe")
-    }
+    return accounting.asUser("finance.read", fn, enabled)
 }
 // The message a call is refused with, or "" when it succeeds.
 function refusal(name, p) {
@@ -91,13 +83,25 @@ const refused = (name, p) => /not available|authority is required|not permitted|
 feature("Accounting isolates lists, exports, search, record links and files with authz #enabled", {
     where: [{enabled: true}, {enabled: false}],
     when({enabled}) {
-        // the file exists: the administrator reads its link info
-        const ownerSeesFile = refusal("mantle.party.CommunicationServices.get#RecordLinkInfo", {
-            recordEntityName: "mantle.ledger.transaction.AcctgTransContent",
-            recordId: "BOSS_ISO_FILE"
-        })
+        const content = ec.entity
+            .find("mantle.ledger.transaction.AcctgTransContent")
+            .condition("acctgTransContentId", "BOSS_ISO_FILE")
+            .disableAuthz()
+            .one()
+        const contentExists = content?.acctgTransId === "BOSS_ISO_ENTRY"
+        // The administrator selects the file's actual organization; the reader remains explicitly scoped to Corp.
+        const ownerSeesFile = accounting.asUser(
+            "john.doe",
+            () =>
+                refusal("mantle.party.CommunicationServices.get#RecordLinkInfo", {
+                    recordEntityName: "mantle.ledger.transaction.AcctgTransContent",
+                    recordId: "BOSS_ISO_FILE"
+                }),
+            enabled,
+            "BOSS_FIN_OUTSIDE"
+        )
         return Object.assign(
-            {ownerSeesFile},
+            {ownerSeesFile, contentExists},
             asReader(enabled, () => {
                 const checks = []
                 for (const [kind, id, type, entity, path] of [
@@ -150,7 +154,8 @@ feature("Accounting isolates lists, exports, search, record links and files with
             })
         )
     },
-    then({checks, files, reports, ownerSeesFile}) {
+    then({checks, files, reports, ownerSeesFile, contentExists}) {
+        contentExists == true
         checks.every(row => Object.values(row).every(Boolean))
         files.includes("not found") || files.includes("not available")
         ownerSeesFile == ""

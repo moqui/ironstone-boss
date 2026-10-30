@@ -337,38 +337,18 @@ spec({
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products", "Accounting"], (location) => !isPlaceholder(location))
-        // each Accounting page with a text it shows whatever the data, for the demo organization and records
-        for (const [path, text, recordId] of [
-            ["Home", "Shortcuts"],
-            ["Receivables/Invoices", "Invoices"],
-            ["Payables/Bills", "Bills"],
-            ["Payments/Payments", "Payments"],
-            ["GeneralLedger/ChartOfAccounts", "Chart of accounts"],
-            ["GeneralLedger/JournalEntries", "Journal entries"],
-            ["GeneralLedger/TransactionEntries", "Transaction entries"],
-            ["GeneralLedger/JournalBatches", "Journal batches"],
-            ["GeneralLedger/JournalTemplates", "Journal templates"],
-            ["PeriodClose/Periods", "Fiscal periods"],
-            ["PeriodClose/PeriodLocks", "Posting locks"],
-            ["Reports/TrialBalance", "Trial balance"],
-            ["Reports/GeneralLedger", "General ledger"],
-            ["Settings/Settings", "Accounting settings"],
-            ["Settings/AccountingPreferences", "Accounting preferences"],
-            ["Settings/PostingDefaults", "Posting defaults"],
-            ["Settings/PaymentTerms", "Payment terms"],
-            ["Settings/Currencies", "Currencies"],
-            ["Settings/PaymentMethods", "Payment methods"],
-            ["Settings/DocumentSettings", "Document settings"],
-            ["Receivables/InvoiceDetail", "Accounting demo customer invoice", "BOSS_ACCT_INVOICE"],
-            ["Payables/BillDetail", "Accounting demo supplier bill", "BOSS_ACCT_BILL"],
-            ["Payments/PaymentDetail", "Accounting demo proposed payment", "BOSS_ACCT_PAYMENT"],
-            ["GeneralLedger/JournalEntryDetail", "Office expense review", "BOSS_ACCT_ENTRY"],
-            ["GeneralLedger/AccountDetail", "Open account ledger", "111100000"]
-        ])
-            demoRecords["Accounting/" + path] = {
-                text,
-                parameters: Object.assign({organizationPartyId: "ORG_ZIZI_CORP"}, recordId ? {recordId} : {})
+        const accountingFixtures = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js").routeFixtures()
+        for (const [path, fixture] of Object.entries(accountingFixtures)) {
+            demoRecords["Accounting/" + path] = fixture
+            if (path.startsWith("Receivables/Customer360")) {
+                const tab = path.substring("Receivables/Customer360".length)
+                screens.push([`${base}/Accounting.xml`, path, `${base}/Shared/Customer360${tab}.xml`])
             }
+        }
+        // A direct shared-root render selects its default Contact leaf; the Accounting mount separately checks the header.
+        demoRecords["Shared/Customer360/"] = Object.assign({}, accountingFixtures["Receivables/Customer360/Contact"], {
+            text: "billing.acme@test.com"
+        })
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path, `${base}/Shared/Product360/${tab}.xml`])

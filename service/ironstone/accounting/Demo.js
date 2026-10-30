@@ -8,7 +8,12 @@ function createOnce(entity, key, values) {
 }
 
 function documents(currency) {
-    const common = {statusId: "InvoiceInProcess", currencyUomId: currency, invoiceDate: ec.user.nowTimestamp}
+    const common = {
+        statusId: "InvoiceInProcess",
+        currencyUomId: currency,
+        invoiceDate: ec.user.nowTimestamp,
+        accountingDate: ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
+    }
     createOnce(
         "mantle.account.invoice.Invoice",
         {invoiceId: "BOSS_ACCT_INVOICE"},
@@ -23,6 +28,18 @@ function documents(currency) {
             description: "Accounting demo supplier bill"
         })
     )
+    createOnce("mantle.party.PartyRole", {partyId: "ORG_ACME", roleTypeId: "Customer"}, {})
+    for (const invoiceId of ["BOSS_ACCT_INVOICE", "BOSS_ACCT_BILL"]) {
+        if (policy.one("mantle.account.invoice.InvoiceItem", {invoiceId, invoiceItemSeqId: "00001"})) continue
+        policy.call("mantle.account.InvoiceServices.create#InvoiceItem", {
+            invoiceId,
+            invoiceItemSeqId: "00001",
+            itemTypeEnumId: "ItemTimeEntry",
+            description: "Accounting demo services",
+            quantity: "1",
+            amount: ec.l10n.roundCurrency(toDecimal("125"), currency)
+        })
+    }
     createOnce(
         "mantle.account.payment.Payment",
         {paymentId: "BOSS_ACCT_PAYMENT"},
@@ -109,7 +126,8 @@ function configuration() {
         organizationPartyId,
         postingGuardEnabled: "Y",
         requiredLedgerDimensionsEnabled: "Y",
-        forwardIssuanceRepostEnabled: "Y"
+        forwardIssuanceRepostEnabled: "Y",
+        singleCurrencyDocumentsOnly: "Y"
     })
     createOnce(
         "mantle.ledger.account.GlAccountOrganization",
@@ -134,6 +152,181 @@ function configuration() {
         )
 }
 
+function finalizedReceivable(currency) {
+    const invoiceId = "BOSS_ACCT_AR_FINALIZED"
+    createOnce(
+        "mantle.account.invoice.Invoice",
+        {invoiceId},
+        {
+            invoiceTypeEnumId: "InvoiceSales",
+            statusId: "InvoiceInProcess",
+            fromPartyId: organizationPartyId,
+            toPartyId: "ORG_ACME",
+            invoiceDate: ec.user.nowTimestamp,
+            accountingDate: ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
+            currencyUomId: currency,
+            description: "Customer services invoice",
+            draftedByUserId: ec.user.userId
+        }
+    )
+    if (!policy.one("mantle.account.invoice.InvoiceItem", {invoiceId, invoiceItemSeqId: "00001"}))
+        policy.call("mantle.account.InvoiceServices.create#InvoiceItem", {
+            invoiceId,
+            invoiceItemSeqId: "00001",
+            itemTypeEnumId: "ItemTimeEntry",
+            quantity: "1",
+            amount: ec.l10n.roundCurrency(toDecimal("125"), currency),
+            description: "Customer services"
+        })
+    const invoice = policy.one("mantle.account.invoice.Invoice", {invoiceId})
+    if (invoice.statusId === "InvoiceInProcess")
+        policy.call("mantle.account.InvoiceServices.change#InvoiceState", {
+            invoiceId,
+            organizationPartyId,
+            action: "finalize",
+            lastUpdatedStamp: invoice.lastUpdatedStamp,
+            operationKey: "BOSS_ACCT_DEMO_AR_FINAL",
+            changeReason: "Accounting demo invoice posting"
+        })
+}
+
+function storeReceivable(currency) {
+    const productStoreId = "BOSS_ACCT_STORE"
+    const invoiceId = "BOSS_ACCT_STORE_DRAFT"
+    createOnce(
+        "mantle.product.store.ProductStore",
+        {productStoreId},
+        {
+            storeName: "Accounting consulting store",
+            organizationPartyId
+        }
+    )
+    createOnce(
+        "moqui.basic.email.EmailTemplate",
+        {emailTemplateId: "BOSS_ACCT_STORE_NOTICE"},
+        {
+            emailServerId: "BOSS_ACCOUNTING_DEMO",
+            fromAddress: "accounting@example.test",
+            subject: "Store invoice finalized",
+            bodyScreenLocation: "component://framework/screen/ScreenRenderEmail.xml"
+        }
+    )
+    createOnce(
+        "mantle.product.store.ProductStoreEmail",
+        {productStoreId, emailTypeEnumId: "PsetInvoiceFinalized", fromDate: "1970-01-01T00:00:00Z"},
+        {
+            emailTemplateId: "BOSS_ACCT_STORE_NOTICE"
+        }
+    )
+    if (
+        !policy
+            .find("mantle.party.contact.PartyContactMechInfo", {partyId: "ORG_ACME", contactMechPurposeId: "EmailBilling"})
+            .conditionDate("fromDate", "thruDate", null)
+            .count()
+    )
+        policy.call("mantle.party.ContactServices.create#EmailAddress", {
+            partyId: "ORG_ACME",
+            emailAddress: "accounting.customer@example.test",
+            contactMechPurposeId: "EmailBilling"
+        })
+    createOnce(
+        "mantle.account.invoice.Invoice",
+        {invoiceId},
+        {
+            invoiceTypeEnumId: "InvoiceSales",
+            statusId: "InvoiceInProcess",
+            fromPartyId: organizationPartyId,
+            toPartyId: "ORG_ACME",
+            invoiceDate: ec.user.nowTimestamp,
+            accountingDate: ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
+            currencyUomId: currency,
+            productStoreId,
+            description: "Store customer services",
+            draftedByUserId: ec.user.userId
+        }
+    )
+    if (!policy.one("mantle.account.invoice.InvoiceItem", {invoiceId, invoiceItemSeqId: "00001"}))
+        policy.call("mantle.account.InvoiceServices.create#InvoiceItem", {
+            invoiceId,
+            invoiceItemSeqId: "00001",
+            itemTypeEnumId: "ItemTimeEntry",
+            quantity: "1",
+            amount: ec.l10n.roundCurrency(toDecimal("35"), currency),
+            description: "Store consulting"
+        })
+}
+
+function receivableSupport() {
+    const invoiceId = "BOSS_ACCT_AR_FINALIZED"
+    const invoiceContentId = "BOSS_ACCT_AR_SUPPORT"
+    const contentLocation = "dbresource://mantle/content/invoice/" + invoiceId + "/content_" + invoiceContentId + "/Scope.txt"
+    if (policy.one("mantle.account.invoice.InvoiceContent", {invoiceContentId})) return
+    ec.resource
+        .getLocationReference(contentLocation)
+        .putText("Approved customer service scope and terms. Accounting supporting document.")
+    policy.call("create#mantle.account.invoice.InvoiceContent", {
+        invoiceContentId,
+        invoiceId,
+        contentLocation,
+        contentTypeEnumId: "IctInvoiceDocument",
+        contentDate: ec.user.nowTimestamp,
+        description: "Approved service scope"
+    })
+}
+
+// Approved work belongs to the finance organization and needs no Projects launcher grant to bill it.
+function approvedWork() {
+    const workEffortId = "BOSS_ACCT_PROJECT"
+    const timesheetId = "BOSS_ACCT_TIMESHEET"
+    const fromDate = Number(ec.user.nowTimestamp) - 86400000
+    const thruDate = fromDate + 3600000
+    createOnce(
+        "mantle.work.effort.WorkEffort",
+        {workEffortId},
+        {
+            workEffortTypeEnumId: "WetProject",
+            ownerPartyId: organizationPartyId,
+            workEffortName: "Accounting customer consulting"
+        }
+    )
+    for (const [partyId, roleTypeId] of [
+        [organizationPartyId, "Vendor"],
+        ["ORG_ACME", "Customer"]
+    ])
+        createOnce(
+            "mantle.work.effort.WorkEffortParty",
+            {workEffortId, partyId, roleTypeId, fromDate: "1970-01-01T00:00:00Z"},
+            {}
+        )
+    createOnce(
+        "mantle.work.time.Timesheet",
+        {timesheetId},
+        {
+            partyId: "EX_JOHN_DOE",
+            statusId: "TmshApproved",
+            fromDate,
+            thruDate
+        }
+    )
+    createOnce(
+        "mantle.work.time.TimeEntry",
+        {timeEntryId: "BOSS_ACCT_APPROVED_TIME"},
+        {
+            timesheetId,
+            partyId: "EX_JOHN_DOE",
+            vendorPartyId: organizationPartyId,
+            clientPartyId: "ORG_ACME",
+            workEffortId,
+            fromDate,
+            thruDate,
+            hours: "1",
+            clientHourRate: "85",
+            vendorHourRate: "40",
+            hasModifiedRates: "Y"
+        }
+    )
+}
+
 // Run by data loading (no user) or a system administrator.
 function load() {
     if (ec.user.userId && !policy.capabilities().systemAdmin) throw new Error("Demo loading requires system administration")
@@ -145,6 +338,10 @@ function load() {
         documents(currency)
         journalEntries(currency)
         configuration()
+        finalizedReceivable(currency)
+        receivableSupport()
+        approvedWork()
+        storeReceivable(currency)
         return {complete: true}
     } finally {
         if (!authzDisabled) ec.artifactExecution.enableAuthz()

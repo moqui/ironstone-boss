@@ -1,4 +1,4 @@
-// Every P0–P3 destination at every required width in both themes, from one table: groups of a user, a screenshot
+// Every Accounting destination at every required width in both themes, from one table: groups of a user, a screenshot
 // prefix and its pages; each page names a text it shows, so a page that renders but is wrong fails.
 const adminPages = [
     ["Home", "Home", "Shortcuts"],
@@ -31,7 +31,82 @@ const adminPages = [
     ["NewInvoice", "QuickCreate/NewInvoice", "Create draft invoice"],
     ["NewBill", "QuickCreate/NewBill", "Create draft bill"],
     ["NewPayment", "QuickCreate/NewPayment", "Create draft payment"],
-    ["NewEntry", "QuickCreate/NewEntry", "Create draft entry"]
+    ["NewEntry", "QuickCreate/NewEntry", "Create draft entry"],
+    ["InvoiceCalendar", "Receivables/Invoices?view=calendar", "Invoices"],
+    ["InvoicePivot", "Receivables/Invoices?view=pivot", "Invoices"],
+    ["InvoiceGraph", "Receivables/Invoices?view=graph", "Invoices"],
+    ["BillingQueue", "Receivables/BillingQueue", "Billing queue"],
+    ["InvoiceBatch", "Receivables/InvoiceBatch?invoiceIdList=BOSS_ACCT_INVOICE,BOSS_ACCT_AR_FINALIZED", "BOSS_ACCT_AR_FINALIZED"],
+    ["Statements", "Receivables/Statements?customerPartyId=ORG_ACME", "Reviewed statement snapshot", {statement: true}],
+    [
+        "StatementPrint",
+        "Receivables/Statements?customerPartyId=ORG_ACME",
+        "Print statements",
+        {statement: true, printStatement: true}
+    ],
+    ["InvoicePrint", "Receivables/InvoicePrint?invoiceId=BOSS_ACCT_AR_FINALIZED", "Open the printable invoice"],
+    ["InvoiceFinalized", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_AR_FINALIZED", "Customer services invoice"],
+    ["InvoiceIssuedFiles", "Receivables/InvoiceDetail/Files?recordId=BOSS_ACCT_AR_FINALIZED", "Files", {issuedFiles: true}],
+    ["CreateReceivable", "Receivables/Invoices", "Invoices", {open: "New invoice", dialogText: "New receivable"}],
+    [
+        "InvoiceEdit",
+        "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE",
+        "Accounting demo customer invoice",
+        {openMore: true, open: "Edit invoice", dialogText: "Edit invoice BOSS_ACCT_INVOICE"}
+    ],
+    ["InvoiceAddLine", "Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE", "Items and taxes", {open: "Add line"}],
+    [
+        "InvoiceSend",
+        "Receivables/InvoiceDetail?recordId=BOSS_ACCT_AR_FINALIZED",
+        "Customer services invoice",
+        {open: "Send invoice"}
+    ],
+    ...[
+        ["Overview", "Overview"],
+        ["Items", "Items and taxes"],
+        ["Payments", "Payments and credits"],
+        ["Orders", "Orders"],
+        ["Shipments", "Shipments"],
+        ["Budget", "Budget details"],
+        ["GeneralLedger", "General ledger"],
+        ["Files", "Files"],
+        ["Conversation", "Conversation"],
+        ["History", "History"]
+    ].map(([tab, text]) => [
+        "InvoiceTab" + tab,
+        "Receivables/InvoiceDetail/" +
+            tab +
+            "?recordId=" +
+            (tab === "GeneralLedger" ? "BOSS_ACCT_AR_FINALIZED" : "BOSS_ACCT_INVOICE"),
+        text
+    ]),
+    ["Customer", "Receivables/Customer360?customerPartyId=ORG_ACME", "Another Company Making Everything"],
+    [
+        "CustomerAddBank",
+        "Receivables/Customer360/FinanceDetails?customerPartyId=ORG_ACME",
+        "Finance details",
+        {open: "Add bank account", dialogText: "Add customer bank account"}
+    ],
+    [
+        "CustomerAddIdentification",
+        "Receivables/Customer360/FinanceDetails?customerPartyId=ORG_ACME",
+        "Finance details",
+        {open: "Add identification", dialogText: "Add customer identification"}
+    ],
+    [
+        "CustomerAddTax",
+        "Receivables/Customer360/FinanceDetails?customerPartyId=ORG_ACME",
+        "Finance details",
+        {open: "Add tax registration", dialogText: "Add customer tax registration"}
+    ],
+    ...[
+        ["Contact", "Contact"],
+        ["Orders", "Orders"],
+        ["Money", "Invoices and payments"],
+        ["Agreements", "Agreements"],
+        ["FinanceDetails", "Finance details"],
+        ["Files", "Files"]
+    ].map(([tab, text]) => ["CustomerTab" + tab, "Receivables/Customer360/" + tab + "?customerPartyId=ORG_ACME", text])
 ]
 const groups = [
     {user: "finance.admin", prefix: "Accounting", pages: adminPages},
@@ -42,7 +117,28 @@ const groups = [
             ["Home", "Home", "Trial balance"],
             ["Invoice", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE", "Accounting demo customer invoice"],
             ["Posted", "GeneralLedger/JournalEntryDetail?recordId=BOSS_ACCT_POSTED", "Posted office expense"],
-            ["Account", "GeneralLedger/AccountDetail?recordId=111100000", "Open account ledger"]
+            ["Account", "GeneralLedger/AccountDetail?recordId=111100000", "Open account ledger"],
+            ["InvoiceItems", "Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE", "Accounting demo services"],
+            ["CustomerMoney", "Receivables/Customer360/Money?customerPartyId=ORG_ACME", "Invoices and payments"]
+        ]
+    },
+    {
+        user: "finance.ar",
+        prefix: "Accounting-ar",
+        pages: [
+            ["Invoices", "Receivables/Invoices", "Accounting demo customer invoice"],
+            ["Draft", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE", "Finalize invoice"],
+            ["Items", "Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE", "Accounting demo services"],
+            ["Customer", "Receivables/Customer360?customerPartyId=ORG_ACME", "Another Company Making Everything"],
+            ["Statement", "Receivables/Statements?customerPartyId=ORG_ACME", "Reviewed statement snapshot", {statement: true}]
+        ]
+    },
+    {
+        user: "finance.approve",
+        prefix: "Accounting-approver",
+        pages: [
+            ["Draft", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE", "Approve invoice"],
+            ["Items", "Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE", "Accounting demo services"]
         ]
     },
     {
@@ -57,8 +153,8 @@ const groups = [
 ]
 const widths = [390, 1280, 1440]
 const cases = groups.flatMap(({user, prefix, pages}) =>
-    pages.flatMap(([name, path, text]) =>
-        widths.flatMap(width => [false, true].map(dark => ({user, prefix, name, path, text, width, dark})))
+    pages.flatMap(([name, path, text, options = {}]) =>
+        widths.flatMap(width => [false, true].map(dark => ({user, prefix, name, path, text, options, width, dark})))
     )
 )
 let pages = {}
@@ -75,11 +171,66 @@ spec({
 })
 feature("#prefix #name at #width dark=#dark", {
     where: cases.filter(item => !params.names || params.names.split(",").includes(item.name)),
-    expect({user, prefix, name, path, text, width, dark}) {
+    expect({user, prefix, name, path, text, options, width, dark}) {
         const page = pages[user + width]
         page.goto("/qapps/Accounting/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=ORG_ZIZI_CORP").status ==
             200
+        if (options.statement) {
+            page.getByRole("button", {name: "Preview statements", exact: true}).click()
+            page.waitForURL(/snapshotId=/)
+            page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reviewed statement snapshot"))
+            if (options.printStatement) {
+                const snapshotId = page.evaluate(() => new URL(location.href).searchParams.get("snapshotId"))
+                const printed = page.goto(
+                    "/qapps/Accounting/Receivables/StatementPrint?organizationPartyId=ORG_ZIZI_CORP&snapshotId=" +
+                        encodeURIComponent(snapshotId)
+                )
+                assert(printed.status === 200, "The reviewed statement print route must succeed")
+            }
+        }
         page.waitFor(text => !!document.querySelector(".q-page")?.innerText.includes(text), {arg: text})
+        if (options.issuedFiles) {
+            page.waitFor(() => {
+                const names = Array.from(document.querySelectorAll(".m-record-files-panel .q-item__label a")).map(link =>
+                    link.textContent.trim()
+                )
+                return names.includes("Invoice-BOSS_ACCT_AR_FINALIZED.pdf") && names.includes("Scope.txt")
+            })
+            const fileRows = page.evaluate(() =>
+                Array.from(document.querySelectorAll(".m-record-files-panel .q-item")).map(row => ({
+                    name: row.querySelector(".q-item__label a")?.textContent.trim(),
+                    actions: Array.from(row.querySelectorAll("button[aria-label]")).map(button =>
+                        button.getAttribute("aria-label")
+                    )
+                }))
+            )
+            const issuedRows = fileRows.filter(row => row.name === "Invoice-BOSS_ACCT_AR_FINALIZED.pdf")
+            assert(issuedRows.length > 0, "A real issued PDF must be listed")
+            assert(
+                issuedRows.every(
+                    row =>
+                        row.actions.includes("Download") && !row.actions.includes("Remove") && !row.actions.includes("Versions")
+                ),
+                "Issued PDFs must be downloadable without remove or version controls"
+            )
+            const supporting = fileRows.find(row => row.name === "Scope.txt")
+            assert(
+                supporting?.actions.includes("Remove") && supporting.actions.includes("Versions"),
+                "The ordinary supporting file must retain its authorized remove and version controls"
+            )
+        }
+        if (options.statement)
+            assert(page.text().includes("BOSS_ACCT_AR_FINALIZED"), "The statement must contain the finalized invoice")
+        if (options.openMore) page.locator(".m-record-actions .q-btn-dropdown").first().click()
+        if (options.open) {
+            page.getByRole("button", {name: options.open, exact: true}).first().click()
+            page.waitFor(() => !!document.querySelector(".q-dialog"))
+        }
+        if (options.dialogText)
+            page.waitFor(
+                text => Array.from(document.querySelectorAll(".q-dialog")).some(dialog => dialog.innerText.includes(text)),
+                {arg: options.dialogText}
+            )
         page.settle()
         page.evaluate(dark => {
             document.querySelector("#apps-root").__vue_app__.config.globalProperties.$q.dark.set(!!dark)
@@ -90,5 +241,33 @@ feature("#prefix #name at #width dark=#dark", {
         page.text().includes(text)
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth) == true
         page.screenshot(prefix + "-" + name + "-" + width + (dark ? "-dark" : "-light"), {fullPage: true})
+    }
+})
+
+feature("finalized invoice and reviewed statement print the real documents", {
+    where: widths.map(width => ({width})),
+    expect({width}) {
+        const page = pages["finance.admin" + width]
+        page.goto(
+            "/apps/Accounting/Receivables/InvoicePrint?organizationPartyId=ORG_ZIZI_CORP&invoiceId=BOSS_ACCT_AR_FINALIZED&renderMode=html-print"
+        ).status == 200
+        page.waitFor(() => document.body.innerText.includes("BOSS_ACCT_AR_FINALIZED"))
+        page.text().includes("Customer services")
+        !/Error rendering|Exception in render|Invoice not available/.test(page.text())
+        page.screenshot("Accounting-invoice-print-" + width, {fullPage: true})
+        page.goto("/qapps/Accounting/Receivables/Statements?organizationPartyId=ORG_ZIZI_CORP&customerPartyId=ORG_ACME").status ==
+            200
+        page.getByRole("button", {name: "Preview statements", exact: true}).click()
+        page.waitForURL(/snapshotId=/)
+        const snapshotId = page.evaluate(() => new URL(location.href).searchParams.get("snapshotId"))
+        page.goto(
+            "/apps/Accounting/Receivables/StatementPrint?organizationPartyId=ORG_ZIZI_CORP&snapshotId=" +
+                encodeURIComponent(snapshotId) +
+                "&renderMode=html-print"
+        ).status == 200
+        page.waitFor(() => document.body.innerText.includes("BOSS_ACCT_AR_FINALIZED"))
+        page.text().includes("Customer statement")
+        !/Error rendering|Exception in render|Preview a statement before printing/.test(page.text())
+        page.screenshot("Accounting-statement-print-" + width, {fullPage: true})
     }
 })

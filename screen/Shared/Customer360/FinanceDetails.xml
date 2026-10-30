@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Finance details" default-menu-index="5">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="appRoot"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="saveIdentification">
+        <actions>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="saveTaxRegistration">
+        <actions>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context" out-map="financeResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="saveCustomerBank">
+        <actions>
+            <script><![CDATA[
+const bankFields = {organizationPartyId:context.organizationPartyId, customerPartyId:context.customerPartyId,
+    paymentMethodId:context.paymentMethodId || null, bankName:context.bankName, description:context.description,
+    typeEnumId:context.typeEnumId || null, lastUpdatedStamp:context.lastUpdatedStamp || null,
+    fromDate:context.fromDate || null, thruDate:context.thruDate || null}
+if (context.accountNumber) bankFields.accountNumber = context.accountNumber
+if (context.routingNumber) bankFields.routingNumber = context.routingNumber
+financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.store#CustomerBankAccount').parameters(bankFields).call()
+]]></script>
+        </actions>
+        <default-response url=".">
+            <parameter name="customerPartyId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <if condition="typeof customerDetail === 'undefined' || customerDetail === null">
+            <if condition="organizationPartyId">
+                <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext" in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}" out-map="context" transaction="force-new" ignore-error="true"/>
+            </if>
+            <set field="customerFound" from="typeof customerDetail !== 'undefined' &amp;&amp; !!customerDetail?.partyId"/>
+            <set field="customerDetail" from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="CustomerOrganizationPrompt" location="component://mr-boss/template/AccountingReceivables.xml"/>
+        <section name="CustomerTabFinanceDetails" condition="customerFound">
+            <widgets>
+                <label text="Finance details" type="h6"/>
+                <container-box>
+                    <box-header title="Payment details"/>
+                    <box-body>
+                        <container-dialog id="CustomerNewBank" button-text="Add bank account" title="Add customer bank account" width="720" condition="customerDetail.capabilities.bankEdit || customerDetail.capabilities.paymentEdit">
+                            <form-single name="CustomerBankAccount" transition="saveCustomerBank">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="customerPartyId" from="customerPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="bankName">
+                                    <default-field title="Bank">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="description">
+                                    <default-field title="Description">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="typeEnumId">
+                                    <default-field title="Account type">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'bankAccountTypes',organizationPartyId:organizationPartyId,selected:typeEnumId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="accountNumber">
+                                    <default-field title="Account number">
+                                        <password/>
+                                    </default-field>
+                                </field>
+                                <field name="routingNumber">
+                                    <default-field title="Routing number">
+                                        <password/>
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="From">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="thruDate">
+                                    <default-field title="Through">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Save bank account"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                        <form-list name="CustomerBankAccounts" list="customerDetail.paymentMethods" skip-form="true" paginate="false">
+                            <field name="paymentMethodId">
+                                <header-field title="Method"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <header-field title="Description"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="bankName">
+                                <header-field title="Bank"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="maskedAccountNumber">
+                                <header-field title="Account"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <default-field title="">
+                                    <container-dialog id="EditCustomerBank_${paymentMethodId}" button-text="Edit" title="Edit customer bank account" width="720" condition="customerDetail.capabilities.bankEdit">
+                                        <form-single name="EditCustomerBankForm" transition="saveCustomerBank">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="customerPartyId" from="customerPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="lastUpdatedStamp" from="lastUpdatedStamp">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="paymentMethodId" from="paymentMethodId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="bankName">
+                                                <default-field title="Bank">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="description">
+                                                <default-field title="Description">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="accountNumber" from="''">
+                                                <default-field title="New account number">
+                                                    <password/>
+                                                </default-field>
+                                            </field>
+                                            <field name="routingNumber" from="''">
+                                                <default-field title="New routing number">
+                                                    <password/>
+                                                </default-field>
+                                            </field>
+                                            <field name="thruDate">
+                                                <default-field title="Through">
+                                                    <date-time type="date"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save bank account"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentMethodId"/>
+                                    <field-ref name="description"/>
+                                </column>
+                                <column>
+                                    <field-ref name="maskedAccountNumber"/>
+                                    <field-ref name="bankName"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No permitted payment methods are recorded." type="p" style="m-muted" condition="!customerDetail.paymentMethods.length"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Identifications"/>
+                    <box-body>
+                        <container-dialog id="CustomerIdentification" button-text="Add identification" title="Add customer identification" width="720" condition="customerDetail.capabilities.identificationEdit || customerDetail.capabilities.partyEdit">
+                            <form-single name="CustomerIdentification" transition="saveIdentification">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="customerPartyId" from="customerPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="partyIdTypeEnumId">
+                                    <default-field title="Identification type">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'identificationTypes',organizationPartyId:organizationPartyId,selected:partyIdTypeEnumId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="idValue">
+                                    <default-field title="Identification">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="issuedBy">
+                                    <default-field title="Issued by">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="expireDate">
+                                    <default-field title="Expires">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Save identification"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                        <form-list name="CustomerIdentifications" list="customerDetail.identifications" skip-form="true" paginate="false">
+                            <field name="partyIdTypeEnumId">
+                                <header-field title="Type"/>
+                                <default-field>
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
+                                </default-field>
+                            </field>
+                            <field name="idValue">
+                                <header-field title="Identification"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="issuedBy">
+                                <header-field title="Issued by"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="expireDate">
+                                <header-field title="Expires"/>
+                                <default-field>
+                                    <display text="${expireDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <default-field title="">
+                                    <container-dialog id="EditCustomerIdentification_${partyIdTypeEnumId}" button-text="Edit" title="Edit identification" width="720" condition="customerDetail.capabilities.identificationEdit">
+                                        <form-single name="EditCustomerIdentificationForm" transition="saveIdentification">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="customerPartyId" from="customerPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="lastUpdatedStamp" from="lastUpdatedStamp">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="partyIdTypeEnumId" from="partyIdTypeEnumId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="idValue">
+                                                <default-field title="Identification">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="issuedBy">
+                                                <default-field title="Issued by">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="expireDate">
+                                                <default-field title="Expires">
+                                                    <date-time type="date"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save identification"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="partyIdTypeEnumId"/>
+                                    <field-ref name="issuedBy"/>
+                                </column>
+                                <column>
+                                    <field-ref name="idValue"/>
+                                    <field-ref name="expireDate"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No permitted identifications are recorded." type="p" style="m-muted" condition="!customerDetail.identifications.length"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Tax registrations"/>
+                    <box-body>
+                        <container-dialog id="CustomerTaxRegistration" button-text="Add tax registration" title="Add customer tax registration" width="720" condition="customerDetail.capabilities.taxEdit">
+                            <form-single name="CustomerTaxRegistration" transition="saveTaxRegistration">
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="customerPartyId" from="customerPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="taxAuthorityId">
+                                    <default-field title="Tax authority">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'taxAuthorities',organizationPartyId:organizationPartyId,selected:taxAuthorityId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="partyTaxId">
+                                    <default-field title="Tax ID">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="isExempt">
+                                    <default-field title="Exemption">
+                                        <check>
+                                            <option key="Y" text="Tax exempt"/>
+                                        </check>
+                                    </default-field>
+                                </field>
+                                <field name="isNexus">
+                                    <default-field title="Nexus">
+                                        <check>
+                                            <option key="Y" text="Has tax nexus"/>
+                                        </check>
+                                    </default-field>
+                                </field>
+                                <field name="fromDate">
+                                    <default-field title="From">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="thruDate">
+                                    <default-field title="Through">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Save tax registration"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                        <form-list name="CustomerTaxRegistrations" list="customerDetail.taxRegistrations" skip-form="true" paginate="false">
+                            <field name="taxAuthorityId">
+                                <header-field title="Authority"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="partyTaxId">
+                                <header-field title="Tax ID"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="isExempt">
+                                <header-field title="Exempt"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="isNexus">
+                                <header-field title="Nexus"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <header-field title="From"/>
+                                <default-field>
+                                    <display text="${fromDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <header-field title="Through"/>
+                                <default-field>
+                                    <display text="${thruDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <default-field title="">
+                                    <container-dialog id="EditCustomerTax_${taxAuthorityId}_${fromDate}" button-text="Edit" title="Edit tax registration" width="720" condition="customerDetail.capabilities.taxEdit">
+                                        <form-single name="EditCustomerTaxForm" transition="saveTaxRegistration">
+                                            <field name="organizationPartyId" from="organizationPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="customerPartyId" from="customerPartyId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="lastUpdatedStamp" from="lastUpdatedStamp">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="taxAuthorityId" from="taxAuthorityId">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="fromDate" from="fromDate">
+                                                <default-field title="">
+                                                    <hidden/>
+                                                </default-field>
+                                            </field>
+                                            <field name="partyTaxId">
+                                                <default-field title="Tax ID">
+                                                    <text-line/>
+                                                </default-field>
+                                            </field>
+                                            <field name="isExempt">
+                                                <default-field title="Exemption">
+                                                    <check>
+                                                        <option key="Y" text="Tax exempt"/>
+                                                    </check>
+                                                </default-field>
+                                            </field>
+                                            <field name="isNexus">
+                                                <default-field title="Nexus">
+                                                    <check>
+                                                        <option key="Y" text="Has tax nexus"/>
+                                                    </check>
+                                                </default-field>
+                                            </field>
+                                            <field name="thruDate">
+                                                <default-field title="Through">
+                                                    <date-time type="date"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save tax registration"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="taxAuthorityId"/>
+                                    <field-ref name="partyTaxId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="isExempt"/>
+                                    <field-ref name="thruDate"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No permitted tax registrations are recorded." type="p" style="m-muted" condition="!customerDetail.taxRegistrations.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

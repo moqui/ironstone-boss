@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Statement print" default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="snapshotId"/>
+    <parameter name="inputFingerprint"/>
+    <actions>
+        <set field="statementPreview" from="{}"/>
+        <if condition="snapshotId">
+            <service-call name="mantle.account.CollectionServices.get#StatementPreview" in-map="{snapshotId:snapshotId,organizationPartyId:organizationPartyId}" out-map="statementPreview"/>
+        </if>
+    </actions>
+    <widgets>
+        <label text="Customer statement" type="h5"/>
+        <section name="PrintedStatement" condition="!!snapshotId">
+            <widgets>
+                <section-iterate name="StatementCurrencies" list="statementPreview.statementRows || []" entry="statementRow">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${statementRow.customerName || statementRow.customerPartyId} · ${statementRow.currencyUomId}"/>
+                            <box-body>
+                                <label text="Opening ${ec.l10n.formatCurrency(statementRow.openingBalance ?? 0, statementRow.currencyUomId)} · Closing ${ec.l10n.formatCurrency(statementRow.closingBalance ?? 0, statementRow.currencyUomId)}" type="p"/>
+                                <label text="Recipients: ${(statementRow.recipients || []).join(', ') || 'Choose a recipient before sending'}" type="p" style="text-caption m-muted"/>
+                                <form-list name="StatementInvoices" list="statementRow.invoiceRows || []" skip-form="true" paginate="false">
+                                    <field name="invoiceId">
+                                        <default-field title="Invoice">
+                                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}" parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="invoiceDate">
+                                        <default-field title="Date">
+                                            <display text="${invoiceDateText || ''}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="dueDate">
+                                        <default-field title="Due">
+                                            <display text="${dueDateText || ''}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="invoiceTotal" align="right">
+                                        <default-field title="Original">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="unpaidTotal" align="right">
+                                        <default-field title="Remaining">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="invoiceId"/>
+                                            <field-ref name="dueDate"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="invoiceTotal"/>
+                                            <field-ref name="unpaidTotal"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <form-list name="StatementReceipts" list="statementRow.paymentRows || []" skip-form="true" paginate="false">
+                                    <field name="paymentId">
+                                        <default-field title="Receipt">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="effectiveDateText">
+                                        <default-field title="Date">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Original">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="unappliedTotal" align="right">
+                                        <default-field title="Unapplied">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="effectiveDateText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="unappliedTotal"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section-iterate>
+                <html-view html="${statementPreview.previewHtml || ''}" text="Customer statement snapshot ${snapshotId}"/>
+                <section name="StatementDeliveryResults" condition="(statementPreview.results || []).length">
+                    <widgets>
+                        <label text="Statement delivery results" type="h6"/>
+                        <form-list name="StatementDeliveryResults" list="statementPreview.results" skip-form="true" paginate="false">
+                            <field name="customerPartyId">
+                                <default-field title="Customer">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="currencyUomId">
+                                <default-field title="Currency">
+                                    <display-entity entity-name="moqui.basic.Uom"/>
+                                </default-field>
+                            </field>
+                            <field name="recipient">
+                                <default-field title="Recipient">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="status">
+                                <default-field title="Outcome">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="errorMessage">
+                                <default-field title="Failure">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="customerPartyId"/>
+                                    <field-ref name="recipient"/>
+                                </column>
+                                <column>
+                                    <field-ref name="status"/>
+                                    <field-ref name="errorMessage"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <link url="${sharedLinks['Receivables/StatementPrint']}" text="Print statements" target-window="_blank" parameter-map="{snapshotId:snapshotId,organizationPartyId:organizationPartyId}"/>
+            </widgets>
+        </section>
+        <label text="Preview a statement before printing it." type="p" condition="!snapshotId"/>
+    </widgets>
+</screen>

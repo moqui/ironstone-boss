@@ -17,6 +17,8 @@ Products P1 (Oct 28): the shell, guarded read list and minimal product/category 
 form-parity cells remain blank until their full P2/P3 editors are implemented; these foundation screens do not claim
 that parity.
 
+Accounting P4 mappings name only built receivables forms. Payable, settlement, source-allocation and budget editors remain for their assigned phases; a read-only source tab does not claim their write forms.
+
 ## MyAccount (49 forms)
 
 | Screen XML | Form | Designed in | Implemented in |
@@ -99,20 +101,20 @@ that parity.
 | Aging | InvoiceAgingList | Accounting/Reports/Aging |  |
 | EditInvoice | AdjustInvoice | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoice | OutSystemMessageList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | AuditLogList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | EditInvoice | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | NewContentForm | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | UpdateContentForm | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoice | AuditLogList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/History#FinanceInvoiceHistory |
+| EditInvoice | EditInvoice | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail#FinanceInvoiceHeader |
+| EditInvoice | NewContentForm | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Files#AccountingInvoiceFiles (shared record files) |
+| EditInvoice | UpdateContentForm | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Files#AccountingInvoiceFiles (shared record files) |
 | EditInvoice | SendPastDueEmailForm | Accounting/Receivables/InvoiceDetail; Accounting/Receivables/Dunning; Shared/InvoiceDetail |  |
-| EditInvoice | SendFinalizedEmailForm | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoice | SendFinalizedEmailForm | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail#FinanceSendInvoice |
 | EditInvoice | EmailMessageList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | NewCreditMemoForm | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoice | NewCreditMemoForm | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail#FinanceCreditMemo |
 | EditInvoice | RecordPaymentForm | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | PaymentApplicationList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoice | PaymentApplicationList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Payments#FinanceInvoicePayments |
 | EditInvoice | OrderPromisedPaymentList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoice | UnappliedPaymentList | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoice | UnpaidInvoiceList | Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoice | InvoiceTxList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoice | InvoiceTxList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/GeneralLedger#FinanceInvoiceLedger |
 | EditInvoice | InvoiceGlaList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItemDetails | AddDetailForm | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItemDetails | AssetItemDetailList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
@@ -120,22 +122,22 @@ that parity.
 | EditInvoiceItemDetails | ItemDetailList | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItemOrders | ApplyToOrder | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItemOrders | ApplyItemToOrder | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoiceItemOrders | ItemBillingList | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoiceItemOrders | ItemBillingList | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Orders#FinanceInvoiceOrders |
 | EditInvoiceItemShipments | ApplyToShipment | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
 | EditInvoiceItemShipments | ApplyItemToShipment | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoiceItemShipments | ItemSourceList | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoiceItems | CreateInvoiceItem | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
-| EditInvoiceItems | EditInvoiceItems | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail |  |
+| EditInvoiceItemShipments | ItemSourceList | Purchasing/Bills/InvoiceMatch; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Shipments#FinanceInvoiceShipments |
+| EditInvoiceItems | CreateInvoiceItem | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Items#FinanceAddInvoiceItem |
+| EditInvoiceItems | EditInvoiceItems | Purchasing/Bills/InvoiceDetail; Accounting/Receivables/InvoiceDetail; Accounting/Payables/BillDetail; Shared/InvoiceDetail | Accounting/Receivables/InvoiceDetail/Items#FinanceInvoiceItems; FinanceEditInvoiceItem |
 | FindInvoice | NewPayableForm | Accounting/Payables/Bills | Accounting/QuickCreate/NewBill#CreateDraft (draft only) |
-| FindInvoice | NewReceivableForm | Accounting/Receivables/Invoices | Accounting/QuickCreate/NewInvoice#CreateDraft (draft only) |
-| FindInvoice | NewCustCreditForm | Accounting/Receivables/Invoices |  |
+| FindInvoice | NewReceivableForm | Accounting/Receivables/Invoices | Accounting/Receivables/Invoices#CreateReceivable; Accounting/QuickCreate/NewInvoice#CreateDraft (draft only) |
+| FindInvoice | NewCustCreditForm | Accounting/Receivables/Invoices | Accounting/Receivables/Invoices#CreateReceivable (credit memo type) |
 | FindInvoice | NewSupCreditForm | Accounting/Payables/Bills |  |
-| FindInvoice | ProjectInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Projects/Billing/Unbilled |
-| FindInvoice | ProjectWorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue |  |
-| FindInvoice | WorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue |  |
-| FindInvoice | CustomerStatementForm | Accounting/Receivables/Statements |  |
+| FindInvoice | ProjectInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (receivable) |
+| FindInvoice | ProjectWorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (payable) |
+| FindInvoice | WorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (payable) |
+| FindInvoice | CustomerStatementForm | Accounting/Receivables/Statements | Accounting/Receivables/Statements#StatementOptions; StatementDelivery; StatementDeliveryResults |
 | FindInvoice | MainOptions | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
-| FindInvoice | InvoiceList | Purchasing/Bills; Accounting/Receivables/Invoices; Accounting/Payables/Bills | Accounting/Receivables/Invoices#Records; Accounting/Payables/Bills#Records |
+| FindInvoice | InvoiceList | Purchasing/Bills; Accounting/Receivables/Invoices; Accounting/Payables/Bills | Accounting/Receivables/Invoices#InvoiceList; Accounting/Payables/Bills#Records |
 | FindInvoice | AgingSummaryList | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
 | AcctgPreference | EditPapForm | Accounting/Settings/AccountingPreferences | Accounting/Settings/AccountingPreferences#Preferences |
 | AcctgPreference | CloneAcctgSettingsForm | Accounting/Settings/AccountingPreferences | Accounting/Settings/AccountingPreferences#ClonePreferences |

@@ -42,6 +42,12 @@ function access(parameters) {
         ...Object.values(listPaths),
         ...Object.values(detailPaths),
         "Home",
+        "Receivables/Customer360",
+        "Receivables/BillingQueue",
+        "Receivables/Statements",
+        "Receivables/StatementPrint",
+        "Receivables/InvoiceBatch",
+        "Receivables/InvoicePrint",
         "Reports/TrialBalance",
         "Reports/GeneralLedger"
     ]
@@ -161,17 +167,22 @@ function ownedBy(chain) {
         return query.condition("ownerPartyId", "in", owners)
     }
 }
-function recordSource(kind, conditions = {}) {
+function recordSource(kind, conditions = {}, statusIds = null) {
     const idField = policy.kinds[kind][1]
+    const query = (parameters, term, recordId = null) => {
+        let found = policy
+            .query({kind, organizationPartyId: parameters.organizationPartyId, text: term, recordId})
+            .q.condition(conditions)
+        if (statusIds) found = found.condition("statusId", "in", statusIds)
+        return found
+    }
     return {
         // The search text goes through the policy's query, which matches each kind's own names.
-        find: (parameters, term) =>
-            policy.query({kind, organizationPartyId: parameters.organizationPartyId, text: term}).q.condition(conditions),
+        find: (parameters, term) => query(parameters, term),
         searchedByPolicy: true,
         value: row => row[idField],
         label: row => recordLabel(row, idField),
-        selected: (parameters, id) =>
-            policy.query({kind, organizationPartyId: parameters.organizationPartyId, recordId: id}).q.condition(conditions).one()
+        selected: (parameters, id) => query(parameters, null, id).one()
     }
 }
 function uomSource(uomTypeEnumId) {
@@ -262,6 +273,23 @@ function adminOnly(entity, orderField) {
     }
 }
 
+function receivableCredits(parameters) {
+    const invoice = policy.record({
+        kind: "invoices",
+        recordId: parameters.invoiceId,
+        organizationPartyId: parameters.organizationPartyId
+    })
+    return policy
+        .find("mantle.account.invoice.Invoice", {
+            invoiceTypeEnumId: "InvoiceCreditMemo",
+            fromPartyId: invoice.toPartyId,
+            toPartyId: invoice.fromPartyId,
+            currencyUomId: invoice.currencyUomId
+        })
+        .condition("statusId", "in", ["InvoiceFinalized", "InvoiceSent", "InvoiceAcked"])
+        .orderBy("invoiceDate,invoiceId")
+}
+
 const enumTypes = [
     "GlAccountClass",
     "GlAccountType",
@@ -275,7 +303,9 @@ const enumTypes = [
     "AssetClass",
     "GlAccountGroupType",
     "FinancialAccountTransReason",
-    "InventoryVarianceReason"
+    "InventoryVarianceReason",
+    "PartyIdType",
+    "BankAccountType"
 ]
 const accountRow = {value: row => row.glAccountId, label: accountLabel, searchedByPolicy: true}
 const choiceSources = {
@@ -306,12 +336,17 @@ const choiceSources = {
         }
     },
     drafts: recordSource("journals", {isPosted: "N"}),
+    invoices: recordSource("invoices", {statusId: "InvoiceInProcess"}),
+    bills: recordSource("bills", {}, ["InvoiceIncoming", "InvoiceReceived"]),
     journals: recordSource("journals"),
     batches: recordSource("batches"),
     templates: recordSource("templates"),
     locks: recordSource("locks"),
     periods: recordSource("periods"),
     products: entitySource("mantle.product.Product", "productId", "productName", ownedBy(true)),
+    projects: entitySource("mantle.work.effort.WorkEffort", "workEffortId", "workEffortName", (query, parameters) =>
+        ownedBy(false)(query.condition("workEffortTypeEnumId", "WetProject"), parameters)
+    ),
     categories: entitySource("mantle.product.category.ProductCategory", "productCategoryId", "categoryName", ownedBy(true)),
     assets: entitySource("mantle.product.asset.Asset", "assetId", "assetName", ownedBy(false)),
     financialTypes: entitySource("mantle.account.financial.FinancialAccountType", "finAccountTypeId", "description"),
@@ -336,6 +371,13 @@ const choiceSources = {
         value: row => row.settlementTermId,
         label: row => row.description || row.settlementTermId
     },
+    receivableCredits: {
+        find: receivableCredits,
+        fields: ["invoiceId", "description", "referenceNumber"],
+        value: row => row.invoiceId,
+        label: row => row.invoiceId + (row.description ? " — " + row.description : "")
+    },
+    taxAuthorities: entitySource("mantle.other.tax.TaxAuthority", "taxAuthorityId", "description"),
     timeUnits: uomSource("UT_TIME_FREQ_MEASURE"),
     currencies: uomSource("UT_CURRENCY_MEASURE"),
     users: {
@@ -367,9 +409,79 @@ for (const enumTypeId of enumTypes) {
         label: row => row.description || row.enumId
     }
 }
+choiceSources.invoiceTypes = choiceSources["enum:InvoiceType"]
+choiceSources.invoiceStatuses = {
+    find: () =>
+        policy
+            .find("moqui.basic.StatusItem", {statusTypeId: "Invoice"})
+            .condition("statusId", "in", [
+                "InvoiceInProcess",
+                "InvoiceFinalized",
+                "InvoiceSent",
+                "InvoiceAcked",
+                "InvoicePmtRecvd",
+                "InvoiceWriteOff",
+                "InvoiceCancelled"
+            ])
+            .orderBy("sequenceNum,description"),
+    fields: ["statusId", "description"],
+    value: row => row.statusId,
+    label: row => row.description || row.statusId
+}
+choiceSources.invoiceItemTypes = choiceSources["enum:ItemType"]
+choiceSources.identificationTypes = choiceSources["enum:PartyIdType"]
+choiceSources.bankAccountTypes = choiceSources["enum:BankAccountType"]
 
 function choices(parameters) {
     const scope = access(parameters)
+    if (["invoiceAttachments", "reviewedInvoiceAttachments"].includes(parameters.choice)) {
+        let selected = parameters.selected || []
+        if (!Array.isArray(selected)) {
+            const text = String(selected)
+            selected = text.startsWith("[") ? JSON.parse(text) : text.split(",").filter(Boolean)
+        }
+        selected = selected.map(String)
+        const reviewed = parameters.choice === "reviewedInvoiceAttachments"
+        const selectedId = value => (reviewed ? value.split("~")[0] : value)
+        const request = {invoiceId: parameters.invoiceId, organizationPartyId: scope.organizationPartyId}
+        const result = policy.call("mantle.account.InvoiceServices.get#InvoiceDeliveryAttachments", request)
+        const rows = Array.from(result.attachmentRows || [])
+        const missing = [...new Set(selected.map(selectedId).filter(id => !rows.some(row => row.invoiceContentId === id)))]
+        if (missing.length) {
+            const explicit = policy.call(
+                "mantle.account.InvoiceServices.get#InvoiceDeliveryAttachments",
+                Object.assign({}, request, {attachmentContentIdList: missing})
+            )
+            rows.push(...Array.from(explicit.attachmentRows || []))
+        }
+        const label = row =>
+            (row.description ? row.description + " · " : "") +
+            row.fileName +
+            " (" +
+            ec.l10n.format(row.contentSize, "#,##0") +
+            " bytes)"
+        const value = row => (reviewed ? row.invoiceContentId + "~" + row.attachmentVersion : row.invoiceContentId)
+        const term = String(parameters.term || "")
+            .trim()
+            .toLocaleLowerCase()
+        const matches = rows.filter(
+            row =>
+                !term ||
+                [row.invoiceContentId, row.fileName, row.description].some(text =>
+                    String(text || "")
+                        .toLocaleLowerCase()
+                        .includes(term)
+                )
+        )
+        const options = matches.slice(0, choiceLimit).map(row => ({value: value(row), label: label(row)}))
+        for (const chosen of selected) {
+            const row = rows.find(row => row.invoiceContentId === selectedId(chosen))
+            // Retain the reviewed version. A changed live file must fail the native stale check when sent.
+            const retained = reviewed && chosen.includes("~") ? chosen : row && value(row)
+            if (row && !options.some(option => option.value === retained)) options.push({value: retained, label: label(row)})
+        }
+        return {options}
+    }
     const source = choiceSources[parameters.choice]
     if (!source) throw new Error("Unknown accounting choice " + parameters.choice)
     const term = String(parameters.term || "").trim()

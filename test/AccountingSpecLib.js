@@ -1,0 +1,186 @@
+// Shared Accounting spec identities, authorized-user scope and render checks. Tests run inside Moqui, without Node.
+const ids = {
+    organizationPartyId: "ORG_ZIZI_CORP",
+    foreignOrganizationPartyId: "ORG_ZIZI_SERVICES",
+    customerPartyId: "ORG_ACME",
+    invoiceId: "BOSS_ACCT_INVOICE",
+    finalizedInvoiceId: "BOSS_ACCT_AR_FINALIZED"
+}
+
+function selectOrganization(organizationPartyId) {
+    ec.user.setPreference("ACTIVE_ORGANIZATION", organizationPartyId || null)
+    ec.service.sync().name("mantle.party.PartyServices.setup#UserOrganizationInfo").disableAuthz().throwOnError(true).call()
+}
+
+function asUser(username, action, enabled = true, organizationPartyId = ids.organizationPartyId) {
+    login(username)
+    const disabled = ec.artifactExecution.authzDisabled()
+    const previousOrganizationPartyId = ec.user.getPreference("ACTIVE_ORGANIZATION")
+    try {
+        ec.artifactExecution.disableAuthz()
+        selectOrganization(organizationPartyId)
+        if (enabled) ec.artifactExecution.enableAuthz()
+        return action()
+    } finally {
+        ec.message.clearErrors()
+        ec.artifactExecution.disableAuthz()
+        try {
+            selectOrganization(previousOrganizationPartyId)
+        } finally {
+            if (!disabled) ec.artifactExecution.enableAuthz()
+            login("john.doe")
+        }
+    }
+}
+
+function call(service, parameters = {}) {
+    return ec.service.sync().name(service).parameters(parameters).throwOnError(true).call() || {}
+}
+
+function refusal(service, parameters) {
+    ec.message.pushErrors()
+    try {
+        ec.service
+            .sync()
+            .name(service)
+            .parameters(parameters)
+            .disableAuthz()
+            .requireNewTransaction(true)
+            .throwOnError(true)
+            .call()
+        return ""
+    } catch (error) {
+        return String(error.message)
+    } finally {
+        ec.message.clearErrors()
+        ec.message.popErrors()
+    }
+}
+
+function page(path, parameters = {}, mode = "qvt") {
+    const renderer = ec.screen.makeTest().rootScreen("component://mr-boss/screen/Accounting.xml").renderMode(mode)
+    if (mode === "qvt") renderer.withStaticData()
+    const result = renderer.render(
+        path,
+        Object.assign(
+            {
+                organizationPartyId: ids.organizationPartyId,
+                lastStandalone: /^Receivables\/(?:InvoiceDetail|Customer360)\//.test(path) ? "true" : "-2"
+            },
+            parameters
+        ),
+        null
+    )
+    const output = String(result.output || "")
+    return {
+        status: result.status,
+        output,
+        errors: Array.from(result.errorMessages || []).concat(
+            output.match(/(?:Error rendering|Exception in render)[^\n<]*/g) || []
+        )
+    }
+}
+
+const invoiceTabs = [
+    ["Overview", "Overview"],
+    ["Items", "Items and taxes"],
+    ["Payments", "Payments and credits"],
+    ["Orders", "Orders"],
+    ["Shipments", "Shipments"],
+    ["Budget", "Budget details"],
+    ["GeneralLedger", "General ledger"],
+    ["Files", "Files"],
+    ["Conversation", "Conversation"],
+    ["History", "History"]
+]
+const customerTabs = [
+    ["Contact", "Contact"],
+    ["Orders", "Orders"],
+    ["Money", "Invoices and payments"],
+    ["Agreements", "Agreements"],
+    ["FinanceDetails", "Finance details"],
+    ["Files", "Files"]
+]
+
+// A real snapshot owned by the current test user, rather than a successful render of the empty print route.
+function statementPreview() {
+    return ec.service
+        .sync()
+        .name("mantle.account.CollectionServices.preview#Statements")
+        .parameters({
+            organizationPartyId: ids.organizationPartyId,
+            customerPartyIdList: [ids.customerPartyId],
+            asOfDate: ec.user.nowTimestamp,
+            includeZeroBalance: true
+        })
+        .disableAuthz()
+        .requireNewTransaction(true)
+        .throwOnError(true)
+        .call()
+}
+
+function routeFixtures() {
+    const snapshot = statementPreview()
+    if (!snapshot.statementRows?.some(row => row.invoiceRows?.some(invoice => invoice.invoiceId === ids.finalizedInvoiceId)))
+        throw new Error("Accounting screen fixtures require the finalized customer invoice in the statement snapshot")
+    const statementParameters = {
+        snapshotId: snapshot.snapshotId,
+        inputFingerprint: snapshot.inputFingerprint,
+        customerPartyId: ids.customerPartyId
+    }
+    const destinations = [
+        ["Home", "Shortcuts"],
+        ["Receivables/Invoices", "Invoices"],
+        ["Payables/Bills", "Bills"],
+        ["Payments/Payments", "Payments"],
+        ["GeneralLedger/ChartOfAccounts", "Chart of accounts"],
+        ["GeneralLedger/JournalEntries", "Journal entries"],
+        ["GeneralLedger/TransactionEntries", "Transaction entries"],
+        ["GeneralLedger/JournalBatches", "Journal batches"],
+        ["GeneralLedger/JournalTemplates", "Journal templates"],
+        ["PeriodClose/Periods", "Fiscal periods"],
+        ["PeriodClose/PeriodLocks", "Posting locks"],
+        ["Reports/TrialBalance", "Trial balance"],
+        ["Reports/GeneralLedger", "General ledger"],
+        ["Settings/Settings", "Accounting settings"],
+        ["Settings/AccountingPreferences", "Accounting preferences"],
+        ["Settings/PostingDefaults", "Posting defaults"],
+        ["Settings/PaymentTerms", "Payment terms"],
+        ["Settings/Currencies", "Currencies"],
+        ["Settings/PaymentMethods", "Payment methods"],
+        ["Settings/DocumentSettings", "Document settings"],
+        ["Receivables/InvoiceDetail", "Accounting demo customer invoice", {recordId: ids.invoiceId}],
+        ["Payables/BillDetail", "Accounting demo supplier bill", {recordId: "BOSS_ACCT_BILL"}],
+        ["Payments/PaymentDetail", "Accounting demo proposed payment", {recordId: "BOSS_ACCT_PAYMENT"}],
+        ["GeneralLedger/JournalEntryDetail", "Office expense review", {recordId: "BOSS_ACCT_ENTRY"}],
+        ["GeneralLedger/AccountDetail", "Open account ledger", {recordId: "111100000"}],
+        ["Receivables/BillingQueue", "Billing queue"],
+        ["Receivables/InvoiceBatch", ids.invoiceId, {invoiceIdList: [ids.invoiceId, ids.finalizedInvoiceId]}],
+        ["Receivables/Statements", "Reviewed statement snapshot", statementParameters],
+        ["Receivables/StatementPrint", "Print statements", statementParameters],
+        ["Receivables/InvoicePrint", "Open the printable invoice", {invoiceId: ids.finalizedInvoiceId}],
+        ["Receivables/Customer360", "Another Company Making Everything", {customerPartyId: ids.customerPartyId}],
+        ...invoiceTabs.map(([tab, text]) => [
+            "Receivables/InvoiceDetail/" + tab,
+            text,
+            {recordId: tab === "GeneralLedger" ? ids.finalizedInvoiceId : ids.invoiceId, lastStandalone: "true"}
+        ]),
+        ...customerTabs.map(([tab, text]) => [
+            "Receivables/Customer360/" + tab,
+            text,
+            {customerPartyId: ids.customerPartyId, lastStandalone: "true"}
+        ])
+    ]
+    return Object.fromEntries(
+        destinations.map(([path, text, parameters = {}]) => [
+            path,
+            {
+                path,
+                text,
+                parameters: Object.assign({organizationPartyId: ids.organizationPartyId}, parameters)
+            }
+        ])
+    )
+}
+
+;({ids, asUser, selectOrganization, call, refusal, page, invoiceTabs, customerTabs, statementPreview, routeFixtures})

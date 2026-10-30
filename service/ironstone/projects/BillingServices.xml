@@ -21,21 +21,24 @@ along with this software (see the LICENSE.md file). If not, see
     (impl-projects.md P10b: PROJECT_CLIENT) never manage money; they read their own sent invoices only (get#ClientInvoices,
     get#InvoiceAccess clientView), and every service that changes an invoice asks need change, which a client never passes. -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
-
     <!-- ========== Access ========== -->
-
     <service verb="check" noun="Money" allow-remote="false">
         <description>Money is for ADMIN and the holders of TIME_ENTRY_RATE (design-projects.md §1.1: the Projects managers), never for a
             client (PROJECT_CLIENT, whatever its other groups: impl-projects.md P10); anyone else gets an error, or with need none only
             the answer.</description>
-        <in-parameters><parameter name="need" default-value="error"/></in-parameters>
-        <out-parameters><parameter name="managesMoney" type="Boolean"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="need" default-value="error"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="managesMoney" type="Boolean"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             managesMoney = !!ec.user.userId && !ec.user.hasPermission('PROJECT_CLIENT') && (ec.user.isInGroup('ADMIN') || ec.user.hasPermission('TIME_ENTRY_RATE'))
             if (!managesMoney && need !== 'none') ec.message.addError(ec.l10n.localize('Only those who manage money see billing'))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="InvoiceProjects" allow-remote="false">
         <description>The invoices of projects among the projects the user sees (every project for ADMIN), by kind: client (to a project's
             client: linked by WorkEffortInvoice or billing its time, TimeEntry.invoiceId), worker (a worker's time, TimeEntry.vendorInvoiceId)
@@ -45,8 +48,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="invoiceIds" type="List"/>
             <parameter name="rootWorkEffortId"/>
         </in-parameters>
-        <out-parameters><parameter name="invoiceMap" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="invoiceMap" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             invoiceMap = {}
             const cf = ec.entity.conditionFactory
             const wasDisabled = ec.artifactExecution.disableAuthz()
@@ -110,9 +116,9 @@ along with this software (see the LICENSE.md file). If not, see
                     add(link.invoiceId, projectId, clientOf(projectId).includes(toParty[link.invoiceId]) ? 'client' : 'expense')
                 }
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- the invoices a client sees (impl-projects.md P10b; design-projects.md §10 Invoices and InvoiceDetail, client users) -->
     <service verb="get" noun="ClientInvoices" allow-remote="false">
         <description>For a client (PROJECT_CLIENT; isClient false and nothing for anyone else), the invoices it may read: a client
@@ -133,7 +139,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="clientProjectIds" type="List"/>
             <parameter name="shareHoursProjectIds" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             isClient = false; invoiceMap = {}; clientProjectIds = []; shareHoursProjectIds = []
             if (!ec.user.userId || !ec.user.hasPermission('PROJECT_CLIENT')) return
             isClient = true
@@ -169,9 +176,9 @@ along with this software (see the LICENSE.md file). If not, see
                 ec.message.clearErrors()
                 ec.message.popErrors()
             }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="InvoiceAccess" allow-remote="false">
         <description>Whether the user may see an invoice in Projects: one who manages money (check#Money) and sees one of its projects
             (get#InvoiceProjects); a client (PROJECT_CLIENT) only to view (need view or none; any other need is refused) one of its
@@ -189,7 +196,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="clientView" type="Boolean"/>
             <parameter name="shareHoursProjectIds" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             canView = false; invoice = null; kind = null; projectIds = []; clientView = false; shareHoursProjectIds = []
             if (ec.user.userId && ec.user.hasPermission('PROJECT_CLIENT')) {
                 // a client reads its own sent invoices and changes none (impl-projects.md P10b)
@@ -210,11 +218,10 @@ along with this software (see the LICENSE.md file). If not, see
                 if (row && found) { canView = true; invoice = row.getMap(); kind = found.kind; projectIds = found.projectIds }
             }
             if (!canView && need !== 'none') ec.message.addError(ec.resource.expand('Invoice ${invoiceId} is not available', '', {invoiceId}))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== Unbilled ========== -->
-
     <service verb="find" noun="UnbilledRows">
         <description>Unbilled's Client billing list (design-projects.md §10 UnbilledList): by project, the billable time not invoiced
             (mantle.work.ProjectServices.get#UnbilledSummary) with its texts: the client, the billing basis, hours and amount, the
@@ -232,7 +239,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="clientOptions" type="List"/>
             <parameter name="projectOptions" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             rowList = []; totals = {}; clientOptions = []; projectOptions = []
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -281,17 +289,22 @@ along with this software (see the LICENSE.md file). If not, see
                 readyAmountText: uom ? money(sum('readyAmount'), uom) : ''}
             clientOptions = Object.keys(clients).map((id) => ({key: id, text: clients[id]})).sort((a, b) => a.text.localeCompare(b.text))
             projectOptions = Object.keys(projects).map((id) => ({key: id, text: projects[id]})).sort((a, b) => a.text.localeCompare(b.text))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="InvoiceDraft">
         <description>CreateProjectInvoice's dialog (design-projects.md §10): a project's approved billable time not invoiced, entry by entry
             with its rate and amount (those without a rate flagged), and what waits for approval; the client's open drafts of the project
             to add to; the grouping (the project's WstInvoiceGrouping: per entry, per worker, one line) and the payment terms (the
             organization's ProjBillingDefaults settlementTermId) to default to. For one who manages money and manages the project.</description>
-        <in-parameters><parameter name="workEffortId" required="true"/></in-parameters>
-        <out-parameters><parameter name="draft" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="workEffortId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="draft" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             draft = null
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -328,9 +341,9 @@ along with this software (see the LICENSE.md file). If not, see
                 selectedIds: ready.filter((entry) => !entry.missingRate).map((entry) => entry.timeEntryId),
                 draftOptions: Array.from(row?.draftInvoiceList || []).map((inv) => ({key: inv.invoiceId,
                     text: inv.invoiceId + ' · ' + (inv.invoiceDate != null ? ec.l10n.format(new Date(inv.invoiceDate), 'MMM d, yyyy') + ' · ' : '') + money(inv.invoiceTotal)}))}
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="create" noun="ProjectInvoice">
         <description>Unbilled's Create invoice (design-projects.md §10 CreateProjectInvoice): a client invoice of a project's approved
             billable time (mantle.account.InvoiceServices.create#ProjectInvoiceItems with approvedOnly and billableOnly), the selected
@@ -343,10 +356,16 @@ along with this software (see the LICENSE.md file). If not, see
         <in-parameters>
             <parameter name="workEffortId" required="true"/>
             <parameter name="invoiceId"/>
-            <parameter name="timeEntryIds" type="Object"><description>The selected entries: a list or a comma list.</description></parameter>
-            <parameter name="milestoneIds" type="Object"><description>The selected milestone shares: a list or a comma list.</description></parameter>
-            <parameter name="selection" type="Boolean" default="false"><description>The dialog's selection: none selected is an error
-                rather than all.</description></parameter>
+            <parameter name="timeEntryIds" type="Object">
+                <description>The selected entries: a list or a comma list.</description>
+            </parameter>
+            <parameter name="milestoneIds" type="Object">
+                <description>The selected milestone shares: a list or a comma list.</description>
+            </parameter>
+            <parameter name="selection" type="Boolean" default="false">
+                <description>The dialog's selection: none selected is an error
+                rather than all.</description>
+            </parameter>
             <parameter name="entryGrouping" default-value="entry"/>
             <parameter name="settlementTermId"/>
             <parameter name="invoiceDate" type="Timestamp"/>
@@ -356,7 +375,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="itemCount" type="Integer"/>
             <parameter name="message"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             itemCount = 0
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
@@ -426,11 +446,10 @@ along with this software (see the LICENSE.md file). If not, see
                 }
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
             message = ec.resource.expand('Invoice ${invoiceId}: ${count} lines added', '', {invoiceId: invoiceId, count: itemCount})
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== Invoices ========== -->
-
     <service verb="find" noun="InvoiceRows">
         <description>Invoices (design-projects.md §10 Invoices): the invoices of the projects the user sees (get#InvoiceProjects), for one
             who manages money; for a client (clientView) its own sent invoices only (get#ClientInvoices), whatever money it manages,
@@ -454,7 +473,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="clientOptions" type="List"/>
             <parameter name="clientView" type="Boolean"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             rowList = []; counts = {}; projectOptions = []; clientOptions = []
             // a client (impl-projects.md P10b): its own sent invoices (get#ClientInvoices), read only, with the chips Sent, Overdue, Paid, All
             clientView = !!ec.user.userId && ec.user.hasPermission('PROJECT_CLIENT')
@@ -543,11 +563,10 @@ along with this software (see the LICENSE.md file). If not, see
             rowList.sort((a, b) => (b.invoiceDate ?? 0) - (a.invoiceDate ?? 0) || String(b.invoiceId).localeCompare(String(a.invoiceId)))
             clientOptions = Object.keys(clients).filter((id) => id).map((id) => ({key: id, text: clients[id]})).sort((a, b) => a.text.localeCompare(b.text))
             projectOptions = Object.keys(projects).map((id) => ({key: id, text: projects[id]})).sort((a, b) => a.text.localeCompare(b.text))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== InvoiceDetail ========== -->
-
     <service verb="get" noun="InvoiceDetail">
         <description>InvoiceDetail in the Projects context (design-projects.md §10 InvoiceDetail): for one who manages money and sees one of
             its projects (get#InvoiceAccess), else detail is null. The header (from, to, dates, terms, status, reference, description,
@@ -559,9 +578,14 @@ along with this software (see the LICENSE.md file). If not, see
             clientView: its own sent invoice, impl-projects.md P10b) the detail is read only (no move, no address to send to, no order
             link), and its time is only that of the projects sharing their hours with it, each entry as its day, work item (a shared item
             by name, any other as other work) and hours, never who, a rate, an amount or a comment; hoursText sums those.</description>
-        <in-parameters><parameter name="invoiceId" required="true"/></in-parameters>
-        <out-parameters><parameter name="detail" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="invoiceId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             detail = null
             const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'none'}).call() || {}
             if (!access.canView) return
@@ -682,9 +706,9 @@ along with this software (see the LICENSE.md file). If not, see
                     canCancel: !clientView && isClient && ['InvoiceInProcess', 'InvoiceFinalized'].includes(status), canEdit: !clientView && isClient && isDraft,
                     stageStatusIds: ['InvoiceInProcess', 'InvoiceFinalized', 'InvoiceSent', 'InvoicePmtRecvd']}
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="update" noun="InvoiceStatus">
         <description>InvoiceDetail's moves on a client invoice of a project (get#InvoiceAccess): approve (In-Process to Finalized: posted
             to the ledger when the organization keeps one), resume (Finalized back to In-Process), cancel (In-Process or Finalized: its time
@@ -693,27 +717,13 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="invoiceId" required="true"/>
             <parameter name="action" required="true"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client') { ec.message.addError(L('Only a client invoice is changed here')); return }
-            const status = access.invoice.statusId
-            const moves = {approve: [['InvoiceInProcess'], 'InvoiceFinalized', 'Invoice approved'], resume: [['InvoiceFinalized'], 'InvoiceInProcess', 'Invoice open to changes again'],
-                cancel: [['InvoiceInProcess', 'InvoiceFinalized'], 'InvoiceCancelled', 'Invoice cancelled; its time is unbilled again']}
-            const move = moves[action]
-            if (!move) { ec.message.addError(L('Unknown action')); return }
-            if (!move[0].includes(status)) { ec.message.addError(ec.resource.expand('Invoice ${invoiceId} cannot be changed that way now', '', {invoiceId})); return }
-            if (action === 'approve' && !ec.entity.find('mantle.account.invoice.InvoiceItem').condition('invoiceId', invoiceId).disableAuthz().count()) {
-                ec.message.addError(L('The invoice has no lines')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try { ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: move[1]}).call() }
-            finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L(move[2])
-        ]]></script></actions>
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script("component://mr-boss/service/ironstone/projects/BillingWorkflow.js").execute("changeStatus", context))</script>
+        </actions>
     </service>
-
     <service verb="update" noun="InvoiceHeader">
         <description>InvoiceDetail's Edit on a draft client invoice: the invoice date, payment terms (the due date follows), reference,
             description and the message to the client (mantle.account.InvoiceServices.update#Invoice).</description>
@@ -725,32 +735,13 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="description"/>
             <parameter name="invoiceMessage"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client' || access.invoice.statusId !== 'InvoiceInProcess') { ec.message.addError(L('Only a draft client invoice is edited')); return }
-            let date = null
-            if (invoiceDate) {
-                date = ec.l10n.parseTimestamp(String(invoiceDate).substring(0, 10) + ' 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS')
-                if (date == null) { ec.message.addError(L('The invoice date is yyyy-MM-dd')); return }
-            }
-            if (settlementTermId && !ec.entity.find('mantle.account.invoice.SettlementTerm').condition('settlementTermId', settlementTermId).useCache(true).one()) {
-                ec.message.addError(L('Not a payment term')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try {
-                const fields = {invoiceId: invoiceId, settlementTermId: settlementTermId || null, referenceNumber: referenceNumber || null, description: description || null,
-                    invoiceMessage: invoiceMessage || null}
-                if (date != null) fields.invoiceDate = date
-                ec.service.sync().name('mantle.account.InvoiceServices.update#Invoice').parameters(fields).call()
-                // the due date follows the terms and the date (Mantle's InvoiceSetDueDate keeps one already set)
-                if (!ec.message.hasError()) ec.service.sync().name('mantle.account.InvoiceServices.checkSet#InvoiceDueDate').parameters({invoiceId: invoiceId, overrideExisting: true}).call()
-            } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L('Invoice saved')
-        ]]></script></actions>
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script("component://mr-boss/service/ironstone/projects/BillingWorkflow.js").execute("saveHeader", context))</script>
+        </actions>
     </service>
-
     <service verb="remove" noun="InvoiceLine">
         <description>InvoiceDetail's Remove on a line of a draft client invoice (mantle.account.InvoiceServices.delete#InvoiceItem): its time
             is unbilled again.</description>
@@ -758,75 +749,32 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="invoiceId" required="true"/>
             <parameter name="invoiceItemSeqId" required="true"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client' || access.invoice.statusId !== 'InvoiceInProcess') { ec.message.addError(L('Only a draft client invoice is changed')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try { ec.service.sync().name('mantle.account.InvoiceServices.delete#InvoiceItem').parameters({invoiceId: invoiceId, invoiceItemSeqId: invoiceItemSeqId}).call() }
-            finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L('Line removed; its time or milestone share is unbilled again')
-        ]]></script></actions>
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script("component://mr-boss/service/ironstone/projects/BillingWorkflow.js").execute("removeLine", context))</script>
+        </actions>
     </service>
-
     <service verb="send" noun="Invoice">
-        <description>InvoiceDetail's Send (design-projects.md §10, §14): a client invoice by email to toAddresses (the client's billing
-            address by default) from the vendor's billing address, with the printed invoice and its time detail as a PDF (the PDF is left
-            out, logged, when the server cannot make one) and the lines in the message; a draft is approved first, and an approved invoice
-            becomes Sent. The approval and the status change are one transaction; the email itself waits in the Outbox when the mail
-            server does not take it, which is said.</description>
+        <description>Send an authorized project client invoice through Mantle's guarded delivery workflow, preserving the Projects
+            template and time-detail print. Finalization and archived PDF preparation must succeed before recipients are queued.
+            Each accepted recipient retains one durable email instruction; an SMTP failure waits in the Outbox.</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="toAddresses" required="true"/>
             <parameter name="note"/>
+            <parameter name="attachmentContentIdList" type="List"/>
+            <parameter name="attachmentVersions" type="Map"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/><parameter name="emailMessageId"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client') { ec.message.addError(L('Only a client invoice is sent here')); return }
-            const addresses = String(toAddresses || '').split(/[,;]/).map((address) => address.trim()).filter((address) => address)
-            if (!addresses.length) { ec.message.addError(L('Give the address to send to')); return }
-            const bad = addresses.filter((address) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address))
-            if (bad.length) { ec.message.addError(ec.resource.expand('Not an email address: ${addresses}', '', {addresses: bad.join(', ')})); return }
-            const status = access.invoice.statusId
-            if (!['InvoiceInProcess', 'InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked'].includes(status)) { ec.message.addError(L('This invoice is not sent now')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try {
-                if (!ec.entity.find('mantle.account.invoice.InvoiceItem').condition('invoiceId', invoiceId).count()) { ec.message.addError(L('The invoice has no lines')); return }
-                if (status === 'InvoiceInProcess') {
-                    ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: 'InvoiceFinalized'}).call()
-                    if (ec.message.hasError()) return
-                }
-                const inv = ec.entity.find('mantle.account.invoice.Invoice').condition('invoiceId', invoiceId).one()
-                const print = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoicePrint').parameters({invoiceId: invoiceId, forEmail: true}).call() || {}
-                const fromName = print.fromName || ''
-                const fromAddress = Array.from(ec.entity.find('mantle.party.contact.PartyContactMechInfo').condition('partyId', inv.fromPartyId)
-                        .condition('contactMechPurposeId', 'EmailBilling').conditionDate('fromDate', 'thruDate', null).list())[0]?.infoString || ''
-                const enc = (text) => String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-                const subject = ec.resource.expand('Invoice ${invoiceId} from ${fromName}', '', {invoiceId: invoiceId, fromName: fromName})
-                const body = '<html><body>' + (note ? '<p>' + enc(note).replace(/\n/g, '<br>') + '</p>' : '') + (print.printHtml || '') + '</body></html>'
-                const bodyText = [note || '', subject, print.summaryText || ''].filter((part) => part).join('\n\n')
-                const sent = ec.service.sync().name('org.moqui.impl.EmailServices.send#EmailTemplate').parameters({emailTemplateId: 'BOSS_PROJECT_INVOICE',
-                    toAddresses: addresses.join(','), bodyParameters: {subject: subject, fromAddress: fromAddress, fromName: fromName, invoiceId: invoiceId},
-                    body: body, bodyText: bodyText,
-                    attachments: [{fileName: 'Invoice-' + invoiceId + '.pdf', screenRenderMode: 'xsl-fo',
-                        attachmentLocation: 'component://mr-boss/screen/Projects/Billing/InvoicePrint.xml'}]}).call() || {}
-                if (ec.message.hasError()) return
-                emailMessageId = sent.emailMessageId || null
-                if (['InvoiceFinalized'].includes(inv.statusId)) ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: 'InvoiceSent'}).call()
-                if (ec.message.hasError()) return
-                const email = emailMessageId ? ec.entity.find('moqui.basic.email.EmailMessage').condition('emailMessageId', emailMessageId).one() : null
-                message = email && email.statusId !== 'ES_SENT' && email.statusId !== 'ES_READY'
-                    ? ec.resource.expand('Invoice ${invoiceId} sent to ${to}; the email waits in the Outbox', '', {invoiceId: invoiceId, to: addresses.join(', ')})
-                    : ec.resource.expand('Invoice ${invoiceId} sent to ${to}', '', {invoiceId: invoiceId, to: addresses.join(', ')})
-            } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        <out-parameters>
+            <parameter name="message"/>
+            <parameter name="emailMessageId"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script("component://mr-boss/service/ironstone/projects/BillingWorkflow.js").execute("send", context))</script>
+        </actions>
     </service>
-
     <service verb="get" noun="InvoicePrint">
         <description>The printed client invoice (design-projects.md §14; style-guide §8 Print documents): the vendor and its address, the
             client and its billing address, the invoice number, dates, terms and reference, the lines and the total, the message, and when
@@ -843,7 +791,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="summaryText"/>
             <parameter name="fromName"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             const enc = (text) => String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
             const detail = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceDetail').parameters({invoiceId: invoiceId}).call()?.detail
@@ -884,11 +833,10 @@ along with this software (see the LICENSE.md file). If not, see
             printHtml = html
             summaryText = detail.itemRows.map((item) => [item.description || item.typeText, item.quantityText + ' × ' + item.amountText, item.totalText].join('  ')).join('\n')
                 + '\n' + L('Total') + ': ' + detail.totalText + (detail.dueDateText ? '\n' + L('Due') + ': ' + detail.dueDateText : '')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== Rates ========== -->
-
     <service verb="find" noun="RateRows">
         <description>Rates (design-projects.md §10 Rates): the RateAmount rows of client billing (RaprClient) or worker pay (RaprVendor) on
             the projects the user sees or on none (a person's, a work type's or everyone's), for one who manages money. The find: project,
@@ -909,7 +857,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="rowList" type="List"/>
             <parameter name="counts" type="Map"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             rowList = []; counts = {RaprClient: 0, RaprVendor: 0}
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -983,9 +932,9 @@ along with this software (see the LICENSE.md file). If not, see
                     // a no-charge rate on no project and no person is the seed that bills no-charge time at nothing: kept as it is
                     canChange: !ended && !(rate.rateTypeEnumId === 'RatpNoCharge' && !rate.workEffortId && !rate.partyId)})
             }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="store" noun="Rate">
         <description>Rates' New rate and Edit (design-projects.md §10 NewRate, RateList), for one who manages money. A new rate
             (mantle.humanres.RateServices.create#RateAmount): its purpose, rate type, project (one the user sees, or none), person, position
@@ -1007,8 +956,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="rateAmount" required="true"/>
             <parameter name="rateCurrencyUomId"/>
         </in-parameters>
-        <out-parameters><parameter name="rateAmountId"/><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="rateAmountId"/>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1053,14 +1006,19 @@ along with this software (see the LICENSE.md file). If not, see
                     rateCurrencyUomId: rateCurrencyUomId || ec.user.getPreference('CurrencyDefault') || 'USD'}).call()?.rateAmountId
                 if (!ec.message.hasError()) message = L('Rate added')
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="end" noun="Rate">
         <description>Rates' End: a rate ends now (thruDate), for one who manages money; the time already logged keeps it.</description>
-        <in-parameters><parameter name="rateAmountId" required="true"/></in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="rateAmountId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1078,9 +1036,9 @@ along with this software (see the LICENSE.md file). If not, see
                     thruDate: from != null && from > Number(String(now)) ? rate.fromDate : now}).call()
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
             if (!ec.message.hasError()) message = L('Rate ended')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="RateOptions">
         <description>The choices of Rates' forms: the open projects the user sees (not templates), the work types offered (WorkType), the
             position classes and the rate types (RateType, Standard first).</description>
@@ -1090,7 +1048,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="positionOptions" type="List"/>
             <parameter name="rateTypeOptions" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             const vis = ec.service.sync().name('mantle.work.ProjectServices.get#VisibleProjectInfo').call() || {}
             const wasDisabled = ec.artifactExecution.disableAuthz()
             try {
@@ -1106,9 +1065,9 @@ along with this software (see the LICENSE.md file). If not, see
                 rateTypeOptions = Array.from(ec.entity.find('moqui.basic.Enumeration').condition('enumTypeId', 'RateType').orderBy('sequenceNum').orderBy('description').useCache(true).list())
                         .map((row) => ({key: row.enumId, text: row.description || row.enumId})).sort((a, b) => (a.key === 'RatpStandard' ? -1 : b.key === 'RatpStandard' ? 1 : 0))
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="WhichRate">
         <description>Rates' Which rate (design-projects.md §10 WhichRate): the client and the worker rate that apply to a person's time on a
             project or work item, of a work type, on a day (mantle.work.TimeServices.find#RateAmount, as a time entry finds its rates), and
@@ -1120,8 +1079,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="onDate"/>
             <parameter name="rateTypeEnumId" default-value="RatpStandard"/>
         </in-parameters>
-        <out-parameters><parameter name="answer" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="answer" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             answer = null
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1153,11 +1115,10 @@ along with this software (see the LICENSE.md file). If not, see
             }
             answer = {client: describe(find('RaprClient').rateAmountId, 'RaprClient'), worker: describe(find('RaprVendor').rateAmountId, 'RaprVendor'),
                 note: L('A person\'s rate on the project is used when it is the greater; a work item\'s rates, else its project\'s, come before rates on no project.')}
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== BillingSettings ========== -->
-
     <service verb="get" noun="BillingSettings">
         <description>BillingSettings (design-projects.md §12): the organization's billing defaults for its projects (PartySetting
             ProjBillingDefaults, a JSON object; mantle.work.ProjectServices.get#ProjectSettings reads the keys of the project settings
@@ -1166,14 +1127,17 @@ along with this software (see the LICENSE.md file). If not, see
             timeDetail (time detail on invoices), shareHours (hours shared with clients), settlementTermId (the payment terms of a new
             invoice) and workerInvoicing (Monthly or ByProject: how contractors bill their time). The organization is the settings one
             (ironstone.projects.ProjectServices.get#SettingsOrganization) unless organizationPartyId is given.</description>
-        <in-parameters><parameter name="organizationPartyId"/></in-parameters>
+        <in-parameters>
+            <parameter name="organizationPartyId"/>
+        </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId"/>
             <parameter name="organizationName"/>
             <parameter name="defaults" type="Map"/>
             <parameter name="termOptions" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             if (!organizationPartyId) {
                 const org = ec.service.sync().name('ironstone.projects.ProjectServices.get#SettingsOrganization').call() || {}
                 organizationPartyId = org.organizationPartyId || null
@@ -1191,9 +1155,9 @@ along with this software (see the LICENSE.md file). If not, see
                 shareHours: yn(stored.shareHours, false), settlementTermId: stored.settlementTermId || '', workerInvoicing: stored.workerInvoicing || 'Monthly'}
             termOptions = Array.from(ec.entity.find('mantle.account.invoice.SettlementTerm').orderBy('settlementTermId').useCache(true).list())
                     .map((term) => ({key: term.settlementTermId, text: term.description || term.settlementTermId}))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="store" noun="BillingSettings">
         <description>BillingSettings' form, for the Projects managers who manage money: the organization's ProjBillingDefaults (a JSON
             object under the 255 characters of a PartySetting, impl-projects.md F9). Each project may set its own billing basis,
@@ -1206,8 +1170,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="settlementTermId"/>
             <parameter name="workerInvoicing"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.ProjectServices.check#SettingsManager').call()
             if (ec.message.hasError()) return
@@ -1227,11 +1194,10 @@ along with this software (see the LICENSE.md file). If not, see
                 ec.service.sync().name('store#mantle.party.PartySetting').parameters({partyId: org, partySettingTypeId: 'ProjBillingDefaults', settingValue: value}).call()
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
             if (!ec.message.hasError()) message = L('Billing defaults saved')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== The project's money, milestone billing, orders and the estimate (impl-projects.md P8b) ========== -->
-
     <service verb="get" noun="ProjectMoney">
         <description>ProjectDetail's Money tab (design-projects.md §4 ProjectMoney): for one who manages money and sees the project
             (mantle.work.ProjectServices.get#ProjectMoneySummary), else money is null. The texts of Budget and actuals (the caps, the hours
@@ -1240,9 +1206,14 @@ along with this software (see the LICENSE.md file). If not, see
             its invoice, due, waiting for approval, not reached), Invoices (client invoices) and Expenses (expense invoices), Commercial (the
             order lines it fulfils, linked to OrderDetail); the billing basis; whether the user manages the project (canManage: the edits,
             Send estimate, link a line).</description>
-        <in-parameters><parameter name="workEffortId" required="true"/></in-parameters>
-        <out-parameters><parameter name="money" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="workEffortId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="money" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             money = null
             const managesMoney = ec.service.sync().name('ironstone.projects.BillingServices.check#Money').parameters({need: 'none'}).call()?.managesMoney
             if (!managesMoney) return
@@ -1304,9 +1275,9 @@ along with this software (see the LICENSE.md file). If not, see
                 unbilledUrl: '/qapps/Projects/Billing/Unbilled?rootWorkEffortId=' + encodeURIComponent(workEffortId),
                 timeUrl: '/qapps/Projects/Projects/ProjectDetail/Time?workEffortId=' + encodeURIComponent(workEffortId) + '&list=unbilled',
                 estimateUrl: '/apps/Projects/Projects/EstimatePrint?renderMode=html-print&workEffortId=' + encodeURIComponent(workEffortId)}
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="search" noun="OrderLines" allow-remote="false">
         <description>The order lines a project may fulfil (design-projects.md §4 ProjectMoneyStep's order line, Commercial): the lines of
             sales orders to the project's client not cancelled, rejected or completed, not yet the project's, by the order id or the
@@ -1316,8 +1287,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="workEffortId" required="true"/>
             <parameter name="term"/>
         </in-parameters>
-        <out-parameters><parameter name="optionList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="optionList" type="List"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             optionList = []
             if (!ec.service.sync().name('ironstone.projects.BillingServices.check#Money').parameters({need: 'none'}).call()?.managesMoney) return
             const access = ec.service.sync().name('ironstone.projects.ProjectServices.get#ProjectAccess').parameters({workEffortId: workEffortId, need: 'none'}).call() || {}
@@ -1344,9 +1318,9 @@ along with this software (see the LICENSE.md file). If not, see
                     }
                 }
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="link" noun="OrderLine">
         <description>Links (or with remove unlinks) an order line to a project (mantle.work.ProjectServices.link#ProjectOrderItem): orderLine
             is 'orderId:orderItemSeqId' (the search's value), or orderId and orderItemSeqId. For one who manages money and manages the
@@ -1358,8 +1332,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="orderItemSeqId"/>
             <parameter name="remove" type="Boolean" default="false"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1373,9 +1350,9 @@ along with this software (see the LICENSE.md file). If not, see
             finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
             if (!ec.message.hasError()) message = ec.resource.expand(remove ? 'Order line ${orderId} ${orderItemSeqId} is no longer the project\'s'
                 : 'Order line ${orderId} ${orderItemSeqId} linked to the project', '', {orderId, orderItemSeqId})
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="save" noun="MilestoneShare">
         <description>A milestone's billing share of an order line (mantle.work.ProjectServices.store#MilestoneShare): kind percent or amount
             with value, or remove. For one who manages money and manages the project.</description>
@@ -1388,8 +1365,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="value"/>
             <parameter name="remove" type="Boolean" default="false"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1409,9 +1389,9 @@ along with this software (see the LICENSE.md file). If not, see
                 invoicePercent: !remove && kind !== 'amount' ? number : null, invoiceAmount: !remove && kind === 'amount' ? number : null, remove: remove}).call() }
             finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
             if (!ec.message.hasError()) message = L(remove ? 'Billing share taken off' : 'Billing share saved')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="invoice" noun="Milestone">
         <description>Invoice milestone (design-projects.md §4 MilestoneDetail, §10 MilestonesDue): the milestone's shares due on a client
             invoice (mantle.account.InvoiceServices.create#MilestoneInvoiceItems), added to an open draft of the project to its client
@@ -1421,8 +1401,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="invoiceId"/>
             <parameter name="settlementTermId"/>
         </in-parameters>
-        <out-parameters><parameter name="invoiceId"/><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="invoiceId"/>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             const L = (text) => ec.l10n.localize(text)
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1439,9 +1423,9 @@ along with this software (see the LICENSE.md file). If not, see
                 message = ec.resource.expand('Invoice ${invoiceId}: ${name} billed, ${amount}', '', {invoiceId: invoiceId, name: access.plan.workEffortName || workEffortId,
                     amount: ec.l10n.formatCurrency(out.amount, ec.entity.find('mantle.account.invoice.Invoice').condition('invoiceId', invoiceId).one()?.currencyUomId || 'USD')})
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="find" noun="MilestonesDue">
         <description>Unbilled's Milestones due (design-projects.md §10 MilestonesDue): the milestone billing shares due (reached, approved
             when gated, not billed; mantle.work.ProjectServices.get#MilestoneBilling with dueOnly) of the projects the user sees, by project
@@ -1451,8 +1435,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="rootWorkEffortId"/>
             <parameter name="clientPartyId"/>
         </in-parameters>
-        <out-parameters><parameter name="rowList" type="List"/><parameter name="totalText"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="rowList" type="List"/>
+            <parameter name="totalText"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             rowList = []; totalText = ''
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
@@ -1475,9 +1463,9 @@ along with this software (see the LICENSE.md file). If not, see
                     draftInvoiceId: Array.from(row.draftInvoiceList || [])[0]?.invoiceId || '', canInvoice: manager || managed.has(row.workEffortId)})
             }
             totalText = uoms.size === 1 ? ec.l10n.formatCurrency(total, Array.from(uoms)[0]) : uoms.size ? ec.l10n.localize('More than one currency') : ''
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="OrderAccess" allow-remote="false">
         <description>Whether the user may see an order in Projects: one who manages money and sees one of the projects it is linked to
             (OrderItemWorkEffort to a project or one of its work efforts); else "not available" as an error, or with need none only the
@@ -1491,7 +1479,8 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="canManage" type="Boolean"/>
             <parameter name="projectIds" type="List"/>
         </out-parameters>
-        <actions><script><![CDATA[
+        <actions>
+            <script><![CDATA[
             canView = false; canManage = false; projectIds = []
             const money = ec.service.sync().name('ironstone.projects.BillingServices.check#Money').parameters({need: 'none'}).call()?.managesMoney
             if (money) {
@@ -1515,18 +1504,23 @@ along with this software (see the LICENSE.md file). If not, see
             }
             if (!canView && need !== 'none') ec.message.addError(ec.resource.expand('Order ${orderId} is not available', '', {orderId}))
             else if (need === 'manage' && !canManage) ec.message.addError(ec.l10n.localize('Only those who manage its project change the order\'s links'))
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="OrderDetail">
         <description>OrderDetail in the Projects context (design-projects.md §10 OrderDetail): for one who may see the order (get#OrderAccess),
             else detail is null. The header (customer, vendor, status, dates, total, the order's name), the lines (each with its total, the
             projects and milestones it is linked to and their shares, billed), the milestone shares (get#MilestoneBilling), the invoices that
             bill it (OrderItemBilling), the projects; the actions: Send estimate for approval (one project, the user manages it, the order
             open or proposed), Print (the estimate of its project), link a line to the project.</description>
-        <in-parameters><parameter name="orderId" required="true"/></in-parameters>
-        <out-parameters><parameter name="detail" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="orderId" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="detail" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             detail = null
             const access = ec.service.sync().name('ironstone.projects.BillingServices.get#OrderAccess').parameters({orderId: orderId, need: 'none'}).call() || {}
             if (!access.canView) return
@@ -1591,9 +1585,9 @@ along with this software (see the LICENSE.md file). If not, see
                     printUrl: single ? '/apps/Projects/Projects/EstimatePrint?renderMode=html-print&workEffortId=' + encodeURIComponent(single) : null,
                     stageStatusIds: ['OrderOpen', 'OrderProposed', 'OrderPlaced', 'OrderApproved', 'OrderCompleted']}
             } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="send" noun="Estimate">
         <description>Send estimate for approval (design-projects.md §4 ProjectMoney): mantle.work.ProjectServices.send#EstimateForApproval
             for a project the user manages, by one who manages money: the estimate kept as a file of the Estimate milestone and its
@@ -1603,8 +1597,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="depth" type="Integer" default="2"/>
             <parameter name="comments"/>
         </in-parameters>
-        <out-parameters><parameter name="milestoneId"/><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="milestoneId"/>
+            <parameter name="message"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             ec.service.sync().name('ironstone.projects.BillingServices.check#Money').call()
             if (ec.message.hasError()) return
             ec.service.sync().name('ironstone.projects.ProjectServices.get#ProjectAccess').parameters({workEffortId: workEffortId, need: 'manage'}).call()
@@ -1619,11 +1617,10 @@ along with this software (see the LICENSE.md file). If not, see
             milestoneId = out.milestoneId
             const approver = ec.service.sync().name('mantle.work.ProjectServices.get#MilestoneApprovalAccess').parameters({workEffortId: milestoneId, need: 'none'}).call()?.gate?.approverName || ''
             message = ec.resource.expand('Estimate sent for approval to ${approver}', '', {approver})
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <!-- ========== Home ========== -->
-
     <service verb="get" noun="HomeUnbilled" allow-remote="false">
         <description>Home's Unbilled counter text (design-projects.md §3): get#ProjectHomeCounts unbilledAmount formatted in its currency;
             empty when it is null (not one who manages money).</description>
@@ -1631,9 +1628,13 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="amount"/>
             <parameter name="currencyUomId"/>
         </in-parameters>
-        <out-parameters><parameter name="text"/></out-parameters>
-        <actions><script><![CDATA[
+        <out-parameters>
+            <parameter name="text"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             text = amount == null ? '' : ec.l10n.formatCurrency(toDecimal(amount), currencyUomId || 'USD')
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
 </services>

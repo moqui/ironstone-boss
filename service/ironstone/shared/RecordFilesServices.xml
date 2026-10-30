@@ -22,15 +22,19 @@ along with this software (see the LICENSE.md file). If not, see
     who added it, or one the record's own authorization lets update it (ec.artifactExecution.isPermitted on the record's entity,
     which the host app's authz decides). -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
-
     <service verb="get" noun="ContentType" allow-remote="false">
         <description>How a record type keeps its files: the content entity of get#RecordLinkInfo (info, its contentEntity map)
             with its primary key fields, the enumeration type of its type field, and the Mantle service that creates a row and
             saves its file (createService, null for Facility, which has no pair: its file is written here). Null contentType for a
             record type without a content entity.</description>
-        <in-parameters><parameter name="info" type="Map" required="true"/></in-parameters>
-        <out-parameters><parameter name="contentType" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
+        <in-parameters>
+            <parameter name="info" type="Map" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="contentType" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script><![CDATA[
             contentType = null
             const content = info.contentEntity
             if (!content) return
@@ -71,6 +75,17 @@ along with this software (see the LICENSE.md file). If not, see
                     contentType.catalogCanChange = false
                 }
             }
+            // Native invoice authority also applies to Files callbacks with artifact authorization disabled.
+            if (info.recordEntityName === 'mantle.account.invoice.Invoice') {
+                const invoice = ec.resource.script('component://mr-mantle/service/mantle/account/InvoiceWorkflowLib.js')
+                try {
+                    invoice.writeInvoice({invoiceId: info.recordId,
+                        organizationPartyId: invoice.policy.access().activeOrganizationPartyId || null}, false)
+                } catch (error) {
+                    ec.logger.info('Invoice ' + info.recordId + ' files are read only: ' + error.message)
+                    contentType.catalogCanChange = false
+                }
+            }
             // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
             // inherited entity permission or having uploaded the file earlier never substitutes for it.
             if (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(info.recordEntityName)) {
@@ -93,9 +108,9 @@ along with this software (see the LICENSE.md file). If not, see
                     .parameters({partyId:info.recordId}).disableAuthz().call()
                 contentType.catalogCanChange = !!access?.canEdit
             }
-        ]]></script></actions>
+        ]]></script>
+        </actions>
     </service>
-
     <service verb="get" noun="RecordFiles">
         <description>The record's files, newest first: name, type (the content type enumeration's description), description,
             who added it and when, its size and media type, whether it previews inline (raster images and PDF), whether the
@@ -117,13 +132,16 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordsDriveId"/>
             <parameter name="recordFolderPath"/>
             <parameter name="filesUrl"/>
-            <parameter name="extraList" type="List"><description>The other files and folders of the record's folder in the records
-                drive (no content row: written there by another process, or a content folder whose row is gone)</description></parameter>
+            <parameter name="extraList" type="List">
+                <description>The other files and folders of the record's folder in the records
+                drive (no content row: written there by another process, or a content folder whose row is gone)</description>
+            </parameter>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut"
-                    in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut" in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="ironstone.shared.RecordFilesServices.get#ContentType" in-map="{info:recordOut.info}" out-map="typeOut"/>
             <script><![CDATA[
                 visible = true
@@ -239,7 +257,8 @@ along with this software (see the LICENSE.md file). If not, see
                         dateFull: dateMillis == null ? '' : fmt(dateMillis, 'yyyy-MM-dd HH:mm'), size: size, sizeText: sizeText(size), mimeType: mimeType,
                         isImage: isImage, isPdf: isPdf, icon: isImage ? 'sym_o_image' : isPdf ? 'sym_o_picture_as_pdf'
                             : /\.(txt|md|csv|html?|xml|json)$/.test(lower) ? 'sym_o_description' : 'sym_o_draft',
-                        canRemove: content.catalogCanChange !== false && ((!!row.userId && row.userId === ec.user.userId) || mayUpdate), location: location || null})
+                        isImmutable: row.isImmutable === 'Y',
+                        canRemove: row.isImmutable !== 'Y' && content.catalogCanChange !== false && ((!!row.userId && row.userId === ec.user.userId) || mayUpdate), location: location || null})
                 }
 
                 // the record's folder in the records drive (Files, M8): each file's path there for its versions, and the folder's
@@ -251,7 +270,11 @@ along with this software (see the LICENSE.md file). If not, see
                     if (folder.driveId) {
                         recordsDriveId = folder.driveId
                         recordFolderPath = folder.folderPath
-                        for (const file of fileList) file.drivePath = file.location ? (folder.drivePathByLocation[file.location] ?? null) : null
+                        for (const file of fileList) {
+                            const path = file.location ? (folder.drivePathByLocation[file.location] ?? null) : null
+                            file.drivePath = !file.isImmutable && path && folder.folderPath &&
+                                (path === folder.folderPath || path.startsWith(folder.folderPath + '/')) ? path : null
+                        }
                         if (folder.folderPath) {
                             filesUrl = `/qapps/Commons/Files?drive=${encodeURIComponent(folder.driveId)}&path=${encodeURIComponent(folder.folderPath)}`
                             const rowPaths = fileList.map((file) => file.drivePath).filter((path) => path)
@@ -277,7 +300,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="get" noun="RecordFile">
         <description>One file of the record by its contentKey: the content row, which must be the record's, its location and
             file name, and whether it may show inline (a raster image or a PDF; anything else, SVG and HTML among them, only
@@ -295,9 +317,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="inlineAllowed" type="Boolean"/>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut"
-                    in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut" in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="ironstone.shared.RecordFilesServices.get#ContentType" in-map="{info:recordOut.info}" out-map="typeOut"/>
             <script><![CDATA[
                 contentType = typeOut.contentType
@@ -314,6 +337,7 @@ along with this software (see the LICENSE.md file). If not, see
                 if (row == null || String(row[contentType.keyField]) !== String(recordId)) {
                     ec.message.addError(ec.l10n.localize('Not a file of this record')); return }
                 contentRow = row.getMap()
+                if (contentRow.isImmutable === 'Y') contentType = Object.assign({}, contentType, {catalogCanChange: false})
                 contentLocation = row.contentLocation ? String(row.contentLocation) : null
                 const last = contentLocation ? contentLocation.substring(contentLocation.lastIndexOf('/') + 1) : null
                 try { fileName = last ? decodeURIComponent(last) : null } catch (err) { fileName = last }
@@ -321,7 +345,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="upload" noun="RecordFile">
         <description>Adds files to a record: for each uploaded file (contentFile, one or a list) a content row of the record's
             type with contentTypeEnumId and description, through the record type's Mantle create#&lt;X&gt;Content (the 13 types with
@@ -331,7 +354,9 @@ along with this software (see the LICENSE.md file). If not, see
         <in-parameters>
             <parameter name="recordEntityName" required="true"/>
             <parameter name="recordId" required="true"/>
-            <parameter name="contentFile" type="Object" required="true"><description>An uploaded file or a list of them</description></parameter>
+            <parameter name="contentFile" type="Object" required="true">
+                <description>An uploaded file or a list of them</description>
+            </parameter>
             <parameter name="contentTypeEnumId"/>
             <parameter name="description"/>
         </in-parameters>
@@ -341,9 +366,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="message"/>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut"
-                    in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut" in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="ironstone.shared.RecordFilesServices.get#ContentType" in-map="{info:recordOut.info}" out-map="typeOut"/>
             <script><![CDATA[
                 createdList = []
@@ -412,7 +438,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="remove" noun="RecordFile">
         <description>Removes a file from a record: its content row, then the file itself (a file that cannot be deleted is
             logged; the row is gone). Only the user who added it, or a user the record's authorization lets update the record.</description>
@@ -421,11 +446,15 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordId" required="true"/>
             <parameter name="contentKey" required="true"/>
         </in-parameters>
-        <out-parameters><parameter name="fileName"/><parameter name="message"/></out-parameters>
+        <out-parameters>
+            <parameter name="fileName"/>
+            <parameter name="message"/>
+        </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.RecordFilesServices.get#RecordFile" out-map="fileOut"
-                    in-map="{recordEntityName:recordEntityName, recordId:recordId, contentKey:contentKey}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.RecordFilesServices.get#RecordFile" out-map="fileOut" in-map="{recordEntityName:recordEntityName, recordId:recordId, contentKey:contentKey}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <script><![CDATA[
                 const content = fileOut.contentType
                 const row = fileOut.contentRow
@@ -450,9 +479,7 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <!-- ========== The record's folder in the records drive (Files, M8) ========== -->
-
     <service verb="check" noun="RecordDrivePath" allow-remote="false">
         <description>A path of the records drive that is in the record's own folder, for the versions, downloads and new
             versions of the record's files: the record must be one the user may see (get#RecordInfo, R5) and the path in the
@@ -473,9 +500,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordName"/>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut"
-                    in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut" in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="ironstone.shared.RecordFilesServices.get#ContentType" in-map="{info:recordOut.info}" out-map="typeOut"/>
             <script><![CDATA[
                 const clean = (text) => String(text == null ? '' : text).split('/').filter((part) => part && part !== '.').join('/')
@@ -497,12 +525,14 @@ along with this software (see the LICENSE.md file). If not, see
                 folderPath = folder.folderPath
                 const row = rows.find((item) => String(item.contentLocation || '') === `${folder.rootLocation}/${path}`)
                 contentRow = row ? row.getMap() : null
-                canChange = content?.catalogCanChange !== false && ((!!contentRow && !!contentRow.userId && contentRow.userId === ec.user.userId) || ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update'))
+                const location = `${folder.rootLocation}/${path}`
+                const immutablePath = rows.some((item) => item.getMap().isImmutable === 'Y' &&
+                    (item.contentLocation === location || String(item.contentLocation || '').startsWith(location + '/')))
+                canChange = !immutablePath && content?.catalogCanChange !== false && ((!!contentRow && !!contentRow.userId && contentRow.userId === ec.user.userId) || ec.artifactExecution.isPermitted(entityName, 'AT_ENTITY', 'update'))
                 if (requireChange && !canChange) ec.message.addError(ec.resource.expand('You may not change the files of ${recordName}', '', {recordName: recordName}))
             ]]></script>
         </actions>
     </service>
-
     <service verb="get" noun="RecordFileVersions">
         <description>The versions of a file of the record (FileServices.get#Versions on the records drive, which checks the
             records of the path), newest first.</description>
@@ -511,17 +541,20 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordId" required="true"/>
             <parameter name="drivePath" required="true"/>
         </in-parameters>
-        <out-parameters><parameter name="versionList" type="List"/><parameter name="canChange" type="Boolean"/></out-parameters>
+        <out-parameters>
+            <parameter name="versionList" type="List"/>
+            <parameter name="canChange" type="Boolean"/>
+        </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut"
-                    in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut" in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="org.moqui.impl.FileServices.get#Versions" in-map="{driveId:pathOut.driveId, path:drivePath}" out-map="versionsOut"/>
             <set field="versionList" from="versionsOut.versionList || []"/>
             <set field="canChange" from="pathOut.canChange"/>
         </actions>
     </service>
-
     <service verb="get" noun="RecordDriveFile">
         <description>A file of the record's folder to send (a past version with versionName: location#version, which
             ec.web.sendResourceResponse sends as that version): its location and name, after check#RecordDrivePath and
@@ -538,12 +571,14 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="inlineAllowed" type="Boolean"/>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut"
-                    in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath}"/>
-            <if condition="ec.message.hasError()"><return/></if>
-            <service-call name="org.moqui.impl.FileServices.get#ResourceInfo" out-map="infoOut"
-                    in-map="{driveId:pathOut.driveId, path:drivePath, versionName:(versionName || null), opened:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut" in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
+            <service-call name="org.moqui.impl.FileServices.get#ResourceInfo" out-map="infoOut" in-map="{driveId:pathOut.driveId, path:drivePath, versionName:(versionName || null), opened:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <script><![CDATA[
                 const resource = infoOut.resource
                 if (resource.isDirectory) { ec.message.addError(ec.l10n.localize('Not a file of this record')); return }
@@ -553,7 +588,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="upload" noun="RecordFileVersion">
         <description>A new version of a file of the record: the uploaded file is written over it (whatever its own name) in the
             records drive, which keeps the one before as a version (FileServices.upload#Resource as one change set, with the
@@ -567,11 +601,15 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="contentFile" type="Object" required="true"/>
             <parameter name="versionNote"/>
         </in-parameters>
-        <out-parameters><parameter name="versionName"/><parameter name="message"/></out-parameters>
+        <out-parameters>
+            <parameter name="versionName"/>
+            <parameter name="message"/>
+        </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut"
-                    in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath, requireChange:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut" in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath, requireChange:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <script><![CDATA[
                 // the upload below is internal (the drive is read only to its members): the path must be one the user reaches
                 const access = ec.service.sync().name('org.moqui.impl.FileServices.get#DriveAccess').parameters({driveId: pathOut.driveId, path: drivePath}).call()
@@ -591,7 +629,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="restore" noun="RecordFileVersion">
         <description>A past version of a file of the record written back as its newest version (the history stays), with the
             note "Restored version x". The same checks as upload#RecordFileVersion.</description>
@@ -601,14 +638,18 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="drivePath" required="true"/>
             <parameter name="versionName" required="true"/>
         </in-parameters>
-        <out-parameters><parameter name="message"/></out-parameters>
+        <out-parameters>
+            <parameter name="message"/>
+        </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut"
-                    in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath, requireChange:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
-            <service-call name="org.moqui.impl.FileServices.get#ResourceInfo" out-map="infoOut"
-                    in-map="{driveId:pathOut.driveId, path:drivePath, versionName:versionName}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.RecordFilesServices.check#RecordDrivePath" out-map="pathOut" in-map="{recordEntityName:recordEntityName, recordId:recordId, drivePath:drivePath, requireChange:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
+            <service-call name="org.moqui.impl.FileServices.get#ResourceInfo" out-map="infoOut" in-map="{driveId:pathOut.driveId, path:drivePath, versionName:versionName}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <script><![CDATA[
                 const slash = drivePath.lastIndexOf('/')
                 const name = drivePath.slice(slash + 1)
@@ -627,7 +668,6 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
         </actions>
     </service>
-
     <service verb="add" noun="RecordFilesFromDrive">
         <description>Add files the user picked in Files (itemList of {driveId, path}) to the record, as copies: for each a
             content row of the record's type with contentTypeEnumId and description, its file in the record's folder as the
@@ -648,9 +688,10 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="message"/>
         </out-parameters>
         <actions>
-            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut"
-                    in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
-            <if condition="ec.message.hasError()"><return/></if>
+            <service-call name="ironstone.shared.ChatterServices.get#RecordInfo" out-map="recordOut" in-map="{forFiles:true, recordEntityName:recordEntityName, recordId:recordId, requireVisible:true}"/>
+            <if condition="ec.message.hasError()">
+                <return/>
+            </if>
             <service-call name="ironstone.shared.RecordFilesServices.get#ContentType" in-map="{info:recordOut.info}" out-map="typeOut"/>
             <script><![CDATA[
                 createdList = []

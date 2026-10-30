@@ -112,7 +112,9 @@ The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
 ```sh
 ./moq test --nobuild mr-mantle
 ./moq test --nobuild mr-boss
-./moq test-client --nobuild mr-boss --serve --spec AccountingShots,AccountingLedgerWalk,AccountingSettingsWalk --out <screenshot-dir>
+./moq test-client --nobuild mr-boss --serve --spec AccountingLedgerWalk,AccountingSettingsWalk
+# AccountingShots is slow (over 30 seconds): --slow runs it, only when its screenshots are needed
+./moq test-client --nobuild mr-boss --serve --spec AccountingShots --slow --out <screenshot-dir>
 target/develop/moqui lint --screens <report-file>
 ```
 

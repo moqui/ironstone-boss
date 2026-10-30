@@ -63,6 +63,9 @@ const cases = groups.flatMap(({user, prefix, pages}) =>
 )
 let pages = {}
 spec({
+    // 228 cases, about 2 minutes (2026-10-30): over 30 seconds, so moqui test-client runs it only with --slow, when its
+    // screenshots are needed. Its width x theme matrix is the pattern ProductsShots.spec.js says not to follow.
+    slow: true,
     setupSpec() {
         for (const {user} of groups)
             for (const width of widths) {

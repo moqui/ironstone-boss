@@ -1,7 +1,25 @@
-// Browser QA of every Products screen at phone and desktop widths, in both themes, from one table. A group names the user
-// who sees its pages, the screenshot prefix and the window height; a page names its path and may wait for a text before the
-// shot, open something first (a dialog, a row action) and check what it shows. A check returns "" or what is wrong.
-const widths = [390, 1280, 1440]
+// Browser QA of every Products screen from one table: each page once, light at 1280, and the first page of each group
+// also at phone width and in the dark (the shell and the archetypes in both themes and at 390). A group names the user
+// who sees its pages, the screenshot prefix and the window height; a page names its path and may wait for a text before
+// the shot, open something first (a dialog, a row action) and check what it shows. A check returns "" or what is wrong;
+// a page whose check depends on the width (phone: true) is shot at 390 too. About 116 cases, about 2 minutes, so the
+// spec is slow: moqui test-client runs it only with --slow, when its screenshots are needed.
+//
+// UNACCEPTABLE TEST, kept here as the example not to follow. This spec used to run every page at three widths in both
+// themes:
+//
+//     const widths = [390, 1280, 1440]
+//     const cases = groups.flatMap((group, g) =>
+//         group.pages.flatMap((entry, e) =>
+//             widths.flatMap(width => [false, true].map(dark => ({g, e, width, dark, name: group.prefix + "-" + entry.name})))
+//         )
+//     )
+//
+// That was 535 cases and 523 seconds, about 9 minutes of a 31-minute ./moq test-all (2026-10-30), for checks (the
+// status, no render error, the page's own text) that do not change with the width or the theme. No feature is worth
+// that much test time. A width x theme matrix is a bug in the test: check each page once, and check at a width or in a
+// theme only what changes there.
+const widths = [390, 1280]
 const priceRow = (page, label) =>
     page.evaluate(label => {
         const row = Array.from(document.querySelectorAll(".tr")).find(r =>
@@ -122,6 +140,8 @@ const groups = [
             {
                 name: "Builder",
                 path: "/qapps/Products/Products/VariantBuilder?productId=BOSS_PRD_VIRT",
+                // a list at phone width, the matrix wider
+                phone: true,
                 ready: () => !!document.querySelector("[data-feature-key]"),
                 check: (page, width) =>
                     !page.text().includes("Choose combinations · 4")
@@ -284,7 +304,7 @@ const groups = [
             {name: "units", path: "/qapps/Products/Units/Index?text=kilogram&uomId=WT_kg&toUomId=WT_g"},
             {name: "packaging", path: "/qapps/Products/Units/Packaging?baseProductId=BOSS_PRD_OWN&scanId=BOSS_PACK_12"},
             // label guidance and controls fit the phone width
-            {name: "labels", path: "/qapps/Products/Units/Labels?operationKey=BOSS_LABEL_SAMPLE", check: fitsPhone}
+            {name: "labels", path: "/qapps/Products/Units/Labels?operationKey=BOSS_LABEL_SAMPLE", check: fitsPhone, phone: true}
         ]
     },
     {
@@ -302,21 +322,31 @@ const groups = [
                 name: "import",
                 path: "/qapps/Products/ProductImport?operationKey=BOSS_IMPORT_SAMPLE_RUN",
                 wait: "Product name is required",
-                check: fitsPhone
+                check: fitsPhone,
+                phone: true
             }
         ]
     }
 ]
+// each page light at 1280; the first page of a group also at 390 and dark at 1280; a phone: true page also at 390
+const variants = (entry, e) =>
+    e === 0
+        ? [{width: 1280, dark: false}, {width: 390, dark: false}, {width: 1280, dark: true}]
+        : entry.phone
+          ? [{width: 1280, dark: false}, {width: 390, dark: false}]
+          : [{width: 1280, dark: false}]
 // a case names its group and page by index: the table keeps the functions
 const cases = groups.flatMap((group, g) =>
     group.pages.flatMap((entry, e) =>
-        widths.flatMap(width => [false, true].map(dark => ({g, e, width, dark, name: group.prefix + "-" + entry.name})))
+        variants(entry, e).map(({width, dark}) => ({g, e, width, dark, name: group.prefix + "-" + entry.name}))
     )
 )
 // one page per user and width, signed in once before the cases
 let pages = {}
 const pageFor = (user, width) => pages[user + ":" + width]
 spec({
+    // about 2 minutes: over 30 seconds
+    slow: true,
     setupSpec() {
         for (const group of groups)
             for (const width of widths) {
@@ -370,7 +400,7 @@ feature("Products #name at #width dark=#dark", {
 })
 feature("an effective scoped price list prints without its editing controls", {
     expect() {
-        const page = pageFor("john.doe", 1440)
+        const page = pageFor("john.doe", 1280)
         page.goto("/apps/Products/Prices/PriceLists/PriceListDetail?priceListId=BOSS_PRICE_LIST&renderMode=html-print").status ==
             200
         page.waitFor(() => document.body.innerText.includes("BOSS_PRICE_RULE"))

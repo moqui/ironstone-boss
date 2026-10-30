@@ -1,9 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Reports" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- The Accounting reports (design-accounting §13): the built reports, each with what it answers. P16 adds the rest. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Overview" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <widgets>
         <label text="Accounting reports" type="h5"/>
-        <link url="../TrialBalance" text="Trial balance" link-type="anchor-button" btn-type="primary"/>
-        <link url="../GeneralLedger" text="General ledger" link-type="anchor-button"/>
+        <container-row>
+            <row-col md="6">
+                <container-box>
+                    <box-header title="Trial balance"/>
+                    <box-body>
+                        <label text="Each account's beginning balance, debits, credits and ending balance for a period." type="p"/>
+                        <link url="../TrialBalance" text="Open trial balance" link-type="anchor-button" btn-type="primary"/>
+                    </box-body>
+                </container-box>
+            </row-col>
+            <row-col md="6">
+                <container-box>
+                    <box-header title="General ledger"/>
+                    <box-body>
+                        <label text="The posted lines of each account, with a running balance." type="p"/>
+                        <link url="../GeneralLedger" text="Open general ledger" link-type="anchor-button"/>
+                    </box-body>
+                </container-box>
+            </row-col>
+        </container-row>
     </widgets>
 </screen>

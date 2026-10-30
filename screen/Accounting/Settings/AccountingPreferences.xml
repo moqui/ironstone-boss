@@ -1,266 +1,279 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Accounting Preferences" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <parameter name="sourceOrganizationPartyId" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Accounting preferences (design-accounting §15 AccountingPreferences): an organization's base currency, fiscal year,
+    default due term, error journal and the opt-in controls, and the copy of another organization's missing configuration
+    with its conflict preview (mantle.ledger.SetupServices.clone#Preferences). A change to the basis of posted history is
+    refused. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Preferences" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId"/>
+    <parameter name="sourceOrganizationPartyId"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result" />
+            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-            <parameter name="sourceOrganizationPartyId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="clone">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="context" out-map="result" />
-            <set field="inputFingerprint" from="result.inputFingerprint" />
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="{organizationPartyId:organizationPartyId,sourceOrganizationPartyId:sourceOrganizationPartyId}" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-            <parameter name="sourceOrganizationPartyId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="applyClone">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="Object.assign({},context,{apply:true})" out-map="result" />
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="Object.assign({},context,{apply:true})" out-map="result"/>
+            <set field="sourceOrganizationPartyId" from="null"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="context" out-map="context" />
-        <if condition="sourceOrganizationPartyId">
-            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="{organizationPartyId:organizationPartyId,sourceOrganizationPartyId:sourceOrganizationPartyId}" out-map="clonePreview" />
+        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <if condition="organizationPartyId &amp;&amp; sourceOrganizationPartyId">
+            <service-call name="mantle.ledger.SetupServices.clone#Preferences" in-map="{organizationPartyId:organizationPartyId,sourceOrganizationPartyId:sourceOrganizationPartyId}" out-map="clonePreview"/>
         </if>
-        <set from="clonePreview?.conflicts || []" field="clonePreviewConflicts" />
-        <set from="(clonePreviewConflicts || []).length" field="clonePreviewConflictsCount" />
-        <set from="clonePreviewConflictsCount || 1" field="clonePreviewConflictsPageSize" />
-        <set from="0" field="clonePreviewConflictsPageIndex" />
-        <set from="0" field="clonePreviewConflictsPageMaxIndex" />
-        <set from="clonePreviewConflictsCount ? 1 : 0" field="clonePreviewConflictsPageRangeLow" />
-        <set from="clonePreviewConflictsCount" field="clonePreviewConflictsPageRangeHigh" />
+        <set field="cloneConflicts" from="clonePreview?.conflicts || []"/>
     </actions>
     <widgets>
-        <label text="Accounting Preferences" type="h5" />
-        <form-single name="SelectOrganization" transition="selectOrganization" map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Choose organization" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <form-single name="Preferences" transition="save" map="settings">
-            <field name="organizationPartyId" from="organizationPartyId">
-                <default-field title="Organization party id">
-                    <hidden />
-                </default-field>
-            </field>
-            <field name="lastUpdatedStamp" from="settings.lastUpdatedStamp">
-                <default-field title="Last updated stamp">
-                    <hidden />
-                </default-field>
-            </field>
-            <field name="baseCurrencyUomId">
-                <default-field title="Base currency">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:baseCurrencyUomId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="fiscalYearStartMonth">
-                <default-field title="Fiscal start month">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="fiscalYearStartDay">
-                <default-field title="Fiscal start day">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="settlementTermId">
-                <default-field title="Default due term">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="errorGlJournalId">
-                <default-field title="Error journal">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:errorGlJournalId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="postingGuardEnabled">
-                <default-field title="Posting guard">
-                    <drop-down allow-empty="true">
-                        <option key="N" text="Disabled" />
-                        <option key="Y" text="Enabled" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="requiredLedgerDimensionsEnabled">
-                <default-field title="Required dimensions">
-                    <drop-down allow-empty="true">
-                        <option key="N" text="Disabled" />
-                        <option key="Y" text="Enabled" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="forwardIssuanceRepostEnabled">
-                <default-field title="Forward issuance adjustments">
-                    <drop-down allow-empty="true">
-                        <option key="N" text="Disabled" />
-                        <option key="Y" text="Enabled" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="allowAccountingSelfApproval">
-                <default-field title="Allow self approval">
-                    <drop-down allow-empty="true">
-                        <option key="N" text="Disabled" />
-                        <option key="Y" text="Enabled" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="inventoryRevaluationEnabled">
-                <default-field title="Inventory revaluation">
-                    <drop-down allow-empty="true">
-                        <option key="N" text="Disabled" />
-                        <option key="Y" text="Enabled" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="changeReason">
-                <default-field title="Reason">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Save preferences" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <label text="${costingMessage}" type="p" />
-        <container-dialog id="Previewpreferenceclone" button-text="Preview preference clone">
-            <form-single name="ClonePreferences" transition="clone" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="sourceOrganizationPartyId">
-                    <default-field title="Source organization">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:sourceOrganizationPartyId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Preview conflicts" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <section name="CloneReview" condition="sourceOrganizationPartyId">
+        <label text="Accounting preferences" type="h5"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <section name="Preferences" condition="organizationPartyId">
             <widgets>
-                <label text="Clone conflict preview" type="h6" />
-                <form-list name="CloneConflicts" list="clonePreviewConflicts" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-                    <field name="kind">
-                        <default-field title="Kind">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="key">
-                        <default-field title="Existing key">
-                            <display />
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column>
-                            <field-ref name="kind" />
-                        </column>
-                        <column>
-                            <field-ref name="key" />
-                        </column>
-                    </columns>
-                </form-list>
-                <form-single name="ApplyClone" transition="applyClone" map="context">
+                <form-single name="Preferences" transition="save" map="settings">
                     <field name="organizationPartyId" from="organizationPartyId">
-                        <default-field title="Organization party id">
-                            <hidden />
+                        <default-field>
+                            <hidden/>
                         </default-field>
                     </field>
-                    <field name="sourceOrganizationPartyId" from="sourceOrganizationPartyId">
-                        <default-field title="Source organization party id">
-                            <hidden />
+                    <field name="lastUpdatedStamp">
+                        <default-field>
+                            <hidden/>
                         </default-field>
                     </field>
-                    <field name="inputFingerprint" from="clonePreview.inputFingerprint">
-                        <default-field title="Input fingerprint">
-                            <hidden />
+                    <field name="baseCurrencyUomId">
+                        <default-field title="Base currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:baseCurrencyUomId}"/>
+                            </drop-down>
                         </default-field>
                     </field>
-                    <field name="changeReason">
+                    <field name="fiscalYearStartMonth">
+                        <default-field title="Fiscal year starts in">
+                            <drop-down allow-empty="true">
+                                <option key="1" text="January"/>
+                                <option key="2" text="February"/>
+                                <option key="3" text="March"/>
+                                <option key="4" text="April"/>
+                                <option key="5" text="May"/>
+                                <option key="6" text="June"/>
+                                <option key="7" text="July"/>
+                                <option key="8" text="August"/>
+                                <option key="9" text="September"/>
+                                <option key="10" text="October"/>
+                                <option key="11" text="November"/>
+                                <option key="12" text="December"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fiscalYearStartDay">
+                        <default-field title="On day">
+                            <text-line size="3"/>
+                        </default-field>
+                    </field>
+                    <field name="settlementTermId">
+                        <default-field title="Default due term">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="errorGlJournalId">
+                        <default-field title="Error journal" tooltip="Where an automatic posting that fails waits for review">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:errorGlJournalId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="postingGuardEnabled">
+                        <default-field title="Posting guard" tooltip="Check locks, the organization and dimensions on every posting">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="requiredLedgerDimensionsEnabled">
+                        <default-field title="Required dimensions" tooltip="Refuse a posting that lacks a facility or cost centre its account requires">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="forwardIssuanceRepostEnabled">
+                        <default-field title="Forward issuance adjustments" tooltip="Post a dated adjustment for a changed issuance instead of reposting it">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="allowAccountingSelfApproval">
+                        <default-field title="Self approval" tooltip="Let the person who drafted a record approve it; each such approval is marked">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="inventoryRevaluationEnabled">
+                        <default-field title="Inventory revaluation">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="changeReason" from="''">
                         <default-field title="Reason">
-                            <text-line />
+                            <text-line/>
                         </default-field>
                     </field>
                     <field name="submit">
-                        <default-field title="Submit">
-                            <submit text="Copy missing configuration" type="primary" />
+                        <default-field title="">
+                            <submit text="Save preferences" type="primary"/>
                         </default-field>
                     </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="baseCurrencyUomId"/>
+                            <field-ref name="settlementTermId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fiscalYearStartMonth"/>
+                            <field-ref name="fiscalYearStartDay"/>
+                        </field-row>
+                        <field-ref name="errorGlJournalId"/>
+                        <field-row>
+                            <field-ref name="postingGuardEnabled"/>
+                            <field-ref name="requiredLedgerDimensionsEnabled"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="forwardIssuanceRepostEnabled"/>
+                            <field-ref name="allowAccountingSelfApproval"/>
+                        </field-row>
+                        <field-ref name="inventoryRevaluationEnabled"/>
+                        <field-ref name="changeReason"/>
+                        <field-ref name="submit"/>
+                    </field-layout>
                 </form-single>
+                <container-box type="info">
+                    <box-body>
+                        <label text="${costingMessage}" type="p" style="q-mb-none"/>
+                    </box-body>
+                </container-box>
+                <label text="Copy from another organization" type="h6"/>
+                <form-single name="ClonePreferences" transition="clone">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field>
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="sourceOrganizationPartyId">
+                        <default-field title="Copy the missing configuration of">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:sourceOrganizationPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Preview the copy"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="sourceOrganizationPartyId"/>
+                            <field-ref name="submit"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+                <section name="CloneReview" condition="sourceOrganizationPartyId &amp;&amp; clonePreview">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${cloneConflicts.length ? cloneConflicts.length + ' existing entries stay as they are' : 'Nothing here conflicts'}"/>
+                            <box-body>
+                                <form-list name="CloneConflicts" list="cloneConflicts" skip-form="true" paginate="false">
+                                    <field name="kind">
+                                        <default-field title="Kind">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="key">
+                                        <default-field title="Existing entry">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="kind"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="key"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <form-single name="ApplyClone" transition="applyClone">
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceOrganizationPartyId" from="sourceOrganizationPartyId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="inputFingerprint" from="clonePreview.inputFingerprint">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="changeReason">
+                                        <default-field title="Reason">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Copy missing configuration" confirmation="Copy the missing configuration? ${cloneConflicts.length} existing entries stay as they are."/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
             </widgets>
+            <fail-widgets>
+                <label text="Choose an organization to see and change its preferences." type="p"/>
+            </fail-widgets>
         </section>
     </widgets>
 </screen>

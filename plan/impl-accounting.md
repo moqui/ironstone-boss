@@ -975,6 +975,17 @@ design, it is written there too.
 | F59 | P3: PaymentGatewayConfig is global and contains executable service names. | PaymentGatewayOrganization is an audited external provisioning boundary. Finance returns only active organization-permitted gateway IDs/descriptions, and no credentials or executable fields. Existing method identifiers remain masked. |
 | F60 | P3 browser verification: the remote choice widget discarded loaded options when a parent form rerendered its empty seed array, then cleared a selection outside the first search page. | The existing widget preserves the loaded selection across renders/search pages; a changed dependency still clears it. QvtKeys and the Accounting mapping-repair walk exercise the contract. |
 
+| F61 | Review Oct 29: Home's and the Settings screens' Choose organization form posted to `selectOrganization`, which no screen had: a `transition-include` copies one named transition, and only `choices` was included | Each screen includes both; AccountingShell posts the picker on Home and Settings |
+| F62 | Review: deleting a draft went back to JournalEntries with the deleted id, which the list declared as a parameter and filtered by, so the list was empty | The list declares only what it reads; a spec checks the response's Location |
+| F63 | Review: Accounting's choices searched case-sensitively, ignored the term for journals, batches, templates, locks, periods, users and groups, and filtered in JavaScript after `limit`; the `parties` choice called `makeCondition(field, value)`, which this framework reads as field and operator, so the new-document Customer/Supplier drop-down always failed; Mantle's list search matched only ids | `choices` is a table of sources searching their names in the query, ignoring case; Mantle's `query` matches names and descriptions. A spec calls every choice with a selected value outside the page |
+| F64 | Review: the palette's record links checked BOSS group names; finance reads were "holds any finance permission", so Projects' managers, who hold `RECEIVABLE_EDIT` to bill, could read receivables and payments | Mantle seeds `RECEIVABLE_VIEW`, `PAYABLE_VIEW` and `PAYMENT_VIEW`; a kind reads from its view permission or `ACCOUNTING_VIEW`, an edit permission alone opens nothing, and BOSS grants the views to AR, AP, treasury and admin. The palette uses the permission-derived capability. Specs in both repositories (decided with the user) |
+| F65 | Review: AccountDetail overwrote the report's account filter with its own account, and the GeneralLedger report's links dropped it | Report links carry the report's options; AccountDetail's account is `recordId` |
+| F66 | Review: JournalEntryDetail and AccountDetail read their record in `always-actions`, which run for every `choices` request, and failed the page for a missing record; Publish showed on a published template; a batch could be posted without its review; row dialogs had fixed ids | Records are read in `actions` with a Not available state; actions follow state; posting is from the review only; row dialog ids carry the row key |
+| F67 | Review: AccountingControls' "opt-in issuance adjustments" built its hard lock date with `toISOString()`, a UTC day, so it locked today from evening on in the Americas and failed (reproduced at the committed code) | The date is formatted in the user's zone |
+| F68 | Review: a widget that fails renders its error into the output, not `errorMessages`, so the status-only Accounting specs passed broken pages; negative access helpers counted any error, including validation errors, as a refusal; a "reader sees no New batch" check named a button that did not exist | Specs check rendered text and render errors, pair negative cases with positive ones, and check controls present for the users who have them |
+| F69 | Review: the screens copied a 12-parameter block and 7-parameter responses, faked one page with about 60 hand-set page fields, duplicated invoice/bill/payment screens and PostingDefaults' Add and Edit forms, and loaded `Accounting.js` to format dates | `template/AccountingParts.xml` and `AccountingDocuments.xml`; services page their lists and return display text (`AccountingPolicy.display`), party and status names |
+| F70 | Review: the BOSS Accounting scripts and specs used Prettier's defaults rather than the documented style, and the screens a different XML formatter and a one-line license header | Reformatted; `.prettierrc.json` at the mr-moqui root; full headers restored |
+
 ## 7. Later
 
 Designed, not in this build:
@@ -1051,6 +1062,27 @@ masked payment methods and organization-approved gateway bindings, numbering and
 PostingDefaults identifies missing item defaults through the native invoice resolver as well as missing GL types.
 Existing chart accounts can be assigned from ChartOfAccounts. Configuration retains posted accounting meaning and
 issued document identities. Installment/discount lines, provider refresh and conversion remain P8/P20.
+
+### R — Review of P0–P3 — Oct 29, 2026
+
+A review of the four P0–P3 commits against docs/Practices-App-Dev.md found the bugs and practice gaps F61–F70, fixed
+in mr-boss and mr-mantle, and added what they taught to that document. The detail screens have the record header with
+one primary action by state and a More menu, a Not available state and chips with tui twins; lists have names,
+amounts and states and real pagination; the invoice, bill and payment screens share one template.
+
+Verified Oct 30, 2026: `./moq test mr-boss` 1,065 passed, 5 skipped; standalone `./moq test mr-mantle` 844 passed with
+the four baseline failures (InboxThreads, MantleSearch, WorkTimeEntries, WorkTimesheets) and 17 skipped, PDF specs with
+Chromium; `test-client mr-boss` AccountingShots (three users, 31 destinations at 390, 1280 and 1440, light and dark),
+AccountingLedgerWalk and AccountingSettingsWalk 230 of 230, screenshots looked at; `moqui lint --screens` 125 flagged
+sites as before, none in Accounting. The framework's qvt list toolbar now counts an unpaginated list's rows instead of
+saying "No results found" (mr-moqui).
+
+Left for later:
+- `AccountingPolicy.js` refuses with plain messages; reason codes (`denied(reason, message)`) and the walks' comparison
+  by code wait for that conversion. Its formatting (Prettier defaults) is also still to change.
+- Chips have qvt and tui texts only, so printed lists show no state.
+- An invoice list fills a draft's missing total with one `get#InvoiceTotal` per row (at most a page).
+- JournalTemplates turns the amount form's `parameterName_N` fields into a map in its transition.
 
 ### P0–P3 integration verification — Oct 29, 2026
 

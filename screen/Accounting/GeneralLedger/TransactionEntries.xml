@@ -1,76 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Transaction entries (design-accounting §8 TransactionEntries): the organization's journal lines, each with its entry,
+    account, side and amount. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Transaction entries" default-menu-index="3" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="glAccountId"/>
+    <parameter name="isPosted"/>
+    <parameter name="text"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'entries'})" out-map="context" />
-        <set field="recordsCount" from="recordCount" />
+        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'entries',organizationPartyId:organizationPartyId,glAccountId:glAccountId,isPosted:isPosted,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
     </actions>
     <widgets>
-        <label text="Transaction entries" type="h5" />
-        <form-single name="Find" transition="." map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="text">
-                <default-field title="Search">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Find" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
+        <label text="Transaction entries" type="h5"/>
+        <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
         <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="acctgTransId">
-                <default-field title="Record">
-                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}" />
+            <field name="txDescription">
+                <default-field title="Entry">
+                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${txDescription || 'Journal entry ' + acctgTransId}" link-type="anchor" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                </default-field>
+            </field>
+            <field name="glAccountId">
+                <default-field title="Account">
+                    <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}"/>
                 </default-field>
             </field>
             <field name="description">
-                <default-field title="Name">
-                    <display />
+                <default-field title="Line">
+                    <display/>
                 </default-field>
             </field>
-            <field name="isPosted">
-                <default-field title="Posted">
-                    <display />
+            <field name="debitCreditFlag">
+                <default-field title="Side">
+                    <display text="${debitCreditFlag == 'D' ? 'Debit' : debitCreditFlag == 'C' ? 'Credit' : ''}"/>
                 </default-field>
             </field>
             <field name="amount" align="right">
                 <default-field title="Amount">
-                    <display currency-unit-field="amountUomId" />
+                    <display currency-unit-field="amountUomId"/>
+                </default-field>
+            </field>
+            <field name="isPosted">
+                <default-field title="State">
+                    <render-mode>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ? 'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Draft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted' : 'Draft'})}]]></text>
+                    </render-mode>
                 </default-field>
             </field>
             <columns type="mobile">
                 <column>
-                    <field-ref name="acctgTransId" />
-                    <field-ref name="description" />
+                    <field-ref name="txDescription"/>
+                    <field-ref name="glAccountId"/>
                 </column>
                 <column>
-                    <field-ref name="amount" />
-                    <field-ref name="isPosted" />
+                    <field-ref name="debitCreditFlag"/>
+                    <field-ref name="amount"/>
+                    <field-ref name="isPosted"/>
                 </column>
             </columns>
         </form-list>
-        <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
+        <label text="No transaction entries match. Choose another organization or search." type="p" condition="!records.length"/>
     </widgets>
 </screen>

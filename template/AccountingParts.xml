@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Parts of the IronStone Accounting screens. A screen includes each transition it uses by name (transition-include)
+    and each section (section-include), so a form here posts to the screen it is on.
+    - choices: the server-search drop-downs (ironstone.accounting.AccessServices.get#Choices);
+    - selectOrganization: the active organization, with the OrganizationPicker section;
+    - FindRecords: a list's organization and search text;
+    - postBatch, with the BatchReview section: the reviewed posting of a selection or batch of journal entries, each
+      entry posted on its own and each failure named;
+    - ReportOptions: the shared options of the ledger reports, which set reportOptions for their links;
+    - BackToReport: the way back from a report's drill-down, with the report's options (reportReturn names the report). -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="{choice:choice,term:term,selected:selected,organizationPartyId:organizationPartyId}" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.options)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="selectOrganization">
+        <actions>
+            <service-call name="ironstone.accounting.AccessServices.select#Organization" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="postBatch">
+        <actions>
+            <service-call name="mantle.ledger.JournalServices.post#Batch" in-map="context" out-map="result"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="organizationPartyId"/>
+            <parameter name="previewId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="OrganizationPicker">
+            <widgets>
+                <form-single name="Organization" transition="selectOrganization" map="context">
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Choose organization"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="organizationPartyId"/>
+                            <field-ref name="submit"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="FindRecords">
+            <widgets>
+                <form-single name="Find" transition="." map="context">
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="text">
+                        <default-field title="Search">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Find"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="organizationPartyId"/>
+                            <field-ref name="text"/>
+                            <field-ref name="submit"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="BatchReview" condition="previewId">
+            <actions>
+                <service-call name="mantle.ledger.JournalServices.get#BatchPreview" in-map="{organizationPartyId:organizationPartyId,previewId:previewId}" out-map="batchPreview"/>
+                <set field="batchResults" from="batchPreview.results || []"/>
+                <set field="readyCount" from="batchResults.filter(row =&gt; row.valid &amp;&amp; !row.success).length"/>
+                <set field="postedCount" from="batchResults.filter(row =&gt; row.success).length"/>
+            </actions>
+            <widgets>
+                <container-box>
+                    <box-header title="Batch review: ${readyCount} ready, ${postedCount} posted, ${batchResults.length - readyCount - postedCount} not ready"/>
+                    <box-body>
+                        <form-list name="BatchResults" list="batchResults" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <default-field title="Entry">
+                                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${acctgTransId}" link-type="anchor" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                                </default-field>
+                            </field>
+                            <field name="state">
+                                <default-field title="State">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${success ? 'positive' : valid ? 'primary' : 'negative'}">${success ? 'Posted' : valid ? 'Ready' : 'Not ready'}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: success ? 'Posted' : valid ? 'Ready' : 'Not ready'})}]]></text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <field name="message">
+                                <default-field title="Result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="acctgTransId"/>
+                                    <field-ref name="message"/>
+                                </column>
+                                <column>
+                                    <field-ref name="state"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <section name="PostReviewedBatch" condition="readyCount &gt; 0 &amp;&amp; accounting.capabilities.glPost">
+                            <widgets>
+                                <form-single name="PostReviewed" transition="postBatch">
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="glJournalId" from="batchPreview.glJournalId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="previewId" from="previewId">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="operationKey" from="'batch-' + ec.user.randomString(24)">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="changeReason">
+                                        <default-field title="Posting reason">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Post ${readyCount} ready" type="primary" confirmation="Post the ${readyCount} ready entries? Each posts on its own; an entry that fails is named and the others still post."/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="ReportOptions">
+            <widgets>
+                <form-single name="ReportOptions" transition="." map="context">
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="glAccountId">
+                        <default-field title="Account">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="timePeriodId">
+                        <default-field title="Fiscal period">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'periods',organizationPartyId:organizationPartyId,selected:timePeriodId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="From">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Through" tooltip="The report includes entries before this date, not on it">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="amountUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="facilityId">
+                        <default-field title="Facility">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="costCenterId">
+                        <default-field title="Cost centre">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="compareFromDate">
+                        <default-field title="Compare from">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="compareThruDate">
+                        <default-field title="Compare through" tooltip="The comparison includes entries before this date, not on it">
+                            <date-time/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Run report" type="primary"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="organizationPartyId"/>
+                            <field-ref name="glAccountId"/>
+                            <field-ref name="timePeriodId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fromDate"/>
+                            <field-ref name="thruDate"/>
+                            <field-ref name="amountUomId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="facilityId"/>
+                            <field-ref name="costCenterId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="compareFromDate"/>
+                            <field-ref name="compareThruDate"/>
+                        </field-row>
+                        <field-ref name="submit"/>
+                    </field-layout>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="BackToReport" condition="['TrialBalance','GeneralLedger'].includes(reportReturn)">
+            <actions>
+                <set field="reportOptions" from="{organizationPartyId, glAccountId, timePeriodId, fromDate, thruDate, amountUomId, facilityId, costCenterId, compareFromDate, compareThruDate}"/>
+            </actions>
+            <widgets>
+                <link url="//Accounting/Reports/${reportReturn}" text="Back to report" icon="sym_o_arrow_back" link-type="anchor" parameter-map="reportOptions"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

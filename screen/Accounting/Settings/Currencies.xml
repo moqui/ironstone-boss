@@ -1,315 +1,280 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Currencies (design-accounting §15 Currencies; D17): the currency units and the dated exchange rates, entered one at a
+    time or imported from CSV, where each row is stored or refused on its own and the result of each is kept
+    (mantle.ledger.CurrencyServices). This is the only writer of either; nothing converts currency before P20. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Currencies" default-menu-index="5" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="importId" />
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="importId"/>
+    <parameter name="pageIndex"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="rate">
         <actions>
-            <service-call name="mantle.ledger.CurrencyServices.store#Rate" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.CurrencyServices.store#Rate" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="currency">
         <actions>
-            <service-call name="mantle.ledger.CurrencyServices.store#Currency" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.CurrencyServices.store#Currency" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="import">
         <actions>
-            <service-call name="mantle.ledger.CurrencyServices.import#Rates" in-map="context" out-map="result" />
-            <set field="importId" from="result.importId" />
+            <service-call name="mantle.ledger.CurrencyServices.import#Rates" in-map="context" out-map="result"/>
+            <set field="importId" from="result.importId"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-            <parameter name="importId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="context" out-map="context" />
+        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId,pageIndex:pageIndex}" out-map="context"/>
         <if condition="importId">
-            <service-call name="mantle.ledger.CurrencyServices.get#ImportResult" in-map="{organizationPartyId:organizationPartyId,importId:importId}" out-map="rateImport" />
+            <service-call name="mantle.ledger.CurrencyServices.get#ImportResult" in-map="{organizationPartyId:organizationPartyId,importId:importId}" out-map="rateImport"/>
         </if>
-        <set from="(rates || []).length" field="ratesCount" />
-        <set from="rateImport?.results || []" field="rateImportResults" />
-        <set from="(rateImportResults || []).length" field="rateImportResultsCount" />
-        <set from="Number(pageIndex || 0)" field="currenciesPageIndex" />
-        <set from="25" field="currenciesPageSize" />
-        <set from="Math.max(0, Math.ceil(currenciesCount / 25) - 1)" field="currenciesPageMaxIndex" />
-        <set from="currenciesCount ? Number(pageIndex || 0) * 25 + 1 : 0" field="currenciesPageRangeLow" />
-        <set from="Math.min(currenciesCount, (Number(pageIndex || 0) + 1) * 25)" field="currenciesPageRangeHigh" />
-        <set from="ratesCount || 1" field="ratesPageSize" />
-        <set from="0" field="ratesPageIndex" />
-        <set from="0" field="ratesPageMaxIndex" />
-        <set from="ratesCount ? 1 : 0" field="ratesPageRangeLow" />
-        <set from="ratesCount" field="ratesPageRangeHigh" />
-        <set from="rateImportResultsCount || 1" field="rateImportResultsPageSize" />
-        <set from="0" field="rateImportResultsPageIndex" />
-        <set from="0" field="rateImportResultsPageMaxIndex" />
-        <set from="rateImportResultsCount ? 1 : 0" field="rateImportResultsPageRangeLow" />
-        <set from="rateImportResultsCount" field="rateImportResultsPageRangeHigh" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-rates = dateLabels.formatDates(rates,[["fromDate", "yyyy-MM-dd"]])</script>
+        <set field="importResults" from="rateImport?.results || []"/>
     </actions>
     <widgets>
-        <label text="Currencies" type="h5" />
-        <form-single name="SelectOrganization" transition="selectOrganization" map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Choose organization" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <container-dialog id="Addexchangerate" button-text="Add exchange rate">
-            <form-single name="ExchangeRate" transition="rate" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="uomId">
-                    <default-field title="From currency">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:uomId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="toUomId">
-                    <default-field title="To currency">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:toUomId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="fromDate">
-                    <default-field title="Effective from">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="thruDate">
-                    <default-field title="Through">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="conversionFactor">
-                    <default-field title="Rate">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="rateSource">
-                    <default-field title="Source">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Save dated rate" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog id="Newcurrency" button-text="New currency">
-            <form-single name="Currency" transition="currency" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="uomId">
-                    <default-field title="Currency code">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="description">
-                    <default-field title="Name">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="fractionDigits">
-                    <default-field title="Decimals">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Save currency" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog id="ImportrateCSV" button-text="Import rate CSV">
-            <form-single name="ImportRates" transition="import" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="csvText">
-                    <default-field title="CSV contents">
-                        <text-area />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Import rate rows" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <label text="CSV headers: uomId, toUomId, fromDate, thruDate, conversionFactor, rateSource" type="p" />
-        <form-list name="CurrencyList" list="currencies" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="uomId">
-                <default-field title="Currency">
-                    <display />
-                </default-field>
-            </field>
-            <field name="description">
-                <default-field title="Name">
-                    <display />
-                </default-field>
-            </field>
-            <field name="fractionDigits">
-                <default-field title="Decimals">
-                    <display />
-                </default-field>
-            </field>
-            <columns type="mobile">
-                <column>
-                    <field-ref name="uomId" />
-                    <field-ref name="description" />
-                </column>
-                <column>
-                    <field-ref name="fractionDigits" />
-                </column>
-            </columns>
-        </form-list>
-        <form-list name="ExchangeRates" list="rates" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="uomId">
-                <default-field title="From">
-                    <display />
-                </default-field>
-            </field>
-            <field name="toUomId">
-                <default-field title="To">
-                    <display />
-                </default-field>
-            </field>
-            <field name="fromDate">
-                <default-field title="Effective from">
-                    <display text="${fromDateText}" />
-                </default-field>
-            </field>
-            <field name="conversionFactor">
-                <default-field title="Rate">
-                    <display />
-                </default-field>
-            </field>
-            <field name="rateSource">
-                <default-field title="Source">
-                    <display />
-                </default-field>
-            </field>
-            <columns type="mobile">
-                <column>
-                    <field-ref name="uomId" />
-                    <field-ref name="toUomId" />
-                    <field-ref name="fromDate" />
-                </column>
-                <column>
-                    <field-ref name="conversionFactor" />
-                    <field-ref name="rateSource" />
-                </column>
-            </columns>
-        </form-list>
-        <section name="ImportResults" condition="importId">
+        <label text="Currencies" type="h5"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <section name="Currencies" condition="organizationPartyId">
             <widgets>
-                <label text="Rate import results" type="h6" />
-                <form-list name="RateImportResults" list="rateImportResults" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-                    <field name="rowNumber">
-                        <default-field title="Row">
-                            <display />
+                <container style="row q-gutter-sm q-mb-md">
+                    <container-dialog id="AddRateDialog" button-text="Add exchange rate" type="primary" icon="sym_o_add" title="Add a dated exchange rate">
+                        <form-single name="ExchangeRate" transition="rate">
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="uomId">
+                                <default-field title="From currency">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:uomId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="toUomId">
+                                <default-field title="To currency">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:toUomId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="fromDate">
+                                <default-field title="Effective from">
+                                    <date-time/>
+                                </default-field>
+                            </field>
+                            <field name="thruDate">
+                                <default-field title="Through">
+                                    <date-time/>
+                                </default-field>
+                            </field>
+                            <field name="conversionFactor">
+                                <default-field title="Rate">
+                                    <text-line size="12"/>
+                                </default-field>
+                            </field>
+                            <field name="rateSource">
+                                <default-field title="Source">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Save dated rate"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="NewCurrencyDialog" button-text="New currency" icon="sym_o_add" title="New currency">
+                        <form-single name="Currency" transition="currency">
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="uomId">
+                                <default-field title="Currency code">
+                                    <text-line size="5"/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Name">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="fractionDigits">
+                                <default-field title="Decimals">
+                                    <text-line size="2"/>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Save currency"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="ImportRatesDialog" button-text="Import rates" icon="sym_o_add" title="Import exchange rates from CSV">
+                        <form-single name="ImportRates" transition="import">
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field>
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="csvText">
+                                <default-field title="CSV rows" tooltip="Columns: uomId, toUomId, fromDate, thruDate, conversionFactor, rateSource">
+                                    <text-area rows="8" cols="70"/>
+                                </default-field>
+                            </field>
+                            <field name="changeReason">
+                                <default-field title="Reason">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Import rate rows"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </container-dialog>
+                </container>
+                <section name="ImportResults" condition="importId">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Rate import: ${importResults.filter(row =&gt; row.success).length} stored, ${importResults.filter(row =&gt; !row.success).length} refused"/>
+                            <box-body>
+                                <form-list name="RateImportResults" list="importResults" skip-form="true" paginate="false" show-csv-button="true">
+                                    <field name="rowNumber">
+                                        <default-field title="Row">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="success">
+                                        <default-field title="Result">
+                                            <render-mode>
+                                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${success ? 'positive' : 'negative'}">${success ? 'Stored' : 'Refused'}</q-chip>]]></text>
+                                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: success ? 'Stored' : 'Refused'})}]]></text>
+                                            </render-mode>
+                                        </default-field>
+                                    </field>
+                                    <field name="message">
+                                        <default-field title="Detail">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="rowNumber"/>
+                                            <field-ref name="message"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="success"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <label text="Exchange rates" type="h6"/>
+                <label text="No exchange rates yet. Add one, or import them from CSV." type="p" condition="!rates.length"/>
+                <form-list name="ExchangeRates" list="rates" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                    <field name="uomId">
+                        <default-field title="From">
+                            <display/>
                         </default-field>
                     </field>
-                    <field name="success">
-                        <default-field title="Stored">
-                            <display />
+                    <field name="toUomId">
+                        <default-field title="To">
+                            <display/>
                         </default-field>
                     </field>
-                    <field name="message">
-                        <default-field title="Result">
-                            <display />
+                    <field name="conversionFactor" align="right">
+                        <default-field title="Rate">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="Effective from">
+                            <display text="${fromDateText}"/>
+                        </default-field>
+                    </field>
+                    <field name="rateSource">
+                        <default-field title="Source">
+                            <display/>
                         </default-field>
                     </field>
                     <columns type="mobile">
                         <column>
-                            <field-ref name="rowNumber" />
+                            <field-ref name="uomId"/>
+                            <field-ref name="toUomId"/>
                         </column>
                         <column>
-                            <field-ref name="success" />
-                            <field-ref name="message" />
+                            <field-ref name="conversionFactor"/>
+                            <field-ref name="fromDate"/>
+                        </column>
+                    </columns>
+                </form-list>
+                <label text="Currency units" type="h6"/>
+                <form-list name="CurrencyList" list="currencies" skip-form="true" paginate="true" select-columns="true" show-csv-button="true">
+                    <field name="description">
+                        <default-field title="Currency">
+                            <display text="${description || uomId}"/>
+                        </default-field>
+                    </field>
+                    <field name="uomId">
+                        <default-field title="Code">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="fractionDigits" align="right">
+                        <default-field title="Decimals">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="description"/>
+                        </column>
+                        <column>
+                            <field-ref name="uomId"/>
                         </column>
                     </columns>
                 </form-list>
             </widgets>
+            <fail-widgets>
+                <label text="Choose an organization to see and change its currencies and rates." type="p"/>
+            </fail-widgets>
         </section>
     </widgets>
 </screen>

@@ -1,196 +1,184 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Chart of accounts (design-accounting §8 ChartOfAccounts): the accounts assigned to the organization and its
+    accounting parents, as a list or a tree, never with another organization's balances. A GL user creates an account or
+    assigns an existing global chart account to the organization. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Chart of accounts" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="text"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="create">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Account" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.AccountServices.store#Account" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="accountChildren" read-only="true">
         <actions>
-            <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'accounts',organizationPartyId:organizationPartyId,parentGlAccountId:parentGlAccountId,pageSize:100}" out-map="children" />
+            <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'accounts',organizationPartyId:organizationPartyId,parentGlAccountId:parentGlAccountId,pageSize:100}" out-map="children"/>
             <script>ec.web.sendJsonResponse(children.records)</script>
         </actions>
-        <default-response type="none" />
+        <default-response type="none"/>
     </transition>
     <transition name="assign">
         <actions>
-            <service-call in-map="Object.assign({},ec.web.parameters,{glAccountId:ec.web.parameters.assignedGlAccountId,organizationPartyId:organizationPartyId})" out-map="result" name="mantle.ledger.AccountServices.store#Assignment" />
+            <service-call name="mantle.ledger.AccountServices.store#Assignment" in-map="{glAccountId:assignedGlAccountId,organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,changeReason:changeReason}" out-map="result"/>
         </actions>
         <default-response url="../AccountDetail">
-            <parameter from="result.glAccountId" name="recordId" />
-            <parameter name="organizationPartyId" />
+            <parameter name="recordId" from="result.glAccountId"/>
+            <parameter name="organizationPartyId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'accounts'})" out-map="context" />
-        <set field="recordsCount" from="recordCount" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-records = dateLabels.formatDates(records,[["lastUpdatedStamp", "yyyy-MM-dd HH:mm"]])</script>
+        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'accounts',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <set field="newAccount" from="{organizationPartyId:organizationPartyId}"/>
     </actions>
     <widgets>
-        <label text="Chart of accounts" type="h5" />
-        <form-single name="Find" transition="." map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="text">
-                <default-field title="Search">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Find" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
+        <container style="row items-center q-col-gutter-sm">
+            <container style="col">
+                <label text="Chart of accounts" type="h5"/>
+            </container>
+            <container style="col-auto row q-gutter-sm">
+                <container-dialog id="NewAccountDialog" button-text="New account" type="primary" icon="sym_o_add" title="New account" condition="accounting.capabilities.glPost">
+                    <form-single name="NewAccount" transition="create" map="newAccount">
+                        <field name="organizationPartyId">
+                            <default-field>
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="accountCode">
+                            <default-field title="Code">
+                                <text-line size="12"/>
+                            </default-field>
+                        </field>
+                        <field name="accountName">
+                            <default-field title="Name">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="glAccountClassEnumId">
+                            <default-field title="Class">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="glAccountTypeEnumId">
+                            <default-field title="Type">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="parentGlAccountId">
+                            <default-field title="Parent account">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Create account"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="AssignExistingAccountDialog" button-text="Assign existing account" icon="sym_o_add_link" title="Assign an existing chart account" condition="accounting.capabilities.glPost">
+                    <form-single name="AssignExistingAccount" transition="assign" map="newAccount">
+                        <field name="organizationPartyId">
+                            <default-field>
+                                <hidden/>
+                            </default-field>
+                        </field>
+                        <field name="assignedGlAccountId">
+                            <default-field title="Existing chart account">
+                                <drop-down allow-empty="true" required-manual-select="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'unassignedAccounts',organizationPartyId:organizationPartyId,selected:assignedGlAccountId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Active from">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="thruDate">
+                            <default-field title="Active through">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="changeReason">
+                            <default-field title="Reason">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Assign account"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </container>
+        </container>
+        <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
         <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true" views="list,tree">
-            <field name="glAccountId">
-                <default-field title="Record">
-                    <link url="//Accounting/GeneralLedger/AccountDetail" text="${glAccountId}" parameter-map="{recordId:glAccountId,organizationPartyId:organizationPartyId}" />
-                </default-field>
-            </field>
             <field name="accountName">
-                <default-field title="Name">
-                    <display />
+                <default-field title="Account">
+                    <link url="//Accounting/GeneralLedger/AccountDetail" text="${(accountCode || glAccountId) + ' ' + (accountName || '')}" link-type="anchor" parameter-map="{recordId:glAccountId,organizationPartyId:organizationPartyId}"/>
                 </default-field>
             </field>
-            <field name="lastUpdatedStamp">
-                <default-field title="Updated">
-                    <display text="${lastUpdatedStampText}" />
+            <field name="glAccountClassEnumId">
+                <default-field title="Class">
+                    <display-entity entity-name="moqui.basic.Enumeration" default-text=""/>
+                </default-field>
+            </field>
+            <field name="disallowPosting">
+                <default-field title="Posting">
+                    <render-mode>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${disallowPosting == 'Y' ? 'grey-8' : 'positive'}">${disallowPosting == 'Y' ? 'No posting' : 'Posting'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: disallowPosting == 'Y' ? 'No posting' : 'Posting'})}]]></text>
+                    </render-mode>
                 </default-field>
             </field>
             <field name="parentGlAccountId">
-                <default-field title="Parent gl account id">
-                    <hidden />
+                <default-field>
+                    <hidden/>
                 </default-field>
             </field>
             <columns type="mobile">
                 <column>
-                    <field-ref name="glAccountId" />
-                    <field-ref name="accountName" />
+                    <field-ref name="accountName"/>
+                    <field-ref name="glAccountClassEnumId"/>
                 </column>
                 <column>
-                    <field-ref name="lastUpdatedStamp" />
+                    <field-ref name="disallowPosting"/>
                 </column>
             </columns>
-            <view-tree parent-field="parentGlAccountId" key-fields="glAccountId" child-count-field="childCount" children-transition="accountChildren" />
+            <view-tree parent-field="parentGlAccountId" key-fields="glAccountId" child-count-field="childCount" children-transition="accountChildren"/>
         </form-list>
-        <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Newaccount" button-text="New account" condition="(accounting.capabilities.glPost) &amp;&amp; accounting.capabilities.glPost">
-            <form-single name="NewAccount" transition="create" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="accountCode">
-                    <default-field title="Code">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="accountName">
-                    <default-field title="Name">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="glAccountClassEnumId">
-                    <default-field title="Class">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="glAccountTypeEnumId">
-                    <default-field title="Type">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="parentGlAccountId">
-                    <default-field title="Parent">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Create account" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog button-text="Assign existing account" condition="(accounting.capabilities.glPost) &amp;&amp; accounting.capabilities.glPost" id="AssignExistingAccountDialog">
-            <form-single name="AssignExistingAccount" transition="assign" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="assignedGlAccountId" from="null">
-                    <default-field title="Existing chart account">
-                        <drop-down allow-empty="true" required-manual-select="true">
-                            <dynamic-options server-search="true" min-length="0" parameter-map="{choice:'unassignedAccounts',organizationPartyId:organizationPartyId,selected:assignedGlAccountId}" transition="choices" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="fromDate">
-                    <default-field title="Active from">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="thruDate">
-                    <default-field title="Active through">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Assign">
-                        <submit text="Assign account" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
+        <label text="No accounts match. Choose another organization or search, or assign an existing chart account." type="p" condition="!records.length"/>
     </widgets>
 </screen>

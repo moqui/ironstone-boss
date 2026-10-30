@@ -1,239 +1,112 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Journal batches (design-accounting §8 JournalBatches; impl-accounting P2b): a named set of draft entries. A row's Review
+    validates each of its drafts; the review then posts the ready ones, each on its own, naming each failure, and a batch
+    with a failure stays open (template/AccountingParts.xml BatchReview, mantle.ledger.JournalServices.post#Batch). -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal batches" default-menu-index="4" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="text"/>
+    <parameter name="previewId"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="postBatch" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="saveBatch">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#Batch" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.JournalServices.store#Batch" in-map="{organizationPartyId:organizationPartyId,glJournalName:glJournalName}" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
-    <transition name="validateBatch">
+    <transition name="reviewBatch">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.validate#Batch" in-map="context" out-map="result" />
-            <set field="previewId" from="result.previewId" />
+            <service-call name="mantle.ledger.JournalServices.validate#Batch" in-map="{organizationPartyId:organizationPartyId,glJournalId:glJournalId}" out-map="result"/>
+            <set field="previewId" from="result.previewId"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
-    </transition>
-    <transition name="postBatch">
-        <actions>
-            <service-call name="mantle.ledger.JournalServices.post#Batch" in-map="context" out-map="result" />
-        </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'batches'})" out-map="context" />
-        <set field="recordsCount" from="recordCount" />
-        <if condition="previewId">
-            <service-call name="mantle.ledger.JournalServices.get#BatchPreview" in-map="{organizationPartyId:organizationPartyId,previewId:previewId}" out-map="batchPreview" />
-        </if>
-        <set from="batchPreview?.results || []" field="batchPreviewResults" />
-        <set from="(batchPreviewResults || []).length" field="batchPreviewResultsCount" />
-        <set from="batchPreviewResultsCount || 1" field="batchPreviewResultsPageSize" />
-        <set from="0" field="batchPreviewResultsPageIndex" />
-        <set from="0" field="batchPreviewResultsPageMaxIndex" />
-        <set from="batchPreviewResultsCount ? 1 : 0" field="batchPreviewResultsPageRangeLow" />
-        <set from="batchPreviewResultsCount" field="batchPreviewResultsPageRangeHigh" />
+        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'batches',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
     </actions>
     <widgets>
-        <label text="Journal batches" type="h5" />
-        <form-single name="Find" transition="." map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="text">
-                <default-field title="Search">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Find" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
+        <container style="row items-center q-col-gutter-sm">
+            <container style="col">
+                <label text="Journal batches" type="h5"/>
+            </container>
+            <container style="col-auto">
+                <container-dialog id="NewBatchDialog" button-text="New journal batch" type="primary" icon="sym_o_add" title="New journal batch" condition="accounting.capabilities.glPost">
+                    <form-single name="NewBatch" transition="saveBatch">
+                        <field name="organizationPartyId" from="organizationPartyId">
+                            <default-field title="Organization">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="glJournalName">
+                            <default-field title="Name">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Create batch"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </container>
+        </container>
+        <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
+        <section-include name="BatchReview" location="component://mr-boss/template/AccountingParts.xml"/>
         <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="glJournalId">
-                <default-field title="Record">
-                    <display />
+            <field name="glJournalName">
+                <default-field title="Batch">
+                    <display text="${glJournalName || glJournalId}"/>
                 </default-field>
             </field>
-            <field name="glJournalName">
-                <default-field title="Name">
-                    <display />
+            <field name="glJournalId">
+                <default-field title="ID">
+                    <display/>
                 </default-field>
             </field>
             <field name="isPosted">
-                <default-field title="Posted">
-                    <display />
+                <default-field title="State">
+                    <render-mode>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ? 'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Open'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted' : 'Open'})}]]></text>
+                    </render-mode>
+                </default-field>
+            </field>
+            <field name="batchActions">
+                <default-field title="">
+                    <link url="reviewBatch" link-type="hidden-form-link" text="Review" icon="sym_o_fact_check" condition="isPosted != 'Y' &amp;&amp; accounting.capabilities.glPost" parameter-map="{organizationPartyId:organizationPartyId,glJournalId:glJournalId}"/>
                 </default-field>
             </field>
             <columns type="mobile">
                 <column>
-                    <field-ref name="glJournalId" />
-                    <field-ref name="glJournalName" />
+                    <field-ref name="glJournalName"/>
+                    <field-ref name="glJournalId"/>
                 </column>
                 <column>
-                    <field-ref name="isPosted" />
+                    <field-ref name="isPosted"/>
+                    <field-ref name="batchActions"/>
                 </column>
             </columns>
         </form-list>
-        <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Newjournalbatch" button-text="New journal batch" condition="accounting.capabilities.glPost">
-            <form-single name="NewBatch" transition="saveBatch" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="glJournalName">
-                    <default-field title="Name">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Create batch" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog id="Reviewbatch" button-text="Review batch" condition="accounting.capabilities.glPost">
-            <form-single name="ValidateBatch" transition="validateBatch" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="glJournalId">
-                    <default-field title="Batch">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:glJournalId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Validate batch" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog id="Postreviewedbatch" button-text="Post reviewed batch" condition="accounting.capabilities.glPost">
-            <form-single name="PostBatch" transition="postBatch" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="glJournalId">
-                    <default-field title="Batch">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'batches',organizationPartyId:organizationPartyId,selected:glJournalId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="previewId" from="previewId">
-                    <default-field title="Preview id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="operationKey" from="operationKey || ('batch-' + ec.user.randomString(24))">
-                    <default-field title="Operation key">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Post reviewed batch" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <section name="BatchReview" condition="previewId">
-            <widgets>
-                <label text="Review and posting results" type="h6" />
-                <form-list name="BatchResults" list="batchPreviewResults" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-                    <field name="acctgTransId">
-                        <default-field title="Entry">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="valid">
-                        <default-field title="Ready">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="success">
-                        <default-field title="Posted">
-                            <display />
-                        </default-field>
-                    </field>
-                    <field name="message">
-                        <default-field title="Result">
-                            <display />
-                        </default-field>
-                    </field>
-                    <columns type="mobile">
-                        <column>
-                            <field-ref name="acctgTransId" />
-                        </column>
-                        <column>
-                            <field-ref name="valid" />
-                            <field-ref name="success" />
-                            <field-ref name="message" />
-                        </column>
-                    </columns>
-                </form-list>
-            </widgets>
-        </section>
+        <label text="No journal batches match. Choose another organization or search, or create a new journal batch." type="p" condition="!records.length"/>
     </widgets>
 </screen>

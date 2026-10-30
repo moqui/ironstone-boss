@@ -1,324 +1,380 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A chart account (design-accounting §8 AccountDetail): its facts and the organization's assignment for every reader,
+    and for a GL user the account editor, the dimensions its postings require (AC-22) and, for a finance admin, its
+    categories and report groups. Opened from a report (reportReturn), it links back with the report's options;
+    glAccountId is the report's account filter, not this account (recordId). -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Account" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <parameter name="fromDate" />
-    <parameter name="thruDate" />
-    <parameter name="timePeriodId" />
-    <parameter name="amountUomId" />
-    <parameter name="facilityId" />
-    <parameter name="costCenterId" />
-    <parameter name="compareFromDate" />
-    <parameter name="compareThruDate" />
-    <parameter name="reportReturn" />
-    <always-actions>
-        <set field="glAccountId" from="recordId || glAccountId" />
-        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'accounts',recordId:glAccountId,organizationPartyId:organizationPartyId}" out-map="context" />
-    </always-actions>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="reportReturn"/>
+    <parameter name="fromDate"/>
+    <parameter name="thruDate"/>
+    <parameter name="timePeriodId"/>
+    <parameter name="amountUomId"/>
+    <parameter name="facilityId"/>
+    <parameter name="costCenterId"/>
+    <parameter name="compareFromDate"/>
+    <parameter name="compareThruDate"/>
+    <parameter name="glAccountId"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Account" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result" />
+            <service-call name="mantle.ledger.AccountServices.store#Account" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="assignment">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Assignment" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result" />
+            <service-call name="mantle.ledger.AccountServices.store#Assignment" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="classification">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Classification" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result" />
+            <service-call name="mantle.ledger.AccountServices.store#Classification" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountServices.get#Classifications" in-map="{glAccountId:glAccountId,organizationPartyId:organizationPartyId}" out-map="accountClasses" />
-        <set from="accountClasses?.categoryRows || []" field="accountClassesCategoryRows" />
-        <set from="(accountClassesCategoryRows || []).length" field="accountClassesCategoryRowsCount" />
-        <set from="accountClasses?.groupRows || []" field="accountClassesGroupRows" />
-        <set from="(accountClassesGroupRows || []).length" field="accountClassesGroupRowsCount" />
-        <set from="accountClassesCategoryRowsCount || 1" field="accountClassesCategoryRowsPageSize" />
-        <set from="0" field="accountClassesCategoryRowsPageIndex" />
-        <set from="0" field="accountClassesCategoryRowsPageMaxIndex" />
-        <set from="accountClassesCategoryRowsCount ? 1 : 0" field="accountClassesCategoryRowsPageRangeLow" />
-        <set from="accountClassesCategoryRowsCount" field="accountClassesCategoryRowsPageRangeHigh" />
-        <set from="accountClassesGroupRowsCount || 1" field="accountClassesGroupRowsPageSize" />
-        <set from="0" field="accountClassesGroupRowsPageIndex" />
-        <set from="0" field="accountClassesGroupRowsPageMaxIndex" />
-        <set from="accountClassesGroupRowsCount ? 1 : 0" field="accountClassesGroupRowsPageRangeLow" />
-        <set from="accountClassesGroupRowsCount" field="accountClassesGroupRowsPageRangeHigh" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-accountClassesCategoryRows = dateLabels.formatDates(accountClassesCategoryRows,[["fromDate", "yyyy-MM-dd"], ["thruDate", "yyyy-MM-dd"]])</script>
+        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'accounts',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" transaction="force-new" ignore-error="true"/>
+        <set field="recordFound" from="!!record"/>
+        <set field="ledgerOptions" from="{organizationPartyId, glAccountId: recordId, timePeriodId, fromDate, thruDate, amountUomId, facilityId, costCenterId, compareFromDate, compareThruDate}"/>
+        <set field="canPost" from="!!accounting.capabilities.glPost"/>
+        <set field="accountName" from="recordFound ? (record.accountCode || record.glAccountId) + ' ' + (record.accountName || '') : ''"/>
+        <if condition="recordFound">
+            <service-call name="mantle.ledger.AccountServices.get#Classifications" in-map="{glAccountId:recordId,organizationPartyId:organizationPartyId}" out-map="accountClasses"/>
+        </if>
+        <set field="categoryRows" from="accountClasses?.categoryRows || []"/>
+        <set field="groupRows" from="accountClasses?.groupRows || []"/>
     </actions>
     <widgets>
-        <link parameter-map="{organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate,glAccountId:glAccountId}" url="//Accounting/Reports/${reportReturn === 'TrialBalance' ? 'TrialBalance' : 'GeneralLedger'}" text="Back to report" condition="['TrialBalance','GeneralLedger'].includes(reportReturn)" />
-        <container style="m-record-header">
-            <container style="m-record-title">
-                <label text="${record.accountCode} ${record.accountName}" type="h5" />
-            </container>
-        </container>
-        <section name="AccountEditor" condition="accounting.capabilities.glPost">
+        <section name="AccountNotFound" condition="!recordFound">
             <widgets>
-                <section name="AccountHeaderPermission" condition="accounting.capabilities.glPost">
+                <container-box type="warning">
+                    <box-header title="Not available"/>
+                    <box-body>
+                        <label text="Account ${recordId || ''} is not available: it does not exist, or it is not in the chart of an organization you work in." type="p"/>
+                        <link url="//Accounting/GeneralLedger/ChartOfAccounts" text="Back to the chart of accounts" link-type="anchor"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="AccountFound" condition="recordFound">
+            <widgets>
+                <section-include name="BackToReport" location="component://mr-boss/template/AccountingParts.xml"/>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(record.accountCode || recordId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: record.accountCode || recordId})}]]></text>
+                                </render-mode>
+                                <label text="${record.accountName || recordId}" type="h5"/>
+                            </container>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${record.disallowPosting == 'Y' ? 'grey-8' : 'positive'}">${record.disallowPosting == 'Y' ? 'No posting' : 'Posting allowed'}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: record.disallowPosting == 'Y' ? 'No posting' : 'Posting allowed'})}]]></text>
+                            </render-mode>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md"/>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <link url="//Accounting/Reports/GeneralLedger" text="Open account ledger" btn-type="primary" icon="sym_o_receipt_long" parameter-map="ledgerOptions"/>
+                            <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="canPost">
+                                <container-dialog id="EditAccountDialog" button-text="Edit account" icon="sym_o_edit" title="Edit ${accountName}">
+                                    <form-single name="AccountHeader" transition="save" map="record">
+                                        <field name="recordId" from="recordId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="accountCode">
+                                            <default-field title="Code">
+                                                <text-line size="12"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="accountName">
+                                            <default-field title="Name">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="parentGlAccountId">
+                                            <default-field title="Parent account">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="glAccountClassEnumId">
+                                            <default-field title="Class">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="glAccountTypeEnumId">
+                                            <default-field title="Type">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="disallowPosting">
+                                            <default-field title="Posting">
+                                                <radio>
+                                                    <option key="N" text="Allowed"/>
+                                                    <option key="Y" text="Not allowed"/>
+                                                </radio>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason" from="''">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Save account"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="RequiredDimensionsDialog" button-text="Assignment and dimensions" icon="sym_o_tune" title="${accountName} in this organization">
+                                    <form-single name="RequiredDimensions" transition="assignment" map="record">
+                                        <field name="recordId" from="recordId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp" from="record.assignmentLastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="From">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="thruDate">
+                                            <default-field title="Through">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="facilityRequired">
+                                            <default-field title="Facility">
+                                                <radio>
+                                                    <option key="N" text="Optional"/>
+                                                    <option key="Y" text="Required"/>
+                                                </radio>
+                                            </default-field>
+                                        </field>
+                                        <field name="costCenterRequired">
+                                            <default-field title="Cost centre">
+                                                <radio>
+                                                    <option key="N" text="Optional"/>
+                                                    <option key="Y" text="Required"/>
+                                                </radio>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason" from="''">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Save assignment"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="ClassificationDialog" button-text="Add category or report group" icon="sym_o_category" title="Classify ${accountName}" condition="accounting.capabilities.admin">
+                                    <form-single name="AccountClassification" transition="classification">
+                                        <field name="recordId" from="recordId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="glAccountCategoryId">
+                                            <default-field title="Category">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountCategories',organizationPartyId:organizationPartyId,selected:glAccountCategoryId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="glAccountGroupId">
+                                            <default-field title="Report group">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountGroups',organizationPartyId:organizationPartyId,selected:glAccountGroupId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate">
+                                            <default-field title="Effective from">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="changeReason">
+                                            <default-field title="Reason">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Save classification"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <form-single name="AccountFacts" map="record">
+                    <field name="parentGlAccountId">
+                        <default-field title="Parent account">
+                            <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}" default-text="None"/>
+                        </default-field>
+                    </field>
+                    <field name="glAccountClassEnumId">
+                        <default-field title="Class">
+                            <display-entity entity-name="moqui.basic.Enumeration" default-text="—"/>
+                        </default-field>
+                    </field>
+                    <field name="glAccountTypeEnumId">
+                        <default-field title="Type">
+                            <display-entity entity-name="moqui.basic.Enumeration" default-text="—"/>
+                        </default-field>
+                    </field>
+                    <field name="fromDate">
+                        <default-field title="Assigned from">
+                            <display text="${fromDateText || '—'}"/>
+                        </default-field>
+                    </field>
+                    <field name="thruDate">
+                        <default-field title="Assigned through">
+                            <display text="${thruDateText || 'Open'}"/>
+                        </default-field>
+                    </field>
+                    <field name="facilityRequired">
+                        <default-field title="Facility">
+                            <display text="${facilityRequired == 'Y' ? 'Required' : 'Optional'}"/>
+                        </default-field>
+                    </field>
+                    <field name="costCenterRequired">
+                        <default-field title="Cost centre">
+                            <display text="${costCenterRequired == 'Y' ? 'Required' : 'Optional'}"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="parentGlAccountId"/>
+                            <field-ref name="glAccountClassEnumId"/>
+                            <field-ref name="glAccountTypeEnumId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fromDate"/>
+                            <field-ref name="thruDate"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="facilityRequired"/>
+                            <field-ref name="costCenterRequired"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+                <section name="Classifications" condition="categoryRows.length || groupRows.length">
                     <widgets>
-                        <form-single name="AccountHeader" transition="save" map="record">
-                            <field name="recordId" from="glAccountId">
-                                <default-field title="Record id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="organizationPartyId" from="organizationPartyId">
-                                <default-field title="Organization party id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="lastUpdatedStamp" from="record.lastUpdatedStamp">
-                                <default-field title="Last updated stamp">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="accountCode">
-                                <default-field title="Code">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="accountName">
-                                <default-field title="Name">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="parentGlAccountId">
-                                <default-field title="Parent">
-                                    <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="glAccountClassEnumId">
-                                <default-field title="Class">
-                                    <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="glAccountTypeEnumId">
-                                <default-field title="Type">
-                                    <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="disallowPosting">
-                                <default-field title="Posting disabled">
-                                    <drop-down allow-empty="true">
-                                        <option key="N" text="No" />
-                                        <option key="Y" text="Yes" />
-                                    </drop-down>
-                                </default-field>
-                            </field>
-                            <field name="changeReason">
-                                <default-field title="Reason">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field title="Submit">
-                                    <submit text="Save account" type="primary" />
-                                </default-field>
-                            </field>
-                        </form-single>
-                    </widgets>
-                </section>
-                <section name="RequiredDimensionsPermission" condition="accounting.capabilities.glPost">
-                    <widgets>
-                        <form-single name="RequiredDimensions" transition="assignment" map="record">
-                            <field name="recordId" from="glAccountId">
-                                <default-field title="Record id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="organizationPartyId" from="organizationPartyId">
-                                <default-field title="Organization party id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="lastUpdatedStamp" from="record.assignmentLastUpdatedStamp">
-                                <default-field title="Last updated stamp">
-                                    <hidden />
+                        <label text="Categories and report groups" type="h6"/>
+                        <form-list name="AccountCategories" list="categoryRows" skip-form="true" paginate="false">
+                            <field name="glAccountCategoryId">
+                                <default-field title="Category">
+                                    <display-entity entity-name="mantle.ledger.account.GlAccountCategory"/>
                                 </default-field>
                             </field>
                             <field name="fromDate">
                                 <default-field title="From">
-                                    <date-time />
+                                    <display text="${fromDateText}"/>
                                 </default-field>
                             </field>
                             <field name="thruDate">
                                 <default-field title="Through">
-                                    <date-time />
+                                    <display text="${thruDateText || 'Open'}"/>
                                 </default-field>
                             </field>
-                            <field name="facilityRequired">
-                                <default-field title="Facility required">
-                                    <drop-down allow-empty="true">
-                                        <option key="N" text="No" />
-                                        <option key="Y" text="Yes" />
-                                    </drop-down>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="glAccountCategoryId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="fromDate"/>
+                                    <field-ref name="thruDate"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <form-list name="AccountGroups" list="groupRows" skip-form="true" paginate="false">
+                            <field name="glAccountGroupId">
+                                <default-field title="Report group">
+                                    <display-entity entity-name="mantle.ledger.account.GlAccountGroup"/>
                                 </default-field>
                             </field>
-                            <field name="costCenterRequired">
-                                <default-field title="Cost centre required">
-                                    <drop-down allow-empty="true">
-                                        <option key="N" text="No" />
-                                        <option key="Y" text="Yes" />
-                                    </drop-down>
+                            <field name="groupTypeEnumId">
+                                <default-field title="Type">
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
                                 </default-field>
                             </field>
-                            <field name="changeReason">
-                                <default-field title="Reason">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field title="Submit">
-                                    <submit text="Save requirements" type="primary" />
-                                </default-field>
-                            </field>
-                        </form-single>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="glAccountGroupId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="groupTypeEnumId"/>
+                                </column>
+                            </columns>
+                        </form-list>
                     </widgets>
                 </section>
             </widgets>
         </section>
-        <label text="Account details" type="h6" />
-        <label text="Organization assignment and required dimensions" type="h6" />
-        <link url="//Accounting/Reports/GeneralLedger" text="Open account ledger" parameter-map="{glAccountId:glAccountId,organizationPartyId:organizationPartyId,fromDate:fromDate,thruDate:thruDate,timePeriodId:timePeriodId,amountUomId:amountUomId,facilityId:facilityId,costCenterId:costCenterId,compareFromDate:compareFromDate,compareThruDate:compareThruDate}" />
-        <label text="Account groups and categories" type="h6" />
-        <form-list name="AccountCategories" list="accountClassesCategoryRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="glAccountCategoryId">
-                <default-field title="Category">
-                    <display-entity entity-name="mantle.ledger.account.GlAccountCategory" />
-                </default-field>
-            </field>
-            <field name="fromDate">
-                <default-field title="From">
-                    <display text="${fromDateText}" />
-                </default-field>
-            </field>
-            <field name="thruDate">
-                <default-field title="Through">
-                    <display text="${thruDateText}" />
-                </default-field>
-            </field>
-            <columns type="mobile">
-                <column>
-                    <field-ref name="glAccountCategoryId" />
-                </column>
-                <column>
-                    <field-ref name="fromDate" />
-                    <field-ref name="thruDate" />
-                </column>
-            </columns>
-        </form-list>
-        <form-list name="AccountGroups" list="accountClassesGroupRows" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="glAccountGroupId">
-                <default-field title="Report group">
-                    <display-entity entity-name="mantle.ledger.account.GlAccountGroup" />
-                </default-field>
-            </field>
-            <field name="groupTypeEnumId">
-                <default-field title="Type">
-                    <display-entity entity-name="moqui.basic.Enumeration" />
-                </default-field>
-            </field>
-            <columns type="mobile">
-                <column>
-                    <field-ref name="glAccountGroupId" />
-                </column>
-                <column>
-                    <field-ref name="groupTypeEnumId" />
-                </column>
-            </columns>
-        </form-list>
-        <container-dialog id="Setaccountclassification" button-text="Set account classification" condition="(accounting.capabilities.admin) &amp;&amp; accounting.capabilities.glPost">
-            <form-single name="AccountClassification" transition="classification" map="context">
-                <field name="recordId" from="glAccountId">
-                    <default-field title="Record id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="glAccountCategoryId">
-                    <default-field title="Category">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountCategories',organizationPartyId:organizationPartyId,selected:glAccountCategoryId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="glAccountGroupId">
-                    <default-field title="Report group">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountGroups',organizationPartyId:organizationPartyId,selected:glAccountGroupId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="fromDate">
-                    <default-field title="Effective from">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="changeReason">
-                    <default-field title="Reason">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Save classification" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
     </widgets>
 </screen>

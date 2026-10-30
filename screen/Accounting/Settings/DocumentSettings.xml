@@ -1,118 +1,126 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Document Settings" default-menu-index="7" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Document settings (design-accounting §15 DocumentSettings): the organization's invoice and order numbering, kept on
+    PartyAcctgPreference where Mantle reads it (issued numbers are never rewritten), and the document layouts, with a
+    preview of the invoice layout (ironstone.accounting.DocumentServices). -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Document settings" default-menu-index="7" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result" />
+            <service-call name="mantle.ledger.SetupServices.store#Preferences" in-map="Object.assign({},context,{settings:context})" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="context" out-map="context" />
-        <service-call name="ironstone.accounting.DocumentServices.preview#Output" in-map="{organizationPartyId:organizationPartyId,template:settings.invoiceDocumentTemplate}" out-map="context" />
+        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <if condition="organizationPartyId">
+            <service-call name="ironstone.accounting.DocumentServices.preview#Output" in-map="{organizationPartyId:organizationPartyId,template:settings.invoiceDocumentTemplate}" out-map="context"/>
+        </if>
     </actions>
     <widgets>
-        <label text="Document Settings" type="h5" />
-        <form-single name="SelectOrganization" transition="selectOrganization" map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Choose organization" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <form-single name="DocumentDefaults" transition="save" map="settings">
-            <field name="organizationPartyId" from="organizationPartyId">
-                <default-field title="Organization party id">
-                    <hidden />
-                </default-field>
-            </field>
-            <field name="lastUpdatedStamp" from="settings.lastUpdatedStamp">
-                <default-field title="Last updated stamp">
-                    <hidden />
-                </default-field>
-            </field>
-            <field name="invoiceIdPrefix">
-                <default-field title="Invoice prefix">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="invoiceSequenceEnumId">
-                <default-field title="Invoice sequence">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InvoiceSequence',organizationPartyId:organizationPartyId,selected:invoiceSequenceEnumId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="orderIdPrefix">
-                <default-field title="Order prefix">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="invoiceDocumentTemplate">
-                <default-field title="Invoice layout">
-                    <drop-down allow-empty="true">
-                        <option key="standard" text="Standard" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="paymentDocumentTemplate">
-                <default-field title="Payment layout">
-                    <drop-down allow-empty="true">
-                        <option key="standard" text="Standard" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="documentLocale">
-                <default-field title="Locale">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="documentFooter">
-                <default-field title="Footer">
-                    <text-area />
-                </default-field>
-            </field>
-            <field name="changeReason">
-                <default-field title="Reason">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Save document defaults" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <label text="Document preview" type="h6" />
-        <html-view html="${previewHtml}" text="${previewText}" />
+        <label text="Document settings" type="h5"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <section name="Documents" condition="organizationPartyId">
+            <widgets>
+                <form-single name="DocumentDefaults" transition="save" map="settings">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field>
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="lastUpdatedStamp">
+                        <default-field>
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="invoiceIdPrefix">
+                        <default-field title="Invoice number prefix">
+                            <text-line size="10"/>
+                        </default-field>
+                    </field>
+                    <field name="invoiceSequenceEnumId">
+                        <default-field title="Invoice numbering">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:InvoiceSequence',organizationPartyId:organizationPartyId,selected:invoiceSequenceEnumId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="orderIdPrefix">
+                        <default-field title="Order number prefix">
+                            <text-line size="10"/>
+                        </default-field>
+                    </field>
+                    <field name="invoiceDocumentTemplate">
+                        <default-field title="Invoice layout">
+                            <drop-down allow-empty="true">
+                                <option key="standard" text="Standard"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="paymentDocumentTemplate">
+                        <default-field title="Payment layout">
+                            <drop-down allow-empty="true">
+                                <option key="standard" text="Standard"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="documentLocale">
+                        <default-field title="Language" tooltip="A locale such as en_US; empty for the reader's">
+                            <text-line size="8"/>
+                        </default-field>
+                    </field>
+                    <field name="documentFooter">
+                        <default-field title="Footer">
+                            <text-area rows="3"/>
+                        </default-field>
+                    </field>
+                    <field name="changeReason" from="''">
+                        <default-field title="Reason">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Save document settings" type="primary"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="invoiceIdPrefix"/>
+                            <field-ref name="invoiceSequenceEnumId"/>
+                            <field-ref name="orderIdPrefix"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="invoiceDocumentTemplate"/>
+                            <field-ref name="paymentDocumentTemplate"/>
+                            <field-ref name="documentLocale"/>
+                        </field-row>
+                        <field-ref name="documentFooter"/>
+                        <field-ref name="changeReason"/>
+                        <field-ref name="submit"/>
+                    </field-layout>
+                </form-single>
+                <label text="Invoice preview" type="h6"/>
+                <html-view html="${previewHtml}" text="${previewText}"/>
+            </widgets>
+            <fail-widgets>
+                <label text="Choose an organization to see and change its document settings." type="p"/>
+            </fail-widgets>
+        </section>
     </widgets>
 </screen>

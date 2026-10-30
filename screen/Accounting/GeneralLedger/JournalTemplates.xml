@@ -1,528 +1,402 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Journal templates (design-accounting §8 JournalTemplates; AC-13): versioned recurring entries. A draft template's
+    lines are edited, then it is validated and published; a published version is immutable, and a change is a new
+    version from a date. A published template makes a draft journal entry, with the amounts of its amount parameters. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal templates" default-menu-index="5" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="acctgTransTemplateId"/>
+    <parameter name="text"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="saveTemplate">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#Template" in-map="context" out-map="result" />
-            <set field="acctgTransTemplateId" from="result.acctgTransTemplateId" />
+            <service-call name="mantle.ledger.JournalServices.store#Template" in-map="context" out-map="result"/>
+            <set field="acctgTransTemplateId" from="result.acctgTransTemplateId"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="fromTemplate">
         <actions>
-            <script>const amounts = {}
-for (const [key,value] of Object.entries(ec.web.parameters)) {
-    const match = /^parameterName_(\d+)$/.exec(key)
-    if (match) amounts[value] = ec.web.parameters['parameterValue_' + match[1]]
-}
-ec.context.putAll({amounts})</script>
-            <service-call name="mantle.ledger.JournalServices.create#FromTemplate" in-map="context" out-map="result" />
-            <set field="recordId" from="result.acctgTransId" />
+            <!-- the amount form-list posts parameterName_N and parameterValue_N for each amount parameter -->
+            <set field="rowKeys" from="Object.keys(ec.web.parameters).filter(key =&gt; /^parameterName_\d+$/.test(key))"/>
+            <set field="amounts" from="Object.fromEntries(rowKeys.map(key =&gt; [ec.web.parameters[key], ec.web.parameters[key.replace('Name', 'Value')]]))"/>
+            <service-call name="mantle.ledger.JournalServices.create#FromTemplate" in-map="context" out-map="result"/>
+            <set field="recordId" from="result.acctgTransId"/>
         </actions>
-        <default-response url="//Accounting/GeneralLedger/JournalEntryDetail">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="glJournalId" />
-            <parameter name="acctgTransTemplateId" />
+        <default-response url="../JournalEntryDetail">
+            <parameter name="recordId"/>
+            <parameter name="organizationPartyId"/>
         </default-response>
-        <error-response url="." />
+        <error-response url="."/>
     </transition>
     <transition name="line">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#TemplateLine" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.JournalServices.store#TemplateLine" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="publish">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.publish#Template" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.JournalServices.publish#Template" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="removeTemplateLine">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.delete#TemplateLine" in-map="context" out-map="result" />
+            <service-call name="mantle.ledger.JournalServices.delete#TemplateLine" in-map="context" out-map="result"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId" />
-            <parameter name="recordId" />
-            <parameter name="previewId" />
-            <parameter name="inputFingerprint" />
-            <parameter name="operationKey" />
-            <parameter name="acctgTransTemplateId" />
-        </default-response>
-        <error-response url="." />
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="Object.assign({},context,{kind:'templates'})" out-map="context" />
-        <set field="recordsCount" from="recordCount" />
+        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'templates',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
         <if condition="acctgTransTemplateId">
-            <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'templates',recordId:acctgTransTemplateId,organizationPartyId:organizationPartyId}" out-map="selectedTemplate" />
+            <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'templates',recordId:acctgTransTemplateId,organizationPartyId:organizationPartyId}" out-map="selectedTemplate" transaction="force-new" ignore-error="true"/>
         </if>
-        <script>templateAmountParameters = selectedTemplate?.lines ? [...new Set(selectedTemplate.lines.map(line=&gt;line.amountParameter).filter(Boolean))].map(parameterName=&gt;({parameterName})) : []</script>
-        <set from="selectedTemplate?.lines || []" field="selectedTemplateLines" />
-        <set from="(selectedTemplateLines || []).length" field="selectedTemplateLinesCount" />
-        <set from="(templateAmountParameters || []).length" field="templateAmountParametersCount" />
-        <set from="selectedTemplateLinesCount || 1" field="selectedTemplateLinesPageSize" />
-        <set from="0" field="selectedTemplateLinesPageIndex" />
-        <set from="0" field="selectedTemplateLinesPageMaxIndex" />
-        <set from="selectedTemplateLinesCount ? 1 : 0" field="selectedTemplateLinesPageRangeLow" />
-        <set from="selectedTemplateLinesCount" field="selectedTemplateLinesPageRangeHigh" />
-        <set from="templateAmountParametersCount || 1" field="templateAmountParametersPageSize" />
-        <set from="0" field="templateAmountParametersPageIndex" />
-        <set from="0" field="templateAmountParametersPageMaxIndex" />
-        <set from="templateAmountParametersCount ? 1 : 0" field="templateAmountParametersPageRangeLow" />
-        <set from="templateAmountParametersCount" field="templateAmountParametersPageRangeHigh" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-records = dateLabels.formatDates(records,[["lastUpdatedStamp", "yyyy-MM-dd HH:mm"]])</script>
+        <set field="template" from="selectedTemplate?.record || null"/>
+        <set field="templateLines" from="selectedTemplate?.lines || []"/>
+        <set field="isPublished" from="template?.isPublished === 'Y'"/>
+        <set field="canPost" from="!!accounting.capabilities.glPost"/>
+        <set field="selectedName" from="template ? (template.templateName || template.acctgTransTemplateId) : ''"/>
+        <set field="templateAmountParameters" from="[...new Set(templateLines.map(line =&gt; line.amountParameter).filter(Boolean))].map(parameterName =&gt; ({parameterName}))"/>
     </actions>
     <widgets>
-        <label text="Journal templates" type="h5" />
-        <form-single name="Find" transition="." map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="text">
-                <default-field title="Search">
-                    <text-line />
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Find" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
+        <container style="row items-center q-col-gutter-sm">
+            <container style="col">
+                <label text="Journal templates" type="h5"/>
+            </container>
+            <container style="col-auto">
+                <container-dialog id="NewTemplateDialog" button-text="New journal template" type="primary" icon="sym_o_add" title="New journal template" condition="canPost">
+                    <form-single name="TemplateHeader" transition="saveTemplate">
+                        <field name="organizationPartyId" from="organizationPartyId">
+                            <default-field title="Organization">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="templateName">
+                            <default-field title="Name">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="amountUomId">
+                            <default-field title="Currency">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="acctgTransTypeEnumId">
+                            <default-field title="Type">
+                                <drop-down allow-empty="true">
+                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="description">
+                            <default-field title="Description">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="fromDate">
+                            <default-field title="Effective from">
+                                <date-time/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Create template"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </container>
+        </container>
+        <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
         <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <field name="acctgTransTemplateId">
-                <default-field title="Record">
-                    <display />
-                </default-field>
-            </field>
             <field name="templateName">
-                <default-field title="Name">
-                    <display />
+                <default-field title="Template">
+                    <link url="." text="${templateName || acctgTransTemplateId}" link-type="anchor" parameter-map="{acctgTransTemplateId:acctgTransTemplateId,organizationPartyId:organizationPartyId}"/>
                 </default-field>
             </field>
-            <field name="lastUpdatedStamp">
-                <default-field title="Updated">
-                    <display text="${lastUpdatedStampText}" />
+            <field name="acctgTransTemplateId">
+                <default-field title="ID">
+                    <display/>
+                </default-field>
+            </field>
+            <field name="fromDate">
+                <default-field title="Effective from">
+                    <display text="${fromDateText || ''}"/>
+                </default-field>
+            </field>
+            <field name="isPublished">
+                <default-field title="State">
+                    <render-mode>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished == 'Y' ? 'positive' : 'warning'}">${isPublished == 'Y' ? 'Published' : 'Draft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished == 'Y' ? 'Published' : 'Draft'})}]]></text>
+                    </render-mode>
                 </default-field>
             </field>
             <columns type="mobile">
                 <column>
-                    <field-ref name="acctgTransTemplateId" />
-                    <field-ref name="templateName" />
+                    <field-ref name="templateName"/>
+                    <field-ref name="fromDate"/>
                 </column>
                 <column>
-                    <field-ref name="lastUpdatedStamp" />
+                    <field-ref name="isPublished"/>
                 </column>
             </columns>
         </form-list>
-        <label text="No matching records. Adjust the organization or filters." type="p" condition="!records.length" />
-        <container-dialog id="Newjournaltemplate" button-text="New journal template" condition="accounting.capabilities.glPost">
-            <form-single name="TemplateHeader" transition="saveTemplate" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="templateName">
-                    <default-field title="Name">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="amountUomId">
-                    <default-field title="Currency">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="acctgTransTypeEnumId">
-                    <default-field title="Type">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="description">
-                    <default-field title="Description">
-                        <text-line />
-                    </default-field>
-                </field>
-                <field name="fromDate">
-                    <default-field title="Effective from">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Save template" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <container-dialog id="Createdraftfromtemplate" button-text="Create draft from template" condition="accounting.capabilities.glPost">
-            <form-single name="FromTemplate" transition="fromTemplate" map="context">
-                <field name="organizationPartyId" from="organizationPartyId">
-                    <default-field title="Organization party id">
-                        <hidden />
-                    </default-field>
-                </field>
-                <field name="acctgTransTemplateId">
-                    <default-field title="Template">
-                        <drop-down allow-empty="true">
-                            <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId,selected:acctgTransTemplateId}" />
-                        </drop-down>
-                    </default-field>
-                </field>
-                <field name="transactionDate">
-                    <default-field title="Date">
-                        <date-time />
-                    </default-field>
-                </field>
-                <field name="submit">
-                    <default-field title="Submit">
-                        <submit text="Create draft" type="primary" />
-                    </default-field>
-                </field>
-            </form-single>
-        </container-dialog>
-        <form-single name="SelectTemplate" transition="." map="context">
-            <field name="organizationPartyId" from="organizationPartyId">
-                <default-field title="Organization party id">
-                    <hidden />
-                </default-field>
-            </field>
-            <field name="acctgTransTemplateId">
-                <default-field title="Template">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'templates',organizationPartyId:organizationPartyId,selected:acctgTransTemplateId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Open template" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
-        <section name="TemplateEditor" condition="acctgTransTemplateId">
+        <label text="No journal templates match. Choose another organization or search, or create a new journal template." type="p" condition="!records.length"/>
+        <section name="TemplateNotFound" condition="acctgTransTemplateId &amp;&amp; !template">
             <widgets>
-                <label text="Template lines" type="h6" />
-                <container-dialog id="Newtemplateversion" button-text="New template version" condition="(selectedTemplate.record.isPublished === 'Y') &amp;&amp; accounting.capabilities.glPost">
-                    <form-single name="NewTemplateVersion" transition="saveTemplate" map="context">
-                        <field name="organizationPartyId" from="organizationPartyId">
-                            <default-field title="Organization party id">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="acctgTransTemplateId" from="acctgTransTemplateId">
-                            <default-field title="Acctg trans template id">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="lastUpdatedStamp" from="selectedTemplate.record.lastUpdatedStamp">
-                            <default-field title="Last updated stamp">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="templateName" from="selectedTemplate.record.templateName">
-                            <default-field title="Template name">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="fromDate">
-                            <default-field title="New version effective from">
-                                <date-time />
-                            </default-field>
-                        </field>
-                        <field name="submit">
-                            <default-field title="Submit">
-                                <submit text="Create new version" type="primary" />
-                            </default-field>
-                        </field>
-                    </form-single>
-                </container-dialog>
-                <container-dialog id="Addtemplateline" button-text="Add template line" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost">
-                    <form-single name="AddTemplateLine" transition="line" map="context">
-                        <field name="organizationPartyId" from="organizationPartyId">
-                            <default-field title="Organization party id">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="acctgTransTemplateId" from="acctgTransTemplateId">
-                            <default-field title="Acctg trans template id">
-                                <hidden />
-                            </default-field>
-                        </field>
-                        <field name="glAccountId">
-                            <default-field title="Account">
-                                <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
-                                </drop-down>
-                            </default-field>
-                        </field>
-                        <field name="debitCreditFlag">
-                            <default-field title="Side">
-                                <drop-down allow-empty="true">
-                                    <option key="D" text="Debit" />
-                                    <option key="C" text="Credit" />
-                                </drop-down>
-                            </default-field>
-                        </field>
-                        <field name="amount">
-                            <default-field title="Fixed amount">
-                                <text-line />
-                            </default-field>
-                        </field>
-                        <field name="amountParameter">
-                            <default-field title="Amount parameter (optional)">
-                                <text-line />
-                            </default-field>
-                        </field>
-                        <field name="facilityId">
-                            <default-field title="Facility">
-                                <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
-                                </drop-down>
-                            </default-field>
-                        </field>
-                        <field name="costCenterId">
-                            <default-field title="Cost centre">
-                                <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
-                                </drop-down>
-                            </default-field>
-                        </field>
-                        <field name="submit">
-                            <default-field title="Submit">
-                                <submit text="Add template line" type="primary" />
-                            </default-field>
-                        </field>
-                    </form-single>
-                </container-dialog>
-                <form-list name="TemplateLines" list="selectedTemplateLines" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-                    <field name="entrySeqId">
-                        <default-field title="Line">
-                            <display />
-                        </default-field>
-                    </field>
+                <container-box type="warning">
+                    <box-header title="Not available"/>
+                    <box-body>
+                        <label text="Journal template ${acctgTransTemplateId} is not available: it does not exist, or it belongs to an organization you do not work in." type="p"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="TemplateEditor" condition="template">
+            <widgets>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(acctgTransTemplateId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: acctgTransTemplateId})}]]></text>
+                                </render-mode>
+                                <label text="${selectedName}" type="h5"/>
+                            </container>
+                            <label text="Effective from ${template.fromDateText || '—'}${template.thruDateText ? ' through ' + template.thruDateText : ''}" type="p" style="text-caption m-muted q-mb-none"/>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished ? 'positive' : 'warning'}">${isPublished ? 'Published' : 'Draft'}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished ? 'Published' : 'Draft'})}]]></text>
+                            </render-mode>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md"/>
+                        <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
+                            <link url="publish" link-type="hidden-form" text="Validate and publish" btn-type="primary" icon="sym_o_publish" condition="!isPublished &amp;&amp; canPost" confirmation="Publish ${selectedName}? A published version cannot be changed." parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,lastUpdatedStamp:template.lastUpdatedStamp}"/>
+                            <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="canPost">
+                                <container-dialog id="AddTemplateLineDialog" button-text="Add line" icon="sym_o_add" title="Add a line to ${selectedName}" condition="!isPublished">
+                                    <form-single name="AddTemplateLine" transition="line">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="acctgTransTemplateId" from="acctgTransTemplateId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="glAccountId">
+                                            <default-field title="Account">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="debitCreditFlag">
+                                            <default-field title="Side">
+                                                <radio>
+                                                    <option key="D" text="Debit"/>
+                                                    <option key="C" text="Credit"/>
+                                                </radio>
+                                            </default-field>
+                                        </field>
+                                        <field name="amount">
+                                            <default-field title="Fixed amount" tooltip="Leave empty when an amount parameter gives the amount">
+                                                <text-line size="12"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="amountParameter">
+                                            <default-field title="Amount parameter" tooltip="A name asked for when a draft is made from the template">
+                                                <text-line size="20"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="facilityId">
+                                            <default-field title="Facility">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="costCenterId">
+                                            <default-field title="Cost centre">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Add line"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                                <container-dialog id="NewTemplateVersionDialog" button-text="New version" icon="sym_o_difference" title="A new version of ${selectedName}" condition="isPublished">
+                                    <form-single name="NewTemplateVersion" transition="saveTemplate" map="template">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="acctgTransTemplateId">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="lastUpdatedStamp">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="templateName">
+                                            <default-field>
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="fromDate" from="null">
+                                            <default-field title="Effective from">
+                                                <date-time/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Create new version"/>
+                                            </default-field>
+                                        </field>
+                                    </form-single>
+                                </container-dialog>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <label text="This template has no lines yet. Add them from More, Add line." type="p" condition="!templateLines.length"/>
+                <form-list name="TemplateLines" list="templateLines" skip-form="true" paginate="false">
                     <field name="glAccountId">
                         <default-field title="Account">
-                            <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}" />
+                            <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}"/>
                         </default-field>
                     </field>
                     <field name="debitCreditFlag">
                         <default-field title="Side">
-                            <display />
+                            <display text="${debitCreditFlag == 'D' ? 'Debit' : debitCreditFlag == 'C' ? 'Credit' : ''}"/>
                         </default-field>
                     </field>
                     <field name="amount" align="right">
                         <default-field title="Amount">
-                            <display currency-unit-field="selectedTemplate.record.amountUomId" />
+                            <display currency-unit-field="template.amountUomId"/>
                         </default-field>
                     </field>
                     <field name="amountParameter">
-                        <default-field title="Parameter">
-                            <display />
+                        <default-field title="Amount parameter">
+                            <display/>
                         </default-field>
                     </field>
                     <field name="lineActions">
-                        <default-field title="Actions">
-                            <container-dialog id="EditTemplateLineDialog" button-text="Edit line" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost">
-                                <form-single name="EditTemplateLine" transition="line" map="context">
-                                    <field from="lastUpdatedStamp" name="lastUpdatedStamp">
-                                        <default-field title="lastUpdatedStamp">
-                                            <hidden />
+                        <default-field title="">
+                            <container-dialog id="EditTemplateLine_${entrySeqId}" button-text="Edit" icon="sym_o_edit" title="Edit line ${entrySeqId} of ${selectedName}" condition="!isPublished &amp;&amp; canPost">
+                                <form-single name="EditTemplateLine" transition="line" extends="AddTemplateLine">
+                                    <field name="entrySeqId" from="entrySeqId">
+                                        <default-field>
+                                            <hidden/>
                                         </default-field>
                                     </field>
-                                    <field from="entrySeqId" name="entrySeqId">
-                                        <default-field title="entrySeqId">
-                                            <hidden />
-                                        </default-field>
-                                    </field>
-                                    <field name="organizationPartyId" from="organizationPartyId">
-                                        <default-field title="Organization party id">
-                                            <hidden />
-                                        </default-field>
-                                    </field>
-                                    <field name="acctgTransTemplateId" from="acctgTransTemplateId">
-                                        <default-field title="Acctg trans template id">
-                                            <hidden />
-                                        </default-field>
-                                    </field>
-                                    <field name="glAccountId">
-                                        <default-field title="Account">
-                                            <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}" />
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="debitCreditFlag">
-                                        <default-field title="Side">
-                                            <drop-down allow-empty="true">
-                                                <option key="D" text="Debit" />
-                                                <option key="C" text="Credit" />
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="amount">
-                                        <default-field title="Fixed amount">
-                                            <text-line />
-                                        </default-field>
-                                    </field>
-                                    <field name="amountParameter">
-                                        <default-field title="Amount parameter (optional)">
-                                            <text-line />
-                                        </default-field>
-                                    </field>
-                                    <field name="facilityId">
-                                        <default-field title="Facility">
-                                            <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}" />
-                                            </drop-down>
-                                        </default-field>
-                                    </field>
-                                    <field name="costCenterId">
-                                        <default-field title="Cost centre">
-                                            <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}" />
-                                            </drop-down>
+                                    <field name="lastUpdatedStamp" from="lastUpdatedStamp">
+                                        <default-field>
+                                            <hidden/>
                                         </default-field>
                                     </field>
                                     <field name="submit">
-                                        <default-field title="Submit">
-                                            <submit text="Save line" type="primary" />
+                                        <default-field title="">
+                                            <submit text="Save line"/>
                                         </default-field>
                                     </field>
                                 </form-single>
                             </container-dialog>
-                            <link link-type="hidden-form-link" btn-type="danger" confirmation="Remove this draft template line?" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,entrySeqId:entrySeqId,lastUpdatedStamp:lastUpdatedStamp}" url="removeTemplateLine" text="Remove" condition="(selectedTemplate.record.isPublished !== 'Y') &amp;&amp; accounting.capabilities.glPost" />
+                            <link url="removeTemplateLine" link-type="hidden-form-link" text="Remove" icon="sym_o_delete" btn-type="danger" condition="!isPublished &amp;&amp; canPost" confirmation="Remove line ${entrySeqId} (${debitCreditFlag == 'D' ? 'debit' : 'credit'}) from ${selectedName}?" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,entrySeqId:entrySeqId,lastUpdatedStamp:lastUpdatedStamp}"/>
                         </default-field>
                     </field>
                     <columns type="mobile">
                         <column>
-                            <field-ref name="entrySeqId" />
-                            <field-ref name="glAccountId" />
+                            <field-ref name="glAccountId"/>
+                            <field-ref name="amountParameter"/>
                         </column>
                         <column>
-                            <field-ref name="debitCreditFlag" />
-                            <field-ref name="amount" />
-                            <field-ref name="amountParameter" />
-                            <field-ref name="lineActions" />
+                            <field-ref name="debitCreditFlag"/>
+                            <field-ref name="amount"/>
+                            <field-ref name="lineActions"/>
                         </column>
                     </columns>
                 </form-list>
-                <section name="PublishTemplatePermission" condition="accounting.capabilities.glPost">
+                <section name="CreateFromTemplate" condition="isPublished &amp;&amp; canPost">
                     <widgets>
-                        <form-single name="PublishTemplate" transition="publish" map="context">
-                            <field from="selectedTemplate.record.lastUpdatedStamp" name="lastUpdatedStamp">
-                                <default-field title="Revision">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="organizationPartyId" from="organizationPartyId">
-                                <default-field title="Organization party id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="acctgTransTemplateId" from="acctgTransTemplateId">
-                                <default-field title="Acctg trans template id">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field title="Submit">
-                                    <submit text="Validate and publish" type="primary" />
-                                </default-field>
-                            </field>
-                        </form-single>
-                    </widgets>
-                </section>
-                <section name="TemplateAmounts">
-                    <condition>
-                        <expression>(selectedTemplate.record.isPublished === 'Y' &amp;&amp; templateAmountParameters.length) &amp;&amp; accounting.capabilities.glPost</expression>
-                    </condition>
-                    <widgets>
-                        <label text="Create draft with amounts" type="h6" />
-                        <form-list name="TemplateAmounts" list="templateAmountParameters" transition="fromTemplate" multi="true">
-                            <hidden-parameters parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId}" />
-                            <field name="parameterLabel" from="parameterName">
-                                <default-field title="Parameter">
-                                    <display />
-                                </default-field>
-                            </field>
-                            <field from="parameterName" name="parameterName">
-                                <default-field title="Parameter">
-                                    <hidden />
-                                </default-field>
-                            </field>
-                            <field name="parameterValue">
-                                <default-field title="Amount">
-                                    <text-line />
-                                </default-field>
-                            </field>
-                            <field name="submit">
-                                <default-field title="Create draft">
-                                    <submit text="Create draft" type="primary" />
-                                </default-field>
-                            </field>
-                            <columns type="mobile">
-                                <column>
-                                    <field-ref name="parameterLabel" />
-                                </column>
-                                <column>
-                                    <field-ref name="parameterValue" />
-                                </column>
-                            </columns>
-                        </form-list>
+                        <label text="Make a draft entry" type="h6"/>
+                        <section name="CreateWithAmounts" condition="templateAmountParameters.length">
+                            <widgets>
+                                <form-list name="TemplateAmounts" list="templateAmountParameters" transition="fromTemplate" multi="true">
+                                    <hidden-parameters parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId}"/>
+                                    <field name="parameterLabel" from="parameterName">
+                                        <default-field title="Amount parameter">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="parameterName" from="parameterName">
+                                        <default-field>
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="parameterValue">
+                                        <default-field title="Amount">
+                                            <text-line size="12"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Create draft entry" type="primary"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="parameterLabel"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="parameterValue"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </widgets>
+                            <fail-widgets>
+                                <link url="fromTemplate" link-type="hidden-form" text="Create draft entry" btn-type="primary" icon="sym_o_note_add" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId}"/>
+                            </fail-widgets>
+                        </section>
                     </widgets>
                 </section>
             </widgets>

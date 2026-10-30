@@ -50,18 +50,10 @@ along with this software (see the LICENSE.md file). If not, see
             const financeTypes = {MantleInvoice:'invoices',MantlePayment:'payments',MantleGlAccount:'accounts',MantleAcctgTrans:'journals',
                 'mantle.account.invoice.Invoice':'invoices','mantle.account.payment.Payment':'payments','mantle.ledger.account.GlAccount':'accounts','mantle.ledger.transaction.AcctgTrans':'journals'}
             const financeKind = financeTypes[docType] || financeTypes[recordEntityName]
-            if (financeKind && ec.user.userId && (ec.user.isInGroup('BOSS_ACCOUNTING') || ec.user.isInGroup('BOSS_ACCOUNTING_ADMIN') || ec.user.isInGroup('ADMIN'))) {
-                const finance = ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')
-                url = null; icon = 'sym_o_account_balance'
-                try {
-                    let kind=financeKind, record
-                    if(kind==='invoices') {
-                        try {record=finance.record({kind,recordId:id})}
-                        catch(error) {kind='bills';record=finance.record({kind,recordId:id})}
-                    } else record=finance.record({kind,recordId:id})
-                    const route={invoices:'Receivables/InvoiceDetail',bills:'Payables/BillDetail',payments:'Payments/PaymentDetail',accounts:'GeneralLedger/AccountDetail',journals:'GeneralLedger/JournalEntryDetail'}[kind]
-                    url='/qapps/Accounting/'+route+'?recordId='+encodeURIComponent(id)
-                } catch(error) {ec.logger.debug('Finance record link unavailable: '+error.message)}
+            if (financeKind && ec.user.userId) {
+                // Accounting's own permission check (the Mantle finance permissions), not group names
+                url = ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').recordLink(financeKind, id)
+                icon = 'sym_o_account_balance'
                 return
             }
             if (recordEntityName === 'mantle.product.cost.ProductStandardCost') {

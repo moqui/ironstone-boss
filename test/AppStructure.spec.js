@@ -337,11 +337,38 @@ spec({
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products", "Accounting"], (location) => !isPlaceholder(location))
-        for (const path of ["Home","Receivables/Invoices","Payables/Bills","Payments/Payments","GeneralLedger/ChartOfAccounts","GeneralLedger/JournalEntries","GeneralLedger/TransactionEntries","GeneralLedger/JournalBatches","GeneralLedger/JournalTemplates","PeriodClose/Periods","PeriodClose/PeriodLocks","Reports/TrialBalance","Reports/GeneralLedger","Settings/Settings","Settings/AccountingPreferences","Settings/PostingDefaults","Settings/PaymentTerms","Settings/Currencies","Settings/PaymentMethods","Settings/DocumentSettings"]) {
-            demoRecords["Accounting/"+path]={parameters:{organizationPartyId:"ORG_ZIZI_CORP"}}
-        }
-        for (const [path,id] of Object.entries({"Receivables/InvoiceDetail":"BOSS_ACCT_INVOICE","Payables/BillDetail":"BOSS_ACCT_BILL","Payments/PaymentDetail":"BOSS_ACCT_PAYMENT","GeneralLedger/JournalEntryDetail":"BOSS_ACCT_ENTRY","GeneralLedger/AccountDetail":"111100000"}))
-            demoRecords["Accounting/"+path]={parameters:{organizationPartyId:"ORG_ZIZI_CORP",recordId:id}}
+        // each Accounting page with a text it shows whatever the data, for the demo organization and records
+        for (const [path, text, recordId] of [
+            ["Home", "Shortcuts"],
+            ["Receivables/Invoices", "Invoices"],
+            ["Payables/Bills", "Bills"],
+            ["Payments/Payments", "Payments"],
+            ["GeneralLedger/ChartOfAccounts", "Chart of accounts"],
+            ["GeneralLedger/JournalEntries", "Journal entries"],
+            ["GeneralLedger/TransactionEntries", "Transaction entries"],
+            ["GeneralLedger/JournalBatches", "Journal batches"],
+            ["GeneralLedger/JournalTemplates", "Journal templates"],
+            ["PeriodClose/Periods", "Fiscal periods"],
+            ["PeriodClose/PeriodLocks", "Posting locks"],
+            ["Reports/TrialBalance", "Trial balance"],
+            ["Reports/GeneralLedger", "General ledger"],
+            ["Settings/Settings", "Accounting settings"],
+            ["Settings/AccountingPreferences", "Accounting preferences"],
+            ["Settings/PostingDefaults", "Posting defaults"],
+            ["Settings/PaymentTerms", "Payment terms"],
+            ["Settings/Currencies", "Currencies"],
+            ["Settings/PaymentMethods", "Payment methods"],
+            ["Settings/DocumentSettings", "Document settings"],
+            ["Receivables/InvoiceDetail", "Accounting demo customer invoice", "BOSS_ACCT_INVOICE"],
+            ["Payables/BillDetail", "Accounting demo supplier bill", "BOSS_ACCT_BILL"],
+            ["Payments/PaymentDetail", "Accounting demo proposed payment", "BOSS_ACCT_PAYMENT"],
+            ["GeneralLedger/JournalEntryDetail", "Office expense review", "BOSS_ACCT_ENTRY"],
+            ["GeneralLedger/AccountDetail", "Open account ledger", "111100000"]
+        ])
+            demoRecords["Accounting/" + path] = {
+                text,
+                parameters: Object.assign({organizationPartyId: "ORG_ZIZI_CORP"}, recordId ? {recordId} : {})
+            }
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path, `${base}/Shared/Product360/${tab}.xml`])

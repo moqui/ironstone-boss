@@ -1,42 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A payment, read only until its workflow (template/AccountingDocuments.xml DocumentDetail). -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payment" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'payments',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-record = dateLabels.formatDates(record,[["effectiveDate", "yyyy-MM-dd"]])</script>
+        <set field="documentKind" value="payments"/>
+        <set field="documentLabel" value="payment"/>
+        <set field="listPath" value="Payments/Payments"/>
+        <set field="listTitle" value="Payments"/>
     </actions>
     <widgets>
-        <container style="m-record-header">
-            <container style="m-record-title">
-                <label text="${record.paymentId}" type="h5" />
-                <label text="${record.description || 'Payment'}" type="p" />
-            </container>
-            <container style="m-record-status">
-                <label text="${record.statusId}" />
-            </container>
-        </container>
-        <label text="Payment details" type="h6" />
-        <label text="This record is read only. Document workflows are enabled in later Accounting phases." type="p" />
-        <container style="m-record-facts">
-            <label text="From ${record.fromPartyName || record.fromPartyId}" type="p" />
-            <label text="To ${record.toPartyName || record.toPartyId}" type="p" />
-            <label text="${record.description || ''}" type="p" />
-            <label text="Date ${record.effectiveDateText || '—'}" type="p" />
-            <label text="Amount ${record.amount == null ? '—' : ec.l10n.formatCurrency(record.amount,record.amountUomId)}" type="p" />
-        </container>
-        <link url="//Accounting/Payments/Payments" text="Back to list" />
+        <section-include name="DocumentDetail" location="component://mr-boss/template/AccountingDocuments.xml"/>
     </widgets>
 </screen>

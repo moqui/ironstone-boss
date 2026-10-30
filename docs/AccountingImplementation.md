@@ -17,12 +17,16 @@ activation P19, and foreign-currency posting/provider refresh P20.
 
 All routes are under `/qapps/Accounting`. Record routes take `recordId`; reads, mutations, search choices, exports,
 record links and files validate their organizations and records on the server. Report navigation and print URLs
-retain organization, date/period, currency and dimension filters. Safe response maps render dates explicitly through the user locale, and document views include currency-aware totals. Lists use mobile columns; reports offer saved
-finds, comparison dates, CSV/XLSX and html-print.
+retain organization, date/period, currency and dimension filters. Mantle's record reads return display text: dates in
+the user's zone (`AccountingPolicy.display`), party, status and counterparty names, and a document's date, amount and
+currency. Shared screen parts are in `template/AccountingParts.xml` (choices, the organization picker, find, batch
+review, report options) and `template/AccountingDocuments.xml` (the invoice, bill and payment list, detail and draft).
 
 Demo users are `finance.ar`, `finance.ap`, `finance.match`, `finance.treasury`, `finance.gl`, `finance.tax`,
 `finance.read`, `finance.approve` and `finance.admin` (demo password `moqui`). The reader has no other business
-launcher. Their composed grants are in BossAccountingSetupData; no finance role gets GL_POST_CLOSED, raw REST
+launcher. Reads come from view permissions: `ACCOUNTING_VIEW` for every kind, `RECEIVABLE_VIEW`, `PAYABLE_VIEW` and
+`PAYMENT_VIEW` for their kinds. An edit permission alone opens no reads, so Projects' managers, who hold
+`RECEIVABLE_EDIT` for billing, do not read Accounting's records. Their composed grants are in BossAccountingSetupData; no finance role gets GL_POST_CLOSED, raw REST
 mutation authorization, unpost, unrestricted posted rewrites or bulk historical repost authorization. Organization
 membership follows Mantle's existing direct-child organization rule; active scope narrows it. Administration can
 select an internal organization, and private-contact filters still apply.
@@ -88,26 +92,29 @@ PASS runtime changes and a durable pending-provider fixture remain P18, as docum
 Tests run through Moqui's JavaScript runners, without Node as a test dependency. The development binary was rebuilt
 before browser verification. Full suite results and baseline comparison are recorded here after the final run:
 
-- Full BOSS: 1,038 features — 1,033 passed, zero failed, five skipped.
-- Full standalone Mantle: 863 features — 842 passed, four unchanged baseline failures, 17 skipped.
-- Focused native controls, reports, the original 18-check ledger baseline, standard costs/revaluation and Projects billing: 82/82 passed with Chrome configured.
-- The full BOSS suite includes Accounting access, roles, isolation, AppStructure, ClientWrites, QVT/TUI routes and a dedicated timestamp/calendar-date projection regression.
-- Accounting browser walks and viewport/theme captures: 188/188 passed (31 destinations × six width/theme combinations, plus posting/reversal and setup repair).
-- XML: 46 Accounting screens (including the app root) validate. Screen lint writes to `/tmp/accounting-screen-lint.txt`, with zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
+- Full BOSS: 1,070 features — 1,065 passed, zero failed, five skipped.
+- Full standalone Mantle: 865 features — 844 passed, four unchanged baseline failures, 17 skipped.
+- The full BOSS suite includes Accounting access (with paired positive and negative cases), roles, isolation,
+  AppStructure, every screen in qvt and tui, and rendered-content checks of the ledger, document, report and settings
+  screens.
+- Accounting browser walks and viewport/theme captures: 230/230 (three users, 31 destinations × six width/theme
+  combinations, plus posting/reversal and setup repair).
+- XML: 46 Accounting screens (including the app root) validate. Screen lint (to a report file) has zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
 
 The four standalone Mantle failures reproduce on archived unchanged commit b48e696c: InboxThreads, MantleSearch,
 WorkTimeEntries and WorkTimesheets. They are recorded independently of Accounting's passing tests. Standalone
 Mantle excludes BOSS demo adoption; running legacy low-level posting specs against an adopted demo organization
 would test a different policy. No ADMIN posting exemption was introduced.
 
-Reproduce the native run with MOQUI_RUNTIME pointing to a temporary runtime whose component directory contains
-only mr-mantle (and whose base-component/conf point to the workspace runtime), then:
+Reproduce the native run with `MOQUI_RUNTIME` pointing to a runtime whose `component` directory holds only mr-mantle
+and whose `base-component` and `conf` link to the workspace's; the BOSS demo adopts the guard for ORG_ZIZI_CORP, which
+the legacy Mantle specs do not expect. The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
 
 ```sh
-pdf_chromium_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' ./moq test --nobuild mr-mantle
-pdf_chromium_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' ./moq test --nobuild mr-boss
-./moq test-client --nobuild mr-boss --serve --spec AccountingShots,AccountingLedgerWalk,AccountingSettingsWalk --out /tmp/accounting-browser
-target/develop/moqui lint --screens /tmp/accounting-screen-lint.txt
+./moq test --nobuild mr-mantle
+./moq test --nobuild mr-boss
+./moq test-client --nobuild mr-boss --serve --spec AccountingShots,AccountingLedgerWalk,AccountingSettingsWalk --out <screenshot-dir>
+target/develop/moqui lint --screens <report-file>
 ```
 
 The screenshot spec covers 31 destinations at 390, 1280 and 1440 pixels in light/dark. Browser walks post/reverse a

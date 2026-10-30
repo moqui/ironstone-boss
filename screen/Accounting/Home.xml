@@ -1,57 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Home" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
-    <transition-include name="choices" location="component://mr-boss/template/AccountingChoiceTransitions.xml" />
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- The Accounting landing (design-accounting §3; style-guide §3.1): the active organization, the counts the user may read,
+    each a link to its list (ironstone.accounting.HomeServices.get#Summary; a count that fails is named as unavailable,
+    never shown as zero), the setup findings, and shortcuts to what the user may create. The receivables, payables and
+    banking cards come with their phases (P4 to P9). -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Home" menu-image="sym_o_dashboard" menu-image-type="icon" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <parameter name="organizationPartyId"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <service-call name="ironstone.accounting.HomeServices.get#Summary" in-map="context" out-map="context" />
+        <service-call name="ironstone.accounting.HomeServices.get#Summary" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <set field="capabilities" from="accounting.capabilities"/>
+        <set field="ledgerReader" from="capabilities.reportRead || capabilities.glPost"/>
+        <set field="organizationQuery" from="organizationPartyId ? '&amp;organizationPartyId=' + encodeURIComponent(organizationPartyId) : ''"/>
+        <set field="counts" from="Object.fromEntries(['unposted', 'posted', 'accounts', 'periods'].map(name =&gt; [name, summary[name] == null ? 'Unavailable' : String(summary[name])]))"/>
     </actions>
     <widgets>
-        <label text="Accounting workspace" type="h5" />
-        <form-single name="Organization" transition="selectOrganization" map="context">
-            <field name="organizationPartyId">
-                <default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'allOrganizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}" />
-                    </drop-down>
-                </default-field>
-            </field>
-            <field name="submit">
-                <default-field title="Submit">
-                    <submit text="Choose organization" type="primary" />
-                </default-field>
-            </field>
-        </form-single>
+        <label text="Accounting" type="h5"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
         <dashboard min-width="150">
-            <number-card title="Unposted entries" value="${summary.unposted == null ? '—' : String(summary.unposted)}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=N&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
-            <number-card title="Posted entries" value="${summary.posted == null ? '—' : String(summary.posted)}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=Y&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
-            <number-card title="Chart accounts" value="${summary.accounts == null ? '—' : String(summary.accounts)}" link="//Accounting/GeneralLedger/ChartOfAccounts?&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.reportRead || accounting.capabilities.glPost" />
-            <number-card title="Fiscal periods" value="${summary.periods == null ? '—' : String(summary.periods)}" link="//Accounting/PeriodClose/Periods?&amp;organizationPartyId=${encodeURIComponent(organizationPartyId || '')}" condition="accounting.capabilities.glPost || accounting.capabilities.fiscalClose" />
-            <number-card title="Receivables due" value="—" />
-            <number-card title="Payables due" value="—" />
-            <number-card title="Unmatched bank lines" value="—" />
+            <number-card title="Draft entries" value="${counts.unposted}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=N${organizationQuery}" condition="ledgerReader"/>
+            <number-card title="Posted entries" value="${counts.posted}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=Y${organizationQuery}" condition="ledgerReader"/>
+            <number-card title="Chart accounts" value="${counts.accounts}" link="//Accounting/GeneralLedger/ChartOfAccounts?${organizationQuery.slice(1)}" condition="ledgerReader"/>
+            <number-card title="Fiscal periods" value="${counts.periods}" link="//Accounting/PeriodClose/Periods?${organizationQuery.slice(1)}" condition="capabilities.glPost || capabilities.fiscalClose"/>
         </dashboard>
-        <label text="As of ${summary.asOf}" type="p" style="text-caption m-muted" />
-        <label text="Later finance queues become available as their workflows are enabled." type="p" />
-        <link url="//Accounting/Settings/Settings" text="Review accounting setup" link-type="anchor-button" btn-type="primary" condition="accounting.capabilities.admin" />
-        <link url="//Accounting/GeneralLedger/JournalEntries" text="Journal entries" link-type="anchor-button" condition="accounting.capabilities.glPost || accounting.capabilities.reportRead" />
-        <section-iterate name="SetupFindings" list="findings" entry="finding">
+        <label text="As of ${summary.asOf}" type="p" style="text-caption m-muted"/>
+        <section name="SetupFindings" condition="findings.length">
             <widgets>
-                <label text="${finding}" type="p" />
+                <container-box type="warning">
+                    <box-header title="Setup needs attention"/>
+                    <box-body>
+                        <section-iterate name="SetupFinding" list="findings" entry="finding">
+                            <widgets>
+                                <label text="${finding}" type="p" style="q-mb-xs"/>
+                            </widgets>
+                        </section-iterate>
+                        <link url="//Accounting/Settings/Settings" text="Review accounting setup" link-type="anchor-button" btn-type="primary" condition="capabilities.admin" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </box-body>
+                </container-box>
             </widgets>
-        </section-iterate>
-        <label text="My finance work" type="h6" />
-        <label text="No finance work sources are enabled yet." type="p" />
+        </section>
+        <label text="Shortcuts" type="h6"/>
+        <container style="row q-gutter-sm">
+            <link url="//Accounting/QuickCreate/NewInvoice" text="New invoice" link-type="anchor-button" icon="sym_o_request_quote" condition="capabilities.arEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewBill" text="New bill" link-type="anchor-button" icon="sym_o_receipt" condition="capabilities.apEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewPayment" text="New payment" link-type="anchor-button" icon="sym_o_payments" condition="capabilities.paymentEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewEntry" text="New journal entry" link-type="anchor-button" icon="sym_o_edit_note" condition="capabilities.glPost" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/Reports/TrialBalance" text="Trial balance" link-type="anchor-button" icon="sym_o_table_chart" condition="ledgerReader" parameter-map="{organizationPartyId:organizationPartyId}"/>
+        </container>
     </widgets>
 </screen>

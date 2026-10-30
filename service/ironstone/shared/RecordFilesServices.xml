@@ -60,10 +60,16 @@ along with this software (see the LICENSE.md file). If not, see
             const pkFields = Object.keys(ec.entity.makeValue(content.entityName).getPrimaryKeys())
             contentType = {entityName: content.entityName, keyField: content.keyField, typeField: content.typeField, dateField: content.dateField,
                 pkFields: pkFields, createService: found[0], idField: found[1], enumTypeId: found[2], catalogCanChange: true}
+            // a journal entry's files change with the GL posting permission on its organization (catalogCanChange is this
+            // service's may-change flag for every kind of record)
             if (info.recordEntityName === 'mantle.ledger.transaction.AcctgTrans') {
                 const finance = ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')
-                try {finance.record({kind:'journals',recordId:info.recordId},'glPost');contentType.catalogCanChange=true}
-                catch(error) {contentType.catalogCanChange=false}
+                try {
+                    finance.record({kind: 'journals', recordId: info.recordId}, 'glPost')
+                } catch (error) {
+                    ec.logger.info('Journal ' + info.recordId + ' files are read only: ' + error.message)
+                    contentType.catalogCanChange = false
+                }
             }
             // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
             // inherited entity permission or having uploaded the file earlier never substitutes for it.

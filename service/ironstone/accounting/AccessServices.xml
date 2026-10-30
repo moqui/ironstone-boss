@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="define" noun="Parameters" type="interface">
+        <description>The in-parameters the Accounting app services share; each service declares what it returns.</description>
         <in-parameters>
             <parameter name="appRoot" type="String"/>
             <parameter name="organizationPartyId" type="String"/>
-            <parameter name="text" type="String"/>
-            <parameter name="term" type="String"/>
-            <parameter name="choice" type="String"/>
-            <parameter name="selected" type="String"/>
-            <parameter name="limit" type="Integer"/>
         </in-parameters>
+    </service>
+    <service verb="get" noun="SharedContext" allow-remote="false">
+        <description>Check the Accounting capability and organization and resolve the app's routes. Refuses a user with no
+            finance read permission, and an organization the user does not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <out-parameters>
             <parameter name="capabilities" type="Map"/>
             <parameter name="organizationPartyIds" type="List"/>
@@ -21,37 +34,49 @@
             <parameter name="sharedLinks" type="Map"/>
             <parameter name="linkBase" type="String"/>
             <parameter name="webBase" type="String"/>
-            <parameter name="summary" type="Map"/>
-            <parameter name="findings" type="List"/>
-            <parameter name="workRows" type="List"/>
-            <parameter name="rows" type="List"/>
-            <parameter name="options" type="List"/>
         </out-parameters>
-    </service>
-    <service verb="get" noun="SharedContext" allow-remote="false">
-        <description>Check the Accounting capability and organization and resolve its app routes.</description>
-        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('access', context))</script>
         </actions>
     </service>
     <service verb="search" noun="Records" allow-remote="false">
-        <description>Search only readable finance records and return Accounting destinations.</description>
+        <description>Search the finance records the user may read, for the palette, with their Accounting destinations.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="text" type="String"/>
+            <parameter name="limit" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="rows" type="List"/>
+        </out-parameters>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('search', context))</script>
         </actions>
     </service>
     <service verb="get" noun="Choices" allow-remote="false">
-        <description>Authorized choices and selected record labels for Accounting forms.</description>
+        <description>The options of an Accounting drop-down that the user may choose, searched by term, with the selected
+            value's label. Refuses an unknown choice.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="choice" type="String" required="true"/>
+            <parameter name="term" type="String"/>
+            <parameter name="selected" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="options" type="List"/>
+        </out-parameters>
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('choices', context))</script>
         </actions>
     </service>
     <service verb="select" noun="Organization" allow-remote="false">
-        <description>Select only an authenticated internal organization, or clear the active scope.</description>
+        <description>Make an organization the user works in the active one, or clear it. Refuses any other organization.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
-        <actions><script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('selectOrganization',context))</script></actions>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('selectOrganization', context))</script>
+        </actions>
     </service>
 </services>

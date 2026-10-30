@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- The invoice, bill and payment screens of IronStone Accounting (impl-accounting P1: scoped lists, read-only details and
+    draft quick create; their workflows are P4 to P6). A route screen sets the document in its actions and includes the
+    section (and for a new draft the createDraft transition):
+    - documentKind: invoices, bills or payments (mantle.ledger.AccountingServices' kinds);
+    - documentLabel: invoice, bill or payment, for the wording;
+    - DocumentList: listTitle, detailPath, newPath and canCreate;
+    - DocumentDetail: listPath and listTitle;
+    - DraftDocument: counterpartyTitle, and askAmount for a payment. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <transition name="createDraft">
+        <actions>
+            <service-call name="mantle.ledger.AccountingServices.create#DraftDocument" in-map="{kind:kind,organizationPartyId:organizationPartyId,otherPartyId:otherPartyId,description:description,currencyUomId:currencyUomId,amount:amount}" out-map="result"/>
+            <set field="recordId" from="result.recordId"/>
+            <set field="detailPath" from="{invoices:'Receivables/InvoiceDetail', bills:'Payables/BillDetail', payments:'Payments/PaymentDetail'}[kind]"/>
+        </actions>
+        <default-response url="//Accounting/${detailPath}">
+            <parameter name="recordId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="DocumentList">
+            <widgets>
+                <container style="row items-center q-col-gutter-sm">
+                    <container style="col">
+                        <label text="${listTitle}" type="h5"/>
+                    </container>
+                    <container style="col-auto">
+                        <link url="//Accounting/${newPath}" text="New ${documentLabel}" link-type="anchor-button" btn-type="primary" icon="sym_o_add" condition="canCreate" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </container>
+                </container>
+                <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
+                <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                    <field name="description">
+                        <default-field title="${documentLabel == 'payment' ? 'Payment' : 'Document'}">
+                            <link url="//Accounting/${detailPath}" text="${description || comments || invoiceId || paymentId}" link-type="anchor" parameter-map="{recordId:invoiceId || paymentId,organizationPartyId:organizationPartyId}"/>
+                        </default-field>
+                    </field>
+                    <field name="counterpartyName">
+                        <default-field title="${documentKind == 'invoices' ? 'Customer' : documentKind == 'bills' ? 'Supplier' : 'Counterparty'}">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="documentDateText">
+                        <default-field title="Date">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="documentAmount" align="right">
+                        <default-field title="Amount">
+                            <display currency-unit-field="documentCurrencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="statusId">
+                        <default-field title="Status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-primary">${WebUtilities.encodeHtml(statusText ?? '')}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: statusText ?? ""})}]]></text>
+                            </render-mode>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="description"/>
+                            <field-ref name="counterpartyName"/>
+                        </column>
+                        <column>
+                            <field-ref name="documentAmount"/>
+                            <field-ref name="statusId"/>
+                        </column>
+                    </columns>
+                </form-list>
+                <label text="No ${listTitle.toLowerCase()} match. Choose another organization or search." type="p" condition="!records.length"/>
+            </widgets>
+        </section>
+        <section name="DocumentDetail">
+            <actions>
+                <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:documentKind,recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" transaction="force-new" ignore-error="true"/>
+                <set field="recordFound" from="!!record"/>
+                <set field="documentName" from="recordFound ? (record.description || record.comments || documentLabel.charAt(0).toUpperCase() + documentLabel.slice(1) + ' ' + recordId) : ''"/>
+            </actions>
+            <widgets>
+                <section name="DocumentNotFound" condition="!recordFound">
+                    <widgets>
+                        <container-box type="warning">
+                            <box-header title="Not available"/>
+                            <box-body>
+                                <label text="This ${documentLabel} (${recordId || ''}) is not available: it does not exist, or it belongs to an organization you do not work in." type="p"/>
+                                <link url="//Accounting/${listPath}" text="Back to ${listTitle.toLowerCase()}" link-type="anchor"/>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="DocumentFound" condition="recordFound">
+                    <widgets>
+                        <container style="m-record-header">
+                            <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                                <container style="col-12 col-md m-record-title">
+                                    <container style="row items-center no-wrap">
+                                        <render-mode>
+                                            <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(recordId)}</q-chip>]]></text>
+                                            <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: recordId})}]]></text>
+                                        </render-mode>
+                                        <label text="${documentName}" type="h5"/>
+                                    </container>
+                                    <label text="${record.counterpartyName || ''}${record.documentDateText ? ' · ' + record.documentDateText : ''}" type="p" style="text-caption m-muted q-mb-none"/>
+                                </container>
+                                <container style="col-12 col-md-auto m-record-status">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-primary">${WebUtilities.encodeHtml(record.statusText ?? '')}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: record.statusText ?? ""})}]]></text>
+                                    </render-mode>
+                                </container>
+                            </container>
+                        </container>
+                        <form-single name="DocumentFacts" map="record">
+                            <field name="fromPartyName">
+                                <default-field title="From">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="toPartyName">
+                                <default-field title="To">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="documentDateText">
+                                <default-field title="Date">
+                                    <display text="${documentDateText || '—'}"/>
+                                </default-field>
+                            </field>
+                            <field name="dueDateText">
+                                <default-field title="Due">
+                                    <display text="${dueDateText || '—'}"/>
+                                </default-field>
+                            </field>
+                            <field name="documentAmount">
+                                <default-field title="${documentKind == 'payments' ? 'Amount' : 'Total'}">
+                                    <display currency-unit-field="documentCurrencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unpaidTotal">
+                                <default-field title="Unpaid">
+                                    <display currency-unit-field="documentCurrencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row>
+                                    <field-ref name="fromPartyName"/>
+                                    <field-ref name="toPartyName"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="documentDateText"/>
+                                    <field-ref name="dueDateText"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="documentAmount"/>
+                                    <field-ref name="unpaidTotal"/>
+                                </field-row>
+                            </field-layout>
+                        </form-single>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
+        <section name="DraftDocument">
+            <widgets>
+                <label text="New ${documentLabel}" type="h5"/>
+                <label text="The ${documentLabel} starts as a draft; its lines and approval come with the ${documentLabel} workflow." type="p" style="text-caption m-muted"/>
+                <form-single name="CreateDraft" transition="createDraft" map="context">
+                    <field name="kind" from="documentKind">
+                        <default-field>
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="organizationPartyId">
+                        <default-field title="Organization">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="otherPartyId">
+                        <default-field title="${counterpartyTitle}">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:otherPartyId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="description">
+                        <default-field title="Description">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency" tooltip="Leave empty for the organization's currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="amount">
+                        <conditional-field condition="askAmount" title="Amount">
+                            <text-line size="12"/>
+                        </conditional-field>
+                        <default-field>
+                            <ignored/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Create draft ${documentLabel}" type="primary"/>
+                        </default-field>
+                    </field>
+                </form-single>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

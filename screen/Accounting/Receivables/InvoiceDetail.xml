@@ -1,44 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CC0 1.0 Universal plus Grant of Patent License. See LICENSE.md. -->
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A invoice, read only until its workflow (template/AccountingDocuments.xml DocumentDetail). -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Invoice" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
-    <parameter name="organizationPartyId" />
-    <parameter name="recordId" />
-    <parameter name="acctgTransId" />
-    <parameter name="glAccountId" />
-    <parameter name="glJournalId" />
-    <parameter name="acctgTransTemplateId" />
-    <parameter name="previewId" />
-    <parameter name="inputFingerprint" />
-    <parameter name="operationKey" />
-    <parameter name="text" />
-    <parameter name="pageIndex" />
-    <parameter name="pageSize" />
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'invoices',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" />
-        <script>const dateLabels=ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js')
-record = dateLabels.formatDates(record,[["invoiceDate", "yyyy-MM-dd"], ["dueDate", "yyyy-MM-dd"]])</script>
+        <set field="documentKind" value="invoices"/>
+        <set field="documentLabel" value="invoice"/>
+        <set field="listPath" value="Receivables/Invoices"/>
+        <set field="listTitle" value="Invoices"/>
     </actions>
     <widgets>
-        <container style="m-record-header">
-            <container style="m-record-title">
-                <label text="${record.invoiceId}" type="h5" />
-                <label text="${record.description || 'Invoice'}" type="p" />
-            </container>
-            <container style="m-record-status">
-                <label text="${record.statusId}" />
-            </container>
-        </container>
-        <label text="Invoice details" type="h6" />
-        <label text="This record is read only. Document workflows are enabled in later Accounting phases." type="p" />
-        <container style="m-record-facts">
-            <label text="From ${record.fromPartyName || record.fromPartyId}" type="p" />
-            <label text="To ${record.toPartyName || record.toPartyId}" type="p" />
-            <label text="${record.description || ''}" type="p" />
-            <label text="Invoice date ${record.invoiceDateText || '—'}" type="p" />
-            <label text="Due date ${record.dueDateText || '—'}" type="p" />
-            <label text="Invoice total ${record.invoiceTotal == null ? '—' : ec.l10n.formatCurrency(record.invoiceTotal,record.currencyUomId)}" type="p" />
-            <label text="Unpaid total ${record.unpaidTotal == null ? '—' : ec.l10n.formatCurrency(record.unpaidTotal,record.currencyUomId)}" type="p" />
-        </container>
-        <link url="//Accounting/Receivables/Invoices" text="Back to list" />
+        <section-include name="DocumentDetail" location="component://mr-boss/template/AccountingDocuments.xml"/>
     </widgets>
 </screen>

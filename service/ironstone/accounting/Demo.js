@@ -474,16 +474,19 @@ function paymentDocuments(currency) {
         }
     )
     const key = (action, id) => "demo-pay-" + action + "-" + policy.hash(id).slice(0, 20)
-    for (const [paymentId, amount, deliver, outgoing, validate] of [
+    for (const [paymentId, amount, deliver, outgoing, validate, cashOnly] of [
         ["BOSS_ACCT_PAY_DRAFT", "35", false],
         ["BOSS_ACCT_PAY_VALIDATED", "40", false, false, true],
         ["BOSS_ACCT_PAY_EVIDENCE_DRAFT", "45", false],
         ["BOSS_ACCT_PAY_DELIVERED", "55", true],
         ["BOSS_ACCT_PAY_APPLIED", "65", true],
-        ["BOSS_ACCT_PAY_CHECK", "75", true, true]
+        ["BOSS_ACCT_PAY_CHECK", "75", true, true],
+        ["BOSS_ACCT_REFUND_RECEIPT", "100", true],
+        ["BOSS_ACCT_REFUND_SUPPLIER", "90", true, true, false, true],
+        ["BOSS_ACCT_REFUND_DRAFT", "20", false, true, false, true]
     ]) {
-        const selectedMethodId = outgoing ? bankMethodId : methodId,
-            instrument = outgoing ? "PiCompanyCheck" : "PiCash"
+        const selectedMethodId = outgoing && !cashOnly ? bankMethodId : methodId,
+            instrument = outgoing && !cashOnly ? "PiCompanyCheck" : "PiCash"
         // Fixed fixture IDs start as ordinary drafts, then the native workflow explicitly adopts them.
         // No caller can set the managed provenance through a generic entity writer.
         createOnce(

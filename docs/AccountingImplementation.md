@@ -304,3 +304,21 @@ reproduce at accepted P5b1 commits, while the final full BOSS run passes all eig
 or Git reset was added. Changed XML validates apart from the already reproduced preferences box schema mismatch.
 Screen lint scans 1,124 files/24,858 sites with zero parse failures and the same 121 flagged sites. New native XML uses canonical four-space
 formatting; unrelated legacy service formatting is retained. No Node test dependency was introduced.
+
+## P5b2b1 manual refunds
+
+The Payment detail's Refund dialog reviews an explicit amount/day, reason/reference, optional opposing clean draft,
+banking revisions and evidence through native authority. Retained preparation keeps the original reviewed selections;
+confirmation accepts only the retained preview, fingerprint and stable operation key. Native funding and before/after
+amounts are displayed without synthesizing missing balances. Completed results link the actual opposite refund child,
+exact funding application and that child's issued documents. Ledger references remain separately authorized.
+
+Current Treasury permission and private/organization checks apply to reads, retained reviews and confirmation.
+Native malformed-history reasons and unavailable actions remain explicit. Manual and provider actions use mutually
+exclusive native capabilities. The coordinator adds exact grants, eligible reviewed-draft choices and independent
+cash fixtures without broadening source permissions.
+
+The user's latest priority is code completion through P5, then a checkpoint before P6. Further screenshot/browser
+walks are omitted. Focused BOSS server verification passes 24/24 across refund and unchanged payment cases, including
+actual confirmed money, exact retry, authorized source links, Treasury/admin projections and enabled child-owned
+output links in QVT/TUI/HTML. The corresponding first native gate passes 45/45. The final native 25-case gate also passes; all 21 new native cases and 53 distinct focused native cases pass across the gates. Acceptance commits are recorded in `plan/impl-accounting.md`.

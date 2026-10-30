@@ -1,6 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
-P0–P4, P5a, P5b1 and P5b2a are built and verified. P5b2b refunds/P5b3 transfers and later phases remain planned.
+P0–P4, P5a, P5b1, P5b2a and P5b2b1 manual refunds are built and verified. Provider refunds/P5b3 transfers and later
+phases remain planned.
 The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
@@ -1595,6 +1596,12 @@ Release follows P5b2a acceptance/commits. Deliver manual refunds/shared funding 
 (P5b2b2), reviewing and committing each bounded delivery before P5b3 transfers. The execution checkpoint remains the
 end of P5, before P6.
 
+**Current execution priority.** After gateway acceptance, the user requested code completion without further
+screenshot tests and similar presentation-verification work. The remaining P5 deliveries therefore prioritize complete
+native/app/shared code, independent contract/diff review and focused meaningful financial server checks. Additional
+screenshot/browser-walk and visual-review cycles are omitted from this execution; their broader finish work remains
+P21. This changes verification effort, not the end-of-P5 stop boundary or financial authority/atomicity contracts.
+
 **Ownership and prerequisite contract.** The native author owns new `PaymentRefundEntities.xml`, its EECAs,
 `PaymentRefunds.js`/`PaymentRefundGuard.js`, native service declarations, bounded payment DTO/capability additions,
 refund/draft-choice reads, and standalone fixtures/specs. Provider extensions to GatewayWorkflow/Execution/Guard/
@@ -1675,3 +1682,64 @@ mismatched identity quarantine, credential rotation/expiry positive versus refer
 authority loss, exact lookup, accepted-unposted recovery and caller rollback without repeated external operation.
 App proofs cover actual refund child/output ownership, retained selected revisions/intent/results, safe missing/denied
 states, current roles, and light/dark 390/1280/1440 walks and visual review. No P6 work is included.
+
+### P5b2b1 manual refund acceptance
+
+The coordinator accepts the independently reviewed native, application and common assignments. All 21 new native
+cases pass. The initial 45-case gate and final 25-case gate together cover 53 distinct native cases, all passing:
+actual partial/customer/supplier/linked-draft refunds, exact retries, malformed/verified legacy history, current
+authority loss and restoration, source/draft/method/evidence/policy staleness, genuine prior-closed/current-open
+posting, caller rollback, flags-N immutable funding and remaining capacity, unrelated invoice unapplication and real
+same-key/capacity/application/first-adoption-versus-raw-link contention. BOSS passes 24/24 across 9 refund cases and 15
+unchanged payment cases, including actual Treasury/admin results and child-owned issued documents. Changed XML
+validates and diff checks pass. Per the user's latest direction, no additional screenshot/browser/full-suite cycles
+are required for this delivery; the earlier accepted P5b2a full-suite baseline remains recorded above.
+
+**F108 — legacy refund history.** Valid completed legacy refunds without permanent native backing are reported using
+their exact actual cash and application/reclassification evidence. New native adoption/refunds refuse with
+`LEGACY_REFUND_HISTORY_REVIEW_REQUIRED`; historical sealing is unavailable until separately designed. Unposted,
+reversed, mismatched or abandoned-but-financial history produces named incomplete evidence and no invented capacity.
+A genuinely clean cancelled draft does not block new work. No old SQL day is backfilled.
+
+**F109 — reviewed banking freshness.** Lifecycle/refund confirmation now verifies and uses the same fresh locked
+method/subtype objects. Already posted native manual cash keeps its provenance when its bank later receives gateway
+route metadata; only complete live actual cash qualifies for that narrow common-boundary exception. These fixes are
+included in focused shared lifecycle/gateway regressions. Provider refunds and transfers follow; P6 has not started.
+
+### P5b3 transfer assignment contract (planned; starts after refunds)
+
+The native author owns `PaymentTransferEntities.xml`/EECAs, `PaymentTransfers.js`/`PaymentTransferGuard.js`, native
+declarations, transfer-specific payment projections and standalone specs. The app author owns the Payments list's
+InternalTransfer dialog/review/result and thin screen-service inputs, plus bounded detail presentation and server
+specs. The coordinator owns the new type and default transit mappings, shared choices/grants, common lifecycle/GL
+admissions, demo/registries and documentation. The reviewer approves this interface before implementation and reviews
+the completed diff. No provider work overlaps transfer implementation.
+
+`preview#InternalTransfer` takes organization, distinct source/destination organization-owned bank/cash methods with
+their reviewed versions, positive principal, currency, explicit effective day, nonnegative fee, explicit fee account
+when nonzero, reference and reason. `get#InternalTransferPreview` returns the owner-bound retained review.
+`create#InternalTransfer` accepts only preview/fingerprint/key (maximum 40 characters); exact completed retries precede
+stale checks. Account choices require current Treasury authority and return assigned active postable fee accounts,
+without balances. Every service checks current read/edit/organization/private-method authority with artifact authz off.
+
+One operation locks organization, sorted methods/subtypes and authoritative policy/mappings, then rechecks all
+revisions, dates, currency/scale and account assignments. It creates a durable pair identity and exactly two linked
+native-managed `PtInternalTransfer` Payments and two actual cash/transit transactions in one transaction. Principal P
+and fee F produce outgoing cash P+F (debit transit P, debit explicit fee F, credit source bank P+F), and incoming cash
+P (debit destination bank P, credit the same transit P). The outgoing leg has only `paymentMethodId=source`; the
+incoming leg has only `toPaymentMethodId=destination`, preserving unambiguous statement matching. Both retain original
+principal/currency/day and immutable pair/opposite-method provenance; cash direction derives from the native leg
+identity because both parties are the organization. Distinct methods may share one cash control GL and reconcile
+independently. Transit must be distinct from both cash accounts and the fee account; a nonzero fee needs a distinct
+eligible expense account. The organization-to-itself legacy autoposter cannot
+create another two postings. No PaymentApplication is created and trade settlement/gateway/refund paths remain
+unavailable for either leg. Completed pair money, source links and exact postings remain immutable with flags N;
+ordinary descriptions/reconciliation remain editable. No partial reversal controller is introduced.
+
+Preview/results display both legs, principal/fee/total, masked methods, native before/after and separately authorized
+ledger evidence, actual posting IDs and recorded retry result. Add exact native grants and reviewed method/fee-account
+choices; preparation never silently updates a selected revision. Meaningful focused proofs cover both-or-neither
+posting (including failure after the first actual posting), identical retries/changed reuse, simultaneous confirms,
+current permission/private/foreign refusals, stale methods/policy, closed day, currency/scale, missing mappings and
+fee account, no trade settlement and immutable completed cash. Application checks cover actual pair/output identities
+and retained intent/results. Per the current execution priority, no new screenshot/browser cycles are required.

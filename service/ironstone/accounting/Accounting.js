@@ -519,6 +519,32 @@ function paymentChoices(parameters, scope) {
         idField = "paymentMethodId"
         label = row => row.label || row.description || row.typeDescription || row.paymentMethodId
         incomplete = result.incomplete || result.complete === false
+    } else if (parameters.choice === "reviewedRefundDrafts") {
+        const result = policy.call(
+            native + "find#PaymentRefundDrafts",
+            Object.assign({}, request, {
+                paymentId: parameters.paymentId,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                selectedPaymentIdList: selections.map(item => item.id),
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        const project = row => Object.assign({}, row, {version: row.sourceVersion})
+        rows = Array.from(result.rows || []).map(project)
+        selectedRows = Array.from(result.selectedRows || []).map(project)
+        idField = "paymentId"
+        label = row =>
+            row.label ||
+            [
+                row.paymentId,
+                row.partyName,
+                row.amount != null && row.currencyUomId ? ec.l10n.formatCurrency(row.amount, row.currencyUomId) : ""
+            ]
+                .filter(Boolean)
+                .join(" · ")
+        incomplete = result.complete === false || result.incomplete
     } else if (parameters.choice === "reviewedPaymentGatewayBindings") {
         const result = policy.call(
             native + "find#PaymentGatewayBindings",
@@ -678,6 +704,7 @@ function choices(parameters) {
             "reviewedOrganizationPaymentMethods",
             "reviewedCounterpartyPaymentMethods",
             "reviewedPaymentGatewayBindings",
+            "reviewedRefundDrafts",
             "paymentGatewayProviders",
             "reviewedPaymentEvidence",
             "reviewedPaymentApplications"

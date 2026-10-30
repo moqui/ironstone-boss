@@ -458,6 +458,159 @@ function gatewayActionInput(parameters) {
     return Object.assign(input, {evidenceContentIdList: evidence.ids, evidenceVersions: evidence.versions})
 }
 
+function refundInput(parameters) {
+    const input = Object.fromEntries(
+        [
+            "organizationPartyId",
+            "paymentId",
+            "sourceVersion",
+            "amount",
+            "effectiveDate",
+            "reason",
+            "referenceNumber",
+            "paymentInstrumentEnumId"
+        ].map(field => [field, parameters[field]])
+    )
+    if (parameters.refundDraftToken) {
+        const draft = reviewedToken(parameters.refundDraftToken, "refund draft")
+        input.refundPaymentId = draft.id
+        input.refundSourceVersion = draft.version
+    }
+    for (const prefix of ["organization", "counterparty"]) {
+        if (!parameters[prefix + "MethodToken"]) continue
+        const method = reviewedToken(parameters[prefix + "MethodToken"], "method")
+        input[prefix + "PaymentMethodId"] = method.id
+        input[prefix + "MethodVersion"] = method.version
+    }
+    const evidence = reviewedSelection(parameters.evidenceTokenList)
+    return Object.assign(input, {evidenceContentIdList: evidence.ids, evidenceVersions: evidence.versions})
+}
+
+function refundReviewPresentation(retained, organizationPartyId, currencyUomId = null) {
+    if (!retained?.previewId) return null
+    const review = reviewPresentation(retained, currencyUomId),
+        result = retained.results || {},
+        completed =
+            retained.status === "complete" &&
+            !!retained.operationKey &&
+            !!result.refundPaymentId &&
+            result.paymentId === retained.paymentId &&
+            result.originalPaymentId === retained.paymentId,
+        operationKey =
+            retained.operationKey || "rfd-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32)
+    return Object.assign(review, {
+        isRefund: true,
+        previewKind: "refund",
+        refundSummary: policy.display(retained.refundSummary || {}),
+        operationKey,
+        canConfirm:
+            retained.status === "review" &&
+            retained.canApply === true &&
+            !review.summaryUnavailable &&
+            !array(retained.blockers).length &&
+            !completed,
+        hasResults: completed,
+        resultsTitle: "Refund completed",
+        confirmParameters: {previewId: retained.previewId, inputFingerprint: retained.inputFingerprint, operationKey},
+        actualRefundRows: completed
+            ? [
+                  {
+                      paymentId: result.refundPaymentId,
+                      amount: result.amount,
+                      currencyUomId: result.currencyUomId,
+                      recordParameters: {
+                          organizationPartyId,
+                          paymentId: result.refundPaymentId,
+                          recordId: result.refundPaymentId,
+                          previewId: "",
+                          previewKind: ""
+                      }
+                  }
+              ]
+            : [],
+        fundingRows: [
+            "originalCashAmount",
+            "completedRefundAmount",
+            "heldRefundAmount",
+            "unappliedTotal",
+            "reservedAmount",
+            "availableAmount",
+            "refundableAmount"
+        ]
+            .filter(field => retained.before?.[field] != null || retained.after?.[field] != null)
+            .map(field => ({
+                label: {
+                    originalCashAmount: "Original cash",
+                    completedRefundAmount: "Refunded",
+                    heldRefundAmount: "Refunds reserved",
+                    unappliedTotal: "Unapplied cash",
+                    reservedAmount: "Cash reserved",
+                    availableAmount: "Available cash",
+                    refundableAmount: "Available to refund"
+                }[field],
+                beforeAmount: retained.before?.[field] ?? null,
+                afterAmount: retained.after?.[field] ?? null,
+                currencyUomId: retained.refundSummary?.currencyUomId || currencyUomId
+            })),
+        resultRows: completed
+            ? ["originalPaymentId", "refundPaymentId", "paymentApplicationId", "paymentLifecycleEventId", "reasonCode"]
+                  .filter(field => result[field] != null)
+                  .map(field => ({
+                      label: {
+                          originalPaymentId: "Original payment",
+                          refundPaymentId: "Refund payment",
+                          paymentApplicationId: "Funding application",
+                          paymentLifecycleEventId: "Recorded event",
+                          reasonCode: "Outcome"
+                      }[field],
+                      value: result[field]
+                  }))
+            : [],
+        applicationResultRows: completed ? review.applicationResultRows : [],
+        postingResultRows: completed ? review.postingResultRows : [],
+        outputResultRows: completed
+            ? rows(result.outputRows).map(row =>
+                  Object.assign(row, {
+                      canOpen: row.canOpen === true && row.paymentId === result.refundPaymentId && !!row.outputId,
+                      outputParameters: {
+                          organizationPartyId,
+                          paymentId: row.paymentId === result.refundPaymentId ? row.paymentId : "",
+                          recordId: row.paymentId === result.refundPaymentId ? row.paymentId : "",
+                          sourceVersion: "",
+                          outputId: row.outputId,
+                          outputType: row.outputType
+                      }
+                  })
+              )
+            : []
+    })
+}
+
+function refundPreparedValue(retained) {
+    const defaults = retained.refundDefaults || {},
+        token = prefix =>
+            defaults[prefix + "PaymentMethodId"] && defaults[prefix + "MethodVersion"]
+                ? defaults[prefix + "PaymentMethodId"] + "~" + defaults[prefix + "MethodVersion"]
+                : null
+    return {
+        sourceVersion: retained.sourceVersion,
+        amount: retained.paymentSummary?.amount,
+        effectiveDate: retained.paymentSummary?.accountingDateText || retained.effectiveDateText,
+        reason: retained.reason || "",
+        referenceNumber: retained.referenceNumber || "",
+        paymentInstrumentEnumId: retained.paymentInstrumentEnumId || defaults.paymentInstrumentEnumId,
+        refundDraftToken:
+            retained.refundPaymentId && retained.refundSourceVersion
+                ? retained.refundPaymentId + "~" + retained.refundSourceVersion
+                : null,
+        organizationMethodToken: token("organization"),
+        counterpartyMethodToken: token("counterparty"),
+        evidenceTokenList: array(retained.evidenceRows)
+            .filter(row => row.paymentContentId && row.version)
+            .map(row => row.paymentContentId + "~" + row.version)
+    }
+}
+
 function listContext(parameters) {
     const scope = access(parameters)
     const filters = Object.fromEntries(filterNames.map(key => [key, parameters[key] || ""]))
@@ -544,6 +697,8 @@ function reviewPresentation(retained, currencyUomId = null) {
         evidenceRows: rows(retained.evidenceRows),
         applicationEffects: rows(retained.applicationEffects).map(row =>
             Object.assign(row, {
+                fromPaymentId: row.paymentId || null,
+                targetPaymentId: row.toPaymentId || null,
                 amountOriginallyApplied: row.amountOriginallyApplied ?? row.amountApplied,
                 currencyUomId: row.currencyUomId || paymentSummary.currencyUomId
             })
@@ -637,16 +792,18 @@ function detailContext(parameters) {
     if (!payment.paymentId || cap.canRead !== true) throw new Error("Payment detail is not available")
     const previewKind = parameters.previewKind || "state"
     const isGateway = ["gatewayAction", "gatewayRecovery"].includes(previewKind)
-    if (!["state", "unapply", "gatewayAction", "gatewayRecovery"].includes(previewKind))
+    if (!["state", "unapply", "gatewayAction", "gatewayRecovery", "refund"].includes(previewKind))
         throw new Error("Payment review is not available")
     const retained = parameters.previewId
         ? policy.call(
               native +
                   (isGateway
                       ? "get#PaymentGatewayActionPreview"
-                      : previewKind === "unapply"
-                        ? "get#PaymentUnapplyPreview"
-                        : "get#PaymentStatePreview"),
+                      : previewKind === "refund"
+                        ? "get#PaymentRefundPreview"
+                        : previewKind === "unapply"
+                          ? "get#PaymentUnapplyPreview"
+                          : "get#PaymentStatePreview"),
               {
                   organizationPartyId: scope.organizationPartyId,
                   previewId: parameters.previewId
@@ -657,9 +814,21 @@ function detailContext(parameters) {
         throw new Error("PAYMENT_REVIEW_MISMATCH: This review belongs to another payment")
     if (retained && isGateway && retained.previewKind !== previewKind)
         throw new Error("PAYMENT_REVIEW_MISMATCH: This review belongs to another gateway action")
+    if (retained && previewKind === "refund" && retained.previewKind !== "refund")
+        throw new Error("PAYMENT_REVIEW_MISMATCH: This review belongs to another refund")
+    const refundEdit = parameters.refundEditPreviewId
+        ? policy.call(native + "get#PaymentRefundPreview", {
+              organizationPartyId: scope.organizationPartyId,
+              previewId: parameters.refundEditPreviewId
+          })
+        : null
+    if (refundEdit && (refundEdit.paymentId !== paymentId || refundEdit.previewKind !== "refund"))
+        throw new Error("PAYMENT_REVIEW_MISMATCH: This preparation belongs to another refund")
     const review = isGateway
         ? gatewayReviewPresentation(retained, scope.organizationPartyId, payment.currencyUomId)
-        : reviewPresentation(retained, payment.currencyUomId)
+        : previewKind === "refund"
+          ? refundReviewPresentation(retained, scope.organizationPartyId, payment.currencyUomId)
+          : reviewPresentation(retained, payment.currencyUomId)
     if (review) {
         Object.assign(review.confirmParameters, {
             organizationPartyId: scope.organizationPartyId,
@@ -669,6 +838,17 @@ function detailContext(parameters) {
             gatewayFindJson: parameters.gatewayFindJson || ""
         })
         review.previewKind = previewKind
+        if (previewKind === "refund")
+            review.editParameters = {
+                organizationPartyId: scope.organizationPartyId,
+                paymentId,
+                recordId: paymentId,
+                previewId: "",
+                previewKind: "",
+                operationKey: "",
+                refundEditPreviewId: review.previewId,
+                _openDialog: "ManualRefundDialog"
+            }
         review.gatewayReturnParameters = Object.assign({}, gatewayFindParameters(parameters.gatewayFindJson), {
             organizationPartyId: scope.organizationPartyId
         })
@@ -679,7 +859,7 @@ function detailContext(parameters) {
                 : {organizationPartyId: scope.organizationPartyId, paymentId},
             {attemptId: review.results?.attemptId || ""}
         )
-        if (!isGateway)
+        if (!isGateway && previewKind !== "refund")
             review.resultsTitle = previewKind === "unapply" ? "Application correction completed" : "Payment change completed"
         for (const row of review.balanceRows) {
             row.recordPath =
@@ -699,7 +879,7 @@ function detailContext(parameters) {
                 previewKind: ""
             }
         }
-        if (!isGateway)
+        if (!isGateway && previewKind !== "refund")
             for (const row of review.outputResultRows)
                 row.outputParameters = {
                     organizationPartyId: scope.organizationPartyId,
@@ -770,7 +950,8 @@ function detailContext(parameters) {
         previewId: "",
         previewKind: "",
         findJson: parameters.findJson || "",
-        operationKey: ""
+        operationKey: "",
+        refundEditPreviewId: ""
     }
     return {
         organizationPartyId: scope.organizationPartyId,
@@ -781,6 +962,7 @@ function detailContext(parameters) {
         paymentReview: review || {},
         findJson: parameters.findJson || "",
         gatewayFindJson: parameters.gatewayFindJson || "",
+        refundEditPreviewId: parameters.refundEditPreviewId || "",
         financePayment: Object.assign({}, payment, {
             title: payment.description || payment.partyName || payment.paymentId,
             sourceVersion: result.sourceVersion,
@@ -796,6 +978,55 @@ function detailContext(parameters) {
                 })
             ),
             refundRows: array(result.refundRows).map(paymentRow),
+            refundSummary: policy.display(result.refundSummary || {}),
+            refundSummaryAvailable: result.refundSummary?.complete === true,
+            refundValue: Object.assign(
+                {
+                    organizationPartyId: scope.organizationPartyId,
+                    paymentId,
+                    sourceVersion: result.sourceVersion,
+                    partyId: payment.partyId,
+                    currencyUomId: payment.currencyUomId,
+                    cashDirection: result.refundSummary?.refundCashDirection || null,
+                    effectiveDate: today(),
+                    amount: "",
+                    reason: "",
+                    referenceNumber: "",
+                    refundDraftToken: null,
+                    paymentInstrumentEnumId: result.refundDefaults?.paymentInstrumentEnumId || null,
+                    organizationMethodToken:
+                        result.refundDefaults?.organizationPaymentMethodId && result.refundDefaults?.organizationMethodVersion
+                            ? result.refundDefaults.organizationPaymentMethodId +
+                              "~" +
+                              result.refundDefaults.organizationMethodVersion
+                            : null,
+                    counterpartyMethodToken:
+                        result.refundDefaults?.counterpartyPaymentMethodId && result.refundDefaults?.counterpartyMethodVersion
+                            ? result.refundDefaults.counterpartyPaymentMethodId +
+                              "~" +
+                              result.refundDefaults.counterpartyMethodVersion
+                            : null
+                },
+                refundEdit ? refundPreparedValue(refundEdit) : {}
+            ),
+            refundSummaryRows:
+                result.refundSummary?.complete === true
+                    ? [
+                          ["originalCashAmount", "Original cash"],
+                          ["completedRefundAmount", "Refunded"],
+                          ["heldRefundAmount", "Refunds reserved"],
+                          ["unappliedTotal", "Unapplied cash"],
+                          ["reservedAmount", "Cash reserved"],
+                          ["availableAmount", "Available cash"],
+                          ["refundableAmount", "Available to refund"]
+                      ]
+                          .filter(([field]) => result.refundSummary[field] != null)
+                          .map(([field, label]) => ({
+                              label,
+                              amount: result.refundSummary[field],
+                              currencyUomId: result.refundSummary.currencyUomId
+                          }))
+                    : [],
             gatewayRows: rows(result.gatewayRows).map(row =>
                 Object.assign(row, {
                     currencyUomId: row.amountUomId || payment.currencyUomId,
@@ -832,9 +1063,16 @@ function detailContext(parameters) {
             canEdit: !review && (cap.canEditDraft === true || cap.canEdit === true),
             hasMoreActions:
                 !review &&
-                ["canEditDraft", "canEdit", "canCancel", "canVoid", "canPrintReceipt", "canPrintDetail", "canPrintCheck"].some(
-                    name => cap[name] === true
-                ),
+                [
+                    "canEditDraft",
+                    "canEdit",
+                    "canCancel",
+                    "canVoid",
+                    "canPrintReceipt",
+                    "canPrintDetail",
+                    "canPrintCheck",
+                    "canPreviewRefund"
+                ].some(name => cap[name] === true),
             canReadLedger: cap.canReadLedger === true,
             canSettle:
                 payment.isCash !== false &&
@@ -893,6 +1131,9 @@ function detailContext(parameters) {
     stateInput,
     unapplyInput,
     gatewayActionInput,
+    refundInput,
+    refundReviewPresentation,
+    refundPreparedValue,
     reviewPresentation,
     execute: (operation, parameters) => {
         if (operation === "list") return listContext(parameters)

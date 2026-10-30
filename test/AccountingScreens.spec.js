@@ -2,7 +2,7 @@
 const root = "component://mr-boss/screen/Accounting.xml"
 const parameters = path =>
     Object.assign(
-        {organizationPartyId: "ORG_ZIZI_CORP", lastStandalone: "-2"},
+        {organizationPartyId: "BOSS_ACCT_ORG", lastStandalone: "-2"},
         {
             "Receivables/InvoiceDetail": {recordId: "BOSS_ACCT_INVOICE"},
             "Payables/BillDetail": {recordId: "BOSS_ACCT_BILL"},
@@ -23,7 +23,7 @@ feature("all implemented Accounting screens render in qvt and tui", {
         ec.resource.getLocationReference(root).walkChildTree(files, null)
         const account = ec.entity
             .find("mantle.ledger.account.GlAccountAndOrganization")
-            .condition("organizationPartyId", "ORG_ZIZI_CORP")
+            .condition("organizationPartyId", "BOSS_ACCT_ORG")
             .one()
         for (const file of files) {
             if (!file.location.endsWith(".xml") || file.path === "Accounting") continue

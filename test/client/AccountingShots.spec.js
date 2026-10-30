@@ -77,7 +77,7 @@ feature("#prefix #name at #width dark=#dark", {
     where: cases.filter(item => !params.names || params.names.split(",").includes(item.name)),
     expect({user, prefix, name, path, text, width, dark}) {
         const page = pages[user + width]
-        page.goto("/qapps/Accounting/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=ORG_ZIZI_CORP").status ==
+        page.goto("/qapps/Accounting/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=BOSS_ACCT_ORG").status ==
             200
         page.waitFor(text => !!document.querySelector(".q-page")?.innerText.includes(text), {arg: text})
         page.settle()

@@ -31,9 +31,12 @@ mutation authorization, unpost, unrestricted posted rewrites or bulk historical 
 membership follows Mantle's existing direct-child organization rule; active scope narrows it. Administration can
 select an internal organization, and private-contact filters still apply.
 
-Deterministic fixtures use ORG_ZIZI_CORP and BOSS_ACCT_INVOICE/BILL/PAYMENT/ENTRY/POSTED. The organization explicitly
-enables the guard, required dimensions and forward issuance adjustment. Native defaults remain N. A demo item and
-unassigned expense account support the setup repair walk; the revaluation offset maps to BOSS_INVENTORY_REVALUATION.
+Deterministic fixtures use BOSS_ACCT_ORG and BOSS_ACCT_INVOICE/BILL/PAYMENT/ENTRY/POSTED. BOSS_ACCT_ORG is the demo's
+own organization (BossAccountingUsersDemoData), outside the Ziziwork rollup, with Mantle's default accounting
+configuration; it explicitly enables the guard, required dimensions and forward issuance adjustment, so the adoption does
+not reach Mantle's demo flows, which post directly for ORG_ZIZI_RETAIL and ORG_ZIZI_CORP. Native defaults remain N.
+A demo item and unassigned expense account support the setup repair walk; the revaluation offset maps to
+BOSS_INVENTORY_REVALUATION.
 
 ## Native contracts
 
@@ -102,13 +105,10 @@ before browser verification. Full suite results and baseline comparison are reco
 - XML: 46 Accounting screens (including the app root) validate. Screen lint (to a report file) has zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
 
 The four standalone Mantle failures reproduce on archived unchanged commit b48e696c: InboxThreads, MantleSearch,
-WorkTimeEntries and WorkTimesheets. They are recorded independently of Accounting's passing tests. Standalone
-Mantle excludes BOSS demo adoption; running legacy low-level posting specs against an adopted demo organization
-would test a different policy. No ADMIN posting exemption was introduced.
-
-Reproduce the native run with `MOQUI_RUNTIME` pointing to a runtime whose `component` directory holds only mr-mantle
-and whose `base-component` and `conf` link to the workspace's; the BOSS demo adopts the guard for ORG_ZIZI_CORP, which
-the legacy Mantle specs do not expect. The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
+WorkTimeEntries and WorkTimesheets. They are recorded independently of Accounting's passing tests. The BOSS demo
+adopts the controls only on its own organization, BOSS_ACCT_ORG, so Mantle's legacy low-level posting specs run in the
+same runtime as Accounting's and test Mantle's policy, not the adopted one. No ADMIN posting exemption was introduced.
+The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
 
 ```sh
 ./moq test --nobuild mr-mantle

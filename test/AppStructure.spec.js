@@ -367,7 +367,7 @@ spec({
         ])
             demoRecords["Accounting/" + path] = {
                 text,
-                parameters: Object.assign({organizationPartyId: "ORG_ZIZI_CORP"}, recordId ? {recordId} : {})
+                parameters: Object.assign({organizationPartyId: "BOSS_ACCT_ORG"}, recordId ? {recordId} : {})
             }
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab

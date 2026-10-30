@@ -13,6 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <entity-facade-xml type="demo">
+    <!-- for BOSS_ACCT_ORG, defined with the finance users in BossAccountingUsersDemoData.xml -->
     <moqui.basic.Enumeration enumId="BOSS_ACCOUNTING_SERVICE_ITEM" enumTypeId="ItemType" description="Accounting service item"/>
     <mantle.ledger.account.GlAccount glAccountId="BOSS_ACCOUNTING_EXPENSE" accountCode="909900001" accountName="Accounting demo purchase expense" glAccountClassEnumId="EXPENSE" glAccountTypeEnumId="GatCogs" glResourceTypeEnumId="GlrtMoney" isDebit="Y" disallowPosting="N"/>
     <ironstone.accounting.DemoServices.load-AccountingDemo/>

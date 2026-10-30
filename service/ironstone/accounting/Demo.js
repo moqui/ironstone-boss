@@ -1,7 +1,9 @@
-// The Accounting demo records for ORG_ZIZI_CORP, made once by fixed ID: a draft invoice, bill and payment, a draft and
-// a posted journal entry, and the organization's adoption of the posting guard, dimensions and forward adjustments.
+// The Accounting demo records for BOSS_ACCT_ORG (BossZAccountingDemoData.xml), made once by fixed ID: a draft invoice,
+// bill and payment, a draft and a posted journal entry, and the organization's adoption of the posting guard,
+// dimensions and forward adjustments. It is not a Ziziwork organization, so the adoption does not reach Mantle's demo
+// flows, which post for ORG_ZIZI_RETAIL (rolled up to ORG_ZIZI_CORP) directly.
 const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
-const organizationPartyId = "ORG_ZIZI_CORP"
+const organizationPartyId = "BOSS_ACCT_ORG"
 
 function createOnce(entity, key, values) {
     if (!policy.one(entity, key)) policy.call("create#" + entity, Object.assign({}, key, values))

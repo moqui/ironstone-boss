@@ -1560,7 +1560,7 @@ The coordinator/native integration interface is fixed before releasing the first
 
 ### P5b2a build and acceptance
 
-Native implementation is Mantle `5c24c2fa`; the app implementation/acceptance commits are recorded after its final gate.
+Implementation commits: Mantle `5c24c2fa`; BOSS `4b92e2c`.
 Coordinator and independent reviewer accepted each native, shared-integration and application assignment after
 returned findings were corrected. New methods/configuration are audited and default off. Safe adapter provisioning,
 owner-bound action/recovery reviews, durable reserve/dispatch/evidence/complete stages, original credential snapshots,

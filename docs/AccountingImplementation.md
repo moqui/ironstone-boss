@@ -276,8 +276,8 @@ unavailable until the separately reviewed P5b2/P5b3 deliveries. Execution pauses
 
 ## Reviewed provider operations P5b2a
 
-Native implementation commit: Mantle `5c24c2fa`. Native, app and coordinator assignments passed independent review
-and final coordinator acceptance; bounded app commits are recorded in the implementation plan.
+Implementation commits: Mantle `5c24c2fa`; BOSS `4b92e2c`. Native, app and coordinator assignments passed independent
+review and final coordinator acceptance.
 
 Mantle owns retained authorization/capture/release reviews, durable provider attempts and reservations, exact lookup
 and financial-only recovery. BOSS presents explicit SQL day/amount/currency, immutable selected identity tokens,

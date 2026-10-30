@@ -104,10 +104,9 @@ before browser verification. Full suite results and baseline comparison are reco
   combinations, plus posting/reversal and setup repair).
 - XML: 46 Accounting screens (including the app root) validate. Screen lint (to a report file) has zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
 
-The four standalone Mantle failures reproduce on archived unchanged commit b48e696c: InboxThreads, MantleSearch,
-WorkTimeEntries and WorkTimesheets. They are recorded independently of Accounting's passing tests. The BOSS demo
-adopts the controls only on its own organization, BOSS_ACCT_ORG, so Mantle's legacy low-level posting specs run in the
-same runtime as Accounting's and test Mantle's policy, not the adopted one. No ADMIN posting exemption was introduced.
+The BOSS demo adopts the controls only on its own organization, BOSS_ACCT_ORG, so Mantle's legacy low-level posting
+specs run in the same runtime as Accounting's and test Mantle's policy, not the adopted one. No ADMIN posting
+exemption was introduced.
 The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
 
 ```sh

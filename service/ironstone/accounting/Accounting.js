@@ -48,6 +48,7 @@ function access(parameters) {
         "Receivables/StatementPrint",
         "Receivables/InvoiceBatch",
         "Receivables/InvoicePrint",
+        "Receivables/ReceivablesWorkbench",
         "Reports/TrialBalance",
         "Reports/GeneralLedger"
     ]
@@ -432,8 +433,104 @@ choiceSources.invoiceItemTypes = choiceSources["enum:ItemType"]
 choiceSources.identificationTypes = choiceSources["enum:PartyIdType"]
 choiceSources.bankAccountTypes = choiceSources["enum:BankAccountType"]
 
+function selectedValues(value) {
+    if (value == null || value === "") return []
+    const parsed = Array.isArray(value)
+        ? value
+        : String(value).startsWith("[")
+          ? JSON.parse(String(value))
+          : String(value).split(",")
+    if (!Array.isArray(parsed) || parsed.length > 200) throw new Error("Choose at most 200 settlement records")
+    return [...new Set(parsed.filter(value => value != null && value !== "").map(String))]
+}
+function settlementChoices(parameters, scope) {
+    const chosen = selectedValues(parameters.selected)
+    if (parameters.choice === "settlementAdjustmentAccounts") {
+        const result = policy.call("mantle.account.PaymentServices.find#SettlementAdjustmentAccounts", {
+            organizationPartyId: scope.organizationPartyId,
+            direction: parameters.direction || "receivable",
+            effectiveDate: parameters.effectiveDate,
+            text: parameters.term || null,
+            selectedIdList: chosen,
+            pageIndex: 0,
+            pageSize: choiceLimit
+        })
+        const options = Array.from(result.rows || []).map(row => ({value: row.glAccountId, label: accountLabel(row)}))
+        for (const row of Array.from(result.selectedRows || []))
+            if (!options.some(option => option.value === row.glAccountId))
+                options.push({value: row.glAccountId, label: accountLabel(row)})
+        return {options}
+    }
+    const decode = ec.resource.script("component://mr-boss/service/ironstone/accounting/Settlements.js").itemToken
+    const selections = chosen.map(token => ({token, ...decode(token)}))
+    const kinds = {
+        settlementSources: ["payment", "credit"],
+        settlementTargets: ["invoice", "paymentTarget"],
+        settlementAdjustmentInvoices: ["invoice"]
+    }[parameters.choice]
+    if (!kinds) throw new Error("Unknown settlement choice " + parameters.choice)
+    const lists = [],
+        selected = [],
+        unavailable = []
+    const labels = {payment: "Receipt", credit: "Credit", invoice: "Invoice", paymentTarget: "Payment"}
+    const label = row =>
+        labels[row.sourceKind] +
+        " " +
+        row.sourceId +
+        " · " +
+        (row.counterpartyName || "") +
+        " · " +
+        ec.l10n.formatCurrency(row.remaining, row.currencyUomId) +
+        (row.dueDateText ? " · Due " + row.dueDateText : "")
+    for (const sourceKind of kinds) {
+        try {
+            const result = probe("mantle.account.PaymentServices.find#OpenItems", {
+                organizationPartyId: scope.organizationPartyId,
+                partyId: parameters.partyId,
+                direction: parameters.direction || "receivable",
+                currencyUomId: parameters.currencyUomId,
+                asOfDate: parameters.asOfDate || null,
+                sourceKind,
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedKeyList: selections.filter(item => item.kind === sourceKind).map(item => item.key)
+            })
+            if (result.incomplete || result.complete === false) throw new Error("Authoritative balances are unavailable")
+            lists.push(Array.from(result.rows || []).map(row => ({value: row.sourceKey + "~" + row.version, label: label(row)})))
+            selected.push(...Array.from(result.selectedRows || []))
+        } catch (error) {
+            ec.logger.error("Accounting " + sourceKind + " choices: " + error.message)
+            unavailable.push({
+                value: "unavailable:" + sourceKind,
+                label: labels[sourceKind] + " choices are unavailable",
+                disable: true
+            })
+        }
+    }
+    // Offer both kinds on the first page; each native query searches before its own limit.
+    const options = []
+    for (let index = 0; index < choiceLimit && options.length < choiceLimit; index++)
+        for (const list of lists) if (list[index] && options.length < choiceLimit) options.push(list[index])
+    for (const item of selections) {
+        const row = selected.find(row => row.sourceKey === item.key)
+        if (row && !options.some(option => option.value === item.token))
+            options.push({
+                value: item.token,
+                label: label(row) + (item.version !== row.version ? " · Changed since selection" : "")
+            })
+    }
+    options.push(...unavailable)
+    return {options}
+}
 function choices(parameters) {
     const scope = access(parameters)
+    if (
+        ["settlementSources", "settlementTargets", "settlementAdjustmentInvoices", "settlementAdjustmentAccounts"].includes(
+            parameters.choice
+        )
+    )
+        return settlementChoices(parameters, scope)
     if (["invoiceAttachments", "reviewedInvoiceAttachments"].includes(parameters.choice)) {
         let selected = parameters.selected || []
         if (!Array.isArray(selected)) {

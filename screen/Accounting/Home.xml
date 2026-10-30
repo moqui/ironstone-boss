@@ -56,6 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container style="row q-gutter-sm">
             <link url="//Accounting/QuickCreate/NewInvoice" text="New invoice" link-type="anchor-button" icon="sym_o_request_quote" condition="capabilities.arEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
             <link url="//Accounting/QuickCreate/NewBill" text="New bill" link-type="anchor-button" icon="sym_o_receipt" condition="capabilities.apEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}" text="Allocate receipts" link-type="anchor-button" icon="sym_o_payments" condition="capabilities.arRead || capabilities.paymentRead || capabilities.reportRead || capabilities.admin" parameter-map="{organizationPartyId:organizationPartyId}"/>
             <link url="//Accounting/QuickCreate/NewPayment" text="New payment" link-type="anchor-button" icon="sym_o_payments" condition="capabilities.paymentEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
             <link url="//Accounting/QuickCreate/NewEntry" text="New journal entry" link-type="anchor-button" icon="sym_o_edit_note" condition="capabilities.glPost" parameter-map="{organizationPartyId:organizationPartyId}"/>
             <link url="//Accounting/Reports/TrialBalance" text="Trial balance" link-type="anchor-button" icon="sym_o_table_chart" condition="ledgerReader" parameter-map="{organizationPartyId:organizationPartyId}"/>

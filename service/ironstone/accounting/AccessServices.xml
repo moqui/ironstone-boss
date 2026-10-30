@@ -62,6 +62,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="term" type="String"/>
             <parameter name="selected" type="String"/>
             <parameter name="invoiceId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="direction" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="asOfDate" type="String"/>
+            <parameter name="effectiveDate" type="String"/>
+            <parameter name="kind" type="String"/>
         </in-parameters>
         <out-parameters>
             <parameter name="options" type="List"/>

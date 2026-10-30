@@ -36,6 +36,19 @@ const adminPages = [
     ["InvoicePivot", "Receivables/Invoices?view=pivot", "Invoices"],
     ["InvoiceGraph", "Receivables/Invoices?view=graph", "Invoices"],
     ["BillingQueue", "Receivables/BillingQueue", "Billing queue"],
+    ["Settlement", "Receivables/ReceivablesWorkbench?partyId=BOSS_ACCT_STL_CUSTOMER", "Allocate receipts and credits"],
+    [
+        "SettlementAllocation",
+        "Receivables/ReceivablesWorkbench?partyId=BOSS_ACCT_STL_CUSTOMER",
+        "Allocate receipts and credits",
+        {open: "Add allocation"}
+    ],
+    [
+        "SettlementAdjustment",
+        "Receivables/ReceivablesWorkbench?partyId=BOSS_ACCT_STL_CUSTOMER",
+        "Allocate receipts and credits",
+        {open: "Add discount or write-off"}
+    ],
     ["InvoiceBatch", "Receivables/InvoiceBatch?invoiceIdList=BOSS_ACCT_INVOICE,BOSS_ACCT_AR_FINALIZED", "BOSS_ACCT_AR_FINALIZED"],
     ["Statements", "Receivables/Statements?customerPartyId=ORG_ACME", "Reviewed statement snapshot", {statement: true}],
     [
@@ -115,6 +128,7 @@ const groups = [
         prefix: "Accounting-reader",
         pages: [
             ["Home", "Home", "Trial balance"],
+            ["Settlement", "Receivables/ReceivablesWorkbench?partyId=BOSS_ACCT_STL_CUSTOMER", "Allocate receipts and credits"],
             ["Invoice", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE", "Accounting demo customer invoice"],
             ["Posted", "GeneralLedger/JournalEntryDetail?recordId=BOSS_ACCT_POSTED", "Posted office expense"],
             ["Account", "GeneralLedger/AccountDetail?recordId=111100000", "Open account ledger"],

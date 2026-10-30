@@ -127,7 +127,9 @@ function configuration() {
         postingGuardEnabled: "Y",
         requiredLedgerDimensionsEnabled: "Y",
         forwardIssuanceRepostEnabled: "Y",
-        singleCurrencyDocumentsOnly: "Y"
+        singleCurrencyDocumentsOnly: "Y",
+        settlementApplicationGuardEnabled: "Y",
+        paymentAutoApplicationEnabled: "Y"
     })
     createOnce(
         "mantle.ledger.account.GlAccountOrganization",
@@ -328,6 +330,103 @@ function approvedWork() {
 }
 
 // Run by data loading (no user) or a system administrator.
+// Separate issued settlement examples leave the receivables/Projects fixtures unchanged.
+function settlementDocuments(currency) {
+    const partyId = "BOSS_ACCT_STL_CUSTOMER"
+    createOnce("mantle.party.Party", {partyId}, {partyTypeEnumId: "PtyOrganization"})
+    createOnce("mantle.party.Organization", {partyId}, {organizationName: "Settlement customer"})
+    createOnce("mantle.party.PartyRole", {partyId, roleTypeId: "Customer"}, {})
+    const day = ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
+    const at = ec.user.nowTimestamp
+    const sourceAccount = policy.call("mantle.ledger.InvoiceAutoPostServices.get#InvoiceItemGlAccount", {
+        organizationPartyId,
+        otherPartyId: partyId,
+        itemTypeEnumId: "ItemTimeEntry",
+        direction: "O"
+    }).glAccountId
+    if (!sourceAccount) throw new Error("The settlement demo needs a services revenue account")
+    for (const [invoiceId, amount, description, creditForInvoiceId] of [
+        ["BOSS_ACCT_STL_INV100", "100", "Settlement services invoice", null],
+        ["BOSS_ACCT_STL_SPLIT100", "100", "Split receipt services invoice", null],
+        ["BOSS_ACCT_STL_INV40", "40", "Split receipt second invoice", null],
+        ["BOSS_ACCT_STL_ADJUST50", "50", "Settlement adjustment invoice", null],
+        ["BOSS_ACCT_STL_CREDIT25", "25", "Available settlement credit", "BOSS_ACCT_STL_INV100"]
+    ]) {
+        if (policy.one("mantle.account.invoice.Invoice", {invoiceId})) continue
+        policy.call("create#mantle.account.invoice.Invoice", {
+            invoiceId,
+            invoiceTypeEnumId: creditForInvoiceId ? "InvoiceCreditMemo" : "InvoiceSales",
+            fromPartyId: creditForInvoiceId ? partyId : organizationPartyId,
+            toPartyId: creditForInvoiceId ? organizationPartyId : partyId,
+            financeOrganizationPartyId: organizationPartyId,
+            financeDirection: "receivable",
+            creditForInvoiceId,
+            draftedByUserId: ec.user.userId,
+            statusId: "InvoiceInProcess",
+            invoiceDate: at,
+            accountingDate: day,
+            currencyUomId: currency,
+            description
+        })
+        policy.call("mantle.account.InvoiceServices.create#InvoiceItem", {
+            invoiceId,
+            quantity: "1",
+            amount,
+            description,
+            itemTypeEnumId: "ItemTimeEntry",
+            overrideGlAccountId: sourceAccount
+        })
+        const invoice = policy.one("mantle.account.invoice.Invoice", {invoiceId})
+        policy.call("mantle.account.InvoiceServices.change#InvoiceState", {
+            invoiceId,
+            organizationPartyId,
+            action: "finalize",
+            lastUpdatedStamp: invoice.lastUpdatedStamp,
+            operationKey: "demo-final-" + invoiceId
+        })
+    }
+    const [, cashGlAccountId] = entryAccounts()
+    createOnce(
+        "mantle.account.method.PaymentMethod",
+        {paymentMethodId: "BOSS_ACCT_STL_CASH"},
+        {
+            paymentMethodTypeEnumId: "PmtOther",
+            ownerPartyId: organizationPartyId,
+            currencyUomId: currency,
+            fromDate: "1970-01-01T00:00:00Z",
+            description: "Settlement demonstration cash",
+            glAccountId: cashGlAccountId
+        }
+    )
+    for (const [paymentId, amount] of [
+        ["BOSS_ACCT_STL_RECEIPT60", "60"],
+        ["BOSS_ACCT_STL_RECEIPT70", "70"]
+    ]) {
+        if (policy.one("mantle.account.payment.Payment", {paymentId})) continue
+        policy.call("create#mantle.account.payment.Payment", {
+            paymentId,
+            fromPartyId: partyId,
+            toPartyId: organizationPartyId,
+            financeOrganizationPartyId: organizationPartyId,
+            financeDirection: "receivable",
+            paymentTypeEnumId: "PtInvoicePayment",
+            paymentInstrumentEnumId: "PiCash",
+            toPaymentMethodId: "BOSS_ACCT_STL_CASH",
+            amount,
+            amountUomId: currency,
+            statusId: "PmntPromised",
+            effectiveDate: at,
+            accountingDate: day,
+            comments: "Available settlement receipt " + amount
+        })
+        policy.call("update#mantle.account.payment.Payment", {paymentId, statusId: "PmntDelivered"})
+        const posted = policy
+            .find("mantle.ledger.transaction.AcctgTrans", {paymentId, organizationPartyId, isPosted: "Y"})
+            .count()
+        if (!posted) throw new Error("The settlement receipt " + paymentId + " did not post")
+    }
+}
+
 function load() {
     if (ec.user.userId && !policy.capabilities().systemAdmin) throw new Error("Demo loading requires system administration")
     const loggedIn = !!ec.user.username
@@ -342,6 +441,7 @@ function load() {
         receivableSupport()
         approvedWork()
         storeReceivable(currency)
+        settlementDocuments(currency)
         return {complete: true}
     } finally {
         if (!authzDisabled) ec.artifactExecution.enableAuthz()

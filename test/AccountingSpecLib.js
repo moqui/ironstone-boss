@@ -4,7 +4,11 @@ const ids = {
     foreignOrganizationPartyId: "ORG_ZIZI_SERVICES",
     customerPartyId: "ORG_ACME",
     invoiceId: "BOSS_ACCT_INVOICE",
-    finalizedInvoiceId: "BOSS_ACCT_AR_FINALIZED"
+    finalizedInvoiceId: "BOSS_ACCT_AR_FINALIZED",
+    settlementPartyId: "BOSS_ACCT_STL_CUSTOMER",
+    settlementInvoiceId: "BOSS_ACCT_STL_INV100",
+    settlementPaymentId: "BOSS_ACCT_STL_RECEIPT60",
+    settlementCreditId: "BOSS_ACCT_STL_CREDIT25"
 }
 
 function selectOrganization(organizationPartyId) {
@@ -13,6 +17,7 @@ function selectOrganization(organizationPartyId) {
 }
 
 function asUser(username, action, enabled = true, organizationPartyId = ids.organizationPartyId) {
+    const previousUsername = ec.user.username || "john.doe"
     login(username)
     const disabled = ec.artifactExecution.authzDisabled()
     const previousOrganizationPartyId = ec.user.getPreference("ACTIVE_ORGANIZATION")
@@ -28,7 +33,7 @@ function asUser(username, action, enabled = true, organizationPartyId = ids.orga
             selectOrganization(previousOrganizationPartyId)
         } finally {
             if (!disabled) ec.artifactExecution.enableAuthz()
-            login("john.doe")
+            login(previousUsername)
         }
     }
 }
@@ -155,6 +160,7 @@ function routeFixtures() {
         ["GeneralLedger/JournalEntryDetail", "Office expense review", {recordId: "BOSS_ACCT_ENTRY"}],
         ["GeneralLedger/AccountDetail", "Open account ledger", {recordId: "111100000"}],
         ["Receivables/BillingQueue", "Billing queue"],
+        ["Receivables/ReceivablesWorkbench", "Allocate receipts and credits", {partyId: ids.settlementPartyId}],
         ["Receivables/InvoiceBatch", ids.invoiceId, {invoiceIdList: [ids.invoiceId, ids.finalizedInvoiceId]}],
         ["Receivables/Statements", "Reviewed statement snapshot", statementParameters],
         ["Receivables/StatementPrint", "Print statements", statementParameters],

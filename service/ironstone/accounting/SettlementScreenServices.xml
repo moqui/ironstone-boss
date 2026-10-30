@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="WorkbenchContext" allow-remote="false">
+        <description>Read authorized receivable open items, shape bounded editable draft state and display the retained native settlement review. No financial write is performed.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="filterSubmit" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="direction" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="asOfDate" type="String"/>
+            <parameter name="effectiveDate" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="dueBucket" type="String"/>
+            <parameter name="invoiceRowsPageIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageSize" type="Integer"/>
+            <parameter name="creditRowsPageIndex" type="Integer"/>
+            <parameter name="creditRowsPageSize" type="Integer"/>
+            <parameter name="paymentRowsPageIndex" type="Integer"/>
+            <parameter name="paymentRowsPageSize" type="Integer"/>
+            <parameter name="paymentTargetRowsPageIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageSize" type="Integer"/>
+            <parameter name="draftJson" type="String"/>
+            <parameter name="previewId" type="String"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="direction" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="asOfDate" type="String"/>
+            <parameter name="effectiveDate" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="dueBucket" type="String"/>
+            <parameter name="draftJson" type="String"/>
+            <parameter name="workbench" type="Map"/>
+            <parameter name="settlementReview" type="Map"/>
+            <parameter name="draftAllocations" type="List"/>
+            <parameter name="draftAdjustments" type="List"/>
+            <parameter name="invoiceRows" type="List"/>
+            <parameter name="creditRows" type="List"/>
+            <parameter name="paymentRows" type="List"/>
+            <parameter name="paymentTargetRows" type="List"/>
+            <parameter name="invoiceRowsCount" type="Integer"/>
+            <parameter name="invoiceRowsPageIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageSize" type="Integer"/>
+            <parameter name="invoiceRowsPageMaxIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageRangeLow" type="Integer"/>
+            <parameter name="invoiceRowsPageRangeHigh" type="Integer"/>
+            <parameter name="creditRowsCount" type="Integer"/>
+            <parameter name="creditRowsPageIndex" type="Integer"/>
+            <parameter name="creditRowsPageSize" type="Integer"/>
+            <parameter name="creditRowsPageMaxIndex" type="Integer"/>
+            <parameter name="creditRowsPageRangeLow" type="Integer"/>
+            <parameter name="creditRowsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentRowsCount" type="Integer"/>
+            <parameter name="paymentRowsPageIndex" type="Integer"/>
+            <parameter name="paymentRowsPageSize" type="Integer"/>
+            <parameter name="paymentRowsPageMaxIndex" type="Integer"/>
+            <parameter name="paymentRowsPageRangeLow" type="Integer"/>
+            <parameter name="paymentRowsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentTargetRowsCount" type="Integer"/>
+            <parameter name="paymentTargetRowsPageIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageSize" type="Integer"/>
+            <parameter name="paymentTargetRowsPageMaxIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageRangeLow" type="Integer"/>
+            <parameter name="paymentTargetRowsPageRangeHigh" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Settlements.js').execute('workbench', context))</script>
+        </actions>
+    </service>
+</services>

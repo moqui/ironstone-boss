@@ -7,6 +7,56 @@ const native = (service, p = {}) =>
 function asFinance(user, enabled, run) {
     return ec.resource.script("component://mr-boss/test/AccountingSpecLib.js").asUser(user, run, enabled)
 }
+feature("Treasury can read the scoped settlement workbench without gaining AR editing with authz #enabled", {
+    where: [{enabled: true}, {enabled: false}],
+    when({enabled}) {
+        return asFinance("finance.treasury", enabled, () => {
+            const helper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
+            const parameters = {
+                organizationPartyId: helper.ids.organizationPartyId,
+                partyId: helper.ids.settlementPartyId,
+                currencyUomId: "USD"
+            }
+            const items = helper.call("mantle.account.PaymentServices.find#OpenItems", {...parameters, direction: "receivable"})
+            const source = items.paymentRows.find(row => row.sourceId === "BOSS_ACCT_STL_RECEIPT60")
+            const target = items.invoiceRows.find(row => row.sourceId === "BOSS_ACCT_STL_INV100")
+            assert(source && target, "Treasury's negative needs the same real settlement that AR may preview")
+            const preview = {
+                ...parameters,
+                direction: "receivable",
+                effectiveDate: ec.user.nowTimestamp,
+                allocations: [{sourceKey: source.sourceKey, targetKey: target.sourceKey, amount: "1"}],
+                sourceVersions: {[source.sourceKey]: source.version, [target.sourceKey]: target.version}
+            }
+            return {
+                page: helper.page("Receivables/ReceivablesWorkbench", parameters, "qvt"),
+                items,
+                edit: refusal("mantle.account.PaymentServices.preview#Settlement", preview),
+                arEdit: helper.asUser(
+                    "finance.ar",
+                    () => refusal("mantle.account.PaymentServices.preview#Settlement", preview),
+                    enabled
+                ),
+                invoice: refusal("mantle.account.InvoiceServices.get#InvoiceFinanceDetail", {
+                    organizationPartyId: helper.ids.organizationPartyId,
+                    invoiceId: helper.ids.finalizedInvoiceId
+                })
+            }
+        })
+    },
+    then({page, items, edit, arEdit, invoice}) {
+        page.status == 200
+        page.errors == []
+        page.output.includes("Allocate receipts and credits")
+        !page.output.includes("Add allocation")
+        items.capabilities.canRead == true
+        items.capabilities.canApply == false
+        items.invoiceRows.some(row => row.sourceId === "BOSS_ACCT_STL_INV100")
+        edit.includes("PERMISSION_DENIED")
+        arEdit == ""
+        invoice.includes("PERMISSION_DENIED")
+    }
+})
 // The message a call is refused with, or "" when it succeeds. A negative case checks the message names the missing
 // authority, and a positive case with the same parameters gets "", so a validation error is not taken for a refusal.
 function refusal(service, p) {

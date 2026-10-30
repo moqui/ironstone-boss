@@ -4,6 +4,7 @@ suite(
         "AccountingLedgerWalk",
         "AccountingSettingsWalk",
         "AccountingReceivablesWalk",
+        "AccountingSettlementWalk",
         "ProductsShots",
         "ProductsWalk",
         "ProductsTaxonomyWalk",
@@ -25,10 +26,12 @@ suite(
         server: {
             components: ["mr-boss"],
             specs: [
+                "AccountingClientFixtures",
                 "AccountingAccess",
                 "AccountingShell",
                 "AccountingScreens",
                 "AccountingReceivables",
+                "AccountingSettlement",
                 "ProductsAccess",
                 "ProductsShell",
                 "ProductsPriceFixtures",

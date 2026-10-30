@@ -158,6 +158,22 @@ along with this software (see the LICENSE.md file). If not, see
                             </radio>
                         </default-field>
                     </field>
+                    <field name="settlementApplicationGuardEnabled">
+                        <default-field title="Settlement controls" tooltip="Protect every payment application against over-application and closed accounting dates; required for reviewed settlements">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
+                    <field name="paymentAutoApplicationEnabled">
+                        <default-field title="Automatic application" tooltip="Allow reviewed oldest-due allocation plans for unapplied payments">
+                            <radio>
+                                <option key="N" text="Off"/>
+                                <option key="Y" text="On"/>
+                            </radio>
+                        </default-field>
+                    </field>
                     <field name="inventoryRevaluationEnabled">
                         <default-field title="Inventory revaluation">
                             <radio>
@@ -197,6 +213,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-row>
                             <field-ref name="singleCurrencyDocumentsOnly"/>
                             <field-ref name="invoiceApprovalRequired"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="settlementApplicationGuardEnabled"/>
+                            <field-ref name="paymentAutoApplicationEnabled"/>
                         </field-row>
                         <field-ref name="inventoryRevaluationEnabled"/>
                         <field-ref name="changeReason"/>

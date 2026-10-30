@@ -91,6 +91,7 @@ along with this software (see the LICENSE.md file). If not, see
         <artifacts artifactName="mantle\.ledger\.(AccountingServices|JournalServices|CloseServices|SetupServices|CurrencyServices|AccountServices|FinanceReportServices|JournalContentServices)\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
         <artifacts artifactName="mantle\.account\.InvoiceServices\.(change#InvoiceState|store#InvoiceDraft|store#InvoiceDraftItem|delete#InvoiceDraftItem|get#InvoiceFinanceDetail|create#LinkedCreditMemo|reverse#DraftInvoice|apply#InvoiceCredit|find#Receivables|get#ReceivableSummary|create#Receivable|get#InvoiceOutput|get#InvoiceDeliveryAttachments|send#Invoice|process#InvoiceBatch|find#ApprovedTimeBilling|create#InvoiceFromApprovedTime)" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
         <artifacts artifactName="mantle\.account\.(CustomerFinanceServices|CollectionServices)\..*" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
+        <artifacts artifactName="mantle\.account\.PaymentServices\.(find#OpenItems|find#SettlementAdjustmentAccounts|preview#Settlement|get#SettlementPreview|apply#Settlement|preview#PaymentAutoApplication|autoApply#Payment)" artifactTypeEnumId="AT_SERVICE" nameIsPattern="Y" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_ACCT_ROOT" userGroupId="BOSS_ACCOUNTING" authzTypeEnumId="AUTHZT_ALLOW" authzActionEnumId="AUTHZA_ALL">
             <filters entityFilterSetId="MANTLE_USER_ORG"/>
             <filters entityFilterSetId="MANTLE_PRIVATE_CONTACT"/>
@@ -119,6 +120,10 @@ along with this software (see the LICENSE.md file). If not, see
         <authz artifactAuthzId="BOSS_ACCT_Receivables_AR" userGroupId="BOSS_ACCOUNTING_AR" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_ACCT_READ_RECEIVABLES_GL" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_ACCT_READ_RECEIVABLES_APPROVE" userGroupId="BOSS_ACCOUNTING_APPROVE" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
+    </artifactGroups>
+    <artifactGroups artifactGroupId="BOSS_ACCT_WORKBENCH">
+        <artifacts artifactName="component://mr-boss/screen/Accounting/Receivables/ReceivablesWorkbench.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
+        <authz artifactAuthzId="BOSS_ACCT_WORKBENCH_TREASURY" userGroupId="BOSS_ACCOUNTING_TREASURY" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_ACCT_PAYABLES">
         <artifacts artifactName="component://mr-boss/screen/Accounting/Payables.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>

@@ -1719,6 +1719,8 @@ included in focused shared lifecycle/gateway regressions. Provider refunds and t
 
 ### P5b2b2 provider refund acceptance
 
+Implementation commits: Mantle `128f6ca0`; BOSS `848ff21`.
+
 The coordinator accepts the independently reviewed native, app and shared assignments. Refunds bind an actual
 completed capture and its immutable provider operation/reference/merchant/currency. Original charging credential
 rotation/expiry does not reroute or prevent reference refunds and exact lookup. Current safe-adapter guarantees are

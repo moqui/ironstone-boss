@@ -179,3 +179,54 @@ Paired native regressions refuse changed financial content before durable output
 contrast checks in both themes after animations finish. Screen lint remains at 121 baseline
 flagged sites with zero parse failures. Output finishing items F76/F77 and the remaining P5–P21 phases stay explicit
 in the implementation plan.
+
+## P5a reviewed settlement
+
+The settlement portion is implemented and independently accepted. Payment lifecycle, gateway/refund and transfer
+work remain P5b, followed by P6–P21.
+
+P5a implementation commits: Mantle `a79012de`; BOSS `737c439`.
+
+`PaymentServices.find#OpenItems` reads current invoice, credit and payment balances, with independent paging for four
+typed lists and selected-row lookup outside search pages. Its document-through date selects eligible documents; it is
+not historical Aging. `preview#Settlement` retains an owner-scoped ten-minute review with every source/target revision,
+fixed book day, original posting evidence and policy. `apply#Settlement` confirms only that retained review and a
+maximum-40-character operation key. Exact completed retries return their recorded result. Native auto-application
+uses the same reviewed writer and oldest-due/date/ID order.
+
+One operation locks the organization, documents, applications and original postings, checks aggregate consumption and
+signed ledger backing, and posts the whole allocation/explicit-account adjustment set atomically. A direct receipt
+already posted to its invoice can only restore its full available balance to that original invoice without additional
+GL. Genuine unapplied cash still supports partial receipts and splits. Shared invariants guard legacy/raw writers,
+backing posting changes and application deletion as well as the new services. Existing undated postings retain their
+UTC timestamp basis; new SQL book days remain stable across viewers' zones. Earlier application dates refuse.
+
+The separately adopted `settlementApplicationGuardEnabled` defaults N and is required for the new financial writer;
+`paymentAutoApplicationEnabled` independently defaults N. Existing history is never backfilled. Default-off application
+fields and audit behavior remain covered. Financial read authority and matching AR/AP edit authority are checked
+without artifact authorization; PAYMENT_EDIT alone cannot allocate trade documents. Restricted bank/gateway data and
+unauthorized ledger projections are omitted.
+
+The Receivables workbench retains mixed/split draft rows, their original choice revisions, filters, adjustments and
+review/result identity. A customer/currency/date change explicitly starts a new selection. It shows incomplete or
+unavailable reads honestly. Read-only Treasury access does not grant AR editing. Dedicated settlement demo records
+leave Projects and P4 customer/time fixtures intact.
+
+Server gates: BOSS 1,122 passed/0 failed/5 skipped; standalone Mantle 999 passed/4 established baseline failures/
+17 skipped. All 95 new settlement/application/posting cases pass, including real concurrency, rollback, actual
+October/November movement, retained legacy dates, retry identity and raw-write refusals. The full gate also exposed
+the existing variant-policy clock race, fixed separately in Mantle `8f8c06ad` with explicit backdating refusal covered.
+ClientBilling's deliberately nonposted legacy fixtures explicitly use default-off behavior and restore the inherited
+flag in cleanup; production guards remain intact. Screen lint has zero parse failures and the same 121 flagged sites.
+
+Final browser gate: 37/37 passed without skips, including all four settlement walks. Independent review covered all
+30 route/dialog/reader/settings screenshots, 12 retained-review/applied screenshots and six print regressions at the
+required widths/themes. The mixed receipt/credit, split receipt, stale review, write-off correction, saved-result retry
+and reader walks are complete. The test-only default theme fixture uses local styles/font fallback so external font
+DNS cannot stall the browser. Computed preview submission bypasses saved failed-form fields, and selection links
+explicitly clear retained review IDs without refreshing selected revisions.
+
+XML artifacts are well-formed; the new entities, EECAs, services and workbench validate against the local schemas.
+The system validator requires a disposable schema copy removing two existing unnecessary dollar escapes. The
+preferences screen's existing box-header schema mismatch is reproduced at P4 HEAD; runtime/TUI/browser rendering
+remains covered. No repository schema was changed for this verification.

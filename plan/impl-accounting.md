@@ -209,7 +209,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built and independently reviewed; verification record below |
-| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | — |
+| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement accepted; P5b lifecycle/gateway/refund/transfer slices next |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
 | P8 Payment runs | Mantle, BOSS | PayablesWorkbench, PaymentRuns, PaymentRunDetail | — |
@@ -997,6 +997,15 @@ design, it is written there too.
 | F78 | P4 review: generic Files removal and resource-only version replacement could mutate an issued archive even when its InvoiceContent row was guarded | Durable PDFs/supporting copies live outside mutable record folders. Native content invariants protect identity/removal and equivalent DbResource aliases before writes; generic Files respects immutable rows and native per-side edit authority |
 | F79 | P4 final visual review: Quasar Files list captions and neutral controls inherited light-mode colors in dark mode; a nested conditional spec branch also had bare expressions that did not assert | Shared RecordFiles passes the active theme to its list/item hosts. Actual issued rows pass unchanged text/control contrast thresholds after theme transitions finish. Client isolation branches now explicitly assert their permission and omission checks |
 | F80 | P4 repeated walk: legacy sole-store fallback advances an invoice from Finalized to Sent asynchronously after its Send form reads the timestamp | Send submits the already-supported exact financial source fingerprint and selected attachment versions, without its redundant timestamp. Native eligibility, organization and revision checks remain strict; header/item/state writes retain timestamps. Regressions prove status-only advancement succeeds and changed financial fields refuse before durable output or mail |
+| F81 | P5a: actor-formatted legacy document dates could allow October settlement against an undated source or target actually posted in November UTC | `AccountingPolicy.postingDay` uses persisted SQL days, otherwise the unchanged UTC ledger timestamp day. Preview evidence and locked confirmation include every original source/target posting day, including adjustment-only targets; earlier settlement refuses. Undated reversals cannot borrow an invoice's earlier SQL day |
+| F82 | P5a: legacy/raw application writers can race a reviewed settlement or skip period checks when no extra application GL is needed | Separately adopted `settlementApplicationGuardEnabled` serializes organization/documents/applications/original postings before all application writers, checks balances and dates, and captures currency/day on new adopted rows. Existing history is not backfilled; default-off fields and audit behavior are covered independently |
+| F83 | P5a: restoring only part of a receipt already posted directly to its invoice changes open items without a matching GL movement; overstated imported payment amounts can also exceed their actual backing | Direct restoration requires the entire available balance to its actual original invoice with consistent history. Shared signed control proof checks actual original cash against its document; genuinely unapplied cash still permits partial applications. Native and generic writers share the history/control rules |
+| F84 | P5a: unpost/reverse/move and raw header/entry writes could invalidate already consumed source backing; a raw delete could disguise a positive stored application with an unsaved zero | Applied sources retain their original postings until unapplied. Raw reversal construction is guarded too. Application identity/dates are immutable, zero reactivation refuses, and deletion locks/rechecks the actual stored row, ignoring unpersisted financial changes |
+| F85 | P5a: cached invoice totals and an arbitrary first-200 cutoff lose eligible open items; PostgreSQL does not accept a numeric currency scale in `ROUND` | SQL views aggregate rounded invoice lines and both application sides before filtering/counting/paging. The currency scale is an integer. Four typed lists page independently; selected revisions stay available outside a search page, without silently refreshing reviewed versions |
+| F86 | P5a full gates: its original fixture prefix collided with P4; legacy ClientBilling cleanup encountered the newly inherited adoption flag and left Projects data behind; a nested role helper reset callers to system administration | P5 fixture identities are distinct. The legacy projection spec explicitly selects default-off behavior and restores the exact inherited flag in cleanup's `finally`. Nested role helpers restore their calling identity; Treasury's valid negative and AR positive use the same payload |
+| F87 | P5a full gate exposed an existing variant-policy timing race: its default effective time was compared against a second, later clock read | `CatalogSettings.storeVariantSettings` captures the clock once and keeps default revisions strictly ordered, matching the catalog-policy writer. Explicit backdated input still refuses without changing policy history |
+| F88 | P5a browser correction: saved error parameters for a failed preview form overrode its current computed draft after an adjustment account was corrected; the row and URL were current while both form field sets were stale | The computed-only preview action uses the existing hidden-form POST link with current `workbench.editParameters`. The browser regression inspects the actual submitted hidden draft before review and application; no global editable-form watcher, forced Vue state or reload bypass is used |
+| F89 | P5a browser navigation: Back to selection inherited the current preview ID from the destination's declared parameters and rendered the old review again | Selection links explicitly clear retained preview/operation IDs, and Clear selection also clears its draft. Original selected revisions, amounts, account/reason, filters and fixed dates remain retained |
 
 ## 7. Later
 
@@ -1220,9 +1229,18 @@ and target consumption before writing, and rechecks revisions, dates, currency, 
 strict native writer uses existing PaymentApplication/GL/status models; legacy clamp/no-op responses cannot count as
 reviewed success. Adjustment documents post to the explicitly selected account and apply atomically; no write-off
 status or cash movement is substituted. Actual posted outcomes must match the reviewed ledger set, distinguishing a
-valid already-direct AR/AP posting from a missing/error-journal posting. Capture the creator's calendar day once and
-persist it on the application before posting; later viewers and forward reversals preserve the correct respective day.
-Legacy paths gain no extra date audit writes.
+valid already-direct AR/AP posting from a missing/error-journal posting. A direct receipt can only restore its entire
+available amount to its original invoice when no additional ledger posting is needed. Capture the reviewed calendar
+day once and persist it on the application before posting; later viewers and forward reversals preserve it. Every
+settlement must be on or after the actual original source and target ledger days: a retained SQL day, otherwise the
+unchanged UTC day of legacy ledger timestamps. Earlier applications refuse with `APPLICATION_BEFORE_SOURCE_POSTING`.
+
+`settlementApplicationGuardEnabled` is a separate adopted rule, default N. New reviewed settlement writers require Y.
+When Y, generic application writers also serialize balances, protect backing postings, and capture missing currency
+and book day on new applications. This uses the posting source-day precedence, otherwise the legacy UTC timestamp
+day; changing the viewing user's zone cannot change it. Existing applications and ledger history are never backfilled.
+With both new flags N, legacy application fields, date/audit behavior and calls remain unchanged. A legacy main cash
+posting created after its application must not post later than that application's retained day.
 
 App acceptance includes a receipt60 plus credit25 against invoice100 in one confirmed set (remaining15), a receipt
 split across invoices, explicit account/reason adjustments, retained draft/filter/review state, stale/currency/date/org
@@ -1231,6 +1249,25 @@ rollback, default-off legacy audit and real `parallel` competing transactions fo
 and one shared target. The app's allocation draft is bounded presentation state; the native stored preview is authority.
 All added routes enter AppStructure/TuiRender/content checks and the six required width/theme variants before acceptance.
 
+P5a is accepted. Implementation commits: Mantle `a79012de`; BOSS `737c439`. The independently reviewed existing
+variant-policy timing correction is Mantle `8f8c06ad`. Full BOSS: **1,122 passed, 0 failed, 5 skipped / 1,127** across
+108 specs. Standalone Mantle without BOSS adoption data: **999 passed, the same 4 baseline failures, 17 skipped /
+1,020** across 107 specs. The only failing specs remain InboxThreads, MantleSearch, WorkTimeEntries and WorkTimesheets.
+All **95 new native cases** pass, including seven real parallel cases, application/raw posting guards, actual calendar
+movements, rollback, exact retries and valid permission negatives. The additional catalog backdating regression passes.
+
+Final client gate: **37/37 passed**, no skips. All four settlement walks pass; independent visual review accepted the
+30 route/dialog/reader/settings width/theme shots, 12 retained review/applied shots and six unchanged print checks.
+Native source permissions hold with artifact authorization disabled. Corrected draft submission, Back/Clear navigation
+and original selected revisions are covered in the real browser. The disposable server uses the existing local font
+fallback instead of an external font DNS dependency; no network failure is allowlisted. Final lint: 1,115 screens,
+24,291 expression sites, zero parse failures and the unchanged 121 baseline flagged sites. New XML artifacts validate;
+the local validator's two existing schema escape incompatibilities and unchanged P3 preferences box-header mismatch
+are separately recorded, with the latter reproduced at P4 HEAD.
+
+The lifecycle, unapplication, payment outputs, provider/refund and transfer portions of P5 remain the following
+reviewed slices; P6–P21 have not started.
+
 P5b's later assignment retains the same file boundaries: native payment lifecycle, gateway and transfer modules; app
 Payments/detail seven tabs, GatewayTransactions and output screens; coordinator legacy/shared integration. Its contract
 must be independently reviewed again before coding. Gateway attempts reserve durable provider identities before I/O,
@@ -1238,3 +1275,68 @@ keep uncertain/accepted evidence for reconciliation, and count pending refunds a
 two explicit linked legs and exactly two atomic cash/transit transactions, with an explicit fee account; the generic
 organization-to-itself poster must not produce four transactions. These are acceptance requirements, not delivered P5a
 features.
+
+### P5b1 reviewed assignment contract
+
+Reviewed by the native author, app author, independent reviewer and coordinator before coding. Implementation starts
+after P5a acceptance/commits. This slice delivers payment reads, drafts, reviewed lifecycle/unapplication and outputs;
+provider actions/refunds and transfers follow as separately reviewed P5b2/P5b3 slices. They remain unavailable in this
+slice, with no enabled placeholder actions.
+
+| Owner | P5b1 owned files |
+| --- | --- |
+| Native author | Extend `PaymentWorkflowEntities.xml`, `PaymentWorkflow.js` and new declarations in `PaymentServices.xml`; new `PaymentLifecycle.js`, `PaymentOutput.js`, `PaymentContentGuard.js`, `PaymentContent.eecas.xml`; standalone lifecycle/output fixtures, specs and real concurrency specs |
+| App author | `Payments/Payments.xml`, `Payments/PaymentDetail.xml` and its seven Overview/Applications/Gateway/Refunds/GeneralLedger/Files/History tabs, GatewayTransactions/PaymentPrint, `Payments.js`, `PaymentScreenServices.xml`, payment server specs and client walks |
+| Coordinator | Shared posting/source guards, legacy SECAs, parent Payments menu/mounts, QuickCreate/NewPayment, choices/grants/topics/demo, common Files/download authority, registries/documentation, central verification and commits |
+| Reviewer | Independent native contract/success/refusal/rollback review before dependent forms, code/output review and returned findings; central execution remains with coordinator |
+
+The new `PaymentServices` contracts are:
+
+- `find#Payments`: organization, queue (`incoming`, `outgoing`, `toValidate`, `unapplied`, `refunds`, `transfers`,
+  `all`), party/instrument/status/currency/date/text filters and paging; current authoritative sums, narrow rows,
+  selected IDs outside text/page (at most 200), actual page/count/completeness/error results and capabilities.
+- `get#PaymentFinanceDetail`: organization/payment; whitelisted payment/source revision/totals, masked method
+  identities, scoped application/refund/gateway/ledger/content/history/source projections, capabilities and reasons.
+  Restricted arrays/fields are omitted. Gateway/refund/transfer mutations are unavailable until their slices.
+- `find#PaymentMethods`: organization, cash direction, party/currency/date, search/selected IDs and paging; active
+  owned/matching-party masked method identities and revisions, never account/routing numbers or provider credentials.
+- `create#PaymentDraft` / `store#PaymentDraft`: cash direction (`incoming`/`outgoing`), party, decimal amount,
+  currency, chosen effective date, instrument, organization/optional counterparty method, reference/comments and
+  operation key; update also needs payment/source revision. Return payment/state/revision/day/retry identity. Callers
+  cannot set raw status, from/to parties, financial side, invoice auto-application, SQL day or GL accounts.
+- `preview#PaymentState`: organization/payment/source revision, action (`validate`, `deliver`, `confirm`, `cancel`,
+  `void`), settlement date/reference/reason and optional selected evidence IDs/versions; retained review/fingerprint,
+  exact state/date/evidence/application/posting effects, blockers and expiry. `get#PaymentStatePreview` projects that
+  review under current authority. `change#PaymentState` accepts only preview/fingerprint/operation key, rechecks locked
+  inputs and returns actual payment/application/posting/output results. Exact retries precede stale checks.
+- `preview#PaymentUnapply`, `get#PaymentUnapplyPreview`, `unapply#ReviewedPayment`: the same retained engine with
+  an explicitly selected application set, revisions and reason, followed by confirm-only identity. Side read/edit
+  authority is additional to payment authority; PAYMENT_EDIT cannot substitute for AR/AP editing.
+- `get#PaymentOutput`: organization/payment, output type (`receipt`, `detail`, `check`), source revision/output ID;
+  approved HTML/hash/identity/name/type/day and masked metadata. No caller-supplied HTML/template/location. Check
+  issuance/number reservation occurs once during reviewed delivery; reads do not allocate numbers or post money.
+
+Reads require PAYMENT_VIEW/ACCOUNTING_VIEW/admin or matching side view for narrow trade payment data; edit alone
+does not browse. Writes require PAYMENT_EDIT and broad payment read, active organization and private-record checks,
+also with artifact authorization disabled. Cash direction is distinct from logical financial side; refunds inherit
+their original side, and transfers remain excluded from trade settlement. New drafts require the adopted settlement
+guard and capture SQL book days; legacy display/filter semantics stay unchanged, while financial checks use actual
+posting days.
+
+Validate moves Proposed to Promised. Manual delivery accepts only a non-gateway instrument, explicit human
+reference/reason and all selected evidence versions; files are optional unless an actual instrument policy requires
+them. Confirmation has an explicit settlement day/reference/reason and posts no second cash transaction. Cancellation
+is unposted; posted void/unapplication rechecks every original day and refuses closed history. It zeroes all approved
+applications before reversing their actual separate GL, then reverses cash/status atomically; direct no-extra links
+must not invoke legacy per-application cash repost. No forward-unapplication schema is introduced here. The common
+source guard must distinguish a cash payment's own applications from unrelated payments/credits on its header invoice.
+
+Issued output bytes live outside mutable record folders and retain immutable native content/URI guards. Check
+documents require treasury authority even through common Files/content-key downloads. Default-off legacy contracts
+and audit behavior remain intact. Acceptance includes valid same-payload role pairs, source/method/date/currency/org
+refusals, precise incoming/outgoing postings, confirm/cancel/void/unapply rollback, reviewed retries/staleness, real
+parallel delivery/void/check-number cases, archive immutability, redacted reads/outputs/files and unchanged P5a flows.
+
+Later P5b2 architecture uses a separate linked cash payment for each accepted partial capture, preserving posted
+amounts. Its instruction model, provider identity/recovery and exclusion from legacy polling/double posting need their
+own approved contract before coding; browser redirects cannot confirm financial success.

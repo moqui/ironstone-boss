@@ -71,7 +71,7 @@ function refusal(service, p) {
         ec.message.popErrors()
     }
 }
-const readerDraft = {organizationPartyId: "ORG_ZIZI_CORP", description: "Access spec draft"}
+const readerDraft = {organizationPartyId: "BOSS_ACCT_ORG", description: "Access spec draft"}
 feature("Accounting reader sees own organization documents with authz enabled or disabled", {
     where: [{enabled: true}, {enabled: false}],
     when({enabled}) {
@@ -86,14 +86,14 @@ feature("Accounting reader sees own organization documents with authz enabled or
                 recordId: "110000",
                 organizationPartyId: "ORG_ZIZI_SERVICES"
             }),
-            settings: refusal("mantle.ledger.SetupServices.get#Preferences", {organizationPartyId: "ORG_ZIZI_CORP"}),
+            settings: refusal("mantle.ledger.SetupServices.get#Preferences", {organizationPartyId: "BOSS_ACCT_ORG"}),
             create: refusal("mantle.ledger.JournalServices.store#DraftEntry", readerDraft),
             // the same draft is made for a GL user
             glCreate: asFinance("finance.gl", enabled, () =>
                 refusal("mantle.ledger.JournalServices.store#DraftEntry", readerDraft)
             ),
             glSettings: asFinance("finance.admin", enabled, () =>
-                refusal("mantle.ledger.SetupServices.get#Preferences", {organizationPartyId: "ORG_ZIZI_CORP"})
+                refusal("mantle.ledger.SetupServices.get#Preferences", {organizationPartyId: "BOSS_ACCT_ORG"})
             )
         }))
     },
@@ -132,12 +132,12 @@ feature("the GL operator cannot change preferences, rates or terms even with art
     when() {
         return asFinance("finance.gl", false, () => ({
             preferences: refusal("mantle.ledger.SetupServices.store#Preferences", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 settings: {invoiceIdPrefix: "BAD"},
                 changeReason: "Denied"
             }),
             rates: refusal("mantle.ledger.CurrencyServices.store#Rate", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 uomId: "USD",
                 toUomId: "EUR",
                 conversionFactor: 1,
@@ -146,7 +146,7 @@ feature("the GL operator cannot change preferences, rates or terms even with art
                 changeReason: "Denied"
             }),
             terms: refusal("mantle.ledger.SetupServices.store#SettlementTerm", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 description: "Denied",
                 termValue: 30,
                 termValueUomId: "TF_day",
@@ -164,7 +164,7 @@ feature("a finance admin can change the rates and terms the GL operator cannot, 
     when() {
         return asFinance("finance.admin", false, () => ({
             rates: refusal("mantle.ledger.CurrencyServices.store#Rate", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 uomId: "USD",
                 toUomId: "EUR",
                 conversionFactor: 1,
@@ -173,7 +173,7 @@ feature("a finance admin can change the rates and terms the GL operator cannot, 
                 changeReason: "Allowed"
             }),
             terms: refusal("mantle.ledger.SetupServices.store#SettlementTerm", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 description: "Access spec term",
                 termValue: 30,
                 termValueUomId: "TF_day",
@@ -194,7 +194,7 @@ feature("Accounting root grants do not authorize Mantle REST financial mutators"
                 const rendered = ec.screen
                     .makeTest()
                     .rootScreen("component://webroot/screen/webroot/rest.xml")
-                    .render(path, {organizationPartyId: "ORG_ZIZI_CORP"}, "post")
+                    .render(path, {organizationPartyId: "BOSS_ACCT_ORG"}, "post")
                 if (![401, 403].includes(rendered.status)) failures.push(path + ": " + rendered.status)
                 ec.message.clearErrors()
             }
@@ -238,7 +238,7 @@ feature("finance reads follow the view permissions, not group names or another a
             partyRelationshipId: "BOSS_SPEC_READER_CORP",
             relationshipTypeEnumId: "PrtAgent",
             fromPartyId: readerId,
-            toPartyId: "ORG_ZIZI_CORP",
+            toPartyId: "BOSS_ACCT_ORG",
             toRoleTypeId: "OrgInternal",
             fromDate: 0
         })

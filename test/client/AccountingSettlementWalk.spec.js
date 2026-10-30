@@ -24,7 +24,7 @@ function closeSettlementOptions(page) {
     page.settle()
 }
 function openSettlement(page) {
-    page.goto(settlementRoute + "?organizationPartyId=ORG_ZIZI_CORP").status == 200
+    page.goto(settlementRoute + "?organizationPartyId=BOSS_ACCT_ORG").status == 200
     page.getByLabel("Customer", {exact: true}).click()
     page.getByLabel("Customer", {exact: true}).fill("Settlement customer")
     page.getByRole("option", {name: "Settlement customer", exact: true}).click()

@@ -29,7 +29,7 @@ function arPage(width = 1280) {
 }
 function createReceivable(page, description, currency) {
     assert(
-        page.goto("/qapps/Accounting/Receivables/Invoices?organizationPartyId=ORG_ZIZI_CORP").status === 200,
+        page.goto("/qapps/Accounting/Receivables/Invoices?organizationPartyId=BOSS_ACCT_ORG").status === 200,
         "Invoice list opens"
     )
     page.getByRole("button", {name: "New invoice", exact: true}).click()
@@ -145,7 +145,7 @@ feature("a finance reader sees invoice items and customer money without financia
         const page = browser.newPage({user: "finance.read", viewport: {width: 390, height: 900}, timeout: 30})
         page.allowProblems(/userPhoto\?userId=/)
         page.goto(
-            "/qapps/Accounting/Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE&organizationPartyId=ORG_ZIZI_CORP"
+            "/qapps/Accounting/Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE&organizationPartyId=BOSS_ACCT_ORG"
         ).status == 200
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Accounting demo services"))
         !page.text().includes("Add line")
@@ -153,7 +153,7 @@ feature("a finance reader sees invoice items and customer money without financia
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth) == true
         page.screenshot("Accounting-reader-receivable-items-phone", {fullPage: true})
         page.goto(
-            "/qapps/Accounting/Receivables/Customer360/FinanceDetails?customerPartyId=ORG_ACME&organizationPartyId=ORG_ZIZI_CORP"
+            "/qapps/Accounting/Receivables/Customer360/FinanceDetails?customerPartyId=ORG_ACME&organizationPartyId=BOSS_ACCT_ORG"
         ).status == 200
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Finance details"))
         !page.text().includes("Add bank account")
@@ -172,7 +172,7 @@ feature("a reviewed invoice batch names a bad recipient, sends the others and re
             invoiceIds.push(createReceivable(page, prefix + " " + suffix))
             addReceivableLine(page, "Batch consulting " + suffix, "25", "1")
         }
-        page.goto("/qapps/Accounting/Receivables/Invoices?organizationPartyId=ORG_ZIZI_CORP&text=" + encodeURIComponent(prefix))
+        page.goto("/qapps/Accounting/Receivables/Invoices?organizationPartyId=BOSS_ACCT_ORG&text=" + encodeURIComponent(prefix))
             .status == 200
         page.evaluate(invoiceIds => {
             for (const invoiceId of invoiceIds) {
@@ -234,7 +234,7 @@ feature("a reviewed invoice batch names a bad recipient, sends the others and re
 feature("finalizing and sending a store invoice keeps one mail reference when sent again", {
     expect() {
         const page = arPage()
-        page.goto("/qapps/Accounting/Receivables/InvoiceDetail?recordId=BOSS_ACCT_STORE_DRAFT&organizationPartyId=ORG_ZIZI_CORP")
+        page.goto("/qapps/Accounting/Receivables/InvoiceDetail?recordId=BOSS_ACCT_STORE_DRAFT&organizationPartyId=BOSS_ACCT_ORG")
             .status == 200
         page.waitFor(() => document.querySelector(".m-record-title")?.innerText.includes("BOSS_ACCT_STORE_DRAFT"))
         const recipient = "accounting.store@example.test"
@@ -259,7 +259,7 @@ feature("finalizing and sending a store invoice keeps one mail reference when se
 feature("AR explicitly selects a supporting file and a same-key retry keeps the sent files and mail reference", {
     expect() {
         const page = arPage()
-        page.goto("/qapps/Accounting/Receivables/InvoiceDetail?recordId=BOSS_ACCT_AR_FINALIZED&organizationPartyId=ORG_ZIZI_CORP")
+        page.goto("/qapps/Accounting/Receivables/InvoiceDetail?recordId=BOSS_ACCT_AR_FINALIZED&organizationPartyId=BOSS_ACCT_ORG")
             .status == 200
         const recipient = "accounting.supporting@example.test"
         let reviewed
@@ -335,7 +335,7 @@ feature("AR bills approved project time from Accounting and the billed source le
     expect() {
         const page = arPage()
         const queue =
-            "/qapps/Accounting/Receivables/BillingQueue?organizationPartyId=ORG_ZIZI_CORP&workEffortId=BOSS_ACCT_PROJECT"
+            "/qapps/Accounting/Receivables/BillingQueue?organizationPartyId=BOSS_ACCT_ORG&workEffortId=BOSS_ACCT_PROJECT"
         page.goto(queue).status == 200
         page.waitFor(() =>
             Array.from(document.querySelectorAll(".tr")).some(

@@ -1,4 +1,4 @@
-const paymentsRoute = "/qapps/Accounting/Payments/Payments?organizationPartyId=ORG_ZIZI_CORP"
+const paymentsRoute = "/qapps/Accounting/Payments/Payments?organizationPartyId=BOSS_ACCT_ORG"
 const paymentDetailRoute = "/qapps/Accounting/Payments/PaymentDetail"
 function paymentPage(user = "finance.treasury", width = 1280) {
     const page = browser.newPage({user, viewport: {width, height: 1000}, timeout: 30})
@@ -380,7 +380,7 @@ feature("an unposted payment is cancelled through a retained review and a reader
         confirmPaymentState(page)
         page.screenshot("Accounting-payment-cancelled", {fullPage: true})
         const reader = paymentPage("finance.ar", 390)
-        reader.goto(paymentDetailRoute + "?organizationPartyId=ORG_ZIZI_CORP&paymentId=" + encodeURIComponent(made.paymentId))
+        reader.goto(paymentDetailRoute + "?organizationPartyId=BOSS_ACCT_ORG&paymentId=" + encodeURIComponent(made.paymentId))
             .status == 200
         reader.waitFor(() => document.querySelector(".m-record-header")?.innerText.includes("Payment customer"))
         !reader.text().includes("Edit draft")
@@ -400,7 +400,7 @@ feature("a payment review retains its identity and refuses after another page ed
         previewPaymentState(page, "Validate payment", "STALE-9", "Review before another draft edit")
         const reviewed = paymentConfirmationIdentity(page)
         const other = paymentPage()
-        other.goto(paymentDetailRoute + "?organizationPartyId=ORG_ZIZI_CORP&paymentId=" + encodeURIComponent(made.paymentId))
+        other.goto(paymentDetailRoute + "?organizationPartyId=BOSS_ACCT_ORG&paymentId=" + encodeURIComponent(made.paymentId))
             .status == 200
         other.locator(".m-record-actions .q-btn-dropdown").first().click()
         other.getByRole("button", {name: "Edit draft", exact: true}).click()
@@ -440,7 +440,7 @@ feature("a payment review retains its identity and refuses after another page ed
 feature("treasury selects a supporting receipt file before delivery and the retained retry keeps the same evidence and event", {
     expect() {
         const page = paymentPage()
-        page.goto(paymentDetailRoute + "?organizationPartyId=ORG_ZIZI_CORP&paymentId=BOSS_ACCT_PAY_EVIDENCE_DRAFT").status == 200
+        page.goto(paymentDetailRoute + "?organizationPartyId=BOSS_ACCT_ORG&paymentId=BOSS_ACCT_PAY_EVIDENCE_DRAFT").status == 200
         previewPaymentState(page, "Validate payment", "EVIDENCE-RECEIPT", "Receipt identity and amount checked")
         confirmPaymentState(page)
         page.getByRole("link", {name: "Back to payment", exact: true}).click()
@@ -493,7 +493,7 @@ feature(
     {
         expect() {
             const correctionRoute =
-                "/qapps/Accounting/Payments/PaymentDetail?organizationPartyId=ORG_ZIZI_CORP&paymentId=BOSS_ACCT_PAY_APPLIED"
+                "/qapps/Accounting/Payments/PaymentDetail?organizationPartyId=BOSS_ACCT_ORG&paymentId=BOSS_ACCT_PAY_APPLIED"
             const treasury = paymentPage("finance.treasury")
             treasury.goto(correctionRoute).status == 200
             treasury.getByRole("tab", {name: "Applications", exact: true}).click()

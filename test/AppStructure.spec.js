@@ -175,7 +175,8 @@ const demoRecords = {
     "Insights/ReportBuilder/Datasets": { text: "BOSS_DEMO_PRODUCTS" },
     "Insights/ReportBuilder/DatasetDetail": { parameters: { dataDocumentId: "BOSS_DEMO_PRODUCTS" }, text: "Products" },
     "Insights/ReportBuilder/DatasetDetail/FieldList": { parameters: { dataDocumentId: "BOSS_DEMO_PRODUCTS" }, text: "productName" },
-    "Insights/ReportBuilder/DatasetView": { parameters: { dataDocumentId: "BOSS_DEMO_PRODUCTS" }, text: "Demo Product One-One" },
+    // filtered to the one product: the unfiltered list is a page of every product, in no set order
+    "Insights/ReportBuilder/DatasetView": { parameters: { dataDocumentId: "BOSS_DEMO_PRODUCTS", productId: "DEMO_1_1" }, text: "Demo Product One-One" },
     "Insights/ScheduledReports": { text: "Open tasks by priority" },
     "Insights/ScheduledReports/ScheduledReportDetail": { parameters: { screenScheduledId: "BOSS_DEMO_MY_TASKS" }, text: "Open tasks" },
     // Projects P1: the sections show their default placeholder (design-projects.md §1.2), and the first port's time entry list

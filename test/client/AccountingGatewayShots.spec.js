@@ -184,7 +184,7 @@ feature("#prefix #name at #width dark=#dark", {
     expect({user, prefix, name, entry, width, dark}) {
         const {path, text} = entry,
             page = gatewayShotPages[user + ":" + width]
-        page.goto("/qapps/Accounting/Payments/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=ORG_ZIZI_CORP")
+        page.goto("/qapps/Accounting/Payments/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=BOSS_ACCT_ORG")
             .status == 200
         page.waitFor(text => document.querySelector(".q-page")?.innerText.includes(text), {arg: text})
         if (entry.list) {

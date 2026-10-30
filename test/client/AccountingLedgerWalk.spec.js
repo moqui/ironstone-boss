@@ -6,7 +6,7 @@ feature("a GL operator creates balanced lines, reviews and posts a journal", {
             timeout: 30
         })
         page.allowProblems(/userPhoto\?userId=/)
-        page.goto("/qapps/Accounting/QuickCreate/NewEntry?organizationPartyId=ORG_ZIZI_CORP").status == 200
+        page.goto("/qapps/Accounting/QuickCreate/NewEntry?organizationPartyId=BOSS_ACCT_ORG").status == 200
         page.fill("input[name=description]", "Browser Accounting journal " + Date.now())
         page.getByRole("button", {name: "Create draft entry", exact: true}).click()
         page.waitForURL(/JournalEntryDetail/)

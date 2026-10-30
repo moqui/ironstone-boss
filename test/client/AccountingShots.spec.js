@@ -256,6 +256,9 @@ const cases = groups.flatMap(({user, prefix, pages}) =>
 )
 let pages = {}
 spec({
+    // 228 cases, about 2 minutes (2026-10-30): over 30 seconds, so moqui test-client runs it only with --slow, when its
+    // screenshots are needed. Its width x theme matrix is the pattern ProductsShots.spec.js says not to follow.
+    slow: true,
     setupSpec() {
         for (const {user} of groups)
             for (const width of widths) {
@@ -270,7 +273,7 @@ feature("#prefix #name at #width dark=#dark", {
     where: cases.filter(item => !params.names || params.names.split(",").includes(item.name)),
     expect({user, prefix, name, path, text, options, width, dark}) {
         const page = pages[user + width]
-        page.goto("/qapps/Accounting/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=ORG_ZIZI_CORP").status ==
+        page.goto("/qapps/Accounting/" + path + (path.includes("?") ? "&" : "?") + "organizationPartyId=BOSS_ACCT_ORG").status ==
             200
         if (options.statement) {
             page.getByRole("button", {name: "Preview statements", exact: true}).click()
@@ -279,7 +282,7 @@ feature("#prefix #name at #width dark=#dark", {
             if (options.printStatement) {
                 const snapshotId = page.evaluate(() => new URL(location.href).searchParams.get("snapshotId"))
                 const printed = page.goto(
-                    "/qapps/Accounting/Receivables/StatementPrint?organizationPartyId=ORG_ZIZI_CORP&snapshotId=" +
+                    "/qapps/Accounting/Receivables/StatementPrint?organizationPartyId=BOSS_ACCT_ORG&snapshotId=" +
                         encodeURIComponent(snapshotId)
                 )
                 assert(printed.status === 200, "The reviewed statement print route must succeed")
@@ -501,19 +504,19 @@ feature("finalized invoice and reviewed statement print the real documents", {
     expect({width}) {
         const page = pages["finance.admin" + width]
         page.goto(
-            "/apps/Accounting/Receivables/InvoicePrint?organizationPartyId=ORG_ZIZI_CORP&invoiceId=BOSS_ACCT_AR_FINALIZED&renderMode=html-print"
+            "/apps/Accounting/Receivables/InvoicePrint?organizationPartyId=BOSS_ACCT_ORG&invoiceId=BOSS_ACCT_AR_FINALIZED&renderMode=html-print"
         ).status == 200
         page.waitFor(() => document.body.innerText.includes("BOSS_ACCT_AR_FINALIZED"))
         page.text().includes("Customer services")
         !/Error rendering|Exception in render|Invoice not available/.test(page.text())
         page.screenshot("Accounting-invoice-print-" + width, {fullPage: true})
-        page.goto("/qapps/Accounting/Receivables/Statements?organizationPartyId=ORG_ZIZI_CORP&customerPartyId=ORG_ACME").status ==
+        page.goto("/qapps/Accounting/Receivables/Statements?organizationPartyId=BOSS_ACCT_ORG&customerPartyId=ORG_ACME").status ==
             200
         page.getByRole("button", {name: "Preview statements", exact: true}).click()
         page.waitForURL(/snapshotId=/)
         const snapshotId = page.evaluate(() => new URL(location.href).searchParams.get("snapshotId"))
         page.goto(
-            "/apps/Accounting/Receivables/StatementPrint?organizationPartyId=ORG_ZIZI_CORP&snapshotId=" +
+            "/apps/Accounting/Receivables/StatementPrint?organizationPartyId=BOSS_ACCT_ORG&snapshotId=" +
                 encodeURIComponent(snapshotId) +
                 "&renderMode=html-print"
         ).status == 200

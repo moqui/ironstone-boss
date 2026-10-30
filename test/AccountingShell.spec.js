@@ -1,7 +1,7 @@
 const root = "component://webroot/screen/webroot.xml"
-// An Accounting page as html (or another render mode), for the ORG_ZIZI_CORP demo records.
+// An Accounting page as html (or another render mode), for the BOSS_ACCT_ORG demo records.
 function page(path, parameters = {}, renderMode = "html") {
-    const values = Object.assign({organizationPartyId: "ORG_ZIZI_CORP"}, parameters)
+    const values = Object.assign({organizationPartyId: "BOSS_ACCT_ORG"}, parameters)
     // qvt: the screen as the shell fetches it, a fragment of the last standalone screen, with its form-lists' data
     const result =
         renderMode == "qvt"
@@ -147,7 +147,7 @@ feature("posting-default server choices use installed native enumeration contrac
                     .sync()
                     .name("ironstone.accounting.AccessServices.get#Choices")
                     .parameters({
-                        organizationPartyId: "ORG_ZIZI_CORP",
+                        organizationPartyId: "BOSS_ACCT_ORG",
                         choice: "enum:" + type
                     })
                     .call()
@@ -167,7 +167,7 @@ feature("existing unassigned chart accounts are searchable by code without finan
                 .sync()
                 .name("ironstone.accounting.AccessServices.get#Choices")
                 .parameters({
-                    organizationPartyId: "ORG_ZIZI_CORP",
+                    organizationPartyId: "BOSS_ACCT_ORG",
                     choice: "unassignedAccounts",
                     term: "909900001"
                 })
@@ -185,7 +185,7 @@ feature("the shared choices transition preserves account search terms", {
             const r = ec.screen.makeTest().rootScreen("component://mr-boss/screen/Accounting.xml").render(
                 "GeneralLedger/ChartOfAccounts/choices",
                 {
-                    organizationPartyId: "ORG_ZIZI_CORP",
+                    organizationPartyId: "BOSS_ACCT_ORG",
                     choice: "unassignedAccounts",
                     term: "909900001"
                 },
@@ -251,7 +251,7 @@ feature("ledger and approval roles can follow authorized source document links",
                 const result = ec.screen.makeTest().rootScreen("component://mr-boss/screen/Accounting.xml").render(
                     path,
                     {
-                        organizationPartyId: "ORG_ZIZI_CORP",
+                        organizationPartyId: "BOSS_ACCT_ORG",
                         recordId: id
                     },
                     null
@@ -273,7 +273,7 @@ feature("the organization picker selects an organization on Home and Settings", 
             const result = ec.screen
                 .makeTest()
                 .rootScreen("component://mr-boss/screen/Accounting.xml")
-                .render(path + "/selectOrganization", {organizationPartyId: "ORG_ZIZI_CORP"}, "post")
+                .render(path + "/selectOrganization", {organizationPartyId: "BOSS_ACCT_ORG"}, "post")
             return {
                 status: result.status,
                 errors: result.errorMessages.join("\n"),
@@ -284,7 +284,7 @@ feature("the organization picker selects an organization on Home and Settings", 
     then({status, errors, active}) {
         errors == ""
         status == 302
-        active == "ORG_ZIZI_CORP"
+        active == "BOSS_ACCT_ORG"
     }
 })
 
@@ -294,7 +294,7 @@ feature("deleting a draft returns to the unfiltered journal list", {
             const draft = ec.service
                 .sync()
                 .name("mantle.ledger.JournalServices.store#DraftEntry")
-                .parameters({organizationPartyId: "ORG_ZIZI_CORP", description: "Draft to delete"})
+                .parameters({organizationPartyId: "BOSS_ACCT_ORG", description: "Draft to delete"})
                 .call()
             const recordId = draft.recordId || draft.acctgTransId
             const lastUpdatedStamp = ec.entity
@@ -307,7 +307,7 @@ feature("deleting a draft returns to the unfiltered journal list", {
                 .rootScreen(root)
                 .render(
                     "apps/Accounting/GeneralLedger/JournalEntryDetail/delete",
-                    {organizationPartyId: "ORG_ZIZI_CORP", recordId, lastUpdatedStamp, changeReason: "Not needed"},
+                    {organizationPartyId: "BOSS_ACCT_ORG", recordId, lastUpdatedStamp, changeReason: "Not needed"},
                     "post"
                 )
             return {
@@ -334,20 +334,20 @@ feature("choices search names in the query, ignoring case, beyond the first page
     when() {
         const any = entity => ec.entity.find(entity).disableAuthz()
         const account = any("mantle.ledger.account.GlAccountAndOrganization")
-            .condition("organizationPartyId", "ORG_ZIZI_CORP")
+            .condition("organizationPartyId", "BOSS_ACCT_ORG")
             .condition("accountName", "like", "%Cash%")
             .one()
         const users = Array.from(any("moqui.security.UserAccount").orderBy("userFullName").list())
         const lastUser = users[users.length - 1]
         const journal = any("mantle.ledger.transaction.AcctgTrans")
-            .condition("organizationPartyId", "ORG_ZIZI_CORP")
+            .condition("organizationPartyId", "BOSS_ACCT_ORG")
             .condition("description", "is-not-null", null)
             .one()
         const choose = (choice, term) =>
             ec.service
                 .sync()
                 .name("ironstone.accounting.AccessServices.get#Choices")
-                .parameters({organizationPartyId: "ORG_ZIZI_CORP", choice, term})
+                .parameters({organizationPartyId: "BOSS_ACCT_ORG", choice, term})
                 .call()
                 .options.map(row => row.value)
         return finance("finance.admin", () => ({
@@ -363,7 +363,7 @@ feature("choices search names in the query, ignoring case, beyond the first page
                 .sync()
                 .name("ironstone.accounting.AccessServices.get#Choices")
                 .parameters({
-                    organizationPartyId: "ORG_ZIZI_CORP",
+                    organizationPartyId: "BOSS_ACCT_ORG",
                     choice: "accounts",
                     term: "no such account",
                     selected: account.glAccountId
@@ -388,7 +388,7 @@ feature("an unknown choice is refused", {
                 ec.service
                     .sync()
                     .name("ironstone.accounting.AccessServices.get#Choices")
-                    .parameters({organizationPartyId: "ORG_ZIZI_CORP", choice: "everything"})
+                    .parameters({organizationPartyId: "BOSS_ACCT_ORG", choice: "everything"})
                     .call()
                 return {error: ec.message.getErrorsString()}
             } catch (error) {
@@ -415,7 +415,7 @@ feature("report drill-downs keep the report's account filter, and an account kee
                     .makeTest()
                     .rootScreen(root)
                     .renderMode("html")
-                    .render("apps/Accounting/" + path, Object.assign({organizationPartyId: "ORG_ZIZI_CORP"}, parameters), null)
+                    .render("apps/Accounting/" + path, Object.assign({organizationPartyId: "BOSS_ACCT_ORG"}, parameters), null)
             const ledger = html("Reports/GeneralLedger", {glAccountId: accountId})
             const unfiltered = html("GeneralLedger/AccountDetail", {recordId: accountId, reportReturn: "TrialBalance"})
             const filtered = html("GeneralLedger/AccountDetail", {
@@ -467,7 +467,7 @@ feature("reviewing a selection shows each entry's state and posts only from the 
                 .rootScreen(root)
                 .render(
                     "apps/Accounting/GeneralLedger/JournalEntries/reviewSelection",
-                    {organizationPartyId: "ORG_ZIZI_CORP", acctgTransIds: ["BOSS_ACCT_ENTRY"]},
+                    {organizationPartyId: "BOSS_ACCT_ORG", acctgTransIds: ["BOSS_ACCT_ENTRY"]},
                     "post"
                 )
             const previewId = (String(review.header("Location") || "").match(/previewId=([^&]+)/) || [])[1]
@@ -505,14 +505,14 @@ feature("documents list and show their counterparty, amount and status by name",
                 .parameters({
                     kind: {ar: "invoices", ap: "bills", treasury: "payments"}[role],
                     recordId,
-                    organizationPartyId: "ORG_ZIZI_CORP"
+                    organizationPartyId: "BOSS_ACCT_ORG"
                 })
                 .call().record
             if (role === "treasury") {
                 const payment = ec.service
                     .sync()
                     .name("mantle.account.PaymentServices.get#PaymentFinanceDetail")
-                    .parameters({organizationPartyId: "ORG_ZIZI_CORP", paymentId: recordId})
+                    .parameters({organizationPartyId: "BOSS_ACCT_ORG", paymentId: recordId})
                     .call().payment
                 record = {
                     statusText: payment.statusDescription,
@@ -550,14 +550,14 @@ feature("a new draft document opens its detail", {
             const party = ec.entity
                 .find("mantle.party.PartyDetail")
                 .condition("partyTypeEnumId", "PtyOrganization")
-                .condition("partyId", "not-equals", "ORG_ZIZI_CORP")
+                .condition("partyId", "not-equals", "BOSS_ACCT_ORG")
                 .disableAuthz()
                 .list()[0]
             const result = ec.screen.makeTest().rootScreen(root).render(
                 "apps/Accounting/QuickCreate/NewInvoice/createDraft",
                 {
                     kind: "invoices",
-                    organizationPartyId: "ORG_ZIZI_CORP",
+                    organizationPartyId: "BOSS_ACCT_ORG",
                     otherPartyId: party.partyId,
                     description: "Spec draft invoice"
                 },
@@ -640,7 +640,7 @@ feature("every Accounting choice answers, with a selected value outside its page
                     ec.service
                         .sync()
                         .name("ironstone.accounting.AccessServices.get#Choices")
-                        .parameters({organizationPartyId: "ORG_ZIZI_CORP", choice, selected: "NO_SUCH_VALUE"})
+                        .parameters({organizationPartyId: "BOSS_ACCT_ORG", choice, selected: "NO_SUCH_VALUE"})
                         .requireNewTransaction(true)
                         .call()
                     if (ec.message.hasError()) failures.push(choice + ": " + ec.message.getErrorsString())

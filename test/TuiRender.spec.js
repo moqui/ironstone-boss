@@ -105,7 +105,7 @@ spec({
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Products", "Accounting"])
         accountingFixtures = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js").routeFixtures()
         for (const [root, path] of screens)
-            if (root.endsWith("/Accounting.xml")) demoParameters["Accounting/" + path] = {organizationPartyId: "ORG_ZIZI_CORP"}
+            if (root.endsWith("/Accounting.xml")) demoParameters["Accounting/" + path] = {organizationPartyId: "BOSS_ACCT_ORG"}
         for (const [path, fixture] of Object.entries(accountingFixtures)) {
             demoParameters["Accounting/" + path] = fixture.parameters
             if (path.startsWith("Receivables/Customer360")) screens.push([`${base}/Accounting.xml`, path])

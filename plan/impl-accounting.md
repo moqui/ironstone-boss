@@ -293,8 +293,9 @@ closes. Completed checks (findings F48–F60; verification below):
 - **Home** (design §3): AccountingSummary and MoneyCards over `ironstone.accounting.HomeServices.get#Summary`,
   with the counts of later phases null, and MyFinanceWork with no sources yet.
 - **Accounting demo data.**
-  - `BossAccountingDemoData.xml` builds on Mantle's `ORG_ZIZI_CORP` accounting setup, which
-    `ORG_ZIZI_RETAIL` inherits (F7). Mantle seeds no accounting transactions, so a demo service runs the
+  - `BossZAccountingDemoData.xml` uses the demo's own organization, `BOSS_ACCT_ORG` (defined in
+    `BossAccountingUsersDemoData.xml` with Mantle's default accounting configuration), outside the Ziziwork rollup,
+    so its adopted controls do not reach Mantle's demo flows (F7). Mantle seeds no accounting transactions, so a demo service runs the
     invoices, payments and postings the phases need, as Projects' demo services do.
   - `BossUsersDemoData.xml` gains a user per group (AR, AP, treasury, GL, tax, reader, approver and admin), and a
     report reader with no other launcher.

@@ -321,7 +321,7 @@ feature("Accounting Customer360 is refused to Projects clients at its mount and 
     when({mode, mounted}) {
         const accounting = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
         const parameters = {
-            organizationPartyId: "ORG_ZIZI_CORP",
+            organizationPartyId: "BOSS_ACCT_ORG",
             customerPartyId: "ORG_ACME",
             appRoot: "Accounting",
             lastStandalone: "true"

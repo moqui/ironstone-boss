@@ -1,6 +1,6 @@
 // Shared Accounting spec identities, authorized-user scope and render checks. Tests run inside Moqui, without Node.
 const ids = {
-    organizationPartyId: "ORG_ZIZI_CORP",
+    organizationPartyId: "BOSS_ACCT_ORG",
     foreignOrganizationPartyId: "ORG_ZIZI_SERVICES",
     customerPartyId: "ORG_ACME",
     invoiceId: "BOSS_ACCT_INVOICE",

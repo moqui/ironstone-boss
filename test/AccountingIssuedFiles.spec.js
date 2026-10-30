@@ -24,7 +24,7 @@ spec({
         ec.factory.getTool("MailCapture").enable()
         as("finance.ar", () => {
             const made = invoke("mantle.account.InvoiceServices.create#Receivable", {
-                organizationPartyId: "ORG_ZIZI_CORP",
+                organizationPartyId: "BOSS_ACCT_ORG",
                 customerPartyId: "ORG_ACME",
                 description: "Issued files integrity"
             })

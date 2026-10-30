@@ -8,8 +8,8 @@ feature("a finance administrator saves due terms, dated rates and document prefe
         page.allowProblems(/userPhoto\?userId=/)
         page.allowProblems(/Blocked script execution in 'about:srcdoc'.*sandboxed/)
         const go = (path, query = "") =>
-            page.goto("/qapps/Accounting/Settings/" + path + "?organizationPartyId=ORG_ZIZI_CORP" + query)
-        page.goto("/qapps/Accounting/GeneralLedger/ChartOfAccounts?organizationPartyId=ORG_ZIZI_CORP").status == 200
+            page.goto("/qapps/Accounting/Settings/" + path + "?organizationPartyId=BOSS_ACCT_ORG" + query)
+        page.goto("/qapps/Accounting/GeneralLedger/ChartOfAccounts?organizationPartyId=BOSS_ACCT_ORG").status == 200
         page.getByRole("button", {
             name: "Assign existing account",
             exact: true

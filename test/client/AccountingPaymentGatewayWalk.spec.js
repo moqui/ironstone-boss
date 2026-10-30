@@ -1,5 +1,5 @@
 const gatewayDetailRoute = "/qapps/Accounting/Payments/PaymentDetail/Gateway"
-const gatewayOrganization = "ORG_ZIZI_CORP"
+const gatewayOrganization = "BOSS_ACCT_ORG"
 const gatewayProvider = "BOSS_ACCT_GW_TEST"
 
 function gatewayPage(user = "finance.treasury", width = 1280) {

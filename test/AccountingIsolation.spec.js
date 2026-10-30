@@ -126,7 +126,7 @@ feature("Accounting isolates lists, exports, search, record links and files with
                         .render(
                             path,
                             {
-                                organizationPartyId: "ORG_ZIZI_CORP",
+                                organizationPartyId: "BOSS_ACCT_ORG",
                                 text: "BOSS_ISO",
                                 lastStandalone: "-2"
                             },

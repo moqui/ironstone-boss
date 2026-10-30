@@ -2,7 +2,9 @@
 
 The Accounting app uses permission-derived native services in mr-mantle. BOSS owns its access context, routes,
 choices, Home and forms. It adds no financial pass-through service. Later workflow sections are hidden until their
-implemented destinations exist. Receivables P4 is implemented and reviewed; settlement and payment workflows remain P5; payable intake remains P6. Close execution is P11,
+implemented destinations exist. Receivables P4, settlement P5a and payment lifecycle P5b1 are implemented and reviewed.
+Gateway/refunds/transfers remain P5;
+payable intake remains P6. The current execution stops after P6. Close execution is P11,
 activation P19, and foreign-currency posting/provider refresh P20.
 
 ## Routes and users
@@ -11,6 +13,7 @@ activation P19, and foreign-currency posting/provider refresh P20.
 | --- | --- |
 | Foundation | Home; Receivables/Invoices and InvoiceDetail; Payables/Bills and BillDetail; Payments/Payments and PaymentDetail; QuickCreate/NewInvoice, NewBill, NewPayment and NewEntry |
 | Receivables | Invoices list/calendar/pivot/graph; shared InvoiceDetail with ten tabs; BillingQueue; InvoiceBatch; Statements and retained StatementPrint; InvoicePrint; shared Customer360 Contact, Orders, Money, Agreements, FinanceDetails and Files |
+| Settlement and payments | ReceivablesWorkbench; native payment drafts and reviewed state/application correction; PaymentDetail Overview, Applications, Gateway, Refunds, GeneralLedger, Files and History; scoped GatewayTransactions evidence and issued PaymentPrint receipt/detail/check |
 | Ledger | GeneralLedger/ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches and JournalTemplates |
 | Periods | PeriodClose/Periods and PeriodLocks |
 | Reports | Reports/Reports, TrialBalance and GeneralLedger |
@@ -230,3 +233,43 @@ XML artifacts are well-formed; the new entities, EECAs, services and workbench v
 The system validator requires a disposable schema copy removing two existing unnecessary dollar escapes. The
 preferences screen's existing box-header schema mismatch is reproduced at P4 HEAD; runtime/TUI/browser rendering
 remains covered. No repository schema was changed for this verification.
+
+## Payment lifecycle P5b1 acceptance
+
+Implementation commits: Mantle `ea31a0aa`; BOSS `59a4060`. The coordinator and independent reviewer accepted both
+assignments after the final full suites, seven walks and visual review.
+
+Native payment reads and drafts retain actual currency, SQL day, source/method revisions and masked identities.
+Validate, manual delivery, settlement confirmation, cancellation, void and selected application release use retained
+reviews and exact operation keys. Ordinary application reversal restores only the selected money. Direct-to-invoice
+cash correction requires the whole direct set and creates its exact unapplied replacement; void reverses applications
+before cash. Original closed history refuses, and same-key concurrency returns the same actual records.
+
+Receipt/detail/check issuance is atomic with delivery. Check numbers are reserved once; outputs and selected evidence
+are immutable at the actual resource/file/history/blob layer. Generic drive/search/share and cross-record pointers
+cannot expose the private archive. Treasury-only checks are omitted before shared Files count/paging, including with
+artifact authorization disabled. Supporting files keep their authorized upload/read/remove behavior.
+
+PaymentValidation uses native event-bound durable publication with independently authorized recipients, stable retry
+identity, guarded approve/refuse and retirement after edits/decisions. BOSS provides its record link and presentation.
+The lifecycle and content guards remain native; no BOSS financial writer was introduced.
+
+Full server gates: BOSS 1,145 passed/0 failed/5 skipped (1,150 features, 110 specs); standalone Mantle 1,074 passed/
+the same four baseline failures/17 skipped (1,095 features, 117 specs). The 75 new native cases include original-day
+corrections, permission pairs, raw writes, actual concurrency, exact retry, immutable bytes and notification workers.
+First-reference archive races pass with the shared lock; removing that lock alone makes both cases fail through
+actual corruption. The original runtime guard was restored exactly after this disposable control.
+
+Changed XML validates; screen lint scans 1,124 files/24,666 sites with zero parse failures and the same 121 flagged
+sites. Framework resource-exclusion checks pass 4/4. PDF initialization is installed during data loading; develop build,
+host lint and lint-min pass. The host's component-template /tmp path and search `crim~` failures reproduce without the
+PDF change. Framework commits are `e9ee50fb` and `d7235859`.
+
+All 144 original route/dialog/theme captures, 84 refreshed form/role captures and actual check-frame bounds have
+passed independent visual review. Receipt and application review/completed states also retain actual native results.
+Final payment walks pass 7/7 without skips, including same-revision input/evidence preservation, a successful own edit
+receiving a fresh review version, and unchanged refusal after another page edits the record. The consuming getter runs
+only after a successful native save; failed saves and native revision validation remain intact. All 24 retained review/
+completed variants and unapplication/void results passed independent visual review. Three unchanged print features
+also pass. Gateway/provider refunds and transfers remain
+unavailable until the separately reviewed P5b2/P5b3 deliveries. P6 follows; execution pauses before P7.

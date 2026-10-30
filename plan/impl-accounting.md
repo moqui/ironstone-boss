@@ -1,6 +1,6 @@
 # IronStone BOSS — Accounting implementation
 
-Oct 29, 2026 — P0, P1, P2a/P2b and P3 built and verified. Later phases remain planned.
+P0–P4, P5a and P5b1 are built and verified. P5b2/P5b3 and later phases remain planned.
 The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
@@ -51,6 +51,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 ---
 
 ## 1. Scope and order
+
+**Current execution boundary (user request, Oct 30, 2026):** complete the remaining P5 work and P6, then pause
+before P7. The later phase definitions remain the plan for a future continuation.
 
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
@@ -209,7 +212,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
 | P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built and independently reviewed; verification record below |
-| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement accepted; P5b lifecycle/gateway/refund/transfer slices next |
+| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement and P5b1 lifecycle/outputs accepted; gateway/refunds/transfers follow |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
 | P8 Payment runs | Mantle, BOSS | PayablesWorkbench, PaymentRuns, PaymentRunDetail | — |
@@ -1006,6 +1009,17 @@ design, it is written there too.
 | F87 | P5a full gate exposed an existing variant-policy timing race: its default effective time was compared against a second, later clock read | `CatalogSettings.storeVariantSettings` captures the clock once and keeps default revisions strictly ordered, matching the catalog-policy writer. Explicit backdated input still refuses without changing policy history |
 | F88 | P5a browser correction: saved error parameters for a failed preview form overrode its current computed draft after an adjustment account was corrected; the row and URL were current while both form field sets were stale | The computed-only preview action uses the existing hidden-form POST link with current `workbench.editParameters`. The browser regression inspects the actual submitted hidden draft before review and application; no global editable-form watcher, forced Vue state or reload bypass is used |
 | F89 | P5a browser navigation: Back to selection inherited the current preview ID from the destination's declared parameters and rendered the old review again | Selection links explicitly clear retained preview/operation IDs, and Clear selection also clears its draft. Original selected revisions, amounts, account/reason, filters and fixed dates remain retained |
+| F90 | P5b1: joined payment views do not retain the authoritative Payment stamp, and cached totals can miss actual applications | Native revisions use the base Payment and authoritative application/posting/method evidence; filtered reads use narrow scoped projections |
+| F91 | P5b1: a direct legacy application can share its header invoice with unrelated receipts; reviewed cash corrections still meet the manual-posting gate | Cash-source dependencies retain their own applications. Only exact reviewed state/unapply controllers join the existing PostingGuard validation; an identical Treasury actor's unreviewed Ledger reversal still refuses |
+| F92 | P5b1: content metadata alone cannot make issued bytes immutable | Native guards protect DbResource identity, files/history, blob metadata/chunks and immutable output/content links; ordinary supporting files remain mutable |
+| F93 | P5b1: drive/search/public tokens and another record's content pointer could expose a private issued archive | Native URI access guards and canonical cross-record filtering protect each path; generic resource search gains optional subtree exclusions before search limits, preserving callers that omit them |
+| F94 | P5b1: first archive references and deduplicated blobs can be uncommitted when a raw resource writer checks them | Issuance and existing ancestor/blob/chunk mutation share stable mantle/content locks and fresh reference reads. New unpublished upload identities avoid the suspended-parent ForceNew deadlock. Real races pass; removing the blob lock alone reproduces byte/metadata corruption |
+| F95 | P5b1: a commit worker has no interactive actor context, and late publication could reopen a decided validation request | Durable event-bound publication retains the actor, checks each recipient independently, uses stable delivery identities and retires obsolete/decided requests under lock |
+| F96 | P5b1: demo-data loading can issue payment documents before normal host PDF installation | The host installs the renderer during factory data loading and drains workers before its guard ends. Host lint/build pass; two host test failures reproduce with the two-line change removed |
+| F97 | P5b1 browser: self-dependent dropdowns clear their selected party/method/evidence/application value | Remove all 20 self-dependencies, retain 16 real external dependencies and pass form-scoped initial selections. Browser checks inspect actual selected revision tokens before submission |
+| F98 | P5b1 rendered-output proof: an isolated app root cannot resolve mounted shared links; Treasury correctly omits ledger IDs | Real admin/Treasury-owned operations render through the actual mount at the correct standalone level in QVT/TUI/HTML, asserting enabled file identities and separately authorized ledger presence/omission |
+| F99 | P5b1 screenshot review: full-page Chromium capture can hide a 15px scrollbar after choosing its clip width and crop the light document's right edge | Final-theme outer/inner/root bounds and viewport companion captures prove actual check fit. Generic full-page capture correction remains tooling work; no further product-layout change is inferred from the cropped artifact |
+| F100 | P5b1 browser: a successful draft edit from 21 to 22 left a previous failed delivery form's sourceVersion in session restoration; a new form instance received that old initial value | After successful native store only, the app consumes the prior saved failed-submit values through the existing errorParameters getter. Same-revision reference/reason/evidence remains retained, failed saves stay untouched, own-edit review receives its new revision, and external stale confirmation still refuses |
 
 ## 7. Later
 
@@ -1340,3 +1354,181 @@ parallel delivery/void/check-number cases, archive immutability, redacted reads/
 Later P5b2 architecture uses a separate linked cash payment for each accepted partial capture, preserving posted
 amounts. Its instruction model, provider identity/recovery and exclusion from legacy polling/double posting need their
 own approved contract before coding; browser redirects cannot confirm financial success.
+
+### P5b1 acceptance
+
+The coordinator and independent reviewer accepted the native and app assignments after correcting all returned
+findings. Native services own financial state, exact retries, original-day corrections, immutable issued output and
+event-bound validation publication. BOSS owns contexts/forms and guarded shared Files. Gateway/refund/transfer
+mutations remain unavailable until their subsequent slices.
+
+Final standalone Mantle gate: 1,074 passed, the same four reproduced baseline failures, 17 skipped; 1,095 features in
+117 specs. All 75 new native cases pass, including real first-archive/blob races and the paired direct-ledger refusal/
+reviewed-native-void control. Removing only the blob synchronization in the disposable runtime reproduces both race
+failures; the exact guard was restored. Final BOSS gate after the browser recovery correction: 1,145 passed, zero
+failures, five skipped; 1,150 features in 110 specs, including unchanged Projects/Products regressions.
+
+All 144 route/dialog/role captures and 84 refreshed form/role captures were visually reviewed at 390/1280/1440 in
+light/dark, together with 24 retained review/completed variants and actual issued outputs. Final payment walks pass 7/7
+without skips: incoming edit/validate/delivery/retry/receipt; outgoing delivery/settlement; failed-preview/own-edit
+recovery; cancellation/reader restrictions; external stale confirmation; selected evidence/refusal retention; and
+application release followed by void. Three unchanged invoice/statement print features also pass. Actual frame/root
+bounds and viewport companions distinguish the recorded full-page capture artifact from real check overflow.
+
+Changed XML validates. Screen lint scans 1,124 files and 24,666 expression sites with zero parse failures and the same
+121 flagged sites. Framework resource exclusion specs pass 4/4. Framework search exclusion and data-load PDF fixes
+are `e9ee50fb` and `d7235859`; the latter passes develop build/lint/lint-min, and both host failures reproduce without
+its two-line initialization change. Implementation commits: Mantle `ea31a0aa`; BOSS `59a4060`.
+F75–F77 remain their previously assigned P15/P21 work; F99 remains generic capture tooling work. P5b2/P5b3 and P6 are
+next, with the user's pause before P7 unchanged.
+
+### P5b2 reviewed assignment contract
+
+The native author, app author, independent reviewer and coordinator approved the following written interface and
+integration prerequisites. Implementation starts after P5b1 acceptance and commits. Gateway instructions and recovery
+come first; manual/provider refunds form a separate bounded delivery. P5b3 transfers follow their acceptance. P6 is
+the final phase authorized for this execution; work pauses before P7.
+
+| Owner | Owned files and integration boundary |
+| --- | --- |
+| Native author | New `PaymentGatewayWorkflowEntities.xml`, its native entity guards, `PaymentGatewayWorkflow.js`, `PaymentRefunds.js`, new `PaymentServices.xml` declarations and bounded `PaymentWorkflow.js` DTO/capability additions; standalone gateway/refund fixtures, provider services, specs and real concurrency/recovery proofs |
+| App author | Existing PaymentDetail Gateway/Refunds contexts, GatewayTransactions, retained review/result/recovery forms, `Payments.js`, `PaymentScreenServices.xml`, payment server specs and client walks; begin dependent forms only after the native interface is approved |
+| Coordinator | Audited adoption flag, common application/source/posting/lifecycle/archive guards, legacy wrapper/poller/SECA exclusions, trusted adapter provisioning, settings/grants/jobs/choices/menus/demo, central registries/docs/builds/tests and commits |
+| Reviewer | Independent contract, diff, success/refusal/rollback and rendered-output review for each assignment; return findings before acceptance |
+
+**Adoption and authority.** `PartyAcctgPreference.paymentGatewayWorkflowEnabled` is audit logged and defaults to N;
+managed gateway work also requires the adopted settlement application guard. Manual refunds require the settlement
+guard. Every preview/mutator requires current broad payment read, PAYMENT_EDIT, current organization and private
+record authority, including with artifact authorization disabled. Reuse the native treasury predicate; do not invent
+a BOSS-specific Mantle permission or treat AR authority as treasury. Ledger results remain separately authorized.
+Bank/card credentials, executable service names and raw provider bodies never enter app DTOs.
+
+**Records.** Retained `PaymentGatewayPreview` stores owner, organization, action, payment/source/method/binding and
+reservation revisions, SQL day, reviewed plans/policy, expiry and fingerprint. `PaymentGatewayInstruction` represents
+authorization and its monetary ceiling. `PaymentGatewayAttempt` owns the unique organization/operation key, immutable
+request hash and provider operation identity, action/parent, amount/currency, provider evidence, dispatch lease and
+financial completion result. `PaymentGatewayReservation` holds authorization capacity or original cash funding for
+an attempt. All new money records capture currency and source identity immediately. Native entity guards protect
+identities, evidence, reservations and linked cash provenance from generic/artifact-off mutation.
+
+The authorization parent never posts cash, enters trade settlement or becomes a delivered cash payment. Each accepted
+partial capture creates exactly one uniquely linked cash Payment for its actual amount. Its original amount and
+posting remain unchanged. Payment extensions identify instruction/attempt and authorization/capture/refund role.
+Native projections show instruction state and actual captured/refunded totals without presenting a parent amount as
+posted cash.
+
+**Provider boundary.** Only an explicitly provisioned safe adapter is eligible. Trusted configuration supplies
+reviewed operation and exact-identity lookup service names, adapter version and operation-specific guarantees for
+idempotency, lookup, partial capture, release and refund. The adapter accepts immutable provider operation ID,
+provider/merchant namespace, action, parent provider reference, amount/currency and approved payment/method identity.
+It returns that same identity, typed accepted/declined/pending/uncertain outcome, exact amount/currency, provider
+reference/timestamps and narrow codes. It cannot mutate Payment, applications or GL. Dispatch and lookup never inherit
+trusted financial-finalizer admission in common guards. The finalizer never calls a provider.
+
+Legacy interfaces have no request identity, may infer a response from a recent method transaction, and can mutate the
+whole payment after a partial capture. Their behavior and existing providers remain unchanged for legacy records.
+TEST_APPROVE/TEST_DECLINE's fixed reference and FinancialAccountLocal's separate financial-account posting do not
+qualify them as reviewed adapters. Add a distinct deterministic provider fixture with independently committed effects,
+stable request identity, authoritative lookup and pending/timeout controls. Refuse unsupported adapters before I/O;
+there is no fallback to an unsafe legacy orchestrator.
+
+**Gateway APIs.** The new native services are:
+
+- `preview#PaymentGatewayAction`: organization, payment/source version, authorize/capture/release/refund action,
+  explicit capture/refund amount, effective day/reason/reference, optional approved gateway, parent attempt, linked
+  refund draft/revision and selected evidence/revisions. Authorize reviews the exact parent amount; release reviews
+  remaining available authorization; refund targets the actual captured cash payment. Return retained identity,
+  payment/gateway summaries, before/after, reservation/application effects, posting summary, authorized ledger plan,
+  capabilities, named blockers and expiry.
+- `get#PaymentGatewayActionPreview`: reproject that retained review under current authority, including recorded
+  operation key/results. `execute#PaymentGatewayAction` accepts only preview ID, fingerprint and operation key of at
+  most 40 characters. Return attempt/provider operation IDs, parent and actual cash/refund payment IDs, outcome,
+  provider/financial state, amount/currency/SQL day, authorized actual application/GL/output IDs, named reason and retry
+  identity. Exact recorded retries precede stale checks; changed reuse fails.
+- `get#PaymentGatewayAttempt` is a pure scoped read and returns `attemptVersion` and the recorded provider-operation key.
+  `refresh#PaymentGatewayAttempt` takes organization, attempt/`attemptVersion`
+  and operation key and performs exact-identity lookup only. A nondefinitive not-found remains uncertain. It cannot
+  start a new charge or refund. Same-ID replay is permitted only where the adapter guarantees idempotency or
+  authoritative nonexecution; an expired lease alone never permits another external operation.
+- `preview#PaymentGatewayRecovery` retains a newly reviewed financial plan for an already accepted attempt.
+  It takes `attemptVersion`; the same `get#PaymentGatewayActionPreview` reads action and recovery reviews, distinguished
+  by `previewKind` (`gatewayAction` or `gatewayRecovery`) and `financialOnly`. Recovery preserves the original action.
+  `complete#PaymentGatewayAttempt` accepts only its preview/fingerprint/key and completes local money once. Recovery
+  cannot change externally accepted amount/currency or dispatch the provider request again.
+- `find#PaymentGatewayTransactions` filters authorized organization/payment/party/provider/action/outcome/day/text
+  before paging, with selected attempt identities (at most 200), actual count/page/completeness/errors and narrow
+  treasury-only rows. Preserve authorized legacy response visibility without exposing provider secrets.
+- `find#PaymentGatewayBindings` takes organization/payment/action/effective day, text, selected IDs and paging. Treasury
+  receives only gateway ID/description, `bindingVersion`, `adapterVersion`, per-action/lookup capabilities, actual page
+  metadata/completeness/errors and selected rows. An ID~bindingVersion choice decodes to gateway ID and
+  `gatewayBindingVersion` on preview. Native defaults are equally frozen in the retained review.
+
+**Durability and capacity.** Reserve and commit immutable identity/capacity before I/O; invoke the provider without
+financial locks; persist its outcome durably; then atomically create/post the exact local cash, applications and
+outputs. Caller rollback cannot erase dispatch/evidence. States distinguish reserved, dispatched, pending/uncertain,
+declined, accepted-unposted and completed. Timeouts/crashes and accepted-but-local-posting failures retain evidence and
+reservations. A changed/closed posting plan becomes accepted-unposted, never declined or permission to charge again.
+Actual provider timestamps are evidence; new financial records use the explicit reviewed SQL accounting day.
+
+Accepted capture amounts and pending/ambiguous reservations consume authorization capacity and exclude conflicting
+release. Concurrent capture/release re-read the same instruction and reservation revisions under stable locks. Pending
+refunds reserve both provider refundable capacity and the original cash leg's currently unapplied funding. Common
+native/raw application writers and source apply/unapply/void/reversal/destruction serialize on those same holds. They
+cannot spend reserved cash. A proven decline/nonexecution releases a hold; accepted local completion consumes it in
+the same transaction as the exact refund application. No temporary fake positive application represents a hold.
+
+**Manual refunds.** `preview#PaymentRefund` takes organization, original cash payment/revision, explicit amount/day,
+reason/reference, optional linked refund draft/revision, reviewed organization/counterparty methods and evidence.
+`get#PaymentRefundPreview` reprojects its retained review. `refund#ReviewedPayment` accepts only preview/fingerprint/key.
+A linked draft must have exact opposing parties/currency and no prior GL/application/instruction. Native code sets
+PtRefund and the original link, retaining the original financial side while reversing cash direction. Cash posting and
+the payment-to-original application are atomic and verified. Refund capacity is the lesser of actual cash less
+completed/held refunds and current unapplied cash less reservations. Fully allocated cash must first be legitimately
+unapplied through the separately authorized P5b1 workflow. There is no hidden invoice unapplication or return-credit
+orchestration. A provider-backed source must use provider refund; manual void cannot pretend that its charge was
+refunded. Closed periods and unavailable mappings refuse without partial local money.
+
+**Legacy exclusions.** Before provider I/O, deny managed authorization parents and cash children through every legacy
+authorize/capture/release/refund/details entry point, including direct leaf services, order/invoice wrappers and poller
+selection. Exclude instruction parents from legacy payment posting/application SECAs. Guarding only the poller or a
+single high-level wrapper is insufficient. Existing unmanaged/default-off paths and tests retain their behavior.
+
+**Acceptance.** Use valid same-payload treasury positives versus AR-only/read-only/edit-without-read/private/foreign
+negatives; stale source/method/binding/reservation and currency/scale/day/lock refusals; authorization60 with captures20
+and40 creating two actual cash legs and no parent posting; pending/ambiguous capture/release/refund capacity; real
+parallel exact retry and competing-key cases; wrong provider identity/amount/currency quarantine; accepted-then-timeout
+recovery and accepted-unposted financial-only repair; partial/multiple/manual/linked refunds with exact totals and
+immutable source links; refund versus legacy application contention and source-reversal refusal; zero provider calls
+for managed records through legacy services/polling; redirects with zero financial authority; unchanged provider,
+Projects, Products and default-off regressions. Review each bounded assignment and all returned findings before its
+central full-suite/browser gate and separate repository commits.
+
+The coordinator/native integration interface is fixed before releasing the first assignment:
+
+- Native-owned `PaymentGatewayReservations.js` exports a read-only
+  `cashHoldSummary({organizationPartyId,paymentId})` with lossless `heldAmount`, `currencyUomId`, `holdCount` and
+  canonical `version`. It verifies authoritative payment/organization identity and includes every held cash
+  reservation, including pending, uncertain and accepted-unposted attempts. Callers hold the existing organization
+  then payment locks; reservation writers use that same order. There is no supplied exclusion or bypass flag.
+- Native-owned SQL summary views in `PaymentGatewayWorkflowEntities.xml` expose held cash by payment for the
+  coordinator's open-item query integration. `reservedAmount` and `availableAmount` are separate from actual accounting
+  `unappliedTotal`. Search/count/page use availability before projection. Missing/failed hold evidence is unavailable,
+  never a zero balance; turning off adoption does not release existing durable holds.
+- The local financial finalizer is `complete#PaymentGatewayAttempt`. Common Posting/Lifecycle/Archive admissions name
+  that exact service and manual `refund#ReviewedPayment` where needed. They admit no dispatch/lookup parent. The
+  finalizer accepts persisted accepted attempt plus retained review identity, never caller provider evidence, and
+  transitions its own cash hold to consumed inside the same locked transaction before its exact application. Failure
+  rolls both back. Native internal declarations and entity guards are installed before any managed dispatch.
+- Instruction capacity counts each capture attempt once: completed accepted amounts plus still-held attempts,
+  including accepted-unposted, cannot exceed authorization. A held accepted amount is not added a second time.
+  Conflicting release refuses while capture outcome is unresolved; no lease timeout invents available capacity.
+- The first bounded assignment enables authorize/capture/release and exact lookup/financial recovery only. Gateway
+  refund and manual refund remain unavailable until their separately reviewed implementation and shared cash-hold
+  integration are accepted. The app receives native capability/reason fields rather than inferring availability.
+- Existing B1 native draft creation supplies a gateway-instrument Proposed payment with no GL, applications or provider
+  history; no separate raw creation path is added. Native detail/list capabilities include authorize/capture/release/
+  refund, refresh and recover. Treasury-only `gatewayInstruction` carries instruction ID/state/currency, authorized,
+  held, captured, released and capturable amounts. Capture children carry gateway role/authorization payment link and
+  actual amount/applied/unapplied/reserved/available totals. Instruction/provider amounts are labeled separately from
+  posted cash. Recovery's recorded operation key is the financial-confirm key; an attempt's key is its original
+  provider-operation key. Neither is guessed or replaced when reopening a result.

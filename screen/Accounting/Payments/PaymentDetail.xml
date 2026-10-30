@@ -12,17 +12,1593 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- A payment, read only until its workflow (template/AccountingDocuments.xml DocumentDetail). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payment" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Payment" default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <parameter name="previewId"/>
+    <parameter name="previewKind"/>
+    <parameter name="findJson"/>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.options)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="savePaymentDraft">
+        <actions>
+            <script>draftInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').draftInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.store#PaymentDraft" in-map="draftInput" out-map="savedPayment"/>
+            <script><![CDATA[
+                // A successful edit starts a new review. Consume earlier failed-submit state before the redirected GET restores it.
+                if (!ec.message.hasError() && savedPayment.paymentId && savedPayment.sourceVersion) void ec.web.errorParameters
+            ]]></script>
+        </actions>
+        <default-response url=".">
+            <parameter name="paymentId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewPaymentState">
+        <actions>
+            <set field="previewKind" value="state"/>
+            <script>stateInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').stateInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentState" in-map="stateInput" out-map="paymentStatePreview"/>
+            <set field="previewId" from="paymentStatePreview.previewId"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="paymentId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="confirmPaymentState">
+        <actions>
+            <set field="previewKind" value="state"/>
+            <script>if (reviewed !== 'Y') throw new Error('Review the payment, evidence, application and posting effects before confirming')</script>
+            <service-call name="mantle.account.PaymentServices.change#PaymentState" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="paymentStateResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="paymentId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewPaymentUnapply">
+        <actions>
+            <set field="previewKind" value="unapply"/>
+            <script>unapplyInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').unapplyInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentUnapply" in-map="unapplyInput" out-map="paymentUnapplyPreview"/>
+            <set field="previewId" from="paymentUnapplyPreview.previewId"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="paymentId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <transition name="confirmPaymentUnapply">
+        <actions>
+            <set field="previewKind" value="unapply"/>
+            <script>if (reviewed !== 'Y') throw new Error('Review the selected applications and posting effects before confirming')</script>
+            <service-call name="mantle.account.PaymentServices.unapply#ReviewedPayment" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="paymentUnapplyResult"/>
+        </actions>
+        <default-response url=".">
+            <parameter name="paymentId"/>
+            <parameter name="organizationPartyId"/>
+            <parameter name="previewId"/>
+            <parameter name="previewKind"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
+    <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
-        <set field="documentKind" value="payments"/>
-        <set field="documentLabel" value="payment"/>
-        <set field="listPath" value="Payments/Payments"/>
-        <set field="listTitle" value="Payments"/>
+        <set field="paymentContext" from="{}"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
+        <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
+        <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
+        <set field="paymentReview" from="paymentContext.paymentReview || {results:{},effectRows:[],evidenceRows:[],applicationEffects:[],ledgerPreview:[],blockers:[]}"/>
+        <set field="paymentId" from="paymentContext.paymentId || paymentId || recordId"/>
+        <set field="findJson" from="paymentContext.findJson || ''"/>
     </actions>
     <widgets>
-        <section-include name="DocumentDetail" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section name="PaymentHeaderContent" condition="recordFound">
+            <widgets>
+                <link url="${sharedLinks['Payments/Payments']}" text="Back to payments" parameter-map="financePayment.returnParameters"/>
+                <label text="Some payment evidence is unavailable. Review the available records or try again." type="p" style="text-warning" condition="!financePayment.complete"/>
+                <container style="m-record-header">
+                    <container style="m-record-title col-12 col-sm">
+                        <label text="${paymentId}" type="span" style="m-key"/>
+                        <label text="${financePayment.title || paymentId}" type="h5"/>
+                        <label text="${financePayment.partyName || ''} · ${financePayment.cashDirection || ''} · ${financePayment.currencyUomId || ''}" type="p"/>
+                    </container>
+                    <container style="m-record-status">
+                        <label text="${financePayment.statusDescription || financePayment.statusId || ''}" type="span" style="m-badge"/>
+                    </container>
+                    <container style="m-record-actions col-12 col-sm-auto">
+                        <section name="PaymentValidateAction" condition="financePayment.primaryAction === 'validate'">
+                            <widgets>
+                                <container-dialog id="PaymentStateValidate" button-text="Validate payment" title="Validate payment ${paymentId}" type="primary" width="760">
+                                    <form-single name="ReviewPaymentValidate" transition="previewPaymentState">
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'validate'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentValidate' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null,paymentId:paymentId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review payment change"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-row>
+                                                <field-ref name="organizationPartyId"/>
+                                                <field-ref name="paymentId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="sourceVersion"/>
+                                                <field-ref name="action"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="referenceNumber"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="reason"/>
+                                                <field-ref name="evidenceTokenList"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="submit"/>
+                                            </field-row>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <section name="PaymentDeliverAction" condition="financePayment.primaryAction === 'deliver'">
+                            <widgets>
+                                <container-dialog id="PaymentStateDeliver" button-text="Record delivery" title="Record delivery ${paymentId}" type="primary" width="760">
+                                    <form-single name="ReviewPaymentDeliver" transition="previewPaymentState">
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'deliver'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentDeliver' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null,paymentId:paymentId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review payment change"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-row>
+                                                <field-ref name="organizationPartyId"/>
+                                                <field-ref name="paymentId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="sourceVersion"/>
+                                                <field-ref name="action"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="referenceNumber"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="reason"/>
+                                                <field-ref name="evidenceTokenList"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="submit"/>
+                                            </field-row>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <section name="PaymentConfirmAction" condition="financePayment.primaryAction === 'confirm'">
+                            <widgets>
+                                <container-dialog id="PaymentStateConfirm" button-text="Confirm settlement" title="Confirm settlement ${paymentId}" type="primary" width="760">
+                                    <form-single name="ReviewPaymentConfirm" transition="previewPaymentState">
+                                        <field name="findJson" from="findJson">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentId" from="paymentId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="sourceVersion" from="financePayment.sourceVersion">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="action" from="'confirm'">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="settlementDate">
+                                            <default-field title="Settlement date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="reason">
+                                            <default-field title="Reason">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="evidenceTokenList">
+                                            <default-field title="Supporting evidence (optional)">
+                                                <drop-down allow-empty="true" allow-multiple="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentConfirm' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null,paymentId:paymentId}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Review payment change"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-row>
+                                                <field-ref name="organizationPartyId"/>
+                                                <field-ref name="paymentId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="sourceVersion"/>
+                                                <field-ref name="action"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="settlementDate"/>
+                                                <field-ref name="referenceNumber"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="reason"/>
+                                                <field-ref name="evidenceTokenList"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="submit"/>
+                                            </field-row>
+                                        </field-layout>
+                                    </form-single>
+                                    <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                    <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                                </container-dialog>
+                            </widgets>
+                        </section>
+                        <button-menu text="More" icon="more_horiz" condition="financePayment.hasMoreActions">
+                            <container-dialog id="AccountingEditPaymentDialog" button-text="Edit draft" title="Edit payment ${paymentId}" width="760" condition="financePayment.canEdit">
+                                <form-single name="EditAccountingPayment" transition="savePaymentDraft" map="paymentHeaderValue">
+                                    <field name="findJson" from="findJson">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="operationKey">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentId" from="paymentId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceVersion" from="financePayment.sourceVersion">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="cashDirection">
+                                        <default-field title="Cash direction">
+                                            <drop-down>
+                                                <option key="incoming" text="Incoming receipt"/>
+                                                <option key="outgoing" text="Outgoing payment"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="partyId">
+                                        <default-field title="Counterparty">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentParties',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'EditAccountingPayment' ? ec.web.errorParameters.partyId : paymentHeaderValue.partyId) || null}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount">
+                                        <default-field title="Amount">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="currencyUomId">
+                                        <default-field title="Currency">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'EditAccountingPayment' ? ec.web.errorParameters.currencyUomId : paymentHeaderValue.currencyUomId) || null}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="effectiveDate">
+                                        <default-field title="Payment date">
+                                            <date-time type="date"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentInstrumentEnumId">
+                                        <default-field title="Instrument">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentDraftInstruments',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'EditAccountingPayment' ? ec.web.errorParameters.paymentInstrumentEnumId : paymentHeaderValue.paymentInstrumentEnumId) || null}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationMethodToken">
+                                        <default-field title="Organization method">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedOrganizationPaymentMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'EditAccountingPayment' ? ec.web.errorParameters.organizationMethodToken : paymentHeaderValue.organizationMethodToken) || null}">
+                                                    <depends-on field="cashDirection"/>
+                                                    <depends-on field="partyId"/>
+                                                    <depends-on field="currencyUomId"/>
+                                                    <depends-on field="effectiveDate"/>
+                                                </dynamic-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="counterpartyMethodToken">
+                                        <default-field title="Counterparty method (optional)">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedCounterpartyPaymentMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'EditAccountingPayment' ? ec.web.errorParameters.counterpartyMethodToken : paymentHeaderValue.counterpartyMethodToken) || null}">
+                                                    <depends-on field="cashDirection"/>
+                                                    <depends-on field="partyId"/>
+                                                    <depends-on field="currencyUomId"/>
+                                                    <depends-on field="effectiveDate"/>
+                                                </dynamic-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="referenceNumber">
+                                        <default-field title="Reference">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="comments">
+                                        <default-field title="Comments">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Save payment"/>
+                                        </default-field>
+                                    </field>
+                                    <field-layout>
+                                        <field-row>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="operationKey"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="cashDirection"/>
+                                            <field-ref name="partyId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="amount"/>
+                                            <field-ref name="currencyUomId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="effectiveDate"/>
+                                            <field-ref name="paymentInstrumentEnumId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="organizationMethodToken"/>
+                                            <field-ref name="counterpartyMethodToken"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="referenceNumber"/>
+                                            <field-ref name="comments"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="submit"/>
+                                        </field-row>
+                                    </field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <container-dialog condition="financePayment.capabilities.canCancel" id="PaymentStateCancel" button-text="Cancel payment" title="Cancel payment ${paymentId}" type="danger" width="760">
+                                <form-single name="ReviewPaymentCancel" transition="previewPaymentState">
+                                    <field name="findJson" from="findJson">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentId" from="paymentId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceVersion" from="financePayment.sourceVersion">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="action" from="'cancel'">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="referenceNumber">
+                                        <default-field title="Reference">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reason">
+                                        <default-field title="Reason">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="evidenceTokenList">
+                                        <default-field title="Supporting evidence (optional)">
+                                            <drop-down allow-empty="true" allow-multiple="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentCancel' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null,paymentId:paymentId}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Review payment change"/>
+                                        </default-field>
+                                    </field>
+                                    <field-layout>
+                                        <field-row>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="paymentId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="sourceVersion"/>
+                                            <field-ref name="action"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="referenceNumber"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="submit"/>
+                                        </field-row>
+                                    </field-layout>
+                                </form-single>
+                                <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                            </container-dialog>
+                            <container-dialog condition="financePayment.capabilities.canVoid" id="PaymentStateVoid" button-text="Void payment" title="Void payment ${paymentId}" type="danger" width="760">
+                                <form-single name="ReviewPaymentVoid" transition="previewPaymentState">
+                                    <field name="findJson" from="findJson">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="organizationPartyId" from="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentId" from="paymentId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceVersion" from="financePayment.sourceVersion">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="action" from="'void'">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="referenceNumber">
+                                        <default-field title="Reference">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reason">
+                                        <default-field title="Reason">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="evidenceTokenList">
+                                        <default-field title="Supporting evidence (optional)">
+                                            <drop-down allow-empty="true" allow-multiple="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentVoid' ? ec.web.errorParameters.evidenceTokenList : context.evidenceTokenList) || null,paymentId:paymentId}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Review payment change"/>
+                                        </default-field>
+                                    </field>
+                                    <field-layout>
+                                        <field-row>
+                                            <field-ref name="organizationPartyId"/>
+                                            <field-ref name="paymentId"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="sourceVersion"/>
+                                            <field-ref name="action"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="referenceNumber"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="submit"/>
+                                        </field-row>
+                                    </field-layout>
+                                </form-single>
+                                <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                                <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
+                            </container-dialog>
+                            <link url="${sharedLinks['Payments/PaymentPrint']}" text="Payment receipt" parameter-map="Object.assign({},financePayment.baseParameters,{outputType:'receipt',sourceVersion:financePayment.sourceVersion})" condition="financePayment.capabilities.canPrintReceipt"/>
+                            <link url="${sharedLinks['Payments/PaymentPrint']}" text="Payment detail" parameter-map="Object.assign({},financePayment.baseParameters,{outputType:'detail',sourceVersion:financePayment.sourceVersion})" condition="financePayment.capabilities.canPrintDetail"/>
+                            <link url="${sharedLinks['Payments/PaymentPrint']}" text="Issued check" parameter-map="Object.assign({},financePayment.baseParameters,{outputType:'check',sourceVersion:financePayment.sourceVersion})" condition="financePayment.capabilities.canPrintCheck"/>
+                        </button-menu>
+                    </container>
+                    <container style="m-record-foot">
+                        <label text="Payment date ${financePayment.accountingDateText || financePayment.effectiveDateText || ''} · ${financePayment.referenceNumber || financePayment.paymentRefNum || 'No reference'}" type="p" style="text-caption m-muted"/>
+                    </container>
+                </container>
+            </widgets>
+        </section>
+        <section name="PaymentRetainedReview" condition="recordFound &amp;&amp; financePayment.hasReview">
+            <widgets>
+                <label text="Reviewed payment change" type="h6"/>
+                <container id="AccountingPaymentReviewSummary">
+                    <label text="${paymentReview.paymentSummary?.partyName || ''} · ${paymentReview.paymentSummary?.cashDirection || ''}" type="p"/>
+                    <label text="Reviewed amount ${paymentReview.paymentSummary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.paymentSummary.amount),paymentReview.paymentSummary.currencyUomId) : 'Unavailable'} · ${paymentReview.paymentSummary?.currencyUomId || ''}" type="p"/>
+                    <label text="Payment date ${paymentReview.paymentSummary?.accountingDateText || ''} · ${paymentReview.paymentSummary?.maskedMethodLabel || ''}" type="p"/>
+                    <label text="${paymentReview.postingSummary?.effect || ''}" type="p"/>
+                </container>
+                <label text="The reviewed payment summary is unavailable. Return to the payment and prepare a new review." type="p" style="text-warning" condition="paymentReview.summaryUnavailable"/>
+                <label text="Reference ${paymentReview.referenceNumber || ''}" type="p"/>
+                <label text="Reason ${paymentReview.reason || ''}" type="p"/>
+                <label text="Review ${paymentReview.previewId} · Expires ${paymentReview.expiresDateText || ''}" type="p" style="text-caption m-muted"/>
+                <label text="${paymentReview.action || ''} · Payment ${paymentId}" type="p"/>
+                <label text="Payment date ${paymentReview.effectiveDateText || ''} · Settlement date ${paymentReview.settlementDateText || ''}" type="p" style="text-caption m-muted"/>
+                <form-list name="PaymentStateEffects" list="paymentReview.effectRows || []" skip-form="true" paginate="false">
+                    <field name="label">
+                        <default-field title="Change">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="beforeText">
+                        <default-field title="Before">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="afterText">
+                        <default-field title="After">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="label"/>
+                            <field-ref name="beforeText"/>
+                        </column>
+                        <column>
+                            <field-ref name="afterText"/>
+                        </column>
+                    </columns>
+                </form-list>
+                <section name="PaymentReviewEvidenceSection" condition="!!paymentReview.evidenceRows?.length">
+                    <widgets>
+                        <form-list name="PaymentReviewEvidence" list="paymentReview.evidenceRows || []" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <default-field title="Evidence">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="description"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentReviewApplicationsSection" condition="!!paymentReview.applicationEffects?.length">
+                    <widgets>
+                        <form-list name="PaymentReviewApplications" list="paymentReview.applicationEffects || []" skip-form="true" paginate="false">
+                            <field name="paymentApplicationId">
+                                <default-field title="Application">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceId">
+                                <default-field title="Invoice">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="toInvoiceId">
+                                <default-field title="Other invoice">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amountOriginallyApplied" align="right">
+                                <default-field title="Applied before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterAmountApplied" align="right">
+                                <default-field title="Applied after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="originalDateText">
+                                <default-field title="Original date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentApplicationId"/>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="toInvoiceId"/>
+                                    <field-ref name="originalDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amountOriginallyApplied"/>
+                                    <field-ref name="afterAmountApplied"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentReviewLedgerSection" condition="!!paymentReview.ledgerPreview?.length">
+                    <widgets>
+                        <form-list name="PaymentReviewLedger" list="paymentReview.ledgerPreview || []" skip-form="true" paginate="false">
+                            <field name="originalAcctgTransId">
+                                <default-field title="Original transaction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Posting date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="accountName">
+                                <default-field title="Account">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="debitCreditFlag">
+                                <default-field title="Side">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="originalAcctgTransId"/>
+                                    <field-ref name="accountingDateText"/>
+                                    <field-ref name="accountName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="debitCreditFlag"/>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section-iterate name="PaymentReviewBlockers" list="paymentReview.blockers || []" entry="blocker">
+                    <widgets>
+                        <label text="${blocker.message || blocker.reasonCode || blocker}" type="p" style="text-warning"/>
+                    </widgets>
+                </section-iterate>
+                <section name="PaymentReviewedBalances" condition="!!paymentReview.balanceRows?.length">
+                    <widgets>
+                        <label text="Reviewed application balances" type="h6"/>
+                        <form-list name="PaymentReviewedBalances" list="paymentReview.balanceRows || []" skip-form="true" paginate="false">
+                            <field name="sourceId">
+                                <conditional-field condition="!!recordPath" title="Document">
+                                    <link url="${sharedLinks[recordPath]}" text="${sourceId}" parameter-map="recordParameters"/>
+                                </conditional-field>
+                                <default-field title="Document">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="sourceKind">
+                                <default-field title="Kind">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="original" align="right">
+                                <default-field title="Original">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="beforeRemaining" align="right">
+                                <default-field title="Unapplied / unpaid before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterRemaining" align="right">
+                                <default-field title="Unapplied / unpaid after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="sourceId"/>
+                                    <field-ref name="sourceKind"/>
+                                </column>
+                                <column>
+                                    <field-ref name="original"/>
+                                    <field-ref name="beforeRemaining"/>
+                                    <field-ref name="afterRemaining"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentChangeConfirmation" condition="paymentReview.canConfirm &amp;&amp; paymentReview.previewKind === 'state'">
+                    <widgets>
+                        <form-single name="ConfirmPaymentState" transition="confirmPaymentState">
+                            <field name="findJson" from="findJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="paymentId" from="paymentId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewId" from="paymentReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint" from="paymentReview.inputFingerprint">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey" from="paymentReview.operationKey">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="reviewed">
+                                <default-field title="">
+                                    <check>
+                                        <option key="Y" text="I reviewed the payment, evidence, application and posting effects"/>
+                                    </check>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <conditional-field condition="paymentReview.previewKind === 'unapply' || ['cancel','void'].includes(paymentReview.action)" title="">
+                                    <submit text="Confirm payment change" type="danger" confirmation="Confirm ${paymentReview.action || 'application correction'} for payment ${paymentId}?"/>
+                                </conditional-field>
+                                <default-field title="">
+                                    <submit text="Confirm payment change" confirmation="Confirm ${paymentReview.action || 'change'} for payment ${paymentId}?"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <section name="PaymentUnapplyConfirmation" condition="paymentReview.canConfirm &amp;&amp; paymentReview.previewKind === 'unapply'">
+                    <widgets>
+                        <form-single name="ConfirmPaymentUnapply" transition="confirmPaymentUnapply">
+                            <field name="findJson" from="findJson">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="organizationPartyId" from="organizationPartyId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="paymentId" from="paymentId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="previewId" from="paymentReview.previewId">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="inputFingerprint" from="paymentReview.inputFingerprint">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="operationKey" from="paymentReview.operationKey">
+                                <default-field title="">
+                                    <hidden/>
+                                </default-field>
+                            </field>
+                            <field name="reviewed">
+                                <default-field title="">
+                                    <check>
+                                        <option key="Y" text="I reviewed the payment, evidence, application and posting effects"/>
+                                    </check>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <conditional-field condition="paymentReview.previewKind === 'unapply' || ['cancel','void'].includes(paymentReview.action)" title="">
+                                    <submit text="Confirm application correction" type="danger" confirmation="Confirm ${paymentReview.action || 'application correction'} for payment ${paymentId}?"/>
+                                </conditional-field>
+                                <default-field title="">
+                                    <submit text="Confirm application correction" confirmation="Confirm ${paymentReview.action || 'change'} for payment ${paymentId}?"/>
+                                </default-field>
+                            </field>
+                        </form-single>
+                    </widgets>
+                </section>
+                <label text="Completed results" type="h6" condition="!!paymentReview.results.paymentId"/>
+                <label text="${paymentReview.resultsTitle}" type="p" style="text-positive" condition="!!paymentReview.results.paymentId"/>
+                <section name="PaymentChangeResultsSection" condition="!!paymentReview.resultRows?.length">
+                    <widgets>
+                        <form-list name="PaymentChangeResults" list="paymentReview.resultRows || []" skip-form="true" paginate="false">
+                            <field name="label">
+                                <default-field title="Result">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="value">
+                                <default-field title="Value">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="label"/>
+                                </column>
+                                <column>
+                                    <field-ref name="value"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentActualApplications" condition="!!paymentReview.applicationResultRows?.length">
+                    <widgets>
+                        <label text="Completed application results" type="h6"/>
+                        <form-list name="PaymentActualApplicationResults" list="paymentReview.applicationResultRows || []" skip-form="true" paginate="false">
+                            <field name="paymentApplicationId">
+                                <default-field title="Application">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amountOriginallyApplied" align="right">
+                                <default-field title="Applied before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="amountApplied" align="right">
+                                <default-field title="Applied after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentApplicationId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amountOriginallyApplied"/>
+                                    <field-ref name="amountApplied"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentActualPostings" condition="!!paymentReview.postingResultRows?.length">
+                    <widgets>
+                        <label text="Posted transactions" type="h6"/>
+                        <label text="These entries record the completed change. Their details show any reversal or replacement links." type="p" style="text-caption m-muted"/>
+                        <form-list name="PaymentActualPostingResults" list="paymentReview.postingResultRows || []" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <conditional-field condition="canOpen" title="Posted transaction">
+                                    <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,acctgTransId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                                </conditional-field>
+                                <default-field title="Posted transaction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="action">
+                                <default-field title="Recorded action">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="acctgTransId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="action"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentActualOutputs" condition="!!paymentReview.outputResultRows?.length">
+                    <widgets>
+                        <label text="Issued files" type="h6"/>
+                        <form-list name="PaymentActualOutputResults" list="paymentReview.outputResultRows || []" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <conditional-field condition="canOpen &amp;&amp; !!outputId" title="Issued file">
+                                    <link url="${sharedLinks['Payments/PaymentPrint']}" text="${fileName || outputId}" parameter-map="outputParameters"/>
+                                </conditional-field>
+                                <default-field title="Issued file">
+                                    <display text="${fileName || outputId || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="outputType">
+                                <default-field title="Document">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="outputType"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <link url="confirmPaymentState" text="Check saved payment result" link-type="hidden-form" parameter-map="paymentReview.confirmParameters" condition="!!paymentReview.results.paymentId &amp;&amp; paymentReview.previewKind === 'state'"/>
+                <link url="confirmPaymentUnapply" text="Check saved correction result" link-type="hidden-form" parameter-map="paymentReview.confirmParameters" condition="!!paymentReview.results.paymentId &amp;&amp; paymentReview.previewKind === 'unapply'"/>
+                <label text="This review cannot be confirmed. Return to the payment to prepare a current review." type="p" style="m-muted" condition="!paymentReview.canConfirm &amp;&amp; !paymentReview.results.paymentId &amp;&amp; !paymentReview.summaryUnavailable"/>
+                <link url="." text="Back to payment" parameter-map="financePayment.baseParameters"/>
+            </widgets>
+        </section>
+        <section name="PaymentUnavailable" condition="!recordFound">
+            <widgets>
+                <label text="Payment not available" type="h5"/>
+                <link url="${sharedLinks['Payments/Payments']}" text="Back to payments"/>
+            </widgets>
+        </section>
+        <section name="PaymentDetailTabs" condition="recordFound &amp;&amp; !financePayment.hasReview">
+            <widgets>
+                <subscreens-panel id="PaymentDetailTabs" type="tab"/>
+            </widgets>
+        </section>
+        <section name="PaymentPrivateSections" condition="false">
+            <widgets>
+                <section name="PaymentOverviewContent" condition="recordFound">
+                    <widgets>
+                        <label text="Payment overview" type="h6"/>
+                        <link url="${sharedLinks['Payments/PaymentDetail']}" text="Original payment ${financePayment.refundForPaymentId}" parameter-map="{recordId:financePayment.refundForPaymentId,paymentId:financePayment.refundForPaymentId,previewId:'',previewKind:'',organizationPartyId:organizationPartyId}" condition="!!financePayment.refundForPaymentId"/>
+                        <form-single name="PaymentSummary" map="financePayment">
+                            <field name="partyName">
+                                <default-field title="Counterparty">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="cashDirection">
+                                <default-field title="Cash direction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="financeDirection">
+                                <default-field title="Financial side">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="currencyUomId">
+                                <default-field title="Currency">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Payment date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="settlementDateText">
+                                <default-field title="Settlement date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="paymentInstrumentDescription">
+                                <default-field title="Instrument">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="appliedTotal">
+                                <default-field title="Applied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unappliedTotal">
+                                <default-field title="Unapplied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="referenceNumber">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="comments">
+                                <default-field title="Comments">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row>
+                                    <field-ref name="partyName"/>
+                                    <field-ref name="cashDirection"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="financeDirection"/>
+                                    <field-ref name="amount"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="currencyUomId"/>
+                                    <field-ref name="accountingDateText"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="settlementDateText"/>
+                                    <field-ref name="paymentInstrumentDescription"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="appliedTotal"/>
+                                    <field-ref name="unappliedTotal"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="referenceNumber"/>
+                                    <field-ref name="comments"/>
+                                </field-row>
+                            </field-layout>
+                        </form-single>
+                        <form-list name="PaymentMaskedMethods" list="financePayment.maskedMethodRows || []" skip-form="true" paginate="false">
+                            <field name="description">
+                                <default-field title="Payment method">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="maskedNumber">
+                                <default-field title="Identity">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="typeDescription">
+                                <default-field title="Type">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="description"/>
+                                    <field-ref name="typeDescription"/>
+                                </column>
+                                <column>
+                                    <field-ref name="maskedNumber"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <form-list name="PaymentSourceRows" list="financePayment.sourceRows || []" skip-form="true" paginate="false">
+                            <field name="sourceKind">
+                                <default-field title="Source">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="sourceId">
+                                <default-field title="Record">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="sourceKind"/>
+                                    <field-ref name="sourceId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="description"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </widgets>
+                </section>
+                <section name="PaymentApplicationsContent" condition="recordFound">
+                    <widgets>
+                        <label text="Applications and open items" type="h6"/>
+                        <form-list name="PaymentApplications" list="financePayment.applicationRows || []" skip-form="true" paginate="false">
+                            <field name="paymentApplicationId">
+                                <default-field title="Application">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceId">
+                                <conditional-field condition="!!invoiceId" title="Invoice">
+                                    <link url="${sharedLinks[financePayment.financeDirection === 'payable' ? 'Payables/BillDetail' : 'Receivables/InvoiceDetail']}" text="${invoiceId || ''}" parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId,invoiceId:invoiceId}"/>
+                                </conditional-field>
+                                <default-field title="Invoice">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="relatedPaymentId">
+                                <conditional-field condition="!!relatedPaymentId" title="Payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${relatedPaymentId || ''}" parameter-map="{recordId:relatedPaymentId,organizationPartyId:organizationPartyId,paymentId:relatedPaymentId,previewId:'',previewKind:''}"/>
+                                </conditional-field>
+                                <default-field title="Payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amountApplied" align="right">
+                                <default-field title="Applied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="appliedDateText">
+                                <default-field title="Application date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentApplicationId"/>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="relatedPaymentId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amountApplied"/>
+                                    <field-ref name="appliedDateText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="There are no applications for this payment." type="p" style="m-muted" condition="!financePayment.applicationRows.length"/>
+                        <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}" text="Review allocations" parameter-map="financePayment.settlementParameters" condition="financePayment.canSettle"/>
+                        <label text="Application corrections require a reviewed selection and permission for the receivable or payable." type="p" style="text-caption m-muted"/>
+                        <container-dialog id="ReleasePaymentApplications" button-text="Release applications" title="Release selected applications for ${paymentId}" width="760" condition="financePayment.capabilities.canUnapply">
+                            <form-single name="ReviewPaymentUnapply" transition="previewPaymentUnapply">
+                                <field name="findJson" from="findJson">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="organizationPartyId" from="organizationPartyId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="paymentId" from="paymentId">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="sourceVersion" from="financePayment.sourceVersion">
+                                    <default-field title="">
+                                        <hidden/>
+                                    </default-field>
+                                </field>
+                                <field name="applicationTokenList">
+                                    <default-field title="Applications to release">
+                                        <drop-down allow-empty="true" allow-multiple="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedPaymentApplications',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewPaymentUnapply' ? ec.web.errorParameters.applicationTokenList : context.applicationTokenList) || null,paymentId:paymentId}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="reason">
+                                    <default-field title="Reason">
+                                        <text-area rows="3"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Review application correction"/>
+                                    </default-field>
+                                </field>
+                                <field-layout>
+                                    <field-row>
+                                        <field-ref name="organizationPartyId"/>
+                                        <field-ref name="paymentId"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="sourceVersion"/>
+                                        <field-ref name="applicationTokenList"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="reason"/>
+                                        <field-ref name="submit"/>
+                                    </field-row>
+                                </field-layout>
+                            </form-single>
+                            <label text="Only selected applications are released. Review the original dates and ledger reversals before confirming." type="p" style="text-caption m-muted"/>
+                        </container-dialog>
+                    </widgets>
+                </section>
+                <section name="PaymentGatewayContent" condition="recordFound">
+                    <widgets>
+                        <label text="Gateway evidence" type="h6"/>
+                        <form-list name="PaymentGatewayEvidence" list="financePayment.gatewayRows || []" skip-form="true" paginate="false">
+                            <field name="paymentGatewayResponseId">
+                                <default-field title="Attempt">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="paymentOperationEnumId">
+                                <default-field title="Operation">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="referenceNum">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="responseCode">
+                                <default-field title="Code">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reasonCode">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="transactionDateText">
+                                <default-field title="Time">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="gatewayOutcome">
+                                <default-field title="Outcome">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentGatewayResponseId"/>
+                                    <field-ref name="paymentOperationEnumId"/>
+                                    <field-ref name="transactionDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="gatewayOutcome"/>
+                                    <field-ref name="responseCode"/>
+                                    <field-ref name="reasonCode"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No gateway evidence is available for this payment." type="p" condition="!financePayment.gatewayRows.length"/>
+                        <label text="Gateway processing is unavailable here. Recorded provider evidence is read only." type="p" style="m-muted"/>
+                    </widgets>
+                </section>
+                <section name="PaymentRefundsContent" condition="recordFound">
+                    <widgets>
+                        <label text="Linked refunds" type="h6"/>
+                        <form-list name="PaymentRefunds" list="financePayment.refundRows || []" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <conditional-field condition="!!paymentId" title="Refund payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId || ''}" parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId,paymentId:paymentId,previewId:'',previewKind:''}"/>
+                                </conditional-field>
+                                <default-field title="Refund payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="statusDescription">
+                                <default-field title="Status">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="accountingDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="statusDescription"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No linked refunds are available." type="p" condition="!financePayment.refundRows.length"/>
+                        <label text="Refund creation is unavailable here." type="p" style="m-muted"/>
+                    </widgets>
+                </section>
+                <section name="PaymentGeneralLedgerContent" condition="recordFound">
+                    <widgets>
+                        <label text="Payment ledger" type="h6"/>
+                        <form-list name="PaymentLedger" list="financePayment.ledgerRows || []" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <conditional-field condition="!!acctgTransId" title="Transaction">
+                                    <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId || ''}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                                </conditional-field>
+                                <default-field title="Transaction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="acctgTransTypeEnumId">
+                                <default-field title="Type">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="transactionDateText">
+                                <default-field title="Date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="isPosted">
+                                <default-field title="Posted">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reverseOfAcctgTransId">
+                                <default-field title="Reverses">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reversedByAcctgTransId">
+                                <default-field title="Reversed by">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="acctgTransId"/>
+                                    <field-ref name="acctgTransTypeEnumId"/>
+                                    <field-ref name="transactionDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="isPosted"/>
+                                    <field-ref name="reverseOfAcctgTransId"/>
+                                    <field-ref name="reversedByAcctgTransId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No payment ledger entries are available." type="p" condition="financePayment.canReadLedger &amp;&amp; !financePayment.ledgerRows.length"/>
+                        <label text="Ledger details require accounting report authority." type="p" condition="!financePayment.canReadLedger"/>
+                    </widgets>
+                </section>
+                <section name="PaymentFilesContent" condition="recordFound">
+                    <widgets>
+                        <label text="Payment files and issued documents" type="h6"/>
+                        <form-list name="PaymentFiles" list="financePayment.contentRows || []" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <default-field title="File">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="contentTypeEnumId">
+                                <default-field title="Type">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="contentDateText">
+                                <default-field title="Added">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                    <field-ref name="description"/>
+                                </column>
+                                <column>
+                                    <field-ref name="contentTypeEnumId"/>
+                                    <field-ref name="contentDateText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <record-files id="AccountingPaymentFiles" record-entity="mantle.account.payment.Payment" record-id="${paymentId}" condition="financePayment.capabilities.canReadFiles"/>
+                        <label text="No payment files are available." type="p" condition="!financePayment.contentRows.length"/>
+                    </widgets>
+                </section>
+                <section name="PaymentHistoryContent" condition="recordFound">
+                    <widgets>
+                        <label text="Payment history" type="h6"/>
+                        <form-list name="PaymentHistory" list="financePayment.historyRows || []" skip-form="true" paginate="false">
+                            <field name="createdDateText">
+                                <default-field title="Time">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="action">
+                                <default-field title="Change">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeStatusId">
+                                <default-field title="Before">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="afterStatusId">
+                                <default-field title="After">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="userId">
+                                <default-field title="User">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="createdDateText"/>
+                                    <field-ref name="action"/>
+                                    <field-ref name="beforeStatusId"/>
+                                    <field-ref name="afterStatusId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="userId"/>
+                                    <field-ref name="reason"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No recorded payment changes are available." type="p" condition="!financePayment.historyRows.length"/>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
     </widgets>
 </screen>

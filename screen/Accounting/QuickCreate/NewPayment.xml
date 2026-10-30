@@ -12,18 +12,15 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- A new draft payment, from quick create or the list (template/AccountingDocuments.xml DraftDocument). -->
+<!-- Quick create uses the same native reviewed draft form as the payment list. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="New payment" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
-    <transition-include name="createDraft" location="component://mr-boss/template/AccountingDocuments.xml"/>
+    <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
+    <transition-include name="createPaymentDraft" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
     <actions>
-        <set field="documentKind" value="payments"/>
-        <set field="documentLabel" value="payment"/>
-        <set field="counterpartyTitle" value="Counterparty"/>
-        <set field="askAmount" from="true"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentListContext" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <section-include name="DraftDocument" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="PaymentDraftEditorContent" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
     </widgets>
 </screen>

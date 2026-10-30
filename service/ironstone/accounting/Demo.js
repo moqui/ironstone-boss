@@ -427,6 +427,214 @@ function settlementDocuments(currency) {
     }
 }
 
+function paymentDocuments(currency) {
+    const partyId = "BOSS_ACCT_PAY_CUSTOMER",
+        methodId = "BOSS_ACCT_PAY_CASH",
+        bankMethodId = "BOSS_ACCT_PAY_BANK",
+        native = "mantle.account.PaymentServices.",
+        day = ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
+        at = ec.user.nowTimestamp
+    createOnce("mantle.party.Party", {partyId}, {partyTypeEnumId: "PtyOrganization"})
+    createOnce("mantle.party.Organization", {partyId}, {organizationName: "Payment customer"})
+    createOnce("mantle.party.PartyRole", {partyId, roleTypeId: "Customer"}, {})
+    const [, glAccountId] = entryAccounts()
+    createOnce(
+        "mantle.account.method.PaymentMethod",
+        {paymentMethodId: methodId},
+        {
+            paymentMethodTypeEnumId: "PmtOther",
+            ownerPartyId: organizationPartyId,
+            currencyUomId: currency,
+            fromDate: "1970-01-01T00:00:00Z",
+            description: "Accounting payment cash",
+            glAccountId
+        }
+    )
+    createOnce(
+        "mantle.account.method.PaymentMethod",
+        {paymentMethodId: bankMethodId},
+        {
+            paymentMethodTypeEnumId: "PmtBankAccount",
+            ownerPartyId: organizationPartyId,
+            currencyUomId: currency,
+            fromDate: "1970-01-01T00:00:00Z",
+            description: "Accounting demonstration bank",
+            glAccountId
+        }
+    )
+    createOnce(
+        "mantle.account.method.BankAccount",
+        {paymentMethodId: bankMethodId},
+        {
+            bankName: "Demonstration bank",
+            typeEnumId: "BatChecking",
+            routingNumber: "000000000",
+            accountNumber: "000123456789",
+            lastCheckNumber: 100
+        }
+    )
+    const key = (action, id) => "demo-pay-" + action + "-" + policy.hash(id).slice(0, 20)
+    for (const [paymentId, amount, deliver, outgoing, validate] of [
+        ["BOSS_ACCT_PAY_DRAFT", "35", false],
+        ["BOSS_ACCT_PAY_VALIDATED", "40", false, false, true],
+        ["BOSS_ACCT_PAY_EVIDENCE_DRAFT", "45", false],
+        ["BOSS_ACCT_PAY_DELIVERED", "55", true],
+        ["BOSS_ACCT_PAY_APPLIED", "65", true],
+        ["BOSS_ACCT_PAY_CHECK", "75", true, true]
+    ]) {
+        const selectedMethodId = outgoing ? bankMethodId : methodId,
+            instrument = outgoing ? "PiCompanyCheck" : "PiCash"
+        // Fixed fixture IDs start as ordinary drafts, then the native workflow explicitly adopts them.
+        // No caller can set the managed provenance through a generic entity writer.
+        createOnce(
+            "mantle.account.payment.Payment",
+            {paymentId},
+            {
+                paymentTypeEnumId: "PtInvoicePayment",
+                paymentInstrumentEnumId: instrument,
+                statusId: "PmntProposed",
+                fromPartyId: outgoing ? organizationPartyId : partyId,
+                toPartyId: outgoing ? partyId : organizationPartyId,
+                paymentMethodId: outgoing ? selectedMethodId : null,
+                toPaymentMethodId: outgoing ? null : selectedMethodId,
+                amount,
+                amountUomId: currency,
+                effectiveDate: at,
+                comments: "Payment customer receipt"
+            }
+        )
+        let detail = policy.call(native + "get#PaymentFinanceDetail", {organizationPartyId, paymentId})
+        const row = policy.one("mantle.account.payment.Payment", {paymentId})
+        if (row.lifecycleManaged !== "Y") {
+            const method = policy
+                .call(native + "find#PaymentMethods", {
+                    organizationPartyId,
+                    methodRole: "organization",
+                    currencyUomId: currency,
+                    effectiveDate: at,
+                    selectedPaymentMethodIdList: [selectedMethodId],
+                    pageSize: 1
+                })
+                .selectedRows.find(row => row.paymentMethodId === selectedMethodId)
+            if (!method) throw new Error("The payment demo cash method is unavailable")
+            policy.call(native + "store#PaymentDraft", {
+                organizationPartyId,
+                paymentId,
+                sourceVersion: detail.sourceVersion,
+                cashDirection: outgoing ? "outgoing" : "incoming",
+                partyId,
+                amount,
+                currencyUomId: currency,
+                effectiveDate: day,
+                paymentInstrumentEnumId: instrument,
+                organizationPaymentMethodId: selectedMethodId,
+                organizationMethodVersion: method.version,
+                referenceNumber: paymentId,
+                comments: "Payment customer receipt",
+                operationKey: key("adopt", paymentId)
+            })
+            detail = policy.call(native + "get#PaymentFinanceDetail", {organizationPartyId, paymentId})
+        }
+        if (
+            (deliver || validate) &&
+            ["PmntProposed", "PmntPromised"].includes(detail.payment.statusId) &&
+            (deliver || detail.payment.statusId === "PmntProposed")
+        ) {
+            const preview = policy.call(native + "preview#PaymentState", {
+                organizationPartyId,
+                paymentId,
+                sourceVersion: detail.sourceVersion,
+                action: deliver ? "deliver" : "validate",
+                referenceNumber: paymentId,
+                reason: "Demonstration payment verified",
+                settlementDate: day
+            })
+            policy.call(native + "change#PaymentState", {
+                previewId: preview.previewId,
+                inputFingerprint: preview.inputFingerprint,
+                operationKey: key(deliver ? "deliver" : "validate", paymentId)
+            })
+        }
+    }
+    const evidenceId = "BOSS_ACCT_PAY_EVIDENCE",
+        evidencePaymentId = "BOSS_ACCT_PAY_EVIDENCE_DRAFT",
+        location = "dbresource://mantle/content/payment/" + evidencePaymentId + "/content_" + evidenceId + "/Receipt.txt"
+    if (!policy.one("mantle.account.payment.PaymentContent", {paymentContentId: evidenceId})) {
+        ec.resource.getLocationReference(location).putText("Payment customer receipt: demonstration supporting evidence.\n")
+        createOnce(
+            "mantle.account.payment.PaymentContent",
+            {paymentContentId: evidenceId},
+            {
+                paymentId: evidencePaymentId,
+                contentLocation: location,
+                contentDate: at,
+                userId: ec.user.userId,
+                description: "Receipt identity and amount"
+            }
+        )
+    }
+    const invoiceId = "BOSS_ACCT_PAY_INVOICE",
+        paymentId = "BOSS_ACCT_PAY_APPLIED"
+    if (!policy.one("mantle.account.invoice.Invoice", {invoiceId})) {
+        policy.call("create#mantle.account.invoice.Invoice", {
+            invoiceId,
+            invoiceTypeEnumId: "InvoiceSales",
+            fromPartyId: organizationPartyId,
+            toPartyId: partyId,
+            financeOrganizationPartyId: organizationPartyId,
+            financeDirection: "receivable",
+            draftedByUserId: ec.user.userId,
+            statusId: "InvoiceInProcess",
+            invoiceDate: at,
+            accountingDate: day,
+            currencyUomId: currency,
+            description: "Payment application example"
+        })
+        policy.call("mantle.account.InvoiceServices.create#InvoiceItem", {
+            invoiceId,
+            quantity: "1",
+            amount: "100",
+            itemTypeEnumId: "ItemTimeEntry",
+            description: "Payment application example"
+        })
+        policy.call("mantle.account.InvoiceServices.change#InvoiceState", {
+            invoiceId,
+            organizationPartyId,
+            action: "finalize",
+            lastUpdatedStamp: policy.one("mantle.account.invoice.Invoice", {invoiceId}).lastUpdatedStamp,
+            operationKey: key("invoice", invoiceId)
+        })
+    }
+    if (!policy.find("mantle.account.payment.PaymentApplication", {paymentId, invoiceId}).count()) {
+        const sourceKey = "payment:" + paymentId,
+            targetKey = "invoice:" + invoiceId,
+            open = policy.call(native + "find#OpenItems", {
+                organizationPartyId,
+                partyId,
+                direction: "receivable",
+                currencyUomId: currency,
+                selectedKeyList: [sourceKey, targetKey],
+                pageSize: 1
+            }),
+            versions = Object.fromEntries(Array.from(open.selectedRows || []).map(row => [row.sourceKey, row.version]))
+        const preview = policy.call(native + "preview#Settlement", {
+            organizationPartyId,
+            partyId,
+            direction: "receivable",
+            currencyUomId: currency,
+            effectiveDate: day,
+            allocations: [{sourceKey, targetKey, amount: "25"}],
+            adjustments: [],
+            sourceVersions: versions
+        })
+        policy.call(native + "apply#Settlement", {
+            previewId: preview.previewId,
+            inputFingerprint: preview.inputFingerprint,
+            operationKey: key("apply", paymentId)
+        })
+    }
+}
+
 function load() {
     if (ec.user.userId && !policy.capabilities().systemAdmin) throw new Error("Demo loading requires system administration")
     const loggedIn = !!ec.user.username
@@ -442,6 +650,7 @@ function load() {
         approvedWork()
         storeReceivable(currency)
         settlementDocuments(currency)
+        paymentDocuments(currency)
         return {complete: true}
     } finally {
         if (!authzDisabled) ec.artifactExecution.enableAuthz()

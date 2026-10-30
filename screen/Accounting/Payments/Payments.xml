@@ -12,23 +12,346 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- The payments of the organization (template/AccountingDocuments.xml DocumentList). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payments" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Payments" default-menu-index="1">
     <parameter name="organizationPartyId"/>
+    <parameter name="queue"/>
+    <parameter name="partyId"/>
+    <parameter name="paymentInstrumentEnumId"/>
+    <parameter name="statusId"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="fromDay"/>
+    <parameter name="throughDay"/>
     <parameter name="text"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
-    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="choices" read-only="true">
+        <actions>
+            <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
+            <script>ec.web.sendJsonResponse(found.options)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="createPaymentDraft">
+        <actions>
+            <script>draftInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').draftInput(context)</script>
+            <service-call name="mantle.account.PaymentServices.create#PaymentDraft" in-map="draftInput" out-map="createdPayment"/>
+            <set field="recordId" from="createdPayment.paymentId"/>
+            <set field="paymentId" from="createdPayment.paymentId"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}">
+            <parameter name="recordId"/>
+            <parameter name="organizationPartyId"/>
+        </default-response>
+        <error-response url="."/>
+    </transition>
     <actions>
-        <set field="documentKind" value="payments"/>
-        <set field="documentLabel" value="payment"/>
-        <set field="listTitle" value="Payments"/>
-        <set field="detailPath" value="Payments/PaymentDetail"/>
-        <set field="newPath" value="QuickCreate/NewPayment"/>
-        <set field="canCreate" from="!!accounting.capabilities.paymentEdit"/>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:documentKind,organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentListContext" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <section-include name="DocumentList" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <container style="row items-center q-col-gutter-sm">
+            <container style="col-12 col-sm">
+                <label text="Payments" type="h5"/>
+                <label text="Receipts, disbursements and their application balances." type="p" style="m-muted"/>
+            </container>
+            <container style="col-12 col-sm-auto">
+                <section name="NewPaymentDialog" condition="paymentList.canCreate">
+                    <widgets>
+                        <container-dialog id="AccountingNewPaymentDialog" button-text="New payment" title="New payment" width="760" type="primary">
+                            <section name="PaymentDraftEditorContent">
+                                <widgets>
+                                    <form-single name="NewAccountingPayment" transition="createPaymentDraft" map="newPaymentValue">
+                                        <field name="organizationPartyId" from="organizationPartyId">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="operationKey">
+                                            <default-field title="">
+                                                <hidden/>
+                                            </default-field>
+                                        </field>
+                                        <field name="cashDirection">
+                                            <default-field title="Cash direction">
+                                                <drop-down>
+                                                    <option key="incoming" text="Incoming receipt"/>
+                                                    <option key="outgoing" text="Outgoing payment"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="partyId">
+                                            <default-field title="Counterparty">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentParties',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'NewAccountingPayment' ? ec.web.errorParameters.partyId : newPaymentValue.partyId) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="amount">
+                                            <default-field title="Amount">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="currencyUomId">
+                                            <default-field title="Currency">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'NewAccountingPayment' ? ec.web.errorParameters.currencyUomId : newPaymentValue.currencyUomId) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="effectiveDate">
+                                            <default-field title="Payment date">
+                                                <date-time type="date"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="paymentInstrumentEnumId">
+                                            <default-field title="Instrument">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentDraftInstruments',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'NewAccountingPayment' ? ec.web.errorParameters.paymentInstrumentEnumId : newPaymentValue.paymentInstrumentEnumId) || null}"/>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="organizationMethodToken">
+                                            <default-field title="Organization method">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedOrganizationPaymentMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'NewAccountingPayment' ? ec.web.errorParameters.organizationMethodToken : newPaymentValue.organizationMethodToken) || null}">
+                                                        <depends-on field="cashDirection"/>
+                                                        <depends-on field="partyId"/>
+                                                        <depends-on field="currencyUomId"/>
+                                                        <depends-on field="effectiveDate"/>
+                                                    </dynamic-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="counterpartyMethodToken">
+                                            <default-field title="Counterparty method (optional)">
+                                                <drop-down allow-empty="true">
+                                                    <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'reviewedCounterpartyPaymentMethods',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'NewAccountingPayment' ? ec.web.errorParameters.counterpartyMethodToken : newPaymentValue.counterpartyMethodToken) || null}">
+                                                        <depends-on field="cashDirection"/>
+                                                        <depends-on field="partyId"/>
+                                                        <depends-on field="currencyUomId"/>
+                                                        <depends-on field="effectiveDate"/>
+                                                    </dynamic-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="referenceNumber">
+                                            <default-field title="Reference">
+                                                <text-line/>
+                                            </default-field>
+                                        </field>
+                                        <field name="comments">
+                                            <default-field title="Comments">
+                                                <text-area rows="3"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="submit">
+                                            <default-field title="">
+                                                <submit text="Create payment"/>
+                                            </default-field>
+                                        </field>
+                                        <field-layout>
+                                            <field-row>
+                                                <field-ref name="organizationPartyId"/>
+                                                <field-ref name="operationKey"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="cashDirection"/>
+                                                <field-ref name="partyId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="amount"/>
+                                                <field-ref name="currencyUomId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="effectiveDate"/>
+                                                <field-ref name="paymentInstrumentEnumId"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="organizationMethodToken"/>
+                                                <field-ref name="counterpartyMethodToken"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="referenceNumber"/>
+                                                <field-ref name="comments"/>
+                                            </field-row>
+                                            <field-row>
+                                                <field-ref name="submit"/>
+                                            </field-row>
+                                        </field-layout>
+                                    </form-single>
+                                </widgets>
+                            </section>
+                        </container-dialog>
+                    </widgets>
+                </section>
+            </container>
+        </container>
+        <section name="PaymentListReady" condition="paymentList.ready">
+            <widgets>
+                <container style="row q-gutter-xs q-mb-md">
+                    <section-iterate name="PaymentQueues" list="paymentList.queues || []" entry="paymentQueue">
+                        <widgets>
+                            <link url="." text="${paymentQueue.title}" parameter-map="paymentQueue.parameters"/>
+                        </widgets>
+                    </section-iterate>
+                </container>
+                <form-single name="PaymentFind" transition="." map="context">
+                    <field name="organizationPartyId" from="organizationPartyId">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="queue" from="queue">
+                        <default-field title="">
+                            <hidden/>
+                        </default-field>
+                    </field>
+                    <field name="partyId">
+                        <default-field title="Counterparty">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentParties',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'PaymentFind' ? ec.web.errorParameters.partyId : context.partyId) || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="paymentInstrumentEnumId">
+                        <default-field title="Instrument">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentInstruments',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'PaymentFind' ? ec.web.errorParameters.paymentInstrumentEnumId : context.paymentInstrumentEnumId) || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="statusId">
+                        <default-field title="Status">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'paymentStatuses',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'PaymentFind' ? ec.web.errorParameters.statusId : context.statusId) || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices" server-search="true" min-length="0" depends-optional="true" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:(ec.web.errorParameters.moquiFormName === 'PaymentFind' ? ec.web.errorParameters.currencyUomId : context.currencyUomId) || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="fromDay">
+                        <default-field title="From date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="throughDay">
+                        <default-field title="Through date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="text">
+                        <default-field title="Search">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Find payments"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-row>
+                            <field-ref name="organizationPartyId"/>
+                            <field-ref name="queue"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="partyId"/>
+                            <field-ref name="paymentInstrumentEnumId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="statusId"/>
+                            <field-ref name="currencyUomId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="fromDay"/>
+                            <field-ref name="throughDay"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="text"/>
+                            <field-ref name="submit"/>
+                        </field-row>
+                    </field-layout>
+                </form-single>
+                <label text="Payment entry is not enabled for this organization. A finance administrator can enable it in Accounting preferences." type="p" style="text-warning" condition="paymentList.guardDisabled"/>
+                <label text="Some payment information is unavailable. Adjust the filters or try again." type="p" style="text-warning" condition="!paymentList.available || paymentList.incomplete"/>
+                <form-list name="Payments" list="records" skip-form="true" paginate="true">
+                    <field name="paymentId">
+                        <default-field title="Payment">
+                            <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="Object.assign({},paymentList.detailParameters,{recordId:paymentId})"/>
+                        </default-field>
+                    </field>
+                    <field name="partyName">
+                        <default-field title="Counterparty">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="cashDirection">
+                        <default-field title="Direction">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="accountingDateText">
+                        <default-field title="Date">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="paymentInstrumentDescription">
+                        <default-field title="Instrument">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="amount" align="right">
+                        <default-field title="Amount">
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="appliedTotal" align="right">
+                        <default-field title="Applied">
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="unappliedTotal" align="right">
+                        <default-field title="Unapplied">
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <field name="statusDescription">
+                        <default-field title="Status">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <field name="referenceNumber">
+                        <default-field title="Reference">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="paymentId"/>
+                            <field-ref name="partyName"/>
+                            <field-ref name="accountingDateText"/>
+                        </column>
+                        <column>
+                            <field-ref name="amount"/>
+                            <field-ref name="currencyUomId"/>
+                            <field-ref name="unappliedTotal"/>
+                            <field-ref name="statusDescription"/>
+                        </column>
+                    </columns>
+                </form-list>
+            </widgets>
+        </section>
+        <label text="Choose an organization to review payments." type="p" condition="!paymentList.ready"/>
     </widgets>
 </screen>

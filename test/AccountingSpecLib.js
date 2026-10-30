@@ -8,7 +8,10 @@ const ids = {
     settlementPartyId: "BOSS_ACCT_STL_CUSTOMER",
     settlementInvoiceId: "BOSS_ACCT_STL_INV100",
     settlementPaymentId: "BOSS_ACCT_STL_RECEIPT60",
-    settlementCreditId: "BOSS_ACCT_STL_CREDIT25"
+    settlementCreditId: "BOSS_ACCT_STL_CREDIT25",
+    paymentPartyId: "BOSS_ACCT_PAY_CUSTOMER",
+    paymentDraftId: "BOSS_ACCT_PAY_DRAFT",
+    paymentDeliveredId: "BOSS_ACCT_PAY_DELIVERED"
 }
 
 function selectOrganization(organizationPartyId) {
@@ -70,7 +73,9 @@ function page(path, parameters = {}, mode = "qvt") {
         Object.assign(
             {
                 organizationPartyId: ids.organizationPartyId,
-                lastStandalone: /^Receivables\/(?:InvoiceDetail|Customer360)\//.test(path) ? "true" : "-2"
+                lastStandalone: /^(?:Receivables\/(?:InvoiceDetail|Customer360)|Payments\/PaymentDetail)\//.test(path)
+                    ? "true"
+                    : "-2"
             },
             parameters
         ),
@@ -105,6 +110,15 @@ const customerTabs = [
     ["Agreements", "Agreements"],
     ["FinanceDetails", "Finance details"],
     ["Files", "Files"]
+]
+const paymentTabs = [
+    ["Overview", "Payment overview"],
+    ["Applications", "Applications and open items"],
+    ["Gateway", "Gateway evidence"],
+    ["Refunds", "Linked refunds"],
+    ["GeneralLedger", "Payment ledger"],
+    ["Files", "Payment files and issued documents"],
+    ["History", "Payment history"]
 ]
 
 // A real snapshot owned by the current test user, rather than a successful render of the empty print route.
@@ -156,7 +170,25 @@ function routeFixtures() {
         ["Settings/DocumentSettings", "Document settings"],
         ["Receivables/InvoiceDetail", "Accounting demo customer invoice", {recordId: ids.invoiceId}],
         ["Payables/BillDetail", "Accounting demo supplier bill", {recordId: "BOSS_ACCT_BILL"}],
-        ["Payments/PaymentDetail", "Accounting demo proposed payment", {recordId: "BOSS_ACCT_PAYMENT"}],
+        ["Payments/PaymentDetail", "Payment customer", {recordId: ids.paymentDraftId}],
+        ["Payments/GatewayTransactions", "Gateway transactions", {paymentId: ids.paymentDeliveredId}],
+        ["Payments/PaymentPrint", "Payment document", {paymentId: ids.paymentDeliveredId, outputType: "receipt"}],
+        ["QuickCreate/NewPayment", "Create payment"],
+        ...paymentTabs.map(([tab, text]) => [
+            "Payments/PaymentDetail/" + tab,
+            text,
+            {
+                recordId:
+                    tab === "Applications"
+                        ? "BOSS_ACCT_PAY_APPLIED"
+                        : tab === "GeneralLedger"
+                          ? ids.paymentDeliveredId
+                          : tab === "Files"
+                            ? "BOSS_ACCT_PAY_CHECK"
+                            : ids.paymentDraftId,
+                lastStandalone: "true"
+            }
+        ]),
         ["GeneralLedger/JournalEntryDetail", "Office expense review", {recordId: "BOSS_ACCT_ENTRY"}],
         ["GeneralLedger/AccountDetail", "Open account ledger", {recordId: "111100000"}],
         ["Receivables/BillingQueue", "Billing queue"],
@@ -189,4 +221,4 @@ function routeFixtures() {
     )
 }
 
-;({ids, asUser, selectOrganization, call, refusal, page, invoiceTabs, customerTabs, statementPreview, routeFixtures})
+;({ids, asUser, selectOrganization, call, refusal, page, invoiceTabs, customerTabs, paymentTabs, statementPreview, routeFixtures})

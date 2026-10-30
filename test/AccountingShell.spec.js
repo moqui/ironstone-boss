@@ -495,11 +495,11 @@ feature("documents list and show their counterparty, amount and status by name",
     where: [
         {role: "ar", list: "Receivables/Invoices", detail: "Receivables/InvoiceDetail", recordId: "BOSS_ACCT_INVOICE"},
         {role: "ap", list: "Payables/Bills", detail: "Payables/BillDetail", recordId: "BOSS_ACCT_BILL"},
-        {role: "treasury", list: "Payments/Payments", detail: "Payments/PaymentDetail", recordId: "BOSS_ACCT_PAYMENT"}
+        {role: "treasury", list: "Payments/Payments", detail: "Payments/PaymentDetail", recordId: "BOSS_ACCT_PAY_DRAFT"}
     ],
     when({role, list, detail, recordId}) {
         return finance("finance." + role, () => {
-            const record = ec.service
+            let record = ec.service
                 .sync()
                 .name("mantle.ledger.AccountingServices.get#Record")
                 .parameters({
@@ -508,6 +508,18 @@ feature("documents list and show their counterparty, amount and status by name",
                     organizationPartyId: "ORG_ZIZI_CORP"
                 })
                 .call().record
+            if (role === "treasury") {
+                const payment = ec.service
+                    .sync()
+                    .name("mantle.account.PaymentServices.get#PaymentFinanceDetail")
+                    .parameters({organizationPartyId: "ORG_ZIZI_CORP", paymentId: recordId})
+                    .call().payment
+                record = {
+                    statusText: payment.statusDescription,
+                    counterpartyName: payment.partyName,
+                    description: payment.paymentId
+                }
+            }
             // list values in the html render; the header's status chip in the qvt render, which has no html twin
             const listPage = page(list)
             const detailPage = page(detail, {recordId}, "qvt")
@@ -541,19 +553,16 @@ feature("a new draft document opens its detail", {
                 .condition("partyId", "not-equals", "ORG_ZIZI_CORP")
                 .disableAuthz()
                 .list()[0]
-            const result = ec.screen
-                .makeTest()
-                .rootScreen(root)
-                .render(
-                    "apps/Accounting/QuickCreate/NewInvoice/createDraft",
-                    {
-                        kind: "invoices",
-                        organizationPartyId: "ORG_ZIZI_CORP",
-                        otherPartyId: party.partyId,
-                        description: "Spec draft invoice"
-                    },
-                    "post"
-                )
+            const result = ec.screen.makeTest().rootScreen(root).render(
+                "apps/Accounting/QuickCreate/NewInvoice/createDraft",
+                {
+                    kind: "invoices",
+                    organizationPartyId: "ORG_ZIZI_CORP",
+                    otherPartyId: party.partyId,
+                    description: "Spec draft invoice"
+                },
+                "post"
+            )
             return {errors: result.errorMessages.join("\n"), location: String(result.header("Location") || "")}
         })
     },

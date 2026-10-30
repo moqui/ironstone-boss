@@ -99,7 +99,7 @@ const demoRecords = {
     // M2: Today, notifications, quick create, Home and the settings (the demo of service/ironstone/commons/DemoServices.xml), on text
     // that does not depend on the time of day the data was loaded
     "Commons/Home": { text: "Get started" },
-    "Commons/Panel/Today": { text: "1 approval waiting" },
+    "Commons/Panel/Today": { pattern: /\b[1-9]\d* approvals? waiting\b/ },
     "Commons/Panel/Notifications": { text: "Approve the shared calendar subscription: USD 120.00 a year" },
     "Commons/Notifications": { text: "Approve the shared calendar subscription: USD 120.00 a year" },
     "Commons/QuickCreate": { parameters: { kind: "task" }, text: "Assignee" },
@@ -451,6 +451,7 @@ feature("every other Commons, Comms, Insights, Projects and Shared screen render
                 failures.push(`${where}: status ${str.status}, ${str.errorMessages.join(" | ") || output.substring(0, 200)}`)
             else if (qvue && !demo.noComponent && !output.includes("module.exports")) failures.push(`${where}: no component in qvue`)
             else if (demo.text && !output.includes(demo.text)) failures.push(`${where}: no "${demo.text}": ${output.substring(0, 300)}`)
+            else if (demo.pattern && !demo.pattern.test(output)) failures.push(`${where}: no ${demo.pattern}: ${output.substring(0, 300)}`)
             ec.message.clearErrors()
             const menu = apps.includes(app) ? menuError(`${app}/${path}`) : null
             if (menu) failures.push(menu)

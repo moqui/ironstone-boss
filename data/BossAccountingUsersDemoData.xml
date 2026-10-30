@@ -37,6 +37,13 @@ along with this software (see the LICENSE.md file). If not, see
     <moqui.security.UserAccount userId="BOSS_ACCT_TREASURY" username="finance.treasury" userFullName="Finance Treasury" partyId="BOSS_ACCT_TREASURY" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US" currencyUomId="USD"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_TREASURY" fromDate="0"/>
     <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_TREASURY" userId="BOSS_ACCT_TREASURY" fromDate="0"/>
+    <mantle.party.Party partyId="BOSS_ACCT_PAYMENT_AR" partyTypeEnumId="PtyPerson"/>
+    <mantle.party.Person partyId="BOSS_ACCT_PAYMENT_AR" firstName="Finance" lastName="Payment AR"/>
+    <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_PAYMENT_AR_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_PAYMENT_AR" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>
+    <moqui.security.UserAccount userId="BOSS_ACCT_PAYMENT_AR" username="finance.paymentar" userFullName="Finance Payment AR" partyId="BOSS_ACCT_PAYMENT_AR" currentPassword="16ac58bbfa332c1c55bd98b53e60720bfa90d394" passwordHashType="SHA" locale="en_US"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING" userId="BOSS_ACCT_PAYMENT_AR" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_TREASURY" userId="BOSS_ACCT_PAYMENT_AR" fromDate="0"/>
+    <moqui.security.UserGroupMember userGroupId="BOSS_ACCOUNTING_AR" userId="BOSS_ACCT_PAYMENT_AR" fromDate="0"/>
     <mantle.party.Party partyId="BOSS_ACCT_GL" partyTypeEnumId="PtyPerson"/>
     <mantle.party.Person partyId="BOSS_ACCT_GL" firstName="Finance" lastName="Gl"/>
     <mantle.party.PartyRelationship partyRelationshipId="BOSS_ACCT_GL_ORG" relationshipTypeEnumId="PrtAgent" fromPartyId="BOSS_ACCT_GL" toPartyId="ORG_ZIZI_CORP" toRoleTypeId="OrgInternal" fromDate="0"/>

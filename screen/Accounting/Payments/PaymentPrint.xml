@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Payment print" default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="paymentId"/>
+    <parameter name="recordId"/>
+    <parameter name="outputType"/>
+    <parameter name="sourceVersion"/>
+    <parameter name="outputId"/>
+    <actions>
+        <set field="paymentOutput" from="{}"/>
+        <service-call name="mantle.account.PaymentServices.get#PaymentOutput" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,outputType:outputType,sourceVersion:sourceVersion,outputId:outputId}" out-map="paymentOutput" transaction="force-new" ignore-error="true"/>
+        <set field="paymentOutput" from="paymentOutput || {}"/>
+        <set field="paymentId" from="paymentOutput.paymentId || paymentId || recordId"/>
+    </actions>
+    <widgets>
+        <label text="Payment document" type="h5"/>
+        <section name="PaymentIssuedDocument" condition="!!paymentOutput.outputId">
+            <widgets>
+                <label text="${paymentOutput.fileName || 'Payment document'}" type="p"/>
+                <label text="Amount ${paymentOutput.summary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentOutput.summary.amount),paymentOutput.summary.currencyUomId) : 'Unavailable'} · ${paymentOutput.summary?.currencyUomId || ''}" type="p"/>
+                <label text="${paymentOutput.summary?.partyName || ''} · ${paymentOutput.summary?.cashDirection || ''}" type="p"/>
+                <label text="Payment date ${paymentOutput.summary?.accountingDateText || ''}" type="p" style="text-caption m-muted"/>
+                <label text="${paymentOutput.summary?.maskedMethodLabel || ''}" type="p"/>
+                <label text="Reference ${paymentOutput.summary?.referenceNumber || ''}" type="p"/>
+                <label text="Check ${paymentOutput.summary?.checkNumber || ''}" type="p" condition="!!paymentOutput.summary?.checkNumber"/>
+                <html-view html="${paymentOutput.approvedHtml || ''}" text="Payment ${paymentId || recordId} · ${paymentOutput.fileName || outputType || 'detail'}"/>
+            </widgets>
+        </section>
+        <label text="This payment document is not available. Issue it through the reviewed payment action, or choose an authorized output." type="p" condition="!paymentOutput.outputId"/>
+        <link url="${sharedLinks['Payments/PaymentDetail']}" text="Back to payment" parameter-map="{recordId:paymentId || recordId,paymentId:paymentId || recordId,previewId:'',previewKind:'',organizationPartyId:organizationPartyId}" condition="!!paymentId || !!recordId"/>
+        <link url="${sharedLinks['Payments/Payments']}" text="Back to payments" condition="!paymentId &amp;&amp; !recordId"/>
+    </widgets>
+</screen>

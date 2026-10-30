@@ -49,6 +49,8 @@ function access(parameters) {
         "Receivables/InvoiceBatch",
         "Receivables/InvoicePrint",
         "Receivables/ReceivablesWorkbench",
+        "Payments/GatewayTransactions",
+        "Payments/PaymentPrint",
         "Reports/TrialBalance",
         "Reports/GeneralLedger"
     ]
@@ -432,6 +434,17 @@ choiceSources.invoiceStatuses = {
 choiceSources.invoiceItemTypes = choiceSources["enum:ItemType"]
 choiceSources.identificationTypes = choiceSources["enum:PartyIdType"]
 choiceSources.bankAccountTypes = choiceSources["enum:BankAccountType"]
+choiceSources.paymentParties = choiceSources.parties
+choiceSources.paymentInstruments = choiceSources["enum:PaymentInstrument"]
+choiceSources.paymentDraftInstruments = Object.assign({}, choiceSources.paymentInstruments, {
+    find: () => choiceSources.paymentInstruments.find().condition("enumId", "not-in", ["PiWriteOff", "PiDiscount"])
+})
+choiceSources.paymentStatuses = {
+    find: () => policy.find("moqui.basic.StatusItem", {statusTypeId: "Payment"}).orderBy("sequenceNum,description"),
+    fields: ["statusId", "description"],
+    value: row => row.statusId,
+    label: row => row.description || row.statusId
+}
 
 function selectedValues(value) {
     if (value == null || value === "") return []
@@ -440,8 +453,111 @@ function selectedValues(value) {
         : String(value).startsWith("[")
           ? JSON.parse(String(value))
           : String(value).split(",")
-    if (!Array.isArray(parsed) || parsed.length > 200) throw new Error("Choose at most 200 settlement records")
+    if (!Array.isArray(parsed) || parsed.length > 200) throw new Error("Choose at most 200 records")
     return [...new Set(parsed.filter(value => value != null && value !== "").map(String))]
+}
+function paymentChoices(parameters, scope) {
+    const chosen = selectedValues(parameters.selected),
+        native = "mantle.account.PaymentServices.",
+        request = {organizationPartyId: scope.organizationPartyId}
+    if (parameters.choice === "payments") {
+        const result = policy.call(
+            native + "find#Payments",
+            Object.assign({}, request, {
+                queue: "all",
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedPaymentIdList: chosen
+            })
+        )
+        const options = [],
+            label = row =>
+                [row.paymentId, row.partyName, ec.l10n.formatCurrency(row.amount, row.currencyUomId)].filter(Boolean).join(" · ")
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.paymentId)) options.push({value: row.paymentId, label: label(row)})
+        if (result.incomplete || result.complete === false)
+            options.push({value: "unavailable:payments", label: "Some payment choices are unavailable", disable: true})
+        return {options}
+    }
+    const decode = ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js").reviewedToken,
+        selections = chosen.map(token => ({token, ...decode(token, "reviewed item")}))
+    let rows,
+        selectedRows,
+        idField,
+        label,
+        incomplete = false
+    if (["reviewedOrganizationPaymentMethods", "reviewedCounterpartyPaymentMethods"].includes(parameters.choice)) {
+        const result = policy.call(
+            native + "find#PaymentMethods",
+            Object.assign({}, request, {
+                cashDirection: parameters.cashDirection,
+                methodRole: parameters.choice === "reviewedOrganizationPaymentMethods" ? "organization" : "counterparty",
+                partyId: parameters.partyId,
+                currencyUomId: parameters.currencyUomId,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedPaymentMethodIdList: selections.map(item => item.id)
+            })
+        )
+        rows = Array.from(result.rows || [])
+        selectedRows = Array.from(result.selectedRows || [])
+        idField = "paymentMethodId"
+        label = row => row.label || row.description || row.typeDescription || row.paymentMethodId
+        incomplete = result.incomplete || result.complete === false
+    } else {
+        const detail = policy.call(
+            native + "get#PaymentFinanceDetail",
+            Object.assign({}, request, {paymentId: parameters.paymentId})
+        )
+        const evidence = parameters.choice === "reviewedPaymentEvidence"
+        rows = Array.from(evidence ? detail.evidenceRows || [] : detail.applicationRows || [])
+        if (!evidence) rows = rows.filter(row => toDecimal(row.amountApplied || 0).compare(0) > 0)
+        selectedRows = rows
+        idField = evidence ? "paymentContentId" : "paymentApplicationId"
+        label = evidence
+            ? row =>
+                  [row.description, row.fileName, ec.l10n.format(row.contentSize, "#,##0") + " bytes"].filter(Boolean).join(" · ")
+            : row =>
+                  [
+                      row.paymentApplicationId,
+                      row.invoiceId || row.toInvoiceId || row.toPaymentId,
+                      ec.l10n.formatCurrency(row.amountApplied, row.currencyUomId)
+                  ]
+                      .filter(Boolean)
+                      .join(" · ")
+        incomplete = detail.incomplete || detail.complete === false || (evidence && detail.evidenceIncomplete)
+        const term = String(parameters.term || "")
+            .trim()
+            .toLocaleLowerCase()
+        rows = rows.filter(
+            row =>
+                !term ||
+                [row[idField], label(row)].some(value =>
+                    String(value || "")
+                        .toLocaleLowerCase()
+                        .includes(term)
+                )
+        )
+    }
+    const options = rows.slice(0, choiceLimit).map(row => ({value: row[idField] + "~" + row.version, label: label(row)}))
+    for (const item of selections) {
+        const row = selectedRows.find(row => row[idField] === item.id)
+        if (row && !options.some(option => option.value === item.token))
+            options.push({
+                value: item.token,
+                label: label(row) + (row.version !== item.version ? " · Changed since selection" : "")
+            })
+    }
+    if (incomplete)
+        options.push({
+            value: "unavailable:" + parameters.choice,
+            label: "Some choices are unavailable; review the payment details",
+            disable: true
+        })
+    return {options}
 }
 function settlementChoices(parameters, scope) {
     const chosen = selectedValues(parameters.selected)
@@ -525,6 +641,16 @@ function settlementChoices(parameters, scope) {
 }
 function choices(parameters) {
     const scope = access(parameters)
+    if (
+        [
+            "payments",
+            "reviewedOrganizationPaymentMethods",
+            "reviewedCounterpartyPaymentMethods",
+            "reviewedPaymentEvidence",
+            "reviewedPaymentApplications"
+        ].includes(parameters.choice)
+    )
+        return paymentChoices(parameters, scope)
     if (
         ["settlementSources", "settlementTargets", "settlementAdjustmentInvoices", "settlementAdjustmentAccounts"].includes(
             parameters.choice

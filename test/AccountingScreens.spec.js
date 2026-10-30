@@ -43,7 +43,7 @@ feature("all implemented Accounting screens render their fixture content in qvt 
                     failures.push(path + " " + mode + ": " + rendered.status + " " + rendered.errorMessages.join(" | "))
                 if (fixture && !output.includes(fixture.text))
                     failures.push(path + " " + mode + ": no " + JSON.stringify(fixture.text))
-                if (fixture && /(?:Invoice|Customer) (?:not available|is unavailable)/.test(output))
+                if (fixture && /(?:Invoice|Customer|Payment) (?:not available|is unavailable)/.test(output))
                     failures.push(path + " " + mode + ": fixture record is unavailable")
                 if (mode === "tui") {
                     try {
@@ -54,6 +54,33 @@ feature("all implemented Accounting screens render their fixture content in qvt 
                 }
                 ec.message.clearErrors()
             }
+        }
+        return {failures}
+    },
+    then({failures}) {
+        failures == []
+    }
+})
+
+feature("issued payment documents render their actual frozen receipt in html and print", {
+    when() {
+        const failures = []
+        for (const mode of ["html", "html-print"]) {
+            const result = helper.page(
+                "Payments/PaymentPrint",
+                {
+                    paymentId: helper.ids.paymentDeliveredId,
+                    outputType: "receipt"
+                },
+                mode
+            )
+            if (
+                result.status !== 200 ||
+                result.errors.length ||
+                !result.output.includes(helper.ids.paymentDeliveredId) ||
+                result.output.includes("This payment document is not available")
+            )
+                failures.push(mode + ": issued receipt missing or render failed")
         }
         return {failures}
     },

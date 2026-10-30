@@ -86,6 +86,18 @@ along with this software (see the LICENSE.md file). If not, see
                     contentType.catalogCanChange = false
                 }
             }
+            if (info.recordEntityName === 'mantle.account.payment.Payment') {
+                const workflow = ec.resource.script('component://mr-mantle/service/mantle/account/PaymentWorkflow.js')
+                const scope = workflow.paymentScope({paymentId: info.recordId})
+                contentType.paymentOrganizationPartyId = scope.organizationPartyId
+                contentType.readEntityName = ec.resource.script('component://mr-mantle/service/mantle/account/PaymentOutput.js').readEntityName
+                try {
+                    workflow.paymentScope({paymentId: info.recordId, organizationPartyId: scope.organizationPartyId}, true)
+                } catch (error) {
+                    ec.logger.info('Payment ' + info.recordId + ' files are read only: ' + error.message)
+                    contentType.catalogCanChange = false
+                }
+            }
             // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
             // inherited entity permission or having uploaded the file earlier never substitutes for it.
             if (['mantle.product.Product', 'mantle.product.category.ProductCategory'].includes(info.recordEntityName)) {
@@ -204,8 +216,29 @@ along with this software (see the LICENSE.md file). If not, see
                 const preferred = enums.find((item) => /Internal$/.test(item.enumId)) || enums.find((item) => /(Other|General|Attachment|SupportingMedia)$/.test(item.enumId))
                 defaultTypeId = preferred ? preferred.enumId : null
 
-                const rows = Array.from(ec.entity.find(content.entityName).condition(content.keyField, recordId).orderBy('-' + content.dateField).list())
-                fileCount = rows.length
+                const paymentOutput = entityName === 'mantle.account.payment.Payment'
+                    ? ec.resource.script('component://mr-mantle/service/mantle/account/PaymentOutput.js') : null
+                const archive = paymentOutput || ec.resource.script('component://mr-mantle/service/mantle/account/PaymentOutput.js')
+                const paymentCondition = paymentOutput ? paymentOutput.readCondition({paymentId: recordId,
+                    organizationPartyId: content.paymentOrganizationPartyId}) : null
+                const fileQuery = () => {
+                    let query = ec.entity.find(content.readEntityName || content.entityName).condition(content.keyField, recordId)
+                    if (paymentCondition) query = query.condition(paymentCondition)
+                    return query
+                }
+                const maximum = Math.max(1, Math.min(200, Number(limit || 200)))
+                let rows
+                if (paymentOutput) {
+                    fileCount = fileQuery().count()
+                    rows = Array.from(fileQuery().orderBy('-' + content.dateField).limit(maximum).list())
+                } else {
+                    // Other record types retain their existing content scan: normalize URI aliases before counting or
+                    // limiting. A content pointer on an unrelated record never publishes a private financial archive.
+                    const visibleRows = Array.from(fileQuery().orderBy('-' + content.dateField).list())
+                        .filter(row => !archive.reservedLocation(row.contentLocation))
+                    fileCount = visibleRows.length
+                    rows = visibleRows.slice(0, maximum)
+                }
                 const names = {}
                 const nameOf = (userId) => {
                     if (!userId) return null
@@ -217,6 +250,8 @@ along with this software (see the LICENSE.md file). If not, see
                 }
                 for (const value of rows.slice(0, limit || 200)) {
                     const row = value.getMap()
+                    const immutable = row.isImmutable === 'Y' || !!(paymentOutput &&
+                        (paymentOutput.issuedReference(row) || paymentOutput.reservedLocation(row.contentLocation)))
                     const location = row.contentLocation ? String(row.contentLocation) : ''
                     const fileName = location ? baseName(location) : null
                     const key = {}
@@ -257,12 +292,15 @@ along with this software (see the LICENSE.md file). If not, see
                         dateFull: dateMillis == null ? '' : fmt(dateMillis, 'yyyy-MM-dd HH:mm'), size: size, sizeText: sizeText(size), mimeType: mimeType,
                         isImage: isImage, isPdf: isPdf, icon: isImage ? 'sym_o_image' : isPdf ? 'sym_o_picture_as_pdf'
                             : /\.(txt|md|csv|html?|xml|json)$/.test(lower) ? 'sym_o_description' : 'sym_o_draft',
-                        isImmutable: row.isImmutable === 'Y',
-                        canRemove: row.isImmutable !== 'Y' && content.catalogCanChange !== false && ((!!row.userId && row.userId === ec.user.userId) || mayUpdate), location: location || null})
+                        isImmutable: immutable,
+                        canRemove: !immutable && content.catalogCanChange !== false && ((!!row.userId && row.userId === ec.user.userId) || mayUpdate), location: location || null})
                 }
 
                 // the record's folder in the records drive (Files, M8): each file's path there for its versions, and the folder's
                 // other files; a drive that cannot be read is logged and the content rows stand alone
+                // Issued payment files live outside mutable record folders. Payment Files uses only its authorized
+                // native content list, so a drive's unrelated aliases, extras or versions cannot expose a check.
+                if (!paymentOutput) {
                 ec.message.pushErrors()
                 try {
                     const folder = ec.service.sync().name('ironstone.commons.DriveServices.get#RecordFolder').parameters({recordEntityName: entityName,
@@ -295,6 +333,7 @@ along with this software (see the LICENSE.md file). If not, see
                     if (ec.message.hasError()) ec.logger.warn(`Record files of ${entityName} ${recordId}: the records drive: ${ec.message.getErrorsString()}`)
                     ec.message.clearErrors()
                     ec.message.popErrors()
+                }
                 }
                 for (const file of fileList) delete file.location
             ]]></script>
@@ -337,6 +376,15 @@ along with this software (see the LICENSE.md file). If not, see
                 if (row == null || String(row[contentType.keyField]) !== String(recordId)) {
                     ec.message.addError(ec.l10n.localize('Not a file of this record')); return }
                 contentRow = row.getMap()
+                const archive = ec.resource.script('component://mr-mantle/service/mantle/account/PaymentOutput.js')
+                if (recordOut.info.recordEntityName !== 'mantle.account.payment.Payment' && archive.reservedLocation(contentRow.contentLocation))
+                    throw new Error('PAYMENT_ARCHIVE_PRIVATE: Read an issued payment document through its authorized payment')
+                if (recordOut.info.recordEntityName === 'mantle.account.payment.Payment') {
+                    const paymentOutput = archive
+                    paymentOutput.canReadContent(contentRow, contentType.paymentOrganizationPartyId)
+                    if (paymentOutput.issuedReference(contentRow) || paymentOutput.reservedLocation(contentRow.contentLocation))
+                        contentType = Object.assign({}, contentType, {catalogCanChange: false})
+                }
                 if (contentRow.isImmutable === 'Y') contentType = Object.assign({}, contentType, {catalogCanChange: false})
                 contentLocation = row.contentLocation ? String(row.contentLocation) : null
                 const last = contentLocation ? contentLocation.substring(contentLocation.lastIndexOf('/') + 1) : null

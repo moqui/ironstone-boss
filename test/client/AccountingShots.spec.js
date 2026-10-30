@@ -6,8 +6,85 @@ const adminPages = [
     ["Invoice", "Receivables/InvoiceDetail?recordId=BOSS_ACCT_INVOICE", "Accounting demo customer invoice"],
     ["Bills", "Payables/Bills", "Accounting demo supplier bill"],
     ["Bill", "Payables/BillDetail?recordId=BOSS_ACCT_BILL", "Accounting demo supplier bill"],
-    ["Payments", "Payments/Payments", "Accounting demo proposed payment"],
-    ["Payment", "Payments/PaymentDetail?recordId=BOSS_ACCT_PAYMENT", "Accounting demo proposed payment"],
+    ["Payments", "Payments/Payments", "Payment customer"],
+    ["Payment", "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_DRAFT", "Payment customer"],
+    ["PaymentGatewayTransactions", "Payments/GatewayTransactions?paymentId=BOSS_ACCT_PAY_DELIVERED", "Gateway transactions"],
+    ["PaymentPrint", "Payments/PaymentPrint?paymentId=BOSS_ACCT_PAY_DELIVERED&outputType=receipt", "BOSS_ACCT_PAY_DELIVERED"],
+    [
+        "PaymentDetailPrint",
+        "Payments/PaymentPrint?paymentId=BOSS_ACCT_PAY_DELIVERED&outputType=detail",
+        "BOSS_ACCT_PAY_DELIVERED"
+    ],
+    ["PaymentCheckPrint", "Payments/PaymentPrint?paymentId=BOSS_ACCT_PAY_CHECK&outputType=check", "BOSS_ACCT_PAY_CHECK"],
+    ...[
+        ["Overview", "Payment overview"],
+        ["Applications", "Applications and open items"],
+        ["Gateway", "Gateway evidence"],
+        ["Refunds", "Linked refunds"],
+        ["GeneralLedger", "Payment ledger"],
+        ["Files", "Payment files and issued documents"],
+        ["History", "Payment history"]
+    ].map(([tab, text]) => [
+        "PaymentTab" + tab,
+        "Payments/PaymentDetail/" +
+            tab +
+            "?recordId=" +
+            (tab === "Applications"
+                ? "BOSS_ACCT_PAY_APPLIED"
+                : tab === "GeneralLedger"
+                  ? "BOSS_ACCT_PAY_DELIVERED"
+                  : "BOSS_ACCT_PAY_DRAFT"),
+        text
+    ]),
+    ["PaymentCreate", "Payments/Payments", "Payments", {open: "New payment", dialogText: "New payment"}],
+    [
+        "PaymentEdit",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_DRAFT",
+        "Payment customer",
+        {openMore: true, open: "Edit draft", dialogText: "Edit payment BOSS_ACCT_PAY_DRAFT"}
+    ],
+    [
+        "PaymentValidate",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_EVIDENCE_DRAFT",
+        "Payment customer",
+        {open: "Validate payment", dialogText: "Validate payment BOSS_ACCT_PAY_EVIDENCE_DRAFT"}
+    ],
+    [
+        "PaymentDeliver",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_VALIDATED",
+        "Payment customer",
+        {open: "Record delivery", dialogText: "Record delivery BOSS_ACCT_PAY_VALIDATED"}
+    ],
+    [
+        "PaymentConfirm",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_DELIVERED",
+        "Payment customer",
+        {open: "Confirm settlement", dialogText: "Confirm settlement BOSS_ACCT_PAY_DELIVERED"}
+    ],
+    [
+        "PaymentCancel",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_DRAFT",
+        "Payment customer",
+        {openMore: true, open: "Cancel payment", dialogText: "Cancel payment BOSS_ACCT_PAY_DRAFT"}
+    ],
+    [
+        "PaymentVoid",
+        "Payments/PaymentDetail?recordId=BOSS_ACCT_PAY_DELIVERED",
+        "Payment customer",
+        {openMore: true, open: "Void payment", dialogText: "Void payment BOSS_ACCT_PAY_DELIVERED"}
+    ],
+    [
+        "PaymentRelease",
+        "Payments/PaymentDetail/Applications?recordId=BOSS_ACCT_PAY_APPLIED",
+        "BOSS_ACCT_PAY_INVOICE",
+        {open: "Release applications", dialogText: "Release selected applications for BOSS_ACCT_PAY_APPLIED"}
+    ],
+    [
+        "PaymentIssuedFiles",
+        "Payments/PaymentDetail/Files?recordId=BOSS_ACCT_PAY_CHECK",
+        "Payment files and issued documents",
+        {paymentIssuedFiles: true}
+    ],
     ["Chart", "GeneralLedger/ChartOfAccounts", "Chart of accounts"],
     ["Account", "GeneralLedger/AccountDetail?recordId=111100000", "Open account ledger"],
     ["Journals", "GeneralLedger/JournalEntries", "Office expense review"],
@@ -30,7 +107,7 @@ const adminPages = [
     ["DocumentSettings", "Settings/DocumentSettings", "Invoice preview"],
     ["NewInvoice", "QuickCreate/NewInvoice", "Create draft invoice"],
     ["NewBill", "QuickCreate/NewBill", "Create draft bill"],
-    ["NewPayment", "QuickCreate/NewPayment", "Create draft payment"],
+    ["NewPayment", "QuickCreate/NewPayment", "Create payment"],
     ["NewEntry", "QuickCreate/NewEntry", "Create draft entry"],
     ["InvoiceCalendar", "Receivables/Invoices?view=calendar", "Invoices"],
     ["InvoicePivot", "Receivables/Invoices?view=pivot", "Invoices"],
@@ -133,7 +210,13 @@ const groups = [
             ["Posted", "GeneralLedger/JournalEntryDetail?recordId=BOSS_ACCT_POSTED", "Posted office expense"],
             ["Account", "GeneralLedger/AccountDetail?recordId=111100000", "Open account ledger"],
             ["InvoiceItems", "Receivables/InvoiceDetail/Items?recordId=BOSS_ACCT_INVOICE", "Accounting demo services"],
-            ["CustomerMoney", "Receivables/Customer360/Money?customerPartyId=ORG_ACME", "Invoices and payments"]
+            ["CustomerMoney", "Receivables/Customer360/Money?customerPartyId=ORG_ACME", "Invoices and payments"],
+            [
+                "PaymentIssuedFiles",
+                "Payments/PaymentDetail/Files?recordId=BOSS_ACCT_PAY_CHECK",
+                "Payment files and issued documents",
+                {paymentIssuedFiles: true, hideCheck: true}
+            ]
         ]
     },
     {
@@ -231,6 +314,35 @@ feature("#prefix #name at #width dark=#dark", {
             assert(
                 supporting?.actions.includes("Remove") && supporting.actions.includes("Versions"),
                 "The ordinary supporting file must retain its authorized remove and version controls"
+            )
+        }
+        if (options.paymentIssuedFiles) {
+            page.waitFor(() =>
+                document.querySelector(".m-record-files-panel")?.innerText.includes("Payment-BOSS_ACCT_PAY_CHECK-receipt.pdf")
+            )
+            const fileRows = page.evaluate(() =>
+                Array.from(document.querySelectorAll(".m-record-files-panel .q-item")).map(row => ({
+                    name: row.querySelector(".q-item__label a")?.textContent.trim(),
+                    actions: Array.from(row.querySelectorAll("button[aria-label]")).map(button =>
+                        button.getAttribute("aria-label")
+                    )
+                }))
+            )
+            const issued = fileRows.filter(row => /^Payment-BOSS_ACCT_PAY_CHECK-/.test(row.name || ""))
+            assert(
+                issued.length === (options.hideCheck ? 2 : 3),
+                "The file list must contain only the authorized issued documents"
+            )
+            assert(
+                issued.some(row => row.name.endsWith("-check.pdf")) === !options.hideCheck,
+                "Checks require treasury authority"
+            )
+            assert(
+                issued.every(
+                    row =>
+                        row.actions.includes("Download") && !row.actions.includes("Remove") && !row.actions.includes("Versions")
+                ),
+                "Issued documents must retain immutable download-only controls"
             )
         }
         if (options.statement)
@@ -347,6 +459,39 @@ feature("#prefix #name at #width dark=#dark", {
         !/Error rendering|Exception in render|not available in Accounting yet|Not available/.test(page.text())
         page.text().includes(text)
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth) == true
+        if (name === "PaymentCheckPrint") {
+            page.waitFor(() => !!document.querySelector(".m-html-view-frame")?.contentDocument?.querySelector(".check"))
+            page.settle()
+            const layout = page.evaluate(() => {
+                const frame = document.querySelector(".m-html-view-frame"),
+                    content = frame.contentDocument,
+                    box = content.getElementById("m-hv-root"),
+                    check = content.querySelector(".check").getBoundingClientRect(),
+                    outer = frame.getBoundingClientRect()
+                return {
+                    viewport: document.documentElement.clientWidth,
+                    innerWidth,
+                    contentScrollWidth: content.documentElement.scrollWidth,
+                    frameLeft: outer.left,
+                    frameRight: outer.right,
+                    frameWidth: outer.width,
+                    contentWidth: content.documentElement.clientWidth,
+                    rootWidth: box.clientWidth,
+                    rootScrollWidth: box.scrollWidth,
+                    checkLeft: check.left,
+                    checkRight: check.right
+                }
+            })
+            assert(
+                layout.frameLeft >= 0 &&
+                    layout.frameRight <= layout.viewport + 1 &&
+                    layout.rootScrollWidth <= layout.rootWidth + 1 &&
+                    layout.checkLeft >= 0 &&
+                    layout.checkRight <= layout.contentWidth + 1,
+                "The issued check and its border fit inside the visible document frame: " + JSON.stringify(layout)
+            )
+            page.screenshot(prefix + "-" + name + "-" + width + (dark ? "-dark" : "-light") + "-viewport")
+        }
         page.screenshot(prefix + "-" + name + "-" + width + (dark ? "-dark" : "-light"), {fullPage: true})
     }
 })

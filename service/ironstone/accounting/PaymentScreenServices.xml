@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="PaymentListContext" allow-remote="false">
+        <description>Project the authorized native payment list, filters, masked identities and draft capabilities. No financial write.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="queue" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentInstrumentEnumId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="queue" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentInstrumentEnumId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentList" type="Map"/>
+            <parameter name="newPaymentValue" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').execute('list', context))</script>
+        </actions>
+    </service>
+    <service verb="get" noun="PaymentContext" allow-remote="false">
+        <description>Project a native payment detail and retained lifecycle review under current authority. Restricted native values remain omitted.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="previewId" type="String"/>
+            <parameter name="previewKind" type="String"/>
+            <parameter name="findJson" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="recordFound" type="Boolean"/>
+            <parameter name="findJson" type="String"/>
+            <parameter name="financePayment" type="Map"/>
+            <parameter name="paymentHeaderValue" type="Map"/>
+            <parameter name="paymentReview" type="Map"/>
+        </out-parameters>
+        <actions>
+            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').execute('detail', context))</script>
+        </actions>
+    </service>
+</services>

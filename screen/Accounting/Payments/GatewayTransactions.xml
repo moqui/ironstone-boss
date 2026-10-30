@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Gateway transactions" default-menu-index="2">
+    <parameter name="organizationPartyId"/>
+    <parameter name="paymentId"/>
+    <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <actions>
+        <set field="paymentContext" from="{}"/>
+        <if condition="paymentId">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        </if>
+        <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
+        <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},gatewayRows:[]}"/>
+    </actions>
+    <widgets>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <label text="Gateway transactions" type="h5"/>
+        <label text="Choose a payment to inspect its recorded gateway evidence." type="p" style="m-muted"/>
+        <form-single name="GatewayPaymentFind" transition="." map="context">
+            <field name="organizationPartyId" from="organizationPartyId">
+                <default-field title="">
+                    <hidden/>
+                </default-field>
+            </field>
+            <field name="paymentId">
+                <default-field title="Payment">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'payments',organizationPartyId:organizationPartyId,selected:paymentId}"/>
+                    </drop-down>
+                </default-field>
+            </field>
+            <field name="submit">
+                <default-field title="">
+                    <submit text="Inspect payment evidence"/>
+                </default-field>
+            </field>
+            <field-layout>
+                <field-ref name="organizationPartyId"/>
+                <field-row>
+                    <field-ref name="paymentId"/>
+                    <field-ref name="submit"/>
+                </field-row>
+            </field-layout>
+        </form-single>
+        <section name="GatewaySelectedPayment" condition="recordFound">
+            <widgets>
+                <link url="${sharedLinks['Payments/PaymentDetail']}" text="Open payment ${paymentId}" parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
+                <section-include name="PaymentGatewayContent" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+            </widgets>
+        </section>
+        <label text="Payment evidence is not available." type="p" condition="!!paymentId &amp;&amp; !recordFound"/>
+    </widgets>
+</screen>

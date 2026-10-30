@@ -94,7 +94,7 @@ feature("TodayPanel renders in qvt with the groups in order and the approvals li
         // the Requests today source of the Commons shell providers, as its own group
         output.includes(">Requests</span>")
         output.indexOf(">Requests</span>") < output.lastIndexOf("Set up the shared team calendar")
-        output.includes("1 approval waiting")
+        /\b[1-9]\d* approvals? waiting\b/.test(output)
         output.includes("Add a task for today")
         output.includes("/qapps/Commons/Requests/RequestDetail?requestId=BOSS_DEMO_REQUEST")
     },

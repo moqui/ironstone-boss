@@ -669,7 +669,6 @@ along with this software (see the LICENSE.md file). If not, see
     </artifactGroups>
     <artifactGroups artifactGroupId="BOSS_SHARED_REVALUATION" description="Accounting inventory revaluation">
         <artifacts artifactName="component://mr-boss/screen/Shared/InventoryValuation.xml" artifactTypeEnumId="AT_XML_SCREEN" inheritAuthz="Y"/>
-        <artifacts artifactName="ironstone.accounting.AssetBookServices.*" nameIsPattern="Y" artifactTypeEnumId="AT_SERVICE" inheritAuthz="Y"/>
         <authz artifactAuthzId="BOSS_SHARED_REVALUATION_DENY" userGroupId="BOSS_PRODUCTS" authzTypeEnumId="AUTHZT_DENY" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_SHARED_REVALUATION_0" userGroupId="BOSS_ACCOUNTING_GL" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>
         <authz artifactAuthzId="BOSS_SHARED_REVALUATION_1" userGroupId="ADMIN" authzTypeEnumId="AUTHZT_ALWAYS" authzActionEnumId="AUTHZA_ALL"/>

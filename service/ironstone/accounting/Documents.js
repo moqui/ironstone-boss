@@ -7,12 +7,6 @@ function checkLayout(template) {
     if (template && !layouts.includes(template)) throw new Error("Choose an approved document layout")
 }
 
-function validate(parameters) {
-    policy.organization(parameters, "admin")
-    checkLayout(parameters.template)
-    return {valid: true}
-}
-
 function escapeHtml(value) {
     const entities = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}
     return String(value || "").replace(/[&<>"']/g, character => entities[character])
@@ -52,7 +46,7 @@ function preview(parameters) {
     }
 }
 
-const operations = {validate, preview}
+const operations = {preview}
 ;({
     execute: (op, parameters) => {
         if (!operations[op]) throw new Error("Unknown document operation " + op)

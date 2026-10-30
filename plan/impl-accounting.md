@@ -1792,6 +1792,8 @@ and retained intent/results. Per the current execution priority, no new screensh
 
 ### P5b3 acceptance and requested checkpoint
 
+Implementation commits: Mantle `9a13f26c`; BOSS `49f3001`.
+
 The coordinator accepts the independently reviewed native, application and shared assignments. Treasury creates an
 owner-bound native transfer review, then confirms only its preview/fingerprint/40-character operation key. Principal
 P and fee F create exactly two native-managed linked Payments and two verified actual ledger transactions: source

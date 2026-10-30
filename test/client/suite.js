@@ -1,12 +1,10 @@
 suite(
     [
-        "AccountingShots",
         "AccountingLedgerWalk",
         "AccountingSettingsWalk",
         "AccountingReceivablesWalk",
         "AccountingSettlementWalk",
         "AccountingPaymentsWalk",
-        "AccountingGatewayShots",
         "AccountingPaymentGatewayWalk",
         "ProductsShots",
         "ProductsWalk",

@@ -107,8 +107,9 @@ before browser verification. Full suite results and baseline comparison are reco
 - The full BOSS suite includes Accounting access (with paired positive and negative cases), roles, isolation,
   AppStructure, every screen in qvt and tui, and rendered-content checks of the ledger, document, report and settings
   screens.
-- Accounting browser walks and viewport/theme captures: 230/230 (three users, 31 destinations × six width/theme
-  combinations, plus posting/reversal and setup repair).
+- Accounting browser walks: one pass each through the live client for the ledger, settings, receivables, settlement,
+  payments and gateway (the screenshot specs were removed: their images were compared to nothing and their checks
+  repeated the qvt/tui render specs).
 - XML: 46 Accounting screens (including the app root) validate. Screen lint (to a report file) has zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
 
 The BOSS demo adopts the controls only on its own organization, BOSS_ACCT_ORG, so Mantle's legacy low-level posting
@@ -119,15 +120,16 @@ The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
 ```sh
 ./moq test --nobuild mr-mantle
 ./moq test --nobuild mr-boss
-./moq test-client --nobuild mr-boss --serve --spec AccountingLedgerWalk,AccountingSettingsWalk
-# AccountingShots is slow (over 30 seconds): --slow runs it, only when its screenshots are needed
-./moq test-client --nobuild mr-boss --serve --spec AccountingShots --slow --out <screenshot-dir>
+./moq test-client --nobuild mr-boss --serve --spec AccountingLedgerWalk,AccountingSettingsWalk,AccountingReceivablesWalk,AccountingSettlementWalk,AccountingPaymentsWalk,AccountingPaymentGatewayWalk
 target/develop/moqui lint --screens <report-file>
 ```
 
-The screenshot spec covers 31 destinations at 390, 1280 and 1440 pixels in light/dark. Browser walks post/reverse a
-balanced journal, assign an existing expense account, repair an invoice item default, create a due term, import
-valid/invalid rate rows, and save numbering preferences. Keep deterministic fixtures declared in the data file:
+Each browser walk checks only what needs the live client: that its dialogs and forms post to their transitions, that a
+reviewed identity survives a reload, and that a saved result is checked again without a second write. The ledger and
+settings walks post a balanced journal, assign an existing expense account, repair an invoice item default, create a
+due term, import valid/invalid rate rows, and save numbering preferences; the others create, finalize and send an
+invoice, apply a receipt and credit, deliver a manual payment, and authorize then capture through the gateway. The
+financial rules, permissions and refusals are tested in the server specs here and in mr-mantle. Keep deterministic fixtures declared in the data file:
 the client runner's snapshot key includes entity/data files and the binary, rather than service implementation text.
 
 The existing remote-choice widget also retains selected values when parent forms rerender and a later search

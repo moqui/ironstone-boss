@@ -66,7 +66,6 @@ feature("an editor maps a file, reviews valid and invalid rows, applies and resu
         }) == true
         p.locator("#ApplyCatalogImport").getByRole("button", {name: "Apply reviewed valid rows", exact: true}).click()
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("1 applied"))
-        p.screenshot("Catalog-import-applied", {fullPage: true})
         p.goto("/qapps/Products/ProductImport?operationKey=" + key).status == 200
         p.text().includes("1 applied")
         p.locator("#ApplyCatalogImport").count() == 0

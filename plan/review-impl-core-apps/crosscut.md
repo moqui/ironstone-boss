@@ -290,10 +290,9 @@ stays held (WH); One cost event writer (Mfg); One approval gate (Pur); One case 
 >   - ClientWrites passing with the app's package;
 >   - `<App>Access` extended to the phase's services and mounts.
 > - `moqui lint --screens` clean for BOSS with the Debug binary.
-> - `moqui test-client mr-boss --serve` (docs/dev/Client-Testing.md), with two specs for the phase, both in
->   `test/client/suite.js` with their fixture specs among the server's (Products' pattern):
->   - an `<App><Area>Walk` spec, which drives the phase's usable-when through the browser;
->   - an `<App><Area>Shots` spec, with each new screen light and dark at 390, 1280 and 1440 px.
+> - `moqui test-client mr-boss --serve` (docs/dev/Client-Testing.md) with the walks passing: an `<App><Area>Walk`
+>   spec for the phase, in `test/client/suite.js` with its fixture specs among the server's (Products' pattern), which
+>   drives the phase's usable-when through the browser.
 > - The inventories' **Implemented in** columns.
 > - Its §3 row ("built <date>") and a **Built <date>** note with each repo's commits and what differs from the plan.
 >

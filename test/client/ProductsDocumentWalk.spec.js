@@ -29,7 +29,6 @@ feature("two editors retain a conflict draft, then a source edit flags the saved
         b.locator("#ProductContentMetadata").getByRole("button", {name: "Save document", exact: true}).click()
         b.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Concurrent edit drafts"))
         b.text().includes("Browser winning source")
-        b.screenshot("Documents-retained-conflict", {fullPage: true})
         a.goto("/qapps/Products/Translations?productId=BOSS_PRD_OWN&sourceLocale=en&targetLocale=es").status == 200
         a.getByRole("button", {name: "Translate BOSS_PRD_OWN: Product Name", exact: true}).click()
         dialog = a.getByRole("dialog")
@@ -48,7 +47,6 @@ feature("two editors retain a conflict draft, then a source edit flags the saved
         a.goto("/qapps/Products/Translations?productId=BOSS_PRD_OWN&sourceLocale=en&targetLocale=es").status == 200
         a.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Needs review"))
         a.text().includes("Nombre del navegador")
-        a.screenshot("Documents-translation-needs-review", {fullPage: true})
     }
 })
 feature("the guarded product datasheet opens as HTML and prints to PDF without a search document", {

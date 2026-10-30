@@ -19,7 +19,6 @@ feature("an editor generates one choice, retries it, resumes a durable batch and
         page.waitFor(() => document.querySelector("input[name=operationKey]")?.value.startsWith("variants-"))
         const key = page.evaluate(() => document.querySelector("input[name=operationKey]").value)
         page.text().includes("4 pending")
-        page.screenshot("Variants-selected-and-queued", {fullPage: true})
         page.goto("/qapps/Products/Products/VariantBuilder?productId=BOSS_PRD_VIRT")
         page.waitFor(() => !!document.querySelector("[data-feature-key]"))
         page.fill("input[name=operationKey]", key)
@@ -28,7 +27,6 @@ feature("an editor generates one choice, retries it, resumes a durable batch and
         page.getByRole("button", {name: "Process next batch", exact: true}).click()
         page.waitFor(() => document.querySelector("[role=status]")?.textContent.includes("3 created"))
         page.text().includes("1 existing")
-        page.screenshot("Variants-operation-complete", {fullPage: true})
         page.goto("/qapps/Products/Products/VariantBuilderTui?productId=BOSS_PRD_VIRT")
         page.waitFor(() => !!document.querySelector("#GenerateSelection"))
         const form = page.locator("#GenerateSelection")
@@ -36,7 +34,6 @@ feature("an editor generates one choice, retries it, resumes a durable batch and
         form.getByRole("button", {name: "Generate feature sets", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("existing"))
         page.text().includes("BOSS_PRD_VIRT_RD_S")
-        page.screenshot("Variants-xml-twin-results", {fullPage: true})
     }
 })
 feature("an administrator saves an effective-dated variant policy and sees its history", {
@@ -51,6 +48,5 @@ feature("an administrator saves an effective-dated variant policy and sees its h
         page.locator("#VariantPolicy").getByRole("button", {name: "Save policy", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser variant policy validation"))
         page.evaluate(() => document.querySelector("input[name=batchLimit]").value) === "100"
-        page.screenshot("Variants-policy-history", {fullPage: true})
     }
 })

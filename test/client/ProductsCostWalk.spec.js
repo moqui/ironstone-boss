@@ -16,7 +16,6 @@ feature(
             estimator.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser reviewed pack estimate"))
             const id = estimator.evaluate(() => new URL(window.location.href).searchParams.get("productStandardCostId"))
             !!id
-            estimator.screenshot("Cost-browser-saved-draft", {fullPage: true})
             const approver = browser.newPage({user: "catalog.cost.approve", viewport: {width: 1280, height: 1100}, timeout: 30})
             approver.allowProblems(/userPhoto\?userId=/)
             approver.goto("/qapps/Products/Prices/StandardCosts?productId=BOSS_PRD_PACK&productStandardCostId=" + id).status ==
@@ -25,7 +24,6 @@ feature(
             approver.fill("#ApproveStandardCost textarea[name=changeReason]", "Browser independently approved estimate")
             approver.locator("#ApproveStandardCost").getByRole("button", {name: "Approve estimate", exact: true}).click()
             approver.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Approved PDF"))
-            approver.screenshot("Cost-browser-approved", {fullPage: true})
             const finance = browser.newPage({user: "catalog.cost.gl", viewport: {width: 1280, height: 1100}, timeout: 30})
             finance.allowProblems(/userPhoto\?userId=/)
             finance.goto("/qapps/Products/InventoryValuation?productId=BOSS_PRD_PACK&productStandardCostId=" + id).status == 200
@@ -36,7 +34,6 @@ feature(
             finance.getByRole("button", {name: "Post reviewed revaluation", exact: true}).click()
             finance.locator("#PostRevaluation").getByRole("button", {name: "Confirm and post", exact: true}).click()
             finance.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Posted accounting transaction"))
-            finance.screenshot("Cost-browser-posted-ledger", {fullPage: true})
         }
     }
 )

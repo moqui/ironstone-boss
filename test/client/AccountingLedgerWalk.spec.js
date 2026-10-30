@@ -66,7 +66,6 @@ feature("a GL operator creates balanced lines, reviews and posts a journal", {
             exact: true
         }).click()
         page.waitFor(() => document.querySelector(".m-record-status")?.innerText.includes("Posted"))
-        page.screenshot("Accounting-ledger-posted", {fullPage: true})
         headerAction("Reverse entry")
         const reversal = page.getByRole("dialog")
         // tomorrow, in the runner's zone, which is the demo user's
@@ -78,6 +77,5 @@ feature("a GL operator creates balanced lines, reviews and posts a journal", {
         reversal.locator("input[name=changeReason]").fill("Browser dated reversal")
         reversal.getByRole("button", {name: "Reverse entry", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reversed by"))
-        page.screenshot("Accounting-ledger-reversed", {fullPage: true})
     }
 })

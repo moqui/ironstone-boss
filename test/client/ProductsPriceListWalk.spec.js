@@ -31,13 +31,11 @@ feature("an editor drafts a policy, adds a fixed rule, publishes the reviewed sc
         page.getByRole("button", {name: "Publish reviewed list", exact: true}).click()
         page.settle()
         page.evaluate(() => document.getElementById("PriceList_stateText_display").value) === "published"
-        page.screenshot("PricePolicy-published-editor", {fullPage: true})
         page.goto(
             "/qapps/Products/Prices/PriceExplain?productId=BOSS_PRD_OWN&organizationPartyId=ORG_ZIZI_SERVICES&priceListId=" + id
         )
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("list-selected"))
         page.text().includes("12.5")
         page.text().includes("rule-base")
-        page.screenshot("PricePolicy-resolved-editor", {fullPage: true})
     }
 })

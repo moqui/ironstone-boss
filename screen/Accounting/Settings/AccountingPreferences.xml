@@ -200,15 +200,6 @@ along with this software (see the LICENSE.md file). If not, see
                             </radio>
                         </default-field>
                     </field>
-                    <field name="paymentGatewayWorkflowEnabled">
-                        <default-field title="Payment provider processing"
-                                tooltip="Authorize and capture through a configured payment provider; needs Settlement controls">
-                            <radio>
-                                <option key="N" text="Off"/>
-                                <option key="Y" text="On"/>
-                            </radio>
-                        </default-field>
-                    </field>
                     <field name="paymentAutoApplicationEnabled">
                         <default-field title="Automatic application"
                                 tooltip="Allocate unapplied payments to the oldest due invoices">
@@ -263,7 +254,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <field-ref name="paymentAutoApplicationEnabled"/>
                         </field-row>
                         <field-ref name="inventoryRevaluationEnabled"/>
-                        <field-ref name="paymentGatewayWorkflowEnabled"/>
                         <field-ref name="changeReason"/>
                         <field-ref name="submit"/>
                     </field-layout>

@@ -658,39 +658,19 @@ function gatewaySetup(currency) {
         orgMethodId = "BOSS_ACCT_GW_BANK",
         customerMethodId = "BOSS_ACCT_GW_CUSTOMER_BANK",
         [, glAccountId] = entryAccounts()
-    policy.call("update#mantle.ledger.config.PartyAcctgPreference", {
-        organizationPartyId,
-        paymentGatewayWorkflowEnabled: "Y"
-    })
+    // Mantle's test gateway services, which always approve and answer lookups
+    const testServices = "mantle.account.PaymentTestServices."
     createOnce(
         "mantle.account.method.PaymentGatewayConfig",
         {paymentGatewayConfigId: gatewayId},
         {
-            description: "Demonstration reviewed gateway",
+            description: "Demonstration test gateway",
             paymentGatewayTypeEnumId: "PgtTest",
-            reviewedOperationServiceName: "mantle.account.PaymentGatewayTestServices.invoke#ReviewedOperation",
-            reviewedLookupServiceName: "mantle.account.PaymentGatewayTestServices.lookup#ReviewedOperation",
-            reviewedAdapterVersion: "fixture-v1",
-            reviewedMerchantNamespace: "native-fixture/accounting-demo/" + organizationPartyId,
-            reviewedGuaranteesJson: JSON.stringify({
-                authorize: {enabled: true, idempotent: true, exactLookup: true, reviewedMethodSnapshot: true},
-                capture: {enabled: true, idempotent: true, exactLookup: true, partialCapture: true, reviewedMethodSnapshot: true},
-                release: {
-                    enabled: true,
-                    idempotent: true,
-                    exactLookup: true,
-                    releaseRemaining: true,
-                    reviewedMethodSnapshot: true
-                },
-                refund: {
-                    enabled: true,
-                    originalCaptureOnly: true,
-                    partialRefund: true,
-                    idempotent: true,
-                    exactLookup: true,
-                    reviewedMethodSnapshot: true
-                }
-            })
+            authorizeServiceName: testServices + "alwaysApprove#PaymentAuthorization",
+            captureServiceName: testServices + "alwaysApprove#PaymentCapture",
+            releaseServiceName: testServices + "alwaysApprove#PaymentRelease",
+            refundServiceName: testServices + "alwaysApprove#PaymentRefund",
+            detailsServiceName: testServices + "alwaysApprove#PaymentDetails"
         }
     )
     createOnce(
@@ -701,7 +681,6 @@ function gatewaySetup(currency) {
             isEnabled: "Y"
         }
     )
-    createOnce("mantle.account.payment.PaymentGatewayTestControl", {paymentGatewayConfigId: gatewayId}, {outcomesJson: "{}"})
     for (const [paymentMethodId, ownerPartyId, accountNumber] of [
         [orgMethodId, organizationPartyId, "000123456781"],
         [customerMethodId, partyId, "000123456782"]

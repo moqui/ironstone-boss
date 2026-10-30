@@ -1,518 +1,175 @@
-const refundHelper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
-const refundScreen = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js")
-const refundNative = "mantle.account.PaymentServices."
-
-feature("refund preparation decodes only the original reviewed source, draft, methods and evidence", {
-    when() {
-        return {
-            input: refundScreen().refundInput({
-                organizationPartyId: "organization",
-                paymentId: "original-cash",
-                sourceVersion: "old-original",
-                amount: "20",
-                effectiveDate: "2026-10-30",
-                reason: "Return agreed",
-                referenceNumber: "RETURN-20",
-                paymentInstrumentEnumId: "PiCash",
-                refundDraftToken: "opposite-draft~old-draft",
-                organizationMethodToken: "cash-method~old-method",
-                counterpartyMethodToken: "customer-method~old-customer",
-                evidenceTokenList: ["evidence~old-file"],
-                refundPaymentId: "forged-child",
-                providerState: "accepted",
-                financialState: "completed",
-                glAccountId: "forged-account"
-            })
-        }
-    },
-    then({input}) {
-        input.paymentId == "original-cash"
-        input.sourceVersion == "old-original"
-        input.refundPaymentId == "opposite-draft"
-        input.refundSourceVersion == "old-draft"
-        input.organizationPaymentMethodId == "cash-method"
-        input.organizationMethodVersion == "old-method"
-        input.counterpartyMethodVersion == "old-customer"
-        input.evidenceContentIdList == ["evidence"]
-        input.evidenceVersions == {evidence: "old-file"}
-        !["providerState", "financialState", "glAccountId"].some(field => field in input)
+// Refunds on the payment screens: the manual refund dialog's input, its retained review and result rendered through the
+// Accounting mount (preview#PaymentRefund and refund#ReviewedPayment over Mantle's create#RefundPayment), the refund
+// through the gateway dialog (refund#SinglePayment), and treasury-only access.
+const app = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
+const screen = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js")
+const native = "mantle.account.PaymentServices."
+const org = app.ids.organizationPartyId
+spec({
+    setup() {
+        login("john.doe")
+        ec.artifactExecution.disableAuthz()
     }
 })
 
-feature("refund preparation restored from a retained review keeps the exact old selected revisions", {
-    when() {
-        return {
-            value: refundScreen().refundPreparedValue({
-                sourceVersion: "reviewed-source",
-                paymentSummary: {amount: "20", accountingDateText: "2026-10-30"},
-                reason: "Original reason",
-                referenceNumber: "Original reference",
-                refundPaymentId: "draft",
-                refundSourceVersion: "reviewed-draft",
-                refundDefaults: {
-                    paymentInstrumentEnumId: "PiCash",
-                    organizationPaymentMethodId: "method",
-                    organizationMethodVersion: "reviewed-method"
-                },
-                evidenceRows: [{paymentContentId: "file", version: "reviewed-bytes"}]
-            })
-        }
-    },
-    then({value}) {
-        value.sourceVersion == "reviewed-source"
-        value.effectiveDate == "2026-10-30"
-        value.amount == "20"
-        value.reason == "Original reason"
-        value.referenceNumber == "Original reference"
-        value.refundDraftToken == "draft~reviewed-draft"
-        value.organizationMethodToken == "method~reviewed-method"
-        value.evidenceTokenList == ["file~reviewed-bytes"]
-    }
-})
+// A delivered customer receipt into the organization's bank, made as the system so each feature has its own.
+function receipt(amount = "50", extra = {}) {
+    return app.call(
+        native + "create#Payment",
+        Object.assign(
+            {
+                fromPartyId: app.ids.paymentPartyId,
+                toPartyId: org,
+                paymentTypeEnumId: "PtInvoicePayment",
+                paymentInstrumentEnumId: "PiCompanyCheck",
+                toPaymentMethodId: "BOSS_ACCT_GW_BANK",
+                amount,
+                amountUomId: "USD",
+                statusId: "PmntDelivered",
+                effectiveDate: ec.user.nowTimestamp
+            },
+            extra
+        )
+    ).paymentId
+}
+const context = parameters =>
+    app.call(
+        "ironstone.accounting.PaymentScreenServices.get#PaymentContext",
+        Object.assign({organizationPartyId: org}, parameters)
+    )
 
-feature("refund confirmation is retained per preview and cannot treat original cash identity as completion", {
+feature("the manual refund dialog sends the reviewed fields and the chosen methods' ids only", {
     when() {
-        return refundHelper.asUser("finance.treasury", () => {
-            const module = refundScreen(),
-                original = {
-                    paymentId: "original",
-                    previewId: "refund-review",
-                    previewKind: "refund",
-                    status: "review",
-                    canApply: true,
-                    paymentSummary: {paymentId: "original", amount: "20", currencyUomId: "USD"}
-                }
-            return {
-                first: module.refundReviewPresentation(original, "organization"),
-                reopened: module.refundReviewPresentation(original, "organization"),
-                other: module.refundReviewPresentation({...original, previewId: "other-refund-review"}, "organization"),
-                unavailable: module.refundReviewPresentation(
-                    {...original, canApply: false, results: {paymentId: "original"}},
-                    "organization"
-                )
-            }
+        return screen().refundInput({
+            organizationPartyId: org,
+            paymentId: "P1",
+            amount: "5",
+            effectiveDate: "2026-10-30",
+            reason: "Return",
+            referenceNumber: "R1",
+            paymentInstrumentEnumId: "PiCompanyCheck",
+            organizationMethodToken: "ORG_BANK~v1",
+            counterpartyMethodToken: "CUSTOMER_BANK~v2",
+            toPaymentMethodId: "SOMEONE_ELSE",
+            operationKey: "x"
         })
     },
-    then({first, reopened, other, unavailable}) {
-        first.canConfirm == true
-        first.operationKey == reopened.operationKey
-        first.operationKey.length <= 40
-        first.operationKey != other.operationKey
-        unavailable.canConfirm == false
-        unavailable.hasResults == false
-        unavailable.actualRefundRows.length == 0
+    then(input) {
+        input.organizationPaymentMethodId == "ORG_BANK"
+        input.counterpartyPaymentMethodId == "CUSTOMER_BANK"
+        input.toPaymentMethodId == null
+        input.operationKey == null
+        input.amount == "5"
     }
 })
 
-feature("completed refund files and actual payment links belong to the opposite child and preserve ledger omission", {
+feature("treasury reviews and confirms a manual refund on the Refunds tab; the review and its result render", {
     when() {
-        const retained = {
-            paymentId: "original",
-            previewId: "refund-result",
-            previewKind: "refund",
-            status: "complete",
-            operationKey: "recorded-refund-key",
-            paymentSummary: {paymentId: "original", amount: "20", currencyUomId: "USD"},
-            results: {
-                paymentId: "original",
-                originalPaymentId: "original",
-                refundPaymentId: "actual-refund",
-                amount: "20",
-                currencyUomId: "USD",
-                paymentApplicationId: "actual-funding",
-                outputRows: [
-                    {paymentId: "actual-refund", outputId: "refund-receipt", fileName: "Refund.pdf", canOpen: true},
-                    {paymentId: "original", outputId: "wrong-owner", canOpen: true}
-                ]
-            }
-        }
-        return {
-            view: refundScreen().refundReviewPresentation(retained, "organization"),
-            mismatch: refundScreen().refundReviewPresentation(
-                {...retained, results: {...retained.results, originalPaymentId: "another-original"}},
-                "organization"
-            )
-        }
-    },
-    then({view, mismatch}) {
-        view.hasResults == true
-        view.operationKey == "recorded-refund-key"
-        view.actualRefundRows[0].recordParameters.paymentId == "actual-refund"
-        view.outputResultRows[0].canOpen == true
-        view.outputResultRows[0].outputParameters.paymentId == "actual-refund"
-        view.outputResultRows[0].outputParameters.recordId == "actual-refund"
-        view.outputResultRows[0].outputParameters.sourceVersion == ""
-        view.outputResultRows[1].canOpen == false
-        view.postingResultRows.length == 0
-        mismatch.hasResults == false
-        mismatch.outputResultRows.length == 0
-    }
-})
-
-feature("refund funding review uses native before and after money without deriving missing amounts", {
-    when() {
-        return {
-            view: refundScreen().refundReviewPresentation(
-                {
-                    paymentId: "original",
-                    previewId: "funding-review",
-                    paymentSummary: {paymentId: "original", amount: "20", currencyUomId: "USD"},
-                    refundSummary: {currencyUomId: "USD"},
-                    before: {refundableAmount: "60", heldRefundAmount: "5"},
-                    after: {refundableAmount: "40"}
-                },
-                "organization"
-            )
-        }
-    },
-    then({view}) {
-        view.fundingRows.find(row => row.label === "Available to refund").beforeAmount == "60"
-        view.fundingRows.find(row => row.label === "Available to refund").afterAmount == "40"
-        view.fundingRows.find(row => row.label === "Refunds reserved").afterAmount == null
-    }
-})
-
-feature("the same real original cash permits Treasury refund reads and refuses AR refund authority", {
-    when() {
-        const parameters = {
-            organizationPartyId: refundHelper.ids.organizationPartyId,
-            paymentId: refundHelper.ids.paymentDeliveredId
-        }
-        return {
-            allowed: refundHelper.asUser("finance.treasury", () =>
-                refundHelper.call(refundNative + "get#PaymentRefundSummary", parameters)
-            ),
-            refused: refundHelper.asUser("finance.ar", () =>
-                refundHelper.refusal(refundNative + "get#PaymentRefundSummary", parameters)
-            )
-        }
-    },
-    then({allowed, refused}) {
-        allowed.refundSummary.complete == true
-        allowed.refundSummary.originalPaymentId == refundHelper.ids.paymentDeliveredId
-        refused.includes("PERMISSION_DENIED")
-        !/"(?:accountNumber|routingNumber|cardNumber|credentials|providerBody)"/.test(JSON.stringify(allowed))
-    }
-})
-
-feature("a real owner-bound manual refund preview renders its native funding and can be reopened without changing selection", {
-    when() {
-        return refundHelper.asUser("finance.treasury", () => {
-            const organizationPartyId = refundHelper.ids.organizationPartyId,
-                paymentId = refundHelper.ids.paymentDeliveredId,
-                detail = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {organizationPartyId, paymentId}),
-                read = refundHelper.call(refundNative + "get#PaymentRefundSummary", {organizationPartyId, paymentId}),
-                preview = refundHelper.call(refundNative + "preview#PaymentRefund", {
-                    ...read.refundDefaults,
-                    organizationPartyId,
-                    paymentId,
-                    sourceVersion: detail.sourceVersion,
-                    amount: "1",
-                    effectiveDate: ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
-                    reason: "Review actual manual refund funding",
-                    referenceNumber: "APP-REFUND-REVIEW"
-                }),
-                parameters = {organizationPartyId, paymentId, previewId: preview.previewId, previewKind: "refund"},
-                first = refundHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentContext", parameters),
-                reopened = refundHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentContext", parameters),
-                prepared = refundHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentContext", {
-                    organizationPartyId,
-                    paymentId,
-                    refundEditPreviewId: preview.previewId
-                }),
-                pages = ["qvt", "tui", "html"].map(mode => refundHelper.page("Payments/PaymentDetail/Refunds", parameters, mode))
-            return {preview, first, reopened, prepared, pages}
+        const paymentId = receipt()
+        return app.asUser("finance.treasury", () => {
+            const detail = context({paymentId}).financePayment,
+                input = screen().refundInput(Object.assign({}, detail.refundValue, {amount: "15", reason: "Unused deposit"})),
+                preview = app.call(native + "preview#PaymentRefund", input),
+                parameters = {paymentId, previewId: preview.previewId, previewKind: "refund"},
+                review = context(parameters).paymentReview,
+                reviewPages = ["qvt", "tui", "html"].map(mode => app.page("Payments/PaymentDetail/Refunds", parameters, mode)),
+                first = app.call(native + "refund#ReviewedPayment", review.confirmParameters),
+                retry = app.call(native + "refund#ReviewedPayment", review.confirmParameters),
+                completed = context(parameters).paymentReview,
+                resultPages = ["qvt", "html"].map(mode => app.page("Payments/PaymentDetail/Refunds", parameters, mode)),
+                after = context({paymentId}).financePayment
+            return {paymentId, detail, review, reviewPages, first, retry, completed, resultPages, after}
         })
     },
-    then({preview, first, reopened, prepared, pages}) {
-        preview.paymentId == refundHelper.ids.paymentDeliveredId
-        first.paymentReview.previewKind == "refund"
-        first.paymentReview.operationKey == reopened.paymentReview.operationKey
-        first.paymentReview.hasResults == false
-        toDecimal(preview.applicationEffects[0].amountOriginallyApplied).isZero()
-        toDecimal(preview.applicationEffects[0].afterAmountApplied).eq(preview.paymentSummary.amount)
-        first.paymentReview.applicationEffects[0].amountOriginallyApplied == preview.applicationEffects[0].amountOriginallyApplied
-        first.paymentReview.applicationEffects[0].afterAmountApplied == preview.applicationEffects[0].afterAmountApplied
-        first.paymentReview.applicationEffects[0].targetPaymentId == preview.paymentId
-        prepared.financePayment.refundValue.sourceVersion == preview.sourceVersion
-        prepared.financePayment.refundValue.amount == preview.paymentSummary.amount
-        pages.every(
+    then({paymentId, detail, review, reviewPages, first, retry, completed, resultPages, after}) {
+        detail.capabilities.canPreviewRefund == true
+        toDecimal(detail.refundValue.amount).eq(50)
+        detail.refundValue.organizationMethodToken.startsWith("BOSS_ACCT_GW_BANK~")
+        review.isRefund == true
+        review.canConfirm == true
+        review.reviewedMethods.organization.paymentMethodId == "BOSS_ACCT_GW_BANK"
+        review.fundingRows.find(row => row.label == "Available to refund").afterAmount == 35
+        reviewPages.every(
             page =>
                 page.status === 200 &&
                 !page.errors.length &&
                 page.output.includes("Reviewed refund") &&
-                page.output.includes("Reviewed refund funding") &&
-                page.output.includes("From payment") &&
-                page.output.includes("To payment") &&
-                page.output.includes("New refund payment")
+                page.output.includes("Confirm refund")
         )
+        first.statusId == "PmntDelivered"
+        retry.alreadyApplied == true
+        retry.refundPaymentId == first.refundPaymentId
+        completed.hasResults == true
+        completed.actualRefundRows[0].paymentId == first.refundPaymentId
+        resultPages.every(page => page.status === 200 && !page.errors.length && page.output.includes("Refund completed"))
+        after.refundRows.some(row => row.paymentId == first.refundPaymentId)
+        after.refundSummaryRows.find(row => row.label == "Available to refund").amount == 35
+        first.paymentId == paymentId
     }
 })
 
-feature("#user confirms its own manual refund with exact funding, issued child documents and retained retry", {
-    where: [
-        {user: "finance.treasury", expectLedger: false},
-        {user: "finance.admin", expectLedger: true}
-    ],
-    when({user, expectLedger}) {
-        return refundHelper.asUser(user, () => {
-            const organizationPartyId = refundHelper.ids.organizationPartyId,
-                effectiveDate = ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd"),
-                currencyUomId = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {
-                    organizationPartyId,
-                    paymentId: refundHelper.ids.paymentDeliveredId
-                }).payment.currencyUomId,
-                methods = refundHelper.call(refundNative + "find#PaymentMethods", {
-                    organizationPartyId,
-                    cashDirection: "incoming",
-                    methodRole: "organization",
-                    partyId: refundHelper.ids.paymentPartyId,
-                    currencyUomId,
-                    effectiveDate,
-                    selectedPaymentMethodIdList: ["BOSS_ACCT_PAY_CASH"],
-                    pageSize: 1
-                }),
-                method = methods.selectedRows.find(row => row.paymentMethodId === "BOSS_ACCT_PAY_CASH"),
-                intent = "app-refund-" + ec.user.randomString(16)
-            if (!method?.version) throw new Error("The native reviewed cash method is required for this isolated refund source")
-            const created = refundHelper.call(refundNative + "create#PaymentDraft", {
-                    organizationPartyId,
-                    cashDirection: "incoming",
-                    partyId: refundHelper.ids.paymentPartyId,
-                    amount: "3",
-                    currencyUomId,
-                    effectiveDate,
-                    paymentInstrumentEnumId: "PiCash",
-                    organizationPaymentMethodId: method.paymentMethodId,
-                    organizationMethodVersion: method.version,
-                    referenceNumber: "Isolated refund funding",
-                    operationKey: intent + "-c"
-                }),
-                validation = refundHelper.call(refundNative + "preview#PaymentState", {
-                    organizationPartyId,
-                    paymentId: created.paymentId,
-                    sourceVersion: created.sourceVersion,
-                    action: "validate"
+feature("a receivables user reads the receipt but is offered no refund and cannot review one", {
+    when() {
+        const paymentId = receipt("20")
+        return app.asUser("finance.ar", () => {
+            const detail = context({paymentId}).financePayment,
+                page = app.page("Payments/PaymentDetail/Refunds", {paymentId}),
+                refused = app.refusal(native + "preview#PaymentRefund", {
+                    organizationPartyId: org,
+                    paymentId,
+                    amount: "5",
+                    effectiveDate: ec.user.nowTimestamp,
+                    reason: "Not mine"
                 })
-            refundHelper.call(refundNative + "change#PaymentState", {
-                previewId: validation.previewId,
-                inputFingerprint: validation.inputFingerprint,
-                operationKey: intent + "-v"
-            })
-            const validated = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {
-                    organizationPartyId,
-                    paymentId: created.paymentId
-                }),
-                delivery = refundHelper.call(refundNative + "preview#PaymentState", {
-                    organizationPartyId,
-                    paymentId: created.paymentId,
-                    sourceVersion: validated.sourceVersion,
-                    action: "deliver",
-                    settlementDate: effectiveDate,
-                    referenceNumber: "Isolated cash received",
-                    reason: "Counted cash provides actual original refund backing"
-                })
-            refundHelper.call(refundNative + "change#PaymentState", {
-                previewId: delivery.previewId,
-                inputFingerprint: delivery.inputFingerprint,
-                operationKey: intent + "-d"
-            })
-            const original = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {
-                    organizationPartyId,
-                    paymentId: created.paymentId
-                }),
-                funding = refundHelper.call(refundNative + "get#PaymentRefundSummary", {
-                    organizationPartyId,
-                    paymentId: created.paymentId
-                }),
-                review = refundHelper.call(refundNative + "preview#PaymentRefund", {
-                    ...funding.refundDefaults,
-                    organizationPartyId,
-                    paymentId: created.paymentId,
-                    sourceVersion: original.sourceVersion,
-                    amount: "1",
-                    effectiveDate,
-                    referenceNumber: "Actual reviewed refund",
-                    reason: "Return one unit of unused original cash"
-                }),
-                operationKey = intent + "-r",
-                confirmed = refundHelper.call(refundNative + "refund#ReviewedPayment", {
-                    previewId: review.previewId,
-                    inputFingerprint: review.inputFingerprint,
-                    operationKey
-                }),
-                retained = refundHelper.call(refundNative + "get#PaymentRefundPreview", {
-                    organizationPartyId,
-                    previewId: review.previewId
-                }),
-                parameters = {
-                    organizationPartyId,
-                    paymentId: created.paymentId,
-                    recordId: created.paymentId,
-                    previewId: review.previewId,
-                    previewKind: "refund",
-                    lastStandalone: "-4"
-                },
-                presented = refundHelper.call(
-                    "ironstone.accounting.PaymentScreenServices.get#PaymentContext",
-                    parameters
-                ).paymentReview,
-                retried = refundHelper.call(refundNative + "refund#ReviewedPayment", {
-                    previewId: review.previewId,
-                    inputFingerprint: review.inputFingerprint,
-                    operationKey
-                }),
-                child = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {
-                    organizationPartyId,
-                    paymentId: confirmed.refundPaymentId
-                }),
-                after = refundHelper.call(refundNative + "get#PaymentFinanceDetail", {
-                    organizationPartyId,
-                    paymentId: created.paymentId
-                }),
-                summary = refundHelper.call(refundNative + "get#PaymentRefundSummary", {
-                    organizationPartyId,
-                    paymentId: created.paymentId
-                }),
-                outputRows = Array.from(retained.results.outputRows),
-                postingIds = Array.from(retained.results.acctgTransIds || []),
-                pages = ["qvt", "tui", "html"].map(mode => {
-                    const renderer = ec.screen.makeTest().rootScreen("component://webroot/screen/webroot.xml").renderMode(mode)
-                    if (mode === "qvt") renderer.withStaticData()
-                    const result = renderer.render("apps/Accounting/Payments/PaymentDetail", parameters, null),
-                        output = String(result.output || ""),
-                        links = []
-                    if (mode === "tui") {
-                        const pending = [JSON.parse(output)]
-                        while (pending.length) {
-                            const item = pending.pop()
-                            if (Array.isArray(item)) pending.push(...item)
-                            else if (item && typeof item === "object") {
-                                if (item.t === "link") links.push(item)
-                                pending.push(...Object.values(item).filter(value => value && typeof value === "object"))
-                            }
-                        }
-                    } else
-                        for (const match of output.matchAll(/<(a|m-link)\b([^>]*)>([\s\S]*?)<\/\1>/g)) {
-                            const href = match[2].match(/\bhref="([^"]*)"/)
-                            if (href)
-                                links.push({
-                                    url: href[1].replace(/&amp;/g, "&"),
-                                    disabled: /\baria-disabled="true"|\bclass="[^"]*\bdisabled\b/.test(match[2])
-                                })
-                        }
-                    const parameter = (url, name) => {
-                        const value = String(url || "").match(new RegExp("[?&]" + name + "=([^&#]*)"))
-                        return value ? decodeURIComponent(value[1].replace(/\+/g, " ")) : null
-                    }
-                    return {
-                        mode,
-                        status: result.status,
-                        output,
-                        errors: Array.from(result.errorMessages || []).concat(
-                            output.match(/(?:Error rendering|Exception in render)[^\n<]*/g) || []
-                        ),
-                        references: links.map(link => ({
-                            url: link.url,
-                            disabled: link.disabled === true,
-                            paymentId: parameter(link.url, "paymentId"),
-                            recordId: parameter(link.url, "recordId"),
-                            outputId: parameter(link.url, "outputId")
-                        }))
-                    }
-                })
-            return {
-                original,
-                confirmed,
-                retained,
-                retried,
-                presented,
-                child,
-                after,
-                summary,
-                operationKey,
-                expectLedger,
-                outputRows,
-                postingIds,
-                postingIdJson: JSON.stringify(postingIds),
-                pages
-            }
+            return {detail, page, refused}
         })
     },
-    then({
-        original,
-        confirmed,
-        retained,
-        retried,
-        presented,
-        child,
-        after,
-        summary,
-        operationKey,
-        expectLedger,
-        outputRows,
-        postingIds,
-        postingIdJson,
-        pages
-    }) {
-        confirmed.paymentId == original.payment.paymentId
-        confirmed.originalPaymentId == original.payment.paymentId
-        confirmed.refundPaymentId != original.payment.paymentId
-        confirmed.paymentApplicationId != null
-        confirmed.reasonCode == "REFUND_COMPLETED"
-        retained.operationKey == operationKey
-        presented.operationKey == operationKey
-        presented.hasResults == true
-        retried.alreadyApplied == true
-        retried.refundPaymentId == confirmed.refundPaymentId
-        retried.paymentApplicationId == confirmed.paymentApplicationId
-        child.sourceRows.some(row => row.sourceKind === "payment" && row.sourceId === original.payment.paymentId)
-        child.payment.paymentTypeEnumId == "PtRefund"
-        child.payment.cashDirection == "outgoing"
-        child.payment.financeDirection == "receivable"
-        child.applicationRows.filter(
-            row =>
-                row.paymentApplicationId === confirmed.paymentApplicationId &&
-                row.paymentId === confirmed.refundPaymentId &&
-                row.toPaymentId === original.payment.paymentId &&
-                toDecimal(row.amountApplied).eq("1")
-        ).length == 1
-        after.applicationRows.filter(row => row.paymentApplicationId === confirmed.paymentApplicationId).length == 1
-        toDecimal(after.payment.amount).eq("3")
-        toDecimal(summary.refundSummary.completedRefundAmount).eq("1")
-        toDecimal(summary.refundSummary.refundableAmount).eq("2")
-        expectLedger ? confirmed.acctgTransIds.length === 2 : !("acctgTransIds" in confirmed)
-        JSON.stringify(presented.postingResultRows.map(row => row.acctgTransId)) == postingIdJson
-        outputRows.length >= 2
-        outputRows.every(row => row.paymentId === confirmed.refundPaymentId && row.canOpen === true)
-        presented.outputResultRows.every(
-            row =>
-                row.canOpen === true &&
-                row.outputParameters.paymentId === confirmed.refundPaymentId &&
-                row.outputParameters.recordId === confirmed.refundPaymentId
-        )
-        JSON.stringify(retried.outputRows.map(row => row.outputId)) == JSON.stringify(outputRows.map(row => row.outputId))
-        pages.every(
-            page =>
-                page.status === 200 &&
-                !page.errors.length &&
-                page.output.includes("Refund completed") &&
-                page.output.includes("Actual refund payment")
-        )
-        pages.every(page =>
-            outputRows.every(
-                row =>
-                    page.output.includes(row.fileName) &&
-                    page.references.some(
-                        link =>
-                            !link.disabled &&
-                            link.url.includes("/Accounting/Payments/PaymentPrint") &&
-                            link.outputId === row.outputId &&
-                            link.paymentId === confirmed.refundPaymentId &&
-                            link.recordId === confirmed.refundPaymentId
+    then({detail, page, refused}) {
+        detail.capabilities.canPreviewRefund != true
+        page.status == 200
+        !page.output.includes("Review refund")
+        page.output.includes("Refunds require treasury access")
+        refused != ""
+    }
+})
+
+feature("a refund through the gateway dialog delivers a refund payment linked to the captured payment", {
+    when() {
+        const paymentId = receipt("30", {
+            statusId: "PmntPromised",
+            paymentInstrumentEnumId: "PiAch",
+            paymentMethodId: "BOSS_ACCT_GW_CUSTOMER_BANK",
+            paymentGatewayConfigId: "BOSS_ACCT_GW_TEST"
+        })
+        return app.asUser("finance.treasury", () => {
+            const run = (action, extra = {}) => {
+                const preview = app.call(
+                    native + "preview#PaymentGatewayAction",
+                    screen().gatewayActionInput(
+                        Object.assign({organizationPartyId: org, paymentId, action, reason: "Customer request"}, extra)
                     )
-            )
-        )
-        pages.every(page => postingIds.every(id => page.output.includes(id)))
+                )
+                return app.call(
+                    native + "execute#PaymentGatewayAction",
+                    context({paymentId, previewId: preview.previewId, previewKind: "gateway"}).paymentReview.confirmParameters
+                )
+            }
+            run("authorize")
+            run("capture")
+            const before = context({paymentId}).financePayment,
+                refunded = run("refund", {amount: "12"}),
+                after = context({paymentId}).financePayment,
+                page = app.page("Payments/PaymentDetail/Refunds", {paymentId})
+            return {before, refunded, after, page}
+        })
+    },
+    then({before, refunded, after, page}) {
+        before.capabilities.canGatewayRefund == true
+        toDecimal(before.gatewayRefundValue.amount).eq(30)
+        refunded.outcome == "accepted"
+        refunded.refundStatusId == "PmntDelivered"
+        after.refundRows.some(row => row.paymentId == refunded.refundPaymentId)
+        after.refundSummaryRows.find(row => row.label == "Available to refund").amount == 18
+        page.output.includes(refunded.refundPaymentId)
     }
 })

@@ -69,8 +69,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="previewKind" type="String"/>
             <parameter name="findJson" type="String"/>
             <parameter name="gatewayFindJson" type="String"/>
-            <parameter name="refundEditPreviewId" type="String"/>
-            <parameter name="gatewayRefundEditPreviewId" type="String"/>
         </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId" type="String"/>
@@ -79,8 +77,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="recordFound" type="Boolean"/>
             <parameter name="findJson" type="String"/>
             <parameter name="gatewayFindJson" type="String"/>
-            <parameter name="refundEditPreviewId" type="String"/>
-            <parameter name="gatewayRefundEditPreviewId" type="String"/>
             <parameter name="financePayment" type="Map"/>
             <parameter name="paymentHeaderValue" type="Map"/>
             <parameter name="paymentReview" type="Map"/>
@@ -90,7 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
     </service>
     <service verb="get" noun="GatewayTransactionsContext" allow-remote="false">
-        <description>Combine scoped native gateway paging, provider labels and one authorized selected attempt with app navigation and completion-aware issued-file links.</description>
+        <description>Page the organization's gateway responses (find#PaymentGatewayTransactions) with gateway labels and links
+            to their payments and refund payments.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
             <parameter name="paymentId" type="String"/>
@@ -101,7 +98,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="fromDay" type="String"/>
             <parameter name="throughDay" type="String"/>
             <parameter name="text" type="String"/>
-            <parameter name="attemptId" type="String"/>
             <parameter name="pageIndex" type="Integer"/>
             <parameter name="pageSize" type="Integer"/>
         </in-parameters>
@@ -115,7 +111,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="fromDay" type="String"/>
             <parameter name="throughDay" type="String"/>
             <parameter name="text" type="String"/>
-            <parameter name="attemptId" type="String"/>
             <parameter name="records" type="List"/>
             <parameter name="recordsCount" type="Integer"/>
             <parameter name="recordsPageIndex" type="Integer"/>

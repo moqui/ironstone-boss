@@ -662,7 +662,8 @@ with what the drawers and Commons gained for it.
 
 - Server-static pass (agreed Oct 19): built Oct 21 (§8): 19 Commons and Comms screens are server-static, the others left
   as server merges for the reasons §8 gives.
-- Calls: WebRTC with Calls, Call, LiveCall, CallSettings, CallSession and CallLink, and the `Call` comm type.
+- Calls: WebRTC with Calls, Call, LiveCall, CallSettings, CallSession and CallLink, and the `Call` comm type. Planned Oct 30, 2026
+  in mr-moqui `plans/Comms-Framework.md` (§5 voice, §6 conferencing), with the move of Comms to a framework component (§3).
 - Sync: built Oct 21 (§8, mr-moqui docs/interfaces/Sync.md): CalDAV, CardDAV and WebDAV at `/dav`, SFTP to the drives, app passwords,
   Settings/Sync, and the addresses on Calendars, Contact books and a drive's settings.
 - `m-coedit` with `yrs` and CollabDocument: built Oct 21 (§8; mr-moqui docs/data/Revision-Management.md, Co-editing); Knowledge

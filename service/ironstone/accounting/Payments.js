@@ -556,6 +556,7 @@ function transferInput(parameters) {
             "effectiveDate",
             "feeAmount",
             "feeGlAccountId",
+            "feePartyId",
             "referenceNumber",
             "reason"
         ].map(field => [field, parameters[field]])
@@ -583,6 +584,7 @@ function transferPreparedValue(retained) {
         effectiveDate: retained.accountingDateText,
         feeAmount: retained.feeAmount,
         feeGlAccountId: retained.feeGlAccountId || null,
+        feePartyId: retained.feePartyId || null,
         referenceNumber: retained.referenceNumber || "",
         reason: retained.reason || ""
     }
@@ -590,19 +592,13 @@ function transferPreparedValue(retained) {
 
 function transferPresentation(retained, organizationPartyId) {
     if (!retained?.previewId) return null
-    if (retained.previewKind !== "internalTransfer") throw new Error("The selected transfer review is not available")
+    if (retained.previewKind !== "transfer") throw new Error("The selected transfer review is not available")
     const result = retained.results || {},
         complete =
             retained.status === "complete" &&
             !!retained.operationKey &&
-            !!retained.internalTransferId &&
-            !!result.transferId &&
-            result.transferId === retained.internalTransferId &&
-            result.internalTransferId === result.transferId &&
-            result.operationKey === retained.operationKey &&
-            !!result.fromPaymentId &&
-            !!result.toPaymentId &&
-            result.fromPaymentId !== result.toPaymentId,
+            !!result.paymentId &&
+            result.operationKey === retained.operationKey,
         summaryAvailable =
             retained.principalAmount != null &&
             retained.feeAmount != null &&
@@ -611,7 +607,8 @@ function transferPresentation(retained, organizationPartyId) {
             !!retained.accountingDateText,
         operationKey =
             retained.operationKey || "trf-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
-        actualIds = {outgoing: result.fromPaymentId, incoming: result.toPaymentId}
+        actualIds = {transfer: result.paymentId, fee: result.feePaymentId},
+        legTexts = {transfer: "Transfer", fee: "Fee"}
     return Object.assign({}, policy.display(retained), {
         hasResults: complete,
         summaryAvailable,
@@ -633,50 +630,33 @@ function transferPresentation(retained, organizationPartyId) {
             operationKey: "",
             _openDialog: "AccountingInternalTransferDialog"
         },
-        movementRows: [
-            ["principalAmount", "Principal"],
-            ["feeAmount", "Fee"],
-            ["outgoingCashAmount", "Outgoing cash"],
-            ["incomingCashAmount", "Incoming cash"],
-            ["transitNetAmount", "Transit net"]
-        ]
-            .filter(([field]) => retained.before?.[field] != null || retained.after?.[field] != null)
-            .map(([field, label]) => ({
-                label,
-                beforeAmount: retained.before?.[field] ?? null,
-                afterAmount: retained.after?.[field] ?? null,
-                currencyUomId: retained.currencyUomId
-            })),
-        plannedLegRows: rows(retained.legRows).map(row =>
-            Object.assign(row, {legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg})
-        ),
+        plannedLegRows: rows(retained.legRows).map(row => Object.assign(row, {legText: legTexts[row.leg] || row.leg})),
         actualLegRows: complete
-            ? rows(result.legRows).map(row =>
-                  Object.assign(row, {
-                      legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg,
-                      canOpen: !!row.paymentId && row.paymentId === actualIds[row.leg],
+            ? rows(result.legRows).map(row => {
+                  const own = !!row.paymentId && row.paymentId === actualIds[row.leg]
+                  return Object.assign(row, {
+                      legText: legTexts[row.leg] || row.leg,
+                      canOpen: own,
                       recordParameters: {
                           organizationPartyId,
-                          paymentId: row.paymentId === actualIds[row.leg] ? row.paymentId : "",
-                          recordId: row.paymentId === actualIds[row.leg] ? row.paymentId : "",
+                          paymentId: own ? row.paymentId : "",
+                          recordId: own ? row.paymentId : "",
                           previewId: "",
                           previewKind: ""
                       }
                   })
-              )
+              })
             : [],
         ledgerRows:
             retained.capabilities?.canReadLedger === true
                 ? array(retained.ledgerPreview).flatMap(plan =>
-                      plan.lines
-                          ? rows(plan.lines).map(line =>
-                                Object.assign(line, {
-                                    leg: plan.leg,
-                                    currencyUomId: plan.currencyUomId || plan.amountUomId || retained.currencyUomId,
-                                    accountName: line.accountName || line.accountCode || line.glAccountId
-                                })
-                            )
-                          : rows([plan])
+                      rows(plan.lines).map(line =>
+                          Object.assign(line, {
+                              leg: plan.leg,
+                              currencyUomId: plan.currencyUomId || retained.currencyUomId,
+                              accountName: line.accountName || line.accountCode || line.glAccountId
+                          })
+                      )
                   )
                 : [],
         postingRows: complete
@@ -687,7 +667,7 @@ function transferPresentation(retained, organizationPartyId) {
             : [],
         outputRows: complete
             ? rows(result.outputRows).map(row => {
-                  const owner = row.paymentId === result.fromPaymentId || row.paymentId === result.toPaymentId
+                  const owner = row.paymentId === result.paymentId
                   return Object.assign(row, {
                       canOpen: owner && !!row.outputId && row.outputType === "detail" && row.canOpen === true,
                       outputParameters: {
@@ -888,7 +868,7 @@ function listContext(parameters) {
                 previewId: parameters[field]
             })
             if (
-                retained.previewKind !== "internalTransfer" ||
+                retained.previewKind !== "transfer" ||
                 (retained.organizationPartyId && retained.organizationPartyId !== scope.organizationPartyId)
             )
                 throw new Error("Transfer review scope changed")

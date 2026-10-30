@@ -48,6 +48,8 @@ function transferSelection() {
             effectiveDate,
             feeAmount: "1",
             feeGlAccountId: fee.glAccountId,
+            // the demo cash method has no bank party to pay the fee to
+            feePartyId: transferHelper.ids.paymentPartyId,
             referenceNumber: "Reviewed transfer selection",
             reason: "Move organization cash and review the explicit fee"
         }
@@ -57,8 +59,7 @@ function transferSelection() {
 function transferPacket(changes = {}) {
     return {
         previewId: "reviewed-transfer",
-        previewKind: "internalTransfer",
-        internalTransferId: "reviewed-pair",
+        previewKind: "transfer",
         status: "complete",
         operationKey: "recorded-transfer-key",
         principalAmount: "10",
@@ -68,21 +69,18 @@ function transferPacket(changes = {}) {
         accountingDateText: "2026-10-30",
         capabilities: {canReadLedger: true},
         results: {
-            transferId: "reviewed-pair",
-            internalTransferId: "reviewed-pair",
+            paymentId: "actual-transfer",
+            feePaymentId: "actual-fee",
             operationKey: "recorded-transfer-key",
-            fromPaymentId: "actual-outgoing",
-            toPaymentId: "actual-incoming",
             legRows: [
-                {leg: "outgoing", paymentId: "actual-outgoing", amount: "11"},
-                {leg: "incoming", paymentId: "actual-incoming", amount: "10"}
+                {leg: "transfer", paymentId: "actual-transfer", amount: "10"},
+                {leg: "fee", paymentId: "actual-fee", amount: "1"}
             ],
-            acctgTransIds: ["actual-outgoing-posting", "actual-incoming-posting"],
+            acctgTransIds: ["transfer-outgoing", "transfer-incoming", "fee-posting"],
             outputRows: [
-                {paymentId: "actual-outgoing", outputId: "out-detail", outputType: "detail", canOpen: true},
-                {paymentId: "actual-incoming", outputId: "in-detail", outputType: "detail", canOpen: true},
+                {paymentId: "actual-transfer", outputId: "transfer-detail", outputType: "detail", canOpen: true},
                 {paymentId: "another-payment", outputId: "foreign-detail", outputType: "detail", canOpen: true},
-                {paymentId: "actual-outgoing", outputId: "wrong-receipt", outputType: "receipt", canOpen: true}
+                {paymentId: "actual-transfer", outputId: "wrong-receipt", outputType: "receipt", canOpen: true}
             ]
         },
         ...changes
@@ -149,6 +147,7 @@ feature("transfer preparation decodes exact reviewed method revisions and exclud
                 effectiveDate: "2026-10-30",
                 feeAmount: "1",
                 feeGlAccountId: "reviewed-expense",
+                feePartyId: "fee-party",
                 referenceNumber: "Original reference",
                 reason: "Original reason",
                 fromPaymentMethodId: "forged-method",
@@ -168,6 +167,7 @@ feature("transfer preparation decodes exact reviewed method revisions and exclud
         input.toMethodVersion == "old-to"
         input.amount == "10"
         input.feeGlAccountId == "reviewed-expense"
+        input.feePartyId == "fee-party"
         input.referenceNumber == "Original reference"
         !["fromPaymentId", "totalAmount", "glAccountId", "transitGlAccountId", "status"].some(field => field in input)
     }
@@ -184,6 +184,7 @@ feature("transfer preparation restores retained tokens and the canonical day wit
                 principalAmount: "10",
                 feeAmount: "1",
                 feeGlAccountId: "reviewed-expense",
+                feePartyId: "fee-party",
                 currencyUomId: "USD",
                 accountingDateText: "2026-10-30",
                 referenceNumber: "Retained reference",
@@ -198,12 +199,13 @@ feature("transfer preparation restores retained tokens and the canonical day wit
         value.amount == "10"
         value.feeAmount == "1"
         value.feeGlAccountId == "reviewed-expense"
+        value.feePartyId == "fee-party"
         value.referenceNumber == "Retained reference"
         value.reason == "Retained reason"
     }
 })
 
-feature("transfer review keeps one preview-bound confirmation key and displays only native movement amounts", {
+feature("transfer review keeps one preview-bound confirmation key and plans the transfer and fee payments", {
     when() {
         return transferHelper.asUser("finance.treasury", () => {
             const retained = transferPacket({
@@ -211,8 +213,11 @@ feature("transfer review keeps one preview-bound confirmation key and displays o
                     operationKey: null,
                     canApply: true,
                     results: null,
-                    before: {principalAmount: "0", feeAmount: "0"},
-                    after: {principalAmount: "10", feeAmount: "1", outgoingCashAmount: "11", incomingCashAmount: "10"},
+                    legRows: [
+                        {leg: "transfer", amount: "10"},
+                        {leg: "fee", amount: "1"}
+                    ],
+                    ledgerPreview: [{leg: "outgoing", lines: [{glAccountId: "transit", debitCreditFlag: "D", amount: "10"}]}],
                     capabilities: {canReadLedger: false}
                 }),
                 module = transferScreen()
@@ -231,9 +236,7 @@ feature("transfer review keeps one preview-bound confirmation key and displays o
         first.operationKey == reopened.operationKey
         first.operationKey != other.operationKey
         first.operationKey.length <= 40
-        first.movementRows.find(row => row.label === "Outgoing cash").afterAmount == "11"
-        first.movementRows.find(row => row.label === "Incoming cash").beforeAmount == null
-        first.movementRows.some(row => row.label === "Transit net") == false
+        first.plannedLegRows.map(row => row.legText).join() == "Transfer,Fee"
         first.ledgerRows.length == 0
         unavailable.canConfirm == false
         incomplete.canConfirm == false
@@ -243,54 +246,38 @@ feature("transfer review keeps one preview-bound confirmation key and displays o
     }
 })
 
-feature("completed transfer links use the exact pair legs and only child-owned detail outputs", {
-    when() {
-        return {view: transferScreen().transferPresentation(transferPacket(), "organization")}
-    },
-    then({view}) {
-        view.hasResults == true
-        view.operationKey == "recorded-transfer-key"
-        view.actualLegRows.length == 2
-        view.actualLegRows[0].canOpen == true
-        view.actualLegRows[0].recordParameters.paymentId == "actual-outgoing"
-        view.actualLegRows[1].recordParameters.recordId == "actual-incoming"
-        view.postingRows.length == 2
-        view.outputRows[0].canOpen == true
-        view.outputRows[0].outputParameters.paymentId == "actual-outgoing"
-        view.outputRows[1].outputParameters.recordId == "actual-incoming"
-        view.outputRows[2].canOpen == false
-        view.outputRows[2].outputParameters.paymentId == ""
-        view.outputRows[3].canOpen == false
-    }
-})
-
-feature("foreign pair identities, mismatched recorded keys and false completion cannot expose actual transfer claims", {
+feature("completed transfer links open the exact transfer and fee payments and only the transfer's detail", {
     when() {
         const module = transferScreen(),
-            base = transferPacket(),
-            invalid = [
-                {...base, internalTransferId: "another-retained-pair"},
-                {...base, internalTransferId: null},
-                {...base, results: {...base.results, operationKey: "another-confirmation"}},
-                {...base, results: {...base.results, internalTransferId: "another-alias"}},
-                {...base, results: {...base.results, fromPaymentId: "same", toPaymentId: "same"}},
-                {...base, status: "review"}
-            ]
+            base = transferPacket()
         return {
-            views: invalid.map(value => module.transferPresentation(value, "organization")),
+            view: module.transferPresentation(base, "organization"),
+            claims: [
+                {...base, results: {...base.results, operationKey: "another-confirmation"}},
+                {...base, results: {...base.results, paymentId: null}},
+                {...base, status: "review"}
+            ].map(value => module.transferPresentation(value, "organization")),
             invalidLeg: module.transferPresentation(
-                {
-                    ...base,
-                    results: {...base.results, legRows: [{leg: "outgoing", paymentId: "another-payment", amount: "11"}]}
-                },
+                {...base, results: {...base.results, legRows: [{leg: "transfer", paymentId: "another-payment", amount: "10"}]}},
                 "organization"
             )
         }
     },
-    then({views, invalidLeg}) {
-        views.every(view => !view.hasResults && !view.actualLegRows.length && !view.postingRows.length && !view.outputRows.length)
+    then({view, claims, invalidLeg}) {
+        view.hasResults == true
+        view.operationKey == "recorded-transfer-key"
+        view.actualLegRows.map(row => row.legText + ":" + row.recordParameters.paymentId).join() ==
+            "Transfer:actual-transfer,Fee:actual-fee"
+        view.actualLegRows.every(row => row.canOpen)
+        view.postingRows.length == 3
+        view.outputRows[0].canOpen == true
+        view.outputRows[0].outputParameters.recordId == "actual-transfer"
+        view.outputRows[1].canOpen == false
+        view.outputRows[1].outputParameters.paymentId == ""
+        view.outputRows[2].canOpen == false
+        claims.every(claim => !claim.hasResults && !claim.actualLegRows.length)
+        claims.every(claim => !claim.postingRows.length && !claim.outputRows.length)
         invalidLeg.actualLegRows[0].canOpen == false
-        invalidLeg.actualLegRows[0].recordParameters.paymentId == ""
         invalidLeg.actualLegRows[0].recordParameters.recordId == ""
     }
 })
@@ -353,7 +340,7 @@ feature("the same real method selection permits Treasury and refuses AR transfer
     }
 })
 
-feature("actual fee-bearing transfers retain exact paired results, detail files and role-scoped postings", {
+feature("actual fee-bearing transfers retain one transfer payment, its fee payment, its detail and role-scoped postings", {
     where: [
         {username: "finance.treasury", expectLedger: false},
         {username: "finance.admin", expectLedger: true}
@@ -390,7 +377,7 @@ feature("actual fee-bearing transfers retain exact paired results, detail files 
                 outputRows = Array.from(retained.results.outputRows),
                 postingIds = Array.from(retained.results.acctgTransIds || []),
                 pages = ["qvt", "tui", "html"].map(mode => transferPage("Payments", parameters, mode)),
-                legs = [confirmed.fromPaymentId, confirmed.toPaymentId].map(paymentId => {
+                legs = [confirmed.paymentId, confirmed.feePaymentId].map(paymentId => {
                     const detail = transferNative("get#PaymentFinanceDetail", {
                             organizationPartyId: selection.organizationPartyId,
                             paymentId
@@ -447,58 +434,43 @@ feature("actual fee-bearing transfers retain exact paired results, detail files 
         toDecimal(preview.principalAmount).eq("10")
         toDecimal(preview.feeAmount).eq("1")
         toDecimal(preview.totalAmount).eq("11")
-        toDecimal(preview.after.outgoingCashAmount).eq("11")
-        toDecimal(preview.after.incomingCashAmount).eq("10")
-        toDecimal(preview.after.transitNetAmount).isZero()
         preview.feeAccountLabel.includes(selection.fee.accountName)
         preview.accountingDateText == selection.effectiveDate
-        confirmed.transferId == preview.internalTransferId
-        confirmed.internalTransferId == confirmed.transferId
-        confirmed.fromPaymentId != confirmed.toPaymentId
         confirmed.reasonCode == "INTERNAL_TRANSFER_COMPLETED"
         confirmed.operationKey == operationKey
+        confirmed.paymentId != confirmed.feePaymentId
         retained.operationKey == operationKey
-        retained.internalTransferId == confirmed.transferId
+        retained.results.paymentId == confirmed.paymentId
         presented.transferReview.hasResults == true
         presented.transferReview.operationKey == operationKey
         retried.alreadyApplied == true
-        retried.fromPaymentId == confirmed.fromPaymentId
-        retried.toPaymentId == confirmed.toPaymentId
-        retried.transferId == confirmed.transferId
+        retried.paymentId == confirmed.paymentId
+        retried.feePaymentId == confirmed.feePaymentId
         JSON.stringify(retried.outputRows.map(row => row.outputId)) == JSON.stringify(outputRows.map(row => row.outputId))
-        expectLedger ? confirmed.acctgTransIds.length === 2 : !("acctgTransIds" in confirmed)
+        expectLedger ? confirmed.acctgTransIds.length === 3 : confirmed.acctgTransIds == null
         JSON.stringify(presented.transferReview.postingRows.map(row => row.acctgTransId)) == postingIdJson
         Boolean(presented.transferReview.ledgerRows.length) == expectLedger
-        outputRows.length == 2
-        outputRows.every(row => row.outputType === "detail" && row.canOpen === true)
-        outputRows.some(row => row.paymentId === confirmed.fromPaymentId)
-        outputRows.some(row => row.paymentId === confirmed.toPaymentId)
+        outputRows.length == 1
+        outputRows[0].outputType == "detail" && outputRows[0].canOpen === true
+        outputRows[0].paymentId == confirmed.paymentId
         presented.transferReview.actualLegRows.every(row => row.canOpen === true)
         presented.transferReview.outputRows.every(row => row.canOpen === true && row.outputParameters.sourceVersion === "")
-        legs.every(
-            leg => leg.detail.payment.paymentTypeEnumId === "PtInternalTransfer" && leg.detail.applicationRows.length === 0
-        )
-        toDecimal(legs[0].detail.payment.amount).eq("11")
-        toDecimal(legs[1].detail.payment.amount).eq("10")
-        legs[0].detail.payment.cashDirection == "outgoing"
-        legs[1].detail.payment.cashDirection == "incoming"
-        legs.every(leg => leg.detail.transferSummary.internalTransferId === confirmed.transferId)
-        legs.every(leg => leg.context.financePayment.transferLegRows.length === 2)
-        legs.every(
-            leg =>
-                leg.detail.capabilities.canPrintDetail === true &&
-                leg.detail.capabilities.canPrintReceipt === false &&
-                leg.detail.capabilities.canPrintCheck === false
-        )
-        legs.every(
-            leg =>
-                leg.page.status === 200 &&
-                !leg.page.errors.length &&
-                leg.page.output.includes(confirmed.fromPaymentId) &&
-                leg.page.output.includes(confirmed.toPaymentId)
-        )
+        legs[0].detail.payment.paymentTypeEnumId == "PtInternalTransfer"
+        legs[1].detail.payment.paymentTypeEnumId == "PtDisbursement"
+        legs.every(leg => leg.detail.applicationRows.length === 0)
+        toDecimal(legs[0].detail.payment.amount).eq("10")
+        toDecimal(legs[1].detail.payment.amount).eq("1")
+        legs[0].detail.payment.cashDirection == "transfer"
+        legs[1].detail.payment.cashDirection == "outgoing"
+        legs[0].detail.transferSummary.paymentId == confirmed.paymentId
+        legs[0].context.financePayment.transferLegRows.length == 2
+        legs[0].detail.capabilities.canPrintDetail == true
+        legs[0].detail.capabilities.canPrintReceipt == false
+        legs[0].detail.capabilities.canPrintCheck == false
+        legs.every(leg => leg.page.status === 200 && !leg.page.errors.length)
+        legs[0].page.output.includes(confirmed.paymentId)
         pages.every(page => page.status === 200 && !page.errors.length && page.output.includes("Internal transfer completed"))
-        pages.every(page => page.output.includes(confirmed.transferId) && page.output.includes(preview.accountingDateText))
+        pages.every(page => page.output.includes(confirmed.paymentId) && page.output.includes(preview.accountingDateText))
         pages.every(page =>
             outputRows.every(
                 row =>

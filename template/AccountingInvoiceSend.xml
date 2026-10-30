@@ -22,11 +22,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <hidden/>
                         </default-field>
                     </field>
-                    <field name="lastUpdatedStamp" from="receivable.lastUpdatedStamp">
-                        <default-field>
-                            <hidden/>
-                        </default-field>
-                    </field>
                     <field name="organizationPartyId" from="organizationPartyId">
                         <default-field title="">
                             <hidden/>

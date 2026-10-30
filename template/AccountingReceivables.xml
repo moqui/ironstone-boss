@@ -44,7 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="financeSendInvoice">
         <actions>
             <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').decodeReviewedAttachments(typeof reviewedAttachmentList === 'undefined' ? null : reviewedAttachmentList))</script>
-            <service-call name="mantle.account.InvoiceServices.send#Invoice" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,toAddresses:toAddresses,note:note,operationKey:operationKey,sourceVersion:sourceVersion,lastUpdatedStamp:lastUpdatedStamp,attachmentContentIdList:attachmentContentIdList,attachmentVersions:attachmentVersions,template:'standard'}" out-map="financeResult"/>
+            <service-call name="mantle.account.InvoiceServices.send#Invoice" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,toAddresses:toAddresses,note:note,operationKey:operationKey,sourceVersion:sourceVersion,attachmentContentIdList:attachmentContentIdList,attachmentVersions:attachmentVersions,template:'standard'}" out-map="financeResult"/>
             <script><![CDATA[
 for (const recipient of Array.from(financeResult.recipientResults || [])) {
     ec.message.addMessage((recipient.recipient || recipient.toAddress || 'Recipient') + ': ' +

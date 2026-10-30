@@ -35,9 +35,7 @@ function createReceivable(page, description, currency) {
     page.getByRole("button", {name: "New invoice", exact: true}).click()
     const dialog = page.getByRole("dialog")
     dialog.getByLabel("Customer", {exact: true}).click()
-    page.getByRole("option", {name: /Acme|ACME/})
-        .first()
-        .click()
+    page.getByRole("option", {name: "Another Company Making Everything", exact: true}).click()
     if (currency) {
         dialog.getByLabel("Currency", {exact: true}).click()
         dialog.getByLabel("Currency", {exact: true}).fill(currency)
@@ -133,6 +131,7 @@ feature("an AR user creates, finalizes and sends an invoice without a store", {
         !page.text().includes("Add bank account")
         page.screenshot("Accounting-customer-money", {fullPage: true})
         page.getByRole("link", {name: "Customer statement", exact: true}).click()
+        page.waitForURL(/Receivables\/Statements/)
         page.getByRole("button", {name: "Preview statements", exact: true}).click()
         page.waitForURL(/snapshotId=/)
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reviewed statement snapshot"))

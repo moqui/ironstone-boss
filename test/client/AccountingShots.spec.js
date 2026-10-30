@@ -237,6 +237,99 @@ feature("#prefix #name at #width dark=#dark", {
             return true
         }, dark) == true
         page.waitFor(dark => document.body.classList.contains("body--dark") === dark, {arg: dark})
+        if (options.issuedFiles) {
+            page.settle()
+            page.waitFor(
+                dark => {
+                    const panel = document.querySelector(".m-record-files-panel")
+                    return (
+                        panel &&
+                        Array.from(panel.querySelectorAll(".q-list")).every(
+                            list => list.classList.contains("q-list--dark") === dark
+                        ) &&
+                        Array.from(panel.querySelectorAll(".q-item")).every(
+                            item => item.classList.contains("q-item--dark") === dark
+                        )
+                    )
+                },
+                {arg: dark}
+            )
+            page.waitFor(
+                () =>
+                    !document
+                        .querySelector(".m-record-files-panel")
+                        .getAnimations({subtree: true})
+                        .some(animation => animation.pending || animation.playState === "running")
+            )
+            const contrast = page.evaluate(() => {
+                const canvas = document.createElement("canvas")
+                canvas.width = canvas.height = 1
+                const context = canvas.getContext("2d", {willReadFrequently: true})
+                const color = value => {
+                    context.clearRect(0, 0, 1, 1)
+                    context.fillStyle = value
+                    context.fillRect(0, 0, 1, 1)
+                    const pixel = context.getImageData(0, 0, 1, 1).data
+                    return [pixel[0], pixel[1], pixel[2], pixel[3] / 255]
+                }
+                const over = (foreground, background) =>
+                    foreground.slice(0, 3).map((channel, i) => channel * foreground[3] + background[i] * (1 - foreground[3]))
+                const background = element => {
+                    const ancestors = []
+                    for (let node = element; node; node = node.parentElement) ancestors.unshift(node)
+                    return ancestors.reduce(
+                        (result, node) => over(color(getComputedStyle(node).backgroundColor), result),
+                        [255, 255, 255]
+                    )
+                }
+                const luminance = rgb => {
+                    const linear = rgb.map(channel => {
+                        const value = channel / 255
+                        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+                    })
+                    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+                }
+                const ratio = element => {
+                    const surface = background(element)
+                    const foreground = over(color(getComputedStyle(element).color), surface)
+                    const a = luminance(foreground),
+                        b = luminance(surface)
+                    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+                }
+                const panel = document.querySelector(".m-record-files-panel")
+                const sample = element => ({
+                    ratio: ratio(element),
+                    color: getComputedStyle(element).color,
+                    surface: background(element)
+                })
+                const captions = Array.from(panel.querySelectorAll(".q-item__label--caption"))
+                    .filter(element => element.textContent.trim())
+                    .map(sample)
+                const actions = Array.from(
+                    panel.querySelectorAll('button[aria-label="Download"],button[aria-label="Versions"]')
+                ).map(sample)
+                let component = panel.__vueParentComponent
+                while (component && component.type?.name !== "BossRecordFiles") component = component.parent
+                return {
+                    captions: captions.map(sample => sample.ratio),
+                    actions: actions.map(sample => sample.ratio),
+                    styles: {captions, actions},
+                    listClasses: Array.from(panel.querySelectorAll(".q-list")).map(list => list.className),
+                    itemClasses: Array.from(panel.querySelectorAll(".q-item")).map(item => item.className),
+                    rootDark: document.querySelector("#apps-root").__vue_app__.config.globalProperties.$q.dark.isActive,
+                    filesDark: component?.proxy?.dark,
+                    filesQuasarDark: component?.proxy?.$q.dark.isActive
+                }
+            })
+            assert(
+                contrast.captions.length >= 2 && contrast.captions.every(ratio => ratio >= 4.5),
+                "Issued file metadata and descriptions must remain readable: " + JSON.stringify(contrast)
+            )
+            assert(
+                contrast.actions.length >= 3 && contrast.actions.every(ratio => ratio >= 3),
+                "File download and version controls must remain visible: " + JSON.stringify(contrast)
+            )
+        }
         !/Error rendering|Exception in render|not available in Accounting yet|Not available/.test(page.text())
         page.text().includes(text)
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth) == true

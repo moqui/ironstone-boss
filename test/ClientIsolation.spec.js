@@ -365,16 +365,16 @@ feature("Accounting Customer360 is refused to Projects clients at its mount and 
     },
     then({mounted, sheldon, gob, authorized}) {
         if (mounted) {
-            sheldon.refused == true
-            gob.refused == true
+            assert(sheldon.refused, "Accounting must refuse the mounted customer screen to the Acme client")
+            assert(gob.refused, "Accounting must refuse the mounted customer screen to the Bluth client")
         } else {
-            sheldon.nativeRefusal.includes("PERMISSION_DENIED")
-            gob.nativeRefusal.includes("PERMISSION_DENIED")
-            authorized.nativeRefusal == ""
-            !sheldon.output.includes("BOSS_ACCT_AR_FINALIZED")
-            !gob.output.includes("BOSS_ACCT_AR_FINALIZED")
-            !sheldon.output.includes("$155.00")
-            !gob.output.includes("$155.00")
+            assert(sheldon.nativeRefusal.includes("PERMISSION_DENIED"), "The native customer read must refuse the Acme client")
+            assert(gob.nativeRefusal.includes("PERMISSION_DENIED"), "The native customer read must refuse the Bluth client")
+            assert(authorized.nativeRefusal === "", "The same native customer request must succeed for the AR user")
+            assert(!sheldon.output.includes("BOSS_ACCT_AR_FINALIZED"), "The direct shared screen must hide the invoice from Acme")
+            assert(!gob.output.includes("BOSS_ACCT_AR_FINALIZED"), "The direct shared screen must hide the invoice from Bluth")
+            assert(!sheldon.output.includes("$155.00"), "The direct shared screen must hide the customer balance from Acme")
+            assert(!gob.output.includes("$155.00"), "The direct shared screen must hide the customer balance from Bluth")
         }
         !sheldon.output.includes("billing.acme@test.com")
         !gob.output.includes("billing.acme@test.com")

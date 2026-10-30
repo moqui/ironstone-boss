@@ -566,7 +566,7 @@ section closely.
 What each XML element renders as in `qvt` today, and when to use it. The macros are
 `framework/template/screen/ScreenQvt.js` with the static mirror `ScreenQvtStatic.js`; the
 wrappers are the `m-*` components of `webroot/screen/webroot/js/WebrootVue.qvt.js`, documented in
-`docs/Qvt-Client.md`. The field wrappers add `dense outlined stack-label hide-bottom-space` themselves.
+`docs/ui/Qvt-Client.md`. The field wrappers add `dense outlined stack-label hide-bottom-space` themselves.
 
 ### 4.1 Containers and layout
 
@@ -934,7 +934,7 @@ crosscut design's roll-up is the work list.
    under `crates/moqui-core/src/script/testdata/screen/qvt/render/`; the node tests of the
    client; the Gate 3 browser smoke when behavior changed; the `tui` render goldens and terminal
    snapshots once that mode exists.
-6. A row in `docs/Qvt-Client.md`'s component table; a gallery screen (§10) that shows it.
+6. A row in `docs/ui/Qvt-Client.md`'s component table; a gallery screen (§10) that shows it.
 
 A new custom screen (a `.qvue`, or a raw `qvt` text) is not an XML element, but it has a checklist
 item too: its `tui` text (§4.8), or an entry in the design's needs table saying it is browser-only
@@ -973,7 +973,7 @@ for now.
 
 | What | File |
 | --- | --- |
-| The qvt client and the `m-*` components, button hierarchy, shell description | mr-moqui `docs/Qvt-Client.md` |
+| The qvt client and the `m-*` components, button hierarchy, shell description | mr-moqui `docs/ui/Qvt-Client.md` |
 | The components and the shell root | `runtime/base-component/webroot/screen/webroot/js/WebrootVue.qvt.js` |
 | The style sheet over Quasar | `runtime/base-component/webroot/screen/webroot/css/WebrootVue.qvt.css` |
 | The macros that write qvt from screen XML, and the static mirror | `runtime/base-component/framework/template/screen/ScreenQvt.js`, `ScreenQvtStatic.js` |
@@ -984,7 +984,7 @@ for now.
 | The style decisions this guide continues | `plans/archive/QvtStylePlan.txt` |
 | Render goldens and the browser smoke | `crates/moqui-core/src/script/testdata/screen/qvt/render/`, `crates/moqui-host/tests/gate3_browser.rs` |
 | Status flows (for §5.2) | `runtime/base-component/tools/screen/Tools/StatusFlows.xml` |
-| The terminal render mode: design, widget map, keys, the `tui` text and components (planned) | `plans/archive/Screen-TUI-Impl.md`; later `framework/template/screen/ScreenTui.js`, `crates/moqui-tui`, `docs/TUI.md` |
+| The terminal render mode: design, widget map, keys, the `tui` text and components (planned) | `plans/archive/Screen-TUI-Impl.md`; later `framework/template/screen/ScreenTui.js`, `crates/moqui-tui`, `docs/ui/TUI.md` |
 
 **Quasar 2.35.1** (paths under `~/work/moquiwork/3p_other/quasar/`):
 
@@ -1005,12 +1005,12 @@ for now.
 ## 10. The archetype gallery
 
 The archetypes of §3 and the widgets of §4 are rendered as real screens in the framework's
-example component, `runtime/base-component/example/`, so a design decision is checked against
+example component, `runtime/dev-component/example/`, so a design decision is checked against
 the actual render mode in light and dark, at the breakpoints of §7, and so a new XML element
-has a screen that shows it. The component is off by default: run with
-`./moq run -D example_disabled=false` and open `/qapps/gallery`.
+has a screen that shows it. It is a dev component (since Oct 29, 2026): `./moq run` loads it,
+and the gallery is at `/qapps/gallery`.
 
-Built Oct 18, 2026 (the example component is on by default since then):
+Built Oct 18, 2026:
 
 | Screen | Shows |
 | --- | --- |

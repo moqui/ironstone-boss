@@ -968,7 +968,7 @@ Every storage but a disk drive is in the database, so a Postgres backup holds ev
 database tree a replaced text version is kept as a reverse line delta against the next one (whole
 for a binary file, for every 20th version and when the delta would be over half the text), so
 keeping every version of an edited document costs little. Every storage answers the same version
-API of the resource facade (mr-moqui `docs/Revision-Management.md`): the version history, the
+API of the resource facade (mr-moqui `docs/data/Revision-Management.md`): the version history, the
 text of a version, a `location#version` read and a server-side line diff of two versions
 (`getVersionDiff`, with a `moqui-diff` HTML table), so Versions, compare and restore look the
 same on every drive. The drive metadata (members, shares, public links, favorites, tags, trash;
@@ -1029,7 +1029,7 @@ as a bare repository (`export#GitRepository`).
   admins; compare is absent for a binary file.
 - **Devices:** phone (list only; upload from the camera roll; preview full screen).
 - **Source:** research §12 (Nextcloud Files, Zimbra briefcase, Frappe Drive), §17 `DbResource`,
-  §18 "No Files app"; Google Drive and OneDrive; mr-moqui `docs/Revision-Management.md`.
+  §18 "No Files app"; Google Drive and OneDrive; mr-moqui `docs/data/Revision-Management.md`.
 - **Needs:** Drives; File metadata model; File services; Change sets; Version notes; Git path
   index; Search DataDocuments (`MoquiDriveFile`); Extracted text for search (later); WebDAV
   server (later, with Sync); `chatter`.
@@ -1058,7 +1058,7 @@ as a bare repository (`export#GitRepository`).
 - **States:** a mirror whose last fetch failed shows the error on its row; a drive at its quota
   shows the bar as a warning.
 - **Source:** research §12 (Nextcloud Files); Google Drive shared drives; mr-moqui
-  `docs/Revision-Management.md` (repository kinds, fetch, export).
+  `docs/data/Revision-Management.md` (repository kinds, fetch, export).
 - **Needs:** Drives; File services.
 
 ### Shares
@@ -1133,7 +1133,7 @@ chosen when the space is created, as a drive's is (§9): database files
 space in a git repository (`git://<repositoryId>`, in the database or on disk), where each save
 is a commit. The wiki services read and write pages only through the resource facade's version
 API, so history, compare, publish and `#version` views work the same on both (mr-moqui
-`docs/Revision-Management.md`); on database files a past text version is a reverse line delta,
+`docs/data/Revision-Management.md`); on database files a past text version is a reverse line delta,
 so frequent saves cost little. Pages are edited in the co-editing editor (Tiptap over Yjs with
 the `yrs` sync server; initial-design) whose document is the decided CRDT-plus-snapshot store;
 the rendered markdown snapshot is the page file, and its versions (history rows or commits) are
@@ -2010,7 +2010,7 @@ bare `entity-find`.
 | Change sets | tool | A resource facade change set over one root: several writes, deletes and moves and a message, applied as one commit on a `git://` root (the git provider now commits each call alone, with a message of its own such as `Update <path>`) and as the plain writes on a `dbresource://` root; a directory delete in a change set takes the files under it, where a lone delete of a git directory that still has files is refused | Files upload, move, trash and bulk actions; WebDAV `MOVE` and `DELETE` of a folder | mr-moqui `resource/git/mod.rs` |
 | Version notes | tool + data model | A note written with a version: the commit message on git (read back from the commit), `DbResourceFile.versionNote` on the database tree (moved into the `DbResourceFileHistory` row when the version is replaced); the facade's `ResourceVersion` and the script version object gain `note` | Files Upload and Versions, Knowledge Save and History | |
 | Git path index | tool | Per path on a branch: the last commit that changed it (the date and user for the Files list, where `stat` now answers the head commit's time for every file) and its size, cached by head commit, which also serves the per-file history walk (the history cache of mr-moqui's Remaining-Work); history that follows a move (exact, since a move keeps the blob id; a moved file's history now starts at the move); the log of commits under a path, for Activity | Files list and Activity, Knowledge History after a move | mr-moqui `resource/git/ops.rs` `history` |
-| Wiki git storage | service type | `org.moqui.impl.WikiServices.create#WikiSpace` and `clone#WikiSpace` take `repositoryKind` (`db` or `local`, or `remote` with a URL for admins): they create the `GitRepository`, run `GitServices.init#GitRepository` and set `rootPageDirectory` to `git://<repositoryId>` | Spaces | mr-moqui `docs/Revision-Management.md` "Wiki spaces on git" |
+| Wiki git storage | service type | `org.moqui.impl.WikiServices.create#WikiSpace` and `clone#WikiSpace` take `repositoryKind` (`db` or `local`, or `remote` with a URL for admins): they create the `GitRepository`, run `GitServices.init#GitRepository` and set `rootPageDirectory` to `git://<repositoryId>` | Spaces | mr-moqui `docs/data/Revision-Management.md` "Wiki spaces on git" |
 | WebDAV server | protocol server | Each drive the user may open, with the drive member rights, locks, and `PROPFIND` of the share and tag properties; a write to a version-controlled drive is a commit by the user, a folder `MOVE` or `DELETE` one change set; a mirror is read-only | Sync, desktop clients | initial-design "Protocol layer"; later, with Sync |
 | Virtual SFTP server | protocol server | The same drives over the russh host with app passwords | Sync, scripts | the Java virtual SFTP; `moqui-host/src/ssh/` has the cluster sender |
 | CalDAV and CardDAV servers | protocol server | Calendars (`Calendar` and `WorkEffort` events, `WetTask` as VTODO) and contact books (`ContactBook` and parties as vCards, each a CardDAV address book) for phones and desktop clients, with app passwords | Sync | initial-design "Calendar / contacts" |

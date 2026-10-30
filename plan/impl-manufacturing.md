@@ -61,7 +61,7 @@ first. Manufacturing is built after all three and before Purchasing (§4), so th
   checklist and the §8.2 handheld density), and [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules).
 - Inventories: [ss-inventory.md](ss-inventory.md) (its Manufacturing section, 23 forms) and
   [usl-inventory.md](usl-inventory.md).
-- mr-moqui: `plans/Remaining-Work.md` and `docs/Testing.md`.
+- mr-moqui: `plans/Remaining-Work.md` and `docs/Build-Test.md`.
 
 Framework paths are under the mr-moqui checkout (`crates/`, `runtime/base-component/`), Mantle paths under
 `runtime/component/mr-mantle/`.

@@ -13,7 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <!-- What Commons Knowledge, Spaces, Review and Notes show and do (design-drawers-commons.md §10; impl-drawers-commons.md M9)
-    over the framework wiki (org.moqui.impl.WikiServices, mr-moqui docs/Revision-Management.md "Wiki pages").
+    over the framework wiki (org.moqui.impl.WikiServices, mr-moqui docs/data/Revision-Management.md "Wiki pages").
 
     WikiSpace and WikiPage are moqui.* entities, which no entity filter covers (R21, R28), so every service here first finds
     the page or space through get#PageRef, which asks the wiki's own rule (WikiServices.get#WikiPageAccess: view, update,

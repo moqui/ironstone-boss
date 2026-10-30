@@ -13,7 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <!-- The "Sign in with Google" or "Sign in with Microsoft" button of a mail account (design-drawers-commons.md §17
-    AccountCredentials; mr-moqui docs/Mail-OAuth.md): SignIn.qvue next to this file, which the wizard's Connect step and the
+    AccountCredentials; mr-moqui docs/interfaces/Mail-OAuth.md): SignIn.qvue next to this file, which the wizard's Connect step and the
     account page load in a dynamic-container with its query: mode (wizard: a new account, IMAP or POP, is made by the
     framework only when the sign-in succeeds, one the wizard made before is changed first; account: an account there signs in
     again, or instead of its password), the account or the address, name and kind

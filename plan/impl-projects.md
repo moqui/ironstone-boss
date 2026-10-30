@@ -13,7 +13,7 @@ Billing, Settings). (That was the start; every phase below is now built.)
 **Inputs.** [design-projects.md](design-projects.md), [design-doc-guide.md](design-doc-guide.md),
 [style-guide.md](style-guide.md) §8, [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules),
 [ss-inventory.md](ss-inventory.md), [usl-inventory.md](usl-inventory.md); mr-moqui `plans/Remaining-Work.md`,
-`docs/Git-Hosting.md`, `docs/Revision-Management.md` and `docs/Testing.md`. Code paths are under `mr-moqui-base/` unless
+`docs/interfaces/Git-Hosting.md`, `docs/data/Revision-Management.md` and `docs/Build-Test.md`. Code paths are under `mr-moqui-base/` unless
 they name a component.
 
 Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phases](#3-phases) ·
@@ -183,7 +183,7 @@ last commits, compare, ref writes and annotated tags); archived repositories ref
 `GitReviewServices.xml` and `framework/service/Git.gitecas.xml` (merge requests follow branches, webhooks follow
 pushes); the commit status REST endpoint in the tools `moqui` resource; webhooks signed `X-Hub-Signature-256`,
 internal addresses refused unless `git-server` `webhook-private-network`, retried by their own job; `code-view` and
-`m-code` (highlight.js, Kotlin added). docs/Git-Hosting.md "Hosting through Moqui". Tests: moqui-core 1563 passed (the
+`m-code` (highlight.js, Kotlin added). docs/interfaces/Git-Hosting.md "Hosting through Moqui". Tests: moqui-core 1563 passed (the
 one failure needs mr-marble, absent from a worktree), the new merge, rules, webhook and hosting integration
 tests, `GitHosting.spec.js` 3 of 3, node 191 of 191.
 
@@ -203,7 +203,7 @@ tests, `GitHosting.spec.js` 3 of 3, node 191 of 191.
 **Built, P3b1** (Oct 22, 2026):
 - Framework: `authorize_own` decides `AT_GIT_REPOSITORY` from the repository's own records (F23); git update events put
   the caller's user back (F26); a parameter or result named `context` stays out of SECA and rule frames (F25); the lite
-  build reports the git_hosting services as not built in (F30); docs/Git-Hosting.md Access.
+  build reports the git_hosting services as not built in (F30); docs/interfaces/Git-Hosting.md Access.
 - Mantle udm: `WorkEffortGitMergeRequest`, `CommunicationEventGitAnchor`, link sources `WglsReleaseVersion`,
   `WglsMergeRequestBranch`, `WglsMergeRequestText`.
 - Mantle usl `GitServices`: rights by project role in `check#GitRepositoryAuthz`, repository defaults, merge request
@@ -261,7 +261,7 @@ tests, `GitHosting.spec.js` 3 of 3, node 191 of 191.
 **Built, P4b** (Oct 22, 2026):
 - F7 checked: a wiki space rooted at `git://<repositoryId>/docs` works with no framework change (a moqui-core test with
   a code repository and a merge-request-required branch rule; `git://` writes pass the rules and are logged); the home
-  page is `docs/<SPACE>.md`, its pages under `docs/<SPACE>/`. docs/Revision-Management.md says so.
+  page is `docs/<SPACE>.md`, its pages under `docs/<SPACE>/`. docs/data/Revision-Management.md says so.
 - Mantle udm: content type `WectReleaseNotes`. Mantle usl `ProjectServices`: `get#PlanItemDefaults`, `create#PlanItem`
   (`KEY-MS-n`, `KEY-REL-n`, `KEY-CMP-n`), `create#Release`, `create#Component`, `update#Milestone` (description,
   clearFields, unique version, date order, actual completion), `get#PlanItemSummary`, release notes (`generate#`, `get#`,
@@ -501,7 +501,7 @@ tests, `GitHosting.spec.js` 3 of 3, node 191 of 191.
 - Lite: git availability checks and Mantle review lookups in their own transaction (F140), so Home, Today, GitAccess and
   the Code screens hold without git.
 - Docs: design-projects.md's Impl column and §1.1 (F134); ss-inventory and usl-inventory Implemented in; mr-moqui
-  Remaining-Work's IronStone and Git hosting rows; docs/Git-Hosting.md.
+  Remaining-Work's IronStone and Git hosting rows; docs/interfaces/Git-Hosting.md.
 - Final runs, Debug: mr-boss 627/627, mr-mantle 685/687 (ContactListSend), example 86/86, moqui-core lib 1778,
   tui_screens ok, gate3 8/10 (the known two), node 230/230 (P10b reported 262; no JS changed since, F149), lint clean.
   Lite: mr-boss 575 passed, 1 failed (NewProject Money after a git-only step, also at HEAD, F141), 18 skipped.

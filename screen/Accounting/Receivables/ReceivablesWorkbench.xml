@@ -32,9 +32,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="paymentRowsPageSize"/>
     <parameter name="paymentTargetRowsPageIndex"/>
     <parameter name="paymentTargetRowsPageSize"/>
-    <parameter name="draftJson"/>
+    <parameter name="draftId"/>
     <parameter name="previewId"/>
-    <parameter name="operationKey"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="choices" read-only="true">
         <actions>
@@ -45,143 +44,30 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="editDraft">
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Settlements.js').editDraft(context))</script>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <script>ec.resource.script(settlements).execute('editDraft', context)</script>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-        </default-response>
-        <error-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-        </error-response>
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="previewSettlement">
         <actions>
-            <script>settlementInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Settlements.js').preparePreview(context)</script>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="settlementInput" from="ec.resource.script(settlements).execute('previewRequest', context)"/>
             <service-call name="mantle.account.PaymentServices.preview#Settlement" in-map="settlementInput" out-map="reviewedSettlement"/>
             <set field="previewId" from="reviewedSettlement.previewId"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-            <parameter name="previewId"/>
-            <parameter name="operationKey"/>
-        </default-response>
-        <error-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-            <parameter name="previewId"/>
-            <parameter name="operationKey"/>
-        </error-response>
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <transition name="confirmSettlement">
         <actions>
             <script>if (reviewed !== 'Y') throw new Error('Review the allocations, adjustments and settlement date before confirming')</script>
-            <service-call name="mantle.account.PaymentServices.apply#Settlement" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="settlementResult"/>
+            <service-call name="mantle.account.PaymentServices.apply#Settlement" out-map="settlementResult"
+                    in-map="{previewId:previewId, inputFingerprint:inputFingerprint, operationKey:operationKey}"/>
         </actions>
-        <default-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-            <parameter name="previewId"/>
-            <parameter name="operationKey"/>
-        </default-response>
-        <error-response url=".">
-            <parameter name="organizationPartyId"/>
-            <parameter name="partyId"/>
-            <parameter name="direction"/>
-            <parameter name="currencyUomId"/>
-            <parameter name="asOfDate"/>
-            <parameter name="effectiveDate"/>
-            <parameter name="text"/>
-            <parameter name="dueBucket"/>
-            <parameter name="invoiceRowsPageIndex"/>
-            <parameter name="invoiceRowsPageSize"/>
-            <parameter name="creditRowsPageIndex"/>
-            <parameter name="creditRowsPageSize"/>
-            <parameter name="paymentRowsPageIndex"/>
-            <parameter name="paymentRowsPageSize"/>
-            <parameter name="paymentTargetRowsPageIndex"/>
-            <parameter name="paymentTargetRowsPageSize"/>
-            <parameter name="draftJson"/>
-            <parameter name="previewId"/>
-            <parameter name="operationKey"/>
-        </error-response>
+        <default-response url="."/>
+        <error-response url="."/>
     </transition>
     <actions>
         <service-call name="ironstone.accounting.SettlementScreenServices.get#WorkbenchContext" in-map="context" out-map="context"/>
@@ -193,7 +79,6 @@ along with this software (see the LICENSE.md file). If not, see
             <widgets>
                 <label text="Allocate receipts and credits" type="h5"/>
                 <label text="Choose a customer and currency. Available balances are current; the document date filter does not reconstruct historical balances." type="p" style="m-muted"/>
-                <label text="Settlement is not enabled for this organization. A finance administrator can enable it in Accounting preferences." type="p" style="text-warning" condition="workbench.guardDisabled"/>
                 <section name="SettlementFind" condition="!workbench.hasReview">
                     <widgets>
                         <form-single name="SettlementOpenItemFind" transition="." map="context">
@@ -202,7 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <hidden/>
                                 </default-field>
                             </field>
-                            <field name="draftJson" from="draftJson">
+                            <field name="draftId" from="draftId">
                                 <default-field title="">
                                     <hidden/>
                                 </default-field>
@@ -276,7 +161,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <field-ref name="dueBucket"/>
                                 </field-row>
                                 <field-ref name="submit"/>
-                                <field-ref name="draftJson"/>
+                                <field-ref name="draftId"/>
                                 <field-ref name="filterSubmit"/>
                             </field-layout>
                         </form-single>
@@ -525,7 +410,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="draftJson" from="draftJson">
+                                    <field name="draftId" from="draftId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
@@ -568,7 +453,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-ref name="effectiveDate"/>
                                         <field-ref name="text"/>
                                         <field-ref name="dueBucket"/>
-                                        <field-ref name="draftJson"/>
+                                        <field-ref name="draftId"/>
                                         <field-ref name="draftAction"/>
                                         <field-row>
                                             <field-ref name="sourceToken"/>
@@ -621,7 +506,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="draftJson" from="draftJson">
+                                    <field name="draftId" from="draftId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
@@ -638,11 +523,11 @@ along with this software (see the LICENSE.md file). If not, see
                                             </drop-down>
                                         </default-field>
                                     </field>
-                                    <field name="kind">
+                                    <field name="itemTypeEnumId">
                                         <default-field title="Adjustment">
                                             <drop-down>
-                                                <option key="writeoff" text="Write-off"/>
-                                                <option key="discount" text="Discount"/>
+                                                <option key="ItemWriteOff" text="Write-off"/>
+                                                <option key="ItemPromptDiscount" text="Discount"/>
                                             </drop-down>
                                         </default-field>
                                     </field>
@@ -677,11 +562,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-ref name="effectiveDate"/>
                                         <field-ref name="text"/>
                                         <field-ref name="dueBucket"/>
-                                        <field-ref name="draftJson"/>
+                                        <field-ref name="draftId"/>
                                         <field-ref name="draftAction"/>
                                         <field-row>
                                             <field-ref name="targetToken"/>
-                                            <field-ref name="kind"/>
+                                            <field-ref name="itemTypeEnumId"/>
                                         </field-row>
                                         <field-row>
                                             <field-ref name="amount"/>
@@ -769,7 +654,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                     <hidden/>
                                                 </default-field>
                                             </field>
-                                            <field name="draftJson" from="draftJson">
+                                            <field name="draftId" from="draftId">
                                                 <default-field title="">
                                                     <hidden/>
                                                 </default-field>
@@ -817,7 +702,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <field-ref name="effectiveDate"/>
                                                 <field-ref name="text"/>
                                                 <field-ref name="dueBucket"/>
-                                                <field-ref name="draftJson"/>
+                                                <field-ref name="draftId"/>
                                                 <field-ref name="draftAction"/>
                                                 <field-ref name="rowId"/>
                                                 <field-row>
@@ -918,7 +803,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                     <hidden/>
                                                 </default-field>
                                             </field>
-                                            <field name="draftJson" from="draftJson">
+                                            <field name="draftId" from="draftId">
                                                 <default-field title="">
                                                     <hidden/>
                                                 </default-field>
@@ -940,11 +825,11 @@ along with this software (see the LICENSE.md file). If not, see
                                                     </drop-down>
                                                 </default-field>
                                             </field>
-                                            <field name="kind">
+                                            <field name="itemTypeEnumId">
                                                 <default-field title="Adjustment">
                                                     <drop-down>
-                                                        <option key="writeoff" text="Write-off"/>
-                                                        <option key="discount" text="Discount"/>
+                                                        <option key="ItemWriteOff" text="Write-off"/>
+                                                        <option key="ItemPromptDiscount" text="Discount"/>
                                                     </drop-down>
                                                 </default-field>
                                             </field>
@@ -979,12 +864,12 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <field-ref name="effectiveDate"/>
                                                 <field-ref name="text"/>
                                                 <field-ref name="dueBucket"/>
-                                                <field-ref name="draftJson"/>
+                                                <field-ref name="draftId"/>
                                                 <field-ref name="draftAction"/>
                                                 <field-ref name="rowId"/>
                                                 <field-row>
                                                     <field-ref name="targetToken"/>
-                                                    <field-ref name="kind"/>
+                                                    <field-ref name="itemTypeEnumId"/>
                                                 </field-row>
                                                 <field-row>
                                                     <field-ref name="amount"/>
@@ -1070,7 +955,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display/>
                                 </default-field>
                             </field>
-                            <field name="kind">
+                            <field name="itemTypeDescription">
                                 <default-field title="Adjustment">
                                     <display/>
                                 </default-field>
@@ -1093,7 +978,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <columns type="mobile">
                                 <column>
                                     <field-ref name="invoiceId"/>
-                                    <field-ref name="kind"/>
+                                    <field-ref name="itemTypeDescription"/>
                                     <field-ref name="reason"/>
                                 </column>
                                 <column>
@@ -1227,7 +1112,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="draftJson" from="draftJson">
+                                    <field name="draftId" from="draftId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
@@ -1395,7 +1280,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="draftJson" from="draftJson">
+                                    <field name="draftId" from="draftId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>

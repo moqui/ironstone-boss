@@ -1,4 +1,5 @@
-// Settlement screen state is a draft only. Mantle owns eligibility, previews, money, posting and confirmation.
+// Settlement screen state is a draft only, kept by Mantle behind a draft ID. Mantle owns eligibility, previews, money,
+// posting, confirmation and the operation key.
 const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
 const native = "mantle.account.PaymentServices."
 const array = value => Array.from(value || [])
@@ -9,6 +10,7 @@ const day = value =>
     value ? (/^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : ec.l10n.format(value, "yyyy-MM-dd")) : today()
 const kinds = ["invoice", "credit", "payment", "paymentTarget"]
 const maxDraftBytes = 262144
+const adjustmentLabels = {ItemWriteOff: "Write-off", ItemPromptDiscount: "Discount"}
 
 function itemToken(value) {
     if (typeof value !== "string" || value.length > 2048) throw new Error("Choose an open item from the list")
@@ -42,7 +44,7 @@ function parseDraft(value) {
         adjustments: draft.adjustments.map((row, index) => ({
             rowId: "adjustment-" + index,
             targetToken: String(row.targetToken || ""),
-            kind: String(row.kind || ""),
+            itemTypeEnumId: String(row.itemTypeEnumId || ""),
             amount: String(row.amount ?? ""),
             glAccountId: String(row.glAccountId || ""),
             reason: String(row.reason || "")
@@ -69,7 +71,13 @@ function selection(draft) {
     const adjustments = draft.adjustments.map(row => {
         const target = add(row.targetToken)
         if (target.kind !== "invoice") throw new Error("Choose an invoice for the adjustment")
-        return {invoiceId: target.id, kind: row.kind, amount: row.amount, glAccountId: row.glAccountId, reason: row.reason}
+        return {
+            invoiceId: target.id,
+            itemTypeEnumId: row.itemTypeEnumId,
+            amount: row.amount,
+            glAccountId: row.glAccountId,
+            reason: row.reason
+        }
     })
     if (versions.size > 200) throw new Error("Choose at most 200 distinct open items in one settlement")
     return {allocations, adjustments, sourceVersions: Object.fromEntries(versions)}
@@ -116,9 +124,13 @@ function scopedDraft(value, current) {
     return draft
 }
 
+// The user's draft kept by Mantle, as JSON; none for a missing, expired or other user's draft.
+function storedDraft(draftId) {
+    return draftId ? policy.call(native + "get#SettlementDraft", {draftId}).draftJson || null : null
+}
 function editDraft(parameters) {
     const current = scope(parameters, true)
-    const draft = scopedDraft(parameters.draftJson, current)
+    const draft = scopedDraft(storedDraft(parameters.draftId), current)
     const action = parameters.draftAction
     const adjustment = /Adjustment$/.test(action || "")
     const list = adjustment ? draft.adjustments : draft.allocations
@@ -131,7 +143,7 @@ function editDraft(parameters) {
         const row = adjustment
             ? {
                   targetToken: parameters.targetToken,
-                  kind: String(parameters.kind || ""),
+                  itemTypeEnumId: String(parameters.itemTypeEnumId || ""),
                   amount: String(parameters.amount ?? ""),
                   glAccountId: parameters.glAccountId || "",
                   reason: String(parameters.reason || "")
@@ -154,12 +166,18 @@ function editDraft(parameters) {
         throw new Error("Choose at most 200 allocations and 50 adjustments")
     const draftJson = JSON.stringify(draft)
     if (draftJson.length > maxDraftBytes) throw new Error("The settlement selection is too large")
-    return {draftJson}
+    const stored = policy.call(native + "store#SettlementDraft", {
+        draftId: parameters.draftId || null,
+        organizationPartyId: current.organizationPartyId,
+        direction: "receivable",
+        draftJson
+    })
+    return {draftId: stored.draftId}
 }
 
-function preparePreview(parameters) {
+function previewRequest(parameters) {
     const current = scope(parameters, true)
-    const draft = scopedDraft(parameters.draftJson, current)
+    const draft = scopedDraft(storedDraft(parameters.draftId), current)
     return Object.assign(draftScope(current), selection(draft))
 }
 
@@ -183,7 +201,7 @@ function retainedDraft(preview) {
             const key = "invoice:" + encodeURIComponent(row.invoiceId)
             return {
                 targetToken: key + "~" + versions[key],
-                kind: row.kind,
+                itemTypeEnumId: row.itemTypeEnumId,
                 amount: String(row.amount),
                 glAccountId: row.glAccountId,
                 reason: row.reason
@@ -214,7 +232,7 @@ function preview(parameters) {
     }
 }
 
-function reviewPresentation(retained, draftJson) {
+function reviewPresentation(retained) {
     const currencyUomId = retained.currencyUomId
     const after = new Map(rows(retained.afterBalances).map(row => [row.sourceKey, row]))
     const labelFor = key => {
@@ -226,11 +244,7 @@ function reviewPresentation(retained, draftJson) {
         )
     }
     return Object.assign(plain(retained), {
-        draftJson,
         selectionThroughDate: retained.selectionThroughDateText || day(retained.selectionThroughDate),
-        operationKey:
-            retained.operationKey ||
-            "settle-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
         allocationRows: rows(retained.allocationRows).map(row =>
             Object.assign(row, {
                 sourceLabel: ({payment: "Receipt", credit: "Credit"}[row.sourceKind] || "Source") + " " + row.sourceId,
@@ -292,12 +306,13 @@ function workbench(parameters) {
         draft = retainedDraft(retained)
         current = Object.assign(current, draft.scope)
     } else {
-        const incoming = parseDraft(parameters.draftJson)
+        const stored = storedDraft(parameters.draftId)
+        const incoming = parseDraft(stored)
         const changedScope =
             incoming.scope &&
             Object.keys(draftScope(current)).some(key => String(incoming.scope[key] || "") !== String(current[key] || ""))
         selectionReset = !!changedScope && parameters.filterSubmit === "Y"
-        draft = scopedDraft(selectionReset ? null : parameters.draftJson, current)
+        draft = scopedDraft(selectionReset ? null : stored, current)
     }
     const pageByKind = Object.fromEntries(
         kinds.map(kind => [
@@ -414,15 +429,15 @@ function workbench(parameters) {
         Object.assign({}, row, {
             rowId: "adjustment-" + index,
             targetLabel: tokenLabel(row.targetToken).label,
-            kindLabel: row.kind === "discount" ? "Discount" : "Write-off",
+            kindLabel: adjustmentLabels[row.itemTypeEnumId] || row.itemTypeEnumId,
             accountLabel: row.glAccountId ? accountLabels[row.glAccountId] || row.glAccountId : "Choose a posting account",
             currencyUomId: current.currencyUomId
         })
     )
-    const draftJson = JSON.stringify(draft)
+    const draftId = selectionReset ? null : parameters.draftId || null
     const filters = Object.assign(draftScope(current), {text: parameters.text || "", dueBucket: parameters.dueBucket || ""})
     const review = retained
-        ? reviewPresentation(retained, draftJson)
+        ? reviewPresentation(retained)
         : {
               allocationRows: [],
               adjustmentRows: [],
@@ -433,7 +448,7 @@ function workbench(parameters) {
               results: {allocationResults: [], adjustmentResults: [], remainingRows: []}
           }
     return Object.assign(output, filters, {
-        draftJson,
+        draftId,
         draftAllocations: allocations,
         draftAdjustments: adjustments,
         settlementReview: review,
@@ -442,7 +457,6 @@ function workbench(parameters) {
             canEdit:
                 !!current.capabilities.arEdit &&
                 (retained ? retained.capabilities?.canApply === true : hasReadResult && found.capabilities?.canApply === true),
-            guardDisabled: (retained?.capabilities || found.capabilities)?.guardEnabled === false,
             ready: !!(current.organizationPartyId && current.partyId && current.currencyUomId),
             hasOpenItemResult: !requested || hasReadResult,
             unavailable: requested && !hasReadResult,
@@ -458,21 +472,18 @@ function workbench(parameters) {
             previewUnavailable: !!parameters.previewId && !retained,
             previewId: parameters.previewId || null,
             filters,
-            editParameters: Object.assign({}, filters, {draftJson, previewId: "", operationKey: ""}),
-            scopeParameters: Object.assign({}, filters, {draftJson: "", previewId: "", operationKey: ""})
+            editParameters: Object.assign({}, filters, {draftId, previewId: ""}),
+            scopeParameters: Object.assign({}, filters, {draftId: "", previewId: ""})
         }
     })
 }
 
-;({
-    itemToken,
-    parseDraft,
-    selection,
-    editDraft,
-    preparePreview,
-    retainedDraft,
-    execute: (operation, parameters) => {
-        if (operation !== "workbench") throw new Error("Unknown settlement screen operation")
-        return workbench(parameters)
-    }
-})
+const operations = {workbench, editDraft, previewRequest}
+// Runs one screen operation and puts its results in the caller's context.
+function execute(op, parameters) {
+    if (!operations[op]) throw new Error("Unknown settlement screen operation " + op)
+    const result = operations[op](parameters)
+    ec.context.putAll(result)
+    return result
+}
+;({itemToken, parseDraft, selection, retainedDraft, execute})

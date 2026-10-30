@@ -8,7 +8,21 @@ const scope = {
     asOfDate: "2026-10-30",
     effectiveDate: "2026-10-30"
 }
-const request = (draft, extra = {}) => Object.assign({}, scope, {draftJson: JSON.stringify(draft)}, extra)
+// A draft kept by Mantle for the current user, and the parameters that name it.
+const storeDraft = draft =>
+    helper.call("mantle.account.PaymentServices.store#SettlementDraft", {
+        organizationPartyId: scope.organizationPartyId,
+        draftJson: JSON.stringify(draft)
+    }).draftId
+const storedDraft = draftId =>
+    screen().parseDraft(helper.call("mantle.account.PaymentServices.get#SettlementDraft", {draftId}).draftJson)
+// Runs a screen operation as its transition does, then clears the draft ID it put in this spec's context.
+function run(op, parameters) {
+    const result = screen().execute(op, parameters)
+    ec.context.putAll({draftId: null})
+    return result
+}
+const request = (draft, extra = {}) => Object.assign({}, scope, {draftId: storeDraft(draft)}, extra)
 const customerPartyId = "BOSS_ACCT_STL_CUSTOMER"
 const currentScope = () =>
     Object.assign({}, scope, {
@@ -62,7 +76,7 @@ feature("mixed and split allocation drafts preserve every original reviewed sour
         })
         draft.adjustments.push({
             targetToken: "invoice:invoice~invoice-reviewed",
-            kind: "discount",
+            itemTypeEnumId: "ItemPromptDiscount",
             amount: "5",
             glAccountId: "explicit-account",
             reason: "Agreed discount"
@@ -75,7 +89,15 @@ feature("mixed and split allocation drafts preserve every original reviewed sour
         allocations[1] == {sourceKey: "credit:credit", targetKey: "invoice:invoice", amount: "25"}
         allocations[2] == {sourceKey: "payment:receipt", targetKey: "invoice:second", amount: "10"}
         adjustments ==
-            [{invoiceId: "invoice", kind: "discount", amount: "5", glAccountId: "explicit-account", reason: "Agreed discount"}]
+            [
+                {
+                    invoiceId: "invoice",
+                    itemTypeEnumId: "ItemPromptDiscount",
+                    amount: "5",
+                    glAccountId: "explicit-account",
+                    reason: "Agreed discount"
+                }
+            ]
         sourceVersions ==
             {
                 "payment:receipt": "receipt-reviewed",
@@ -86,12 +108,14 @@ feature("mixed and split allocation drafts preserve every original reviewed sour
     }
 })
 
-feature("editing and removing a presentation row preserves its other reviewed rows and performs no financial write", {
+feature("editing and removing a draft row keeps the draft behind its ID and its other reviewed rows", {
     when() {
         return helper.asUser("finance.ar", () => {
             const module = screen()
-            const changed = module.editDraft(
-                request(mixedDraft(), {
+            const first = request(mixedDraft())
+            const changed = run(
+                "editDraft",
+                Object.assign({}, first, {
                     draftAction: "updateAllocation",
                     rowId: "allocation-0",
                     sourceToken: "payment:receipt~receipt-reviewed",
@@ -99,20 +123,24 @@ feature("editing and removing a presentation row preserves its other reviewed ro
                     amount: "40"
                 })
             )
-            const removed = module.editDraft(
+            const changedDraft = storedDraft(changed.draftId)
+            const removed = run(
+                "editDraft",
                 Object.assign({}, scope, changed, {draftAction: "removeAllocation", rowId: "allocation-0"})
             )
-            return {changed: module.parseDraft(changed.draftJson), removed: module.parseDraft(removed.draftJson)}
+            return {first, changed, removed, changedDraft, removedDraft: storedDraft(removed.draftId)}
         })
     },
-    then({changed, removed}) {
-        changed.allocations.length == 2
-        changed.allocations[0].amount == "40"
-        changed.allocations[0].sourceToken == "payment:receipt~receipt-reviewed"
-        changed.allocations[1].amount == "25"
-        removed.allocations.length == 1
-        removed.allocations[0].sourceToken == "credit:credit~credit-reviewed"
-        removed.scope == scope
+    then({first, changed, removed, changedDraft, removedDraft}) {
+        changed.draftId == first.draftId
+        removed.draftId == first.draftId
+        changedDraft.allocations.length == 2
+        changedDraft.allocations[0].amount == "40"
+        changedDraft.allocations[0].sourceToken == "payment:receipt~receipt-reviewed"
+        changedDraft.allocations[1].amount == "25"
+        removedDraft.allocations.length == 1
+        removedDraft.allocations[0].sourceToken == "credit:credit~credit-reviewed"
+        removedDraft.scope == scope
     }
 })
 
@@ -132,7 +160,7 @@ feature("a retained native review reconstructs its frozen draft and calendar day
             adjustmentRows: [
                 {
                     invoiceId: "invoice",
-                    kind: "writeoff",
+                    itemTypeEnumId: "ItemWriteOff",
                     amount: "5",
                     glAccountId: "explicit-account",
                     reason: "Review retained reason"
@@ -167,10 +195,12 @@ feature("malformed, conflicting and excessive draft selections cannot replace re
             conflicting: refused(() => module.selection(conflicting)),
             excessive: refused(() => module.parseDraft(JSON.stringify(excessive))),
             scopeChange: helper.asUser("finance.ar", () =>
-                refused(() => module.preparePreview(request(mixedDraft(), {currencyUomId: "EUR"})))
+                refused(() => run("previewRequest", request(mixedDraft(), {currencyUomId: "EUR"})))
             ),
             readerEdit: helper.asUser("finance.read", () =>
-                refused(() => module.editDraft(request(mixedDraft(), {draftAction: "removeAllocation", rowId: "allocation-0"})))
+                refused(() =>
+                    run("editDraft", Object.assign({}, scope, {draftAction: "removeAllocation", rowId: "allocation-0"}))
+                )
             )
         }
     },
@@ -223,10 +253,11 @@ feature("search and due filtering retain the draft while explicit customer or da
         return helper.asUser("finance.ar", () => {
             const draft = fixtureDraft()
             const original = screen().selection(draft)
+            const draftId = storeDraft(draft)
             const retained = helper.call(
                 "ironstone.accounting.SettlementScreenServices.get#WorkbenchContext",
                 Object.assign({}, draft.scope, {
-                    draftJson: JSON.stringify(draft),
+                    draftId,
                     text: "not-a-document-match",
                     dueBucket: "overdue",
                     filterSubmit: "Y"
@@ -235,12 +266,12 @@ feature("search and due filtering retain the draft while explicit customer or da
             const changed = helper.call(
                 "ironstone.accounting.SettlementScreenServices.get#WorkbenchContext",
                 Object.assign({}, draft.scope, {
-                    draftJson: JSON.stringify(draft),
+                    draftId,
                     partyId: helper.ids.customerPartyId,
                     filterSubmit: "Y"
                 })
             )
-            return {original, retained, changed, retainedSelection: screen().selection(screen().parseDraft(retained.draftJson))}
+            return {original, retained, changed, retainedSelection: screen().selection(storedDraft(retained.draftId))}
         })
     },
     then({original, retained, changed, retainedSelection}) {
@@ -252,6 +283,7 @@ feature("search and due filtering retain the draft while explicit customer or da
         changed.workbench.selectionReset == true
         changed.draftAllocations == []
         changed.draftAdjustments == []
+        changed.draftId == null
     }
 })
 
@@ -266,11 +298,11 @@ feature("the retained native review owns mixed amounts and versions even when cl
             )
             const tampered = JSON.parse(JSON.stringify(draft))
             tampered.allocations[0].amount = "999999"
-            const parameters = Object.assign({}, draft.scope, {previewId: preview.previewId, draftJson: JSON.stringify(tampered)})
+            const parameters = Object.assign({}, draft.scope, {previewId: preview.previewId, draftId: storeDraft(tampered)})
             const context = helper.call("ironstone.accounting.SettlementScreenServices.get#WorkbenchContext", parameters)
             const reloaded = helper.call(
                 "ironstone.accounting.SettlementScreenServices.get#WorkbenchContext",
-                Object.assign({}, parameters, {operationKey: "different-client-key"})
+                Object.assign({}, parameters, {text: "reloaded"})
             )
             const refusal = helper.refusal("mantle.account.PaymentServices.apply#Settlement", {
                 previewId: preview.previewId,
@@ -302,7 +334,7 @@ feature("the retained native review owns mixed amounts and versions even when cl
                 nextContext,
                 refusal,
                 original,
-                retained: screen().selection(screen().parseDraft(context.draftJson)),
+                retained: screen().selection(screen().retainedDraft(context.settlementReview)),
                 outputs
             }
         })
@@ -312,8 +344,8 @@ feature("the retained native review owns mixed amounts and versions even when cl
         !!preview.inputFingerprint
         context.workbench.hasReview == true
         context.workbench.hasResults == false
+        context.settlementReview.operationKey == preview.operationKey
         context.settlementReview.operationKey.startsWith("settle-")
-        context.settlementReview.operationKey.length <= 40
         reloaded.settlementReview.operationKey == context.settlementReview.operationKey
         refusal.includes("STALE_PREVIEW")
         afterRefusal.settlementReview.operationKey == context.settlementReview.operationKey

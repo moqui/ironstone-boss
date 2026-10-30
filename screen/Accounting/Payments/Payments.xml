@@ -657,7 +657,6 @@ along with this software (see the LICENSE.md file). If not, see
                         </field-row>
                     </field-layout>
                 </form-single>
-                <label text="Payment entry is not enabled for this organization. A finance administrator can enable it in Accounting preferences." type="p" style="text-warning" condition="paymentList.guardDisabled"/>
                 <label text="Some payment information is unavailable. Adjust the filters or try again." type="p" style="text-warning" condition="!paymentList.available || paymentList.incomplete"/>
                 <form-list name="Payments" list="records" skip-form="true" paginate="true">
                     <field name="paymentId">

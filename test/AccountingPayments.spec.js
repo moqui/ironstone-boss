@@ -365,10 +365,10 @@ feature("issued payment output exposes its actual amount, currency, day and mask
         pages.every(page => page.status === 200 && !page.errors.length)
         pages.every(page => page.output.includes(amount))
         pages.every(page => page.output.includes(summary.currencyUomId))
-        pages.every(page => page.output.includes(summary.accountingDateText))
+        pages.every(page => page.output.includes(summary.paymentDateText))
         pages.every(page => page.output.includes(summary.partyName))
-        !!summary.maskedMethodLabel
-        pages.every(page => page.output.includes(summary.maskedMethodLabel))
+        !!summary.methodLabel
+        pages.every(page => page.output.includes(summary.methodLabel))
         pages.every(page => !/"(?:accountNumber|routingNumber|cardNumber)"/.test(page.output))
     }
 })

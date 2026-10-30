@@ -936,7 +936,6 @@ function listContext(parameters) {
             canCreate: !transferReview && filters.queue !== "transfers" && cap.canCreate === true,
             canTransfer: !transferReview && cap.canTransfer === true,
             hasTransferReview: !!transferReview,
-            guardDisabled: cap.guardEnabled === false,
             totals: result.totals || {},
             filters: Object.assign({organizationPartyId: scope.organizationPartyId}, filters),
             detailParameters: {

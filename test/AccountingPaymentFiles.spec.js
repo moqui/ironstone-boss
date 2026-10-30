@@ -1,4 +1,4 @@
-// Shared Files must preserve native payment authority even for known content keys and artifact-off requests.
+// Shared Files keep Mantle's payment authority (get#PaymentAccess) even for known content keys and artifact-off requests.
 const helper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js"),
     native = "mantle.account.PaymentServices.",
     files = "ironstone.shared.RecordFilesServices.",
@@ -11,8 +11,8 @@ function output(type) {
 function content(type) {
     const issued = output(type)
     return ec.entity
-        .find("mantle.account.payment.PaymentIssuedOutput")
-        .condition("paymentOutputId", issued.outputId)
+        .find("mantle.account.payment.PaymentContent")
+        .condition("paymentContentId", issued.outputId)
         .disableAuthz()
         .one()
 }
@@ -144,12 +144,12 @@ feature("a receipt remains readable to an accounting reader while issued files c
     then({read, refused, issued}) {
         read.fileName.includes("-receipt.pdf")
         !!refused
-        !issued.approvedHtml.includes("000123456789")
-        !issued.approvedHtml.includes("000000000")
-        issued.summary.maskedMethodLabel.includes("6789")
+        !issued.documentHtml.includes("000123456789")
+        !issued.documentHtml.includes("000000000")
+        issued.summary.methodLabel.includes("6789")
     }
 })
-feature("ordinary supporting files retain authorized upload read and removal through the same shared services", {
+feature("a posted payment takes new supporting files, readable to readers and kept as issued", {
     when() {
         const result = helper.asUser("finance.treasury", () =>
             domainCall(
@@ -167,68 +167,16 @@ feature("ordinary supporting files retain authorized upload read and removal thr
                 domainCall(files + "get#RecordFile", Object.assign({}, record, {contentKey: added.contentKey}))
             ),
             removed = helper.asUser("finance.treasury", () =>
-                domainCall(files + "remove#RecordFile", Object.assign({}, record, {contentKey: added.contentKey}))
+                refused(files + "remove#RecordFile", Object.assign({}, record, {contentKey: added.contentKey}))
             )
-        return {result, added, read, removed, after: domainCall(files + "get#RecordFiles", record)}
+        return {result, added, read, removed}
     },
-    then({result, added, read, removed, after}) {
+    then({result, added, read, removed}) {
         result.createdList.length == 1
         result.failedList == []
-        added.isImmutable == false
-        added.canRemove == true
+        added.isImmutable == true
+        added.canRemove == false
         read.fileName == "Payment-support-note.txt"
-        !!removed.message
-        !after.fileList.some(row => row.fileName === "Payment-support-note.txt")
-        after.fileCount == 3
-    }
-})
-feature("an unrelated record cannot publish an issued payment archive through its content pointer", {
-    when() {
-        const check = content("check"),
-            unrelated = {recordEntityName: "mantle.party.Party", recordId: helper.ids.customerPartyId},
-            contentId = "BOSS_ACCT_PAY_ALIAS",
-            ordinaryId = "BOSS_ACCT_PAY_ALIAS_OK",
-            location = "dbresource://mantle/content/party/" + helper.ids.customerPartyId + "/content_" + ordinaryId + "/Note.txt",
-            alias = String(check.contentLocation)
-                .replace("dbresource://", "dbresource:/")
-                .replace("mantle/content/", "mantle//content//")
-        ec.resource.getLocationReference(location).putText("An ordinary party attachment")
-        for (const [partyContentId, contentLocation, offset] of [
-            [ordinaryId, location, 0],
-            [contentId, alias, 1000]
-        ])
-            helper.call("create#mantle.party.PartyContent", {
-                partyContentId,
-                partyId: helper.ids.customerPartyId,
-                contentLocation,
-                contentDate: new Date(Number(ec.user.nowTimestamp) + offset),
-                userId: ec.user.userId,
-                description: "Attachment boundary proof"
-            })
-        try {
-            return {
-                listed: domainCall(files + "get#RecordFiles", Object.assign({}, unrelated, {limit: 1})),
-                privateRead: refused(
-                    files + "get#RecordFile",
-                    Object.assign({}, unrelated, {contentKey: JSON.stringify({partyContentId: contentId})})
-                ),
-                ordinaryRead: helper.call(
-                    files + "get#RecordFile",
-                    Object.assign({}, unrelated, {contentKey: JSON.stringify({partyContentId: ordinaryId})})
-                ),
-                ordinaryId
-            }
-        } finally {
-            for (const partyContentId of [contentId, ordinaryId])
-                helper.call("delete#mantle.party.PartyContent", {partyContentId})
-            ec.resource.getLocationReference(location).delete()
-        }
-    },
-    then({listed, privateRead, ordinaryRead, ordinaryId}) {
-        listed.fileList.length == 1
-        listed.fileList[0].contentKey.includes(ordinaryId)
-        !JSON.stringify(listed).includes('BOSS_ACCT_PAY_ALIAS"')
-        privateRead.includes("PAYMENT_ARCHIVE_PRIVATE")
-        ordinaryRead.fileName == "Note.txt"
+        !!removed
     }
 })

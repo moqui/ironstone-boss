@@ -12,35 +12,43 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Payment print" default-menu-include="false">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Payment print" default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="paymentId"/>
     <parameter name="recordId"/>
     <parameter name="outputType"/>
-    <parameter name="sourceVersion"/>
     <parameter name="outputId"/>
     <actions>
         <set field="paymentOutput" from="{}"/>
-        <service-call name="mantle.account.PaymentServices.get#PaymentOutput" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,outputType:outputType,sourceVersion:sourceVersion,outputId:outputId}" out-map="paymentOutput" transaction="force-new" ignore-error="true"/>
+        <set field="outputParameters" from="{organizationPartyId:organizationPartyId, paymentId:paymentId || recordId,
+                outputType:outputType, outputId:outputId}"/>
+        <service-call name="mantle.account.PaymentServices.get#PaymentOutput" in-map="outputParameters" out-map="paymentOutput"
+                transaction="force-new" ignore-error="true"/>
         <set field="paymentOutput" from="paymentOutput || {}"/>
         <set field="paymentId" from="paymentOutput.paymentId || paymentId || recordId"/>
+        <set field="document" from="paymentOutput.summary || {}"/>
+        <set field="detailParameters" from="{recordId:paymentId, paymentId:paymentId, organizationPartyId:organizationPartyId}"/>
     </actions>
     <widgets>
         <label text="Payment document" type="h5"/>
         <section name="PaymentIssuedDocument" condition="!!paymentOutput.outputId">
             <widgets>
                 <label text="${paymentOutput.fileName || 'Payment document'}" type="p"/>
-                <label text="Amount ${paymentOutput.summary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentOutput.summary.amount),paymentOutput.summary.currencyUomId) : 'Unavailable'} · ${paymentOutput.summary?.currencyUomId || ''}" type="p"/>
-                <label text="${paymentOutput.summary?.partyName || ''} · ${paymentOutput.summary?.cashDirection || ''}" type="p"/>
-                <label text="Payment date ${paymentOutput.summary?.accountingDateText || ''}" type="p" style="text-caption m-muted"/>
-                <label text="${paymentOutput.summary?.maskedMethodLabel || ''}" type="p"/>
-                <label text="Reference ${paymentOutput.summary?.referenceNumber || ''}" type="p"/>
-                <label text="Check ${paymentOutput.summary?.checkNumber || ''}" type="p" condition="!!paymentOutput.summary?.checkNumber"/>
-                <html-view html="${paymentOutput.approvedHtml || ''}" text="Payment ${paymentId || recordId} · ${paymentOutput.fileName || outputType || 'detail'}"/>
+                <label text="Amount ${document.amountText || ''} · ${document.currencyUomId || ''}" type="p"/>
+                <label text="${document.partyLabel || ''} ${document.partyName || ''}" type="p"/>
+                <label text="Payment date ${document.paymentDateText || ''}" type="p" style="text-caption m-muted"/>
+                <label text="${document.methodLabel || ''}" type="p" condition="!!document.methodLabel"/>
+                <label text="Reference ${document.referenceNumber || ''}" type="p" condition="!!document.referenceNumber"/>
+                <label text="Check ${document.checkNumber || ''}" type="p" condition="!!document.checkNumber"/>
+                <html-view html="${paymentOutput.documentHtml || ''}"
+                        text="Payment ${paymentId || recordId} · ${paymentOutput.fileName || outputType || 'detail'}"/>
             </widgets>
         </section>
-        <label text="This payment document is not available. Issue it through the reviewed payment action, or choose an authorized output." type="p" condition="!paymentOutput.outputId"/>
-        <link url="${sharedLinks['Payments/PaymentDetail']}" text="Back to payment" parameter-map="{recordId:paymentId || recordId,paymentId:paymentId || recordId,previewId:'',previewKind:'',organizationPartyId:organizationPartyId}" condition="!!paymentId || !!recordId"/>
+        <label text="This payment document has not been issued. A payment's documents are issued when it is delivered." type="p"
+                condition="!paymentOutput.outputId"/>
+        <link url="${sharedLinks['Payments/PaymentDetail']}" text="Back to payment" parameter-map="detailParameters"
+                condition="!!paymentId"/>
         <link url="${sharedLinks['Payments/Payments']}" text="Back to payments" condition="!paymentId &amp;&amp; !recordId"/>
     </widgets>
 </screen>

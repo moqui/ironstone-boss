@@ -1685,6 +1685,8 @@ states, current roles, and light/dark 390/1280/1440 walks and visual review. No 
 
 ### P5b2b1 manual refund acceptance
 
+Implementation commits: Mantle `cb9cc35d`; BOSS `bb8a421`.
+
 The coordinator accepts the independently reviewed native, application and common assignments. All 21 new native
 cases pass. The initial 45-case gate and final 25-case gate together cover 53 distinct native cases, all passing:
 actual partial/customer/supplier/linked-draft refunds, exact retries, malformed/verified legacy history, current

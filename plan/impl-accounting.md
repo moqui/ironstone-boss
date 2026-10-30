@@ -995,6 +995,8 @@ design, it is written there too.
 | F76 | P4 visual review: EntityAuditLog stores new SQL DATE accountingDate changes as epoch text, which the generic invoice History values display without formatting | P21 output finishing formats typed audit date values and status/user labels; source audit evidence remains unchanged |
 | F77 | P4 visual review: an unusually long invoice ID makes the 390px HTML print slightly wider than its viewport, and its Description heading can wrap mid-word | P21 output finishing refines narrow-screen print wrapping; the exported PDF and actual monetary values remain correct |
 | F78 | P4 review: generic Files removal and resource-only version replacement could mutate an issued archive even when its InvoiceContent row was guarded | Durable PDFs/supporting copies live outside mutable record folders. Native content invariants protect identity/removal and equivalent DbResource aliases before writes; generic Files respects immutable rows and native per-side edit authority |
+| F79 | P4 final visual review: Quasar Files list captions and neutral controls inherited light-mode colors in dark mode; a nested conditional spec branch also had bare expressions that did not assert | Shared RecordFiles passes the active theme to its list/item hosts. Actual issued rows pass unchanged text/control contrast thresholds after theme transitions finish. Client isolation branches now explicitly assert their permission and omission checks |
+| F80 | P4 repeated walk: legacy sole-store fallback advances an invoice from Finalized to Sent asynchronously after its Send form reads the timestamp | Send submits the already-supported exact financial source fingerprint and selected attachment versions, without its redundant timestamp. Native eligibility, organization and revision checks remain strict; header/item/state writes retain timestamps. Regressions prove status-only advancement succeeds and changed financial fields refuse before durable output or mail |
 
 ## 7. Later
 
@@ -1146,18 +1148,93 @@ Verification on disposable databases with Chromium configured as described in th
 
 - Full BOSS: **1,110 passed, zero failed, five skipped** (1,115 features), including unchanged Projects/Products,
   AppStructure, TuiRender, rendered content and the shared Files regressions.
-- Full standalone Mantle, excluding BOSS adoption data: **901 passed, exactly the four reproduced baseline failures,
-  17 skipped** (922 features). All 57 added P4 features pass. The legacy audit sequence/flow fixtures remain unchanged.
+- Full standalone Mantle, excluding BOSS adoption data: **903 passed, exactly the four reproduced baseline failures,
+  17 skipped** (924 features). All 59 added P4 features pass. The legacy audit sequence/flow fixtures remain unchanged.
 - Focused shared Files/access/context regressions: **86 passed, zero failed, one existing optional skip**. Native
   archive/delivery focus: **19/19**.
 - Accounting browser coverage includes all P4 destinations, modes and dialogs at 390/1280/1440, light/dark, plus AR,
   approver and reader views. The six invoice-edit cases passed their corrected selector rerun; final affected-route
   and all seven P4 walk checks passed **34/34** after attachment/archive integration. A further **9/9** verified actual
   issued-file rows at all six width/theme variants plus prints. Screenshots were inspected by
-  coordinator and independent reviewer. Earlier full route inventories plus the affected reruns cover unchanged
+  coordinator and independent reviewer. Final review follow-up reran full BOSS and standalone Mantle, all seven walks
+  (**7/7**), and Send/issued Files plus prints (**15/15**), including actual dark-row contrast after theme animations.
+  The native async-status/source-fingerprint and changed-financial-content regressions pass. Earlier full route
+  inventories plus the affected reruns cover unchanged
   ledger/settings walks and all new forms; no browser failure remains unresolved.
 - XML schemas/parsing and formatting checked. Separate screen lint report: **zero parse failures, 121 existing flagged
   sites**, identical to the frozen baseline under the same compiler; no new lint site.
 
-Native implementation commit: `876732f6` (mr-mantle). BOSS implementation commit is recorded after the phase commit.
+Implementation commits: `876732f6` (mr-mantle) and `b933118` (mr-boss). Accepted review follow-ups:
+`93e8fed3` (mr-mantle delivery regressions) and `907a816` (mr-boss Send/Files and executable isolation checks).
 P5–P21 remain subsequent deliveries; none is represented as implemented by this P4 acceptance.
+
+### P5 assignment contracts
+
+Reviewed before implementation by the coordinator, native author, app author and independent reviewer. P5a delivers
+settlement first; P5b delivers payment lifecycle/gateway/refund/transfer controls after P5a acceptance. Later-phase
+holds, due schedules and historical Aging remain P6/P8/P10 respectively.
+
+| Owner | P5a owned files and responsibility |
+| --- | --- |
+| Native author | `entity/PaymentWorkflowEntities.xml`, `service/mantle/account/PaymentSettlement.js`, payment-specific `PaymentWorkflow.js`, new declarations and auto-apply dispatch in `PaymentServices.xml`; standalone `AccountingSettlementFixtures.js`, `AccountingSettlement.spec.js`, `AccountingSettlementConcurrency.spec.js` |
+| App author | `Receivables/ReceivablesWorkbench.xml`, `SettlementScreenServices.xml`, `Settlements.js`, `AccountingSettlement.spec.js` and `client/AccountingSettlementWalk.spec.js`; draft decoding and presentation only |
+| Reviewer | Independent contract/diff review, success/refusal/rollback traces, targeted reruns and rendered/screenshot review; central registry edits only when expressly assigned |
+| Coordinator | Existing authorization/operation/posting helpers, `PostingGuard.js`, legacy posting/SECA integrations, shared mounts/templates/menus, choices, grants, fixtures, registries, documentation, final verification and commits |
+
+The native `PaymentServices` contract is:
+
+- `find#OpenItems`: organization, party, logical receivable/payable side, currency, eligible-through date, due/search
+  and page filters; narrow invoice/credit/payment source and target rows, names, dates, original/current remaining
+  amounts, revisions, capabilities and page/incomplete results. `balanceBasis: current` explicitly distinguishes the
+  selection-through date from historical balances. Transfer legs are excluded from trade settlement. Optional
+  `sourceKind` returns one paged kind for choices; `pageByKind`/`pageInfo` page the four normal lists independently.
+  `selectedKeyList` returns scoped selected rows outside search/page/open-balance filters. New choices carry current
+  versions; selected values retain the caller's original reviewed version, so label refresh never silently re-reviews
+  a changed row. Page totals are labelled as page totals; a party with more than 200 open items remains paginated and
+  usable. The 200-record limit applies to selected previews, not the party's full open-item population.
+- `find#SettlementAdjustmentAccounts`: side, organization, effective date and search/selected IDs; only assigned,
+  active, postable account IDs/codes/names. No chart balances or implicit account selection. Reuse dated assignment
+  and organization-chain checks from `AccountingPolicy.account`.
+- `preview#Settlement`: fixed organization/party/side/currency, selection-through and effective dates, `allocations`
+  (`sourceKey`, `targetKey`, decimal amount), `adjustments` (invoice, discount/writeoff, amount, explicit account,
+  reason) and `sourceVersions`. Every selected source and target, including adjustment invoices, needs its reviewed
+  revision. Returns a durable owner-scoped preview ID/fingerprint, normalized rows, canonical book day, before/after
+  balances, ledger preview, capabilities, blockers and expiry. Bound to 200 allocation rows, 50 adjustments and 200
+  distinct selected records; incomplete scopes refuse instead of silently losing balances.
+- `get#SettlementPreview`: owner/organization-scoped retained payload, status and results; expired previews stay
+  readable. `apply#Settlement` takes only preview ID, fingerprint and a maximum-40-character operation key. Returns
+  application/adjustment/posting identities, per-row results and remaining amounts. Identical completed retries return
+  the recorded result before stale checks; changed key reuse refuses.
+- `preview#PaymentAutoApplication` retains the same reviewed payload with oldest-due/date/ID allocation.
+  `autoApply#Payment` requires that preview and its source payment. The individually adopted, audited
+  `paymentAutoApplicationEnabled` defaults N: disabled calls write no operations, applications or audit rows. Existing
+  invoice-targeted auto-application SECAs and the three legacy apply primitives retain their old behavior.
+
+Reads require matching side VIEW, PAYMENT_VIEW, ACCOUNTING_VIEW or finance/system administration; EDIT alone never
+opens the list. Preview/confirm/automatic application and account choices additionally require matching side EDIT.
+PAYMENT_EDIT is no substitute. Active organization and private-counterparty checks run without artifact authorization.
+Bank, gateway and ledger projections are omitted unless separately authorized.
+
+One settlement locks the organization and sorted authoritative document/application sets, validates aggregate source
+and target consumption before writing, and rechecks revisions, dates, currency, policy and account assignments. The
+strict native writer uses existing PaymentApplication/GL/status models; legacy clamp/no-op responses cannot count as
+reviewed success. Adjustment documents post to the explicitly selected account and apply atomically; no write-off
+status or cash movement is substituted. Actual posted outcomes must match the reviewed ledger set, distinguishing a
+valid already-direct AR/AP posting from a missing/error-journal posting. Capture the creator's calendar day once and
+persist it on the application before posting; later viewers and forward reversals preserve the correct respective day.
+Legacy paths gain no extra date audit writes.
+
+App acceptance includes a receipt60 plus credit25 against invoice100 in one confirmed set (remaining15), a receipt
+split across invoices, explicit account/reason adjustments, retained draft/filter/review state, stale/currency/date/org
+refusals and reader/AR isolation. Native acceptance also covers AP, edit-only Projects denial, exact retry/changed reuse,
+rollback, default-off legacy audit and real `parallel` competing transactions for same-key replay, one shared source
+and one shared target. The app's allocation draft is bounded presentation state; the native stored preview is authority.
+All added routes enter AppStructure/TuiRender/content checks and the six required width/theme variants before acceptance.
+
+P5b's later assignment retains the same file boundaries: native payment lifecycle, gateway and transfer modules; app
+Payments/detail seven tabs, GatewayTransactions and output screens; coordinator legacy/shared integration. Its contract
+must be independently reviewed again before coding. Gateway attempts reserve durable provider identities before I/O,
+keep uncertain/accepted evidence for reconciliation, and count pending refunds against cumulative caps. Transfers use
+two explicit linked legs and exactly two atomic cash/transit transactions, with an explicit fee account; the generic
+organization-to-itself poster must not produce four transactions. These are acceptance requirements, not delivered P5a
+features.

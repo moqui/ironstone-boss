@@ -168,8 +168,14 @@ identity/removal/replacement guards and equivalent-URI checks apply independentl
 shared Files widget respects immutable rows and native per-side edit authority; ordinary live support can change
 without changing issued evidence. Issued documents remain readable through their content key.
 
-P4 final full gates: BOSS 1,110 passed/0 failed/5 skipped; standalone Mantle 901 passed/4 established baseline failures/
-17 skipped, including all 57 new native features. Final changed-surface browser and seven receivables walks 34/34;
-all route/width/theme screenshots and returned corrections were visually reviewed. Screen lint remains at 121 baseline
+P4 implementation/review commits: Mantle `876732f6`, `93e8fed3`; BOSS `b933118`, `907a816`.
+
+P4 final full gates: BOSS 1,110 passed/0 failed/5 skipped; standalone Mantle 903 passed/4 established baseline failures/
+17 skipped, including all 59 new native features. Final changed-surface browser and seven receivables walks 34/34;
+review follow-up reran all seven walks (7/7) and Send/issued Files/prints (15/15). All route/width/theme screenshots and
+returned corrections were visually reviewed. Send retains its exact reviewed financial fingerprint and selected file
+versions across a legacy asynchronous status-only notice; draft/header/item/state actions retain timestamp checks.
+Paired native regressions refuse changed financial content before durable output or mail. Shared Files rows pass
+contrast checks in both themes after animations finish. Screen lint remains at 121 baseline
 flagged sites with zero parse failures. Output finishing items F76/F77 and the remaining P5–P21 phases stay explicit
 in the implementation plan.

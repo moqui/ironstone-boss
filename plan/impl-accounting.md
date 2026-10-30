@@ -1,7 +1,7 @@
 # IronStone BOSS — Accounting implementation
 
-P0–P4, P5a, P5b1, P5b2a and P5b2b1 manual refunds are built and verified. Provider refunds/P5b3 transfers and later
-phases remain planned.
+P0–P4, P5a, P5b1 and P5b2 gateway/manual/provider refunds are built and verified. P5b3 transfers and later phases
+remain planned.
 The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
@@ -1683,6 +1683,15 @@ authority loss, exact lookup, accepted-unposted recovery and caller rollback wit
 App proofs cover actual refund child/output ownership, retained selected revisions/intent/results, safe missing/denied
 states, current roles, and light/dark 390/1280/1440 walks and visual review. No P6 work is included.
 
+**Provider release refinement.** P5b2b1 manual refunds are one atomic transaction and introduce no pending manual cash
+reservation writer. Provider holds are available only for real completed capture cash. B2b2 therefore proves real
+capture cash holds, claimed clean drafts, raw/native application capacity and release/consumption, and both original
+and candidate GL source identities. A captured-source GL mutation may refuse first under permanent capture
+immutability; that is recorded honestly rather than treated as an isolated manual-hold proof. Manual pending
+reservations remain unavailable; any future writer must add its own first-hold/adoption contention proof. No fake
+reservation/claim or noncapture provider eligibility is introduced to exercise the older wording. Native and reviewer
+confirmed the app's exact refund input/DTO extension before dependent forms were released.
+
 ### P5b2b1 manual refund acceptance
 
 Implementation commits: Mantle `cb9cc35d`; BOSS `bb8a421`.
@@ -1707,6 +1716,40 @@ A genuinely clean cancelled draft does not block new work. No old SQL day is bac
 method/subtype objects. Already posted native manual cash keeps its provenance when its bank later receives gateway
 route metadata; only complete live actual cash qualifies for that narrow common-boundary exception. These fixes are
 included in focused shared lifecycle/gateway regressions. Provider refunds and transfers follow; P6 has not started.
+
+### P5b2b2 provider refund acceptance
+
+The coordinator accepts the independently reviewed native, app and shared assignments. Refunds bind an actual
+completed capture and its immutable provider operation/reference/merchant/currency. Original charging credential
+rotation/expiry does not reroute or prevent reference refunds and exact lookup. Current safe-adapter guarantees are
+checked again immediately before I/O. Durable provider-capacity and unapplied-cash holds, optional clean-draft claims
+and exact lookup/recovery retain uncertain/accepted-unposted evidence. The shared strict money core posts actual
+opposite cash and exact funding/reclassification with immutable records/events/child-owned outputs atomically.
+
+All 13 new native cases pass. The final focused gate covers 44 distinct native cases; its sole fixture failure used a
+caller-chosen PK ignored by the legacy create service, and the corrected actual-returned-ID proof passes separately.
+All other 43 passed together. These include both cash directions, partial/multiple and different-amount legacy draft
+conversion, current/historical claim projections, real raw/native application capacity, flags-N common boundaries,
+credential rotation/expiry with deleted live evidence, timeout/exact lookup, post-accept mapping changes, joined
+financial rollback after actual backing/APP/two postings/two outputs, restored holds/clean draft, exact retry and real
+same-key/capacity races. BOSS passes 34/34 across four specs, including all eight new provider cases and unchanged
+manual/gateway cases. Actual Treasury/admin child/output ownership, AR refusal and retained selected revisions pass
+in server-rendered QVT/TUI/HTML. Changed XML validates and diff checks pass. No new browser/screenshot/full-suite
+cycle was run under the user's code-completion priority.
+
+**F110 — permanent legacy fence preparation.** The native manual refund and provider reserve controllers now receive
+exact preparation-only admission for first clean legacy source/draft adoption. Provider entry recording remains
+forbidden to those native controllers. Both actual first-adoption positives pass without rewriting old source days.
+
+**F111 — retained financial policy.** Accepted refund completion compares freshly rebuilt posting plans/policy with
+the immutable original review. A valid changed refund-control mapping leaves accepted-unposted money requiring a
+new financial-only review; that reviewed recovery and a rollback after actual local posting pass with one provider
+effect. Recovery consumes its own exact held capacity once; planned provider-refunded amounts also remain truthful.
+
+**F112 — draft claim states.** Claims create only as held under exact reserved native attempts, release only on
+definitive decline, consume only inside accepted local completion and never recycle after consumption. Reopened old
+declined attempts show their own historical release after the same draft is reused; they cannot borrow another
+attempt's held/consumed state. Neither provider ancestors nor browser return values gain financial admission.
 
 ### P5b3 transfer assignment contract (planned; starts after refunds)
 

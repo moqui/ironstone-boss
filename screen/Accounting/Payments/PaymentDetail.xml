@@ -21,6 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="findJson"/>
     <parameter name="gatewayFindJson"/>
     <parameter name="refundEditPreviewId"/>
+    <parameter name="gatewayRefundEditPreviewId"/>
     <transition name="choices" read-only="true">
         <actions>
             <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
@@ -143,6 +144,7 @@ along with this software (see the LICENSE.md file). If not, see
             <script>gatewayInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').gatewayActionInput(context)</script>
             <service-call name="mantle.account.PaymentServices.preview#PaymentGatewayAction" in-map="gatewayInput" out-map="gatewayPreview"/>
             <set field="previewId" from="gatewayPreview.previewId"/>
+            <set field="gatewayRefundEditPreviewId" value=""/>
         </actions>
         <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
             <parameter name="organizationPartyId"/>
@@ -159,6 +161,10 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="previewKind" value="gatewayAction"/>
             <script>if (reviewed !== 'Y') throw new Error('Review the provider instruction, amount, evidence and posting effects before confirming')</script>
             <service-call name="mantle.account.PaymentServices.execute#PaymentGatewayAction" in-map="{previewId:previewId,inputFingerprint:inputFingerprint,operationKey:operationKey}" out-map="gatewayActionResult"/>
+            <script><![CDATA[
+                // A completed refund changes original funding; consume only an earlier failed-submit state after actual success.
+                if (!ec.message.hasError() && gatewayActionResult.action === 'refund' && gatewayActionResult.financialState === 'completed' && gatewayActionResult.cashPaymentId) void ec.web.errorParameters
+            ]]></script>
         </actions>
         <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
             <parameter name="organizationPartyId"/>
@@ -189,7 +195,7 @@ along with this software (see the LICENSE.md file). If not, see
     <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
         <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson,refundEditPreviewId:refundEditPreviewId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson,refundEditPreviewId:refundEditPreviewId,gatewayRefundEditPreviewId:gatewayRefundEditPreviewId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
         <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
         <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
         <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
@@ -1069,6 +1075,114 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
                                 <label text="Supporting file choices are limited. Review the Files tab if the expected file is missing." type="p" style="text-warning" condition="financePayment.evidenceIncomplete"/>
                             </container-dialog>
+                            <container-dialog id="ProviderRefundDialog" condition="financePayment.capabilities.canGatewayRefund &amp;&amp; financePayment.refundSummaryAvailable" button-text="Refund captured payment" title="Refund captured payment ${paymentId}" type="danger" width="760">
+                                <label text="Refund returns funds through the original captured transaction." type="p"/>
+                                <form-single name="ReviewProviderRefund" transition="previewGatewayAction" map="financePayment.gatewayRefundValue || {}">
+                                    <field name="organizationPartyId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceVersion">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="action">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="findJson" from="findJson">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="gatewayFindJson" from="gatewayFindJson">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount">
+                                        <default-field title="Refund amount">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="effectiveDate">
+                                        <default-field title="Accounting date">
+                                            <date-time type="date"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="currencyUomId">
+                                        <default-field title="Currency">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="refundDraftToken">
+                                        <default-field title="Existing refund draft (optional)">
+                                            <drop-down allow-empty="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedRefundDrafts',organizationPartyId:organizationPartyId,paymentId:paymentId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewProviderRefund' ? ec.web.errorParameters.refundDraftToken : financePayment.gatewayRefundValue?.refundDraftToken) || null}">
+                                                    <depends-on field="effectiveDate"/>
+                                                </dynamic-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="referenceNumber">
+                                        <default-field title="Reference">
+                                            <text-line/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reason">
+                                        <default-field title="Reason">
+                                            <text-area rows="3"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="evidenceTokenList">
+                                        <default-field title="Supporting evidence (optional)">
+                                            <drop-down allow-empty="true" allow-multiple="true">
+                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedPaymentEvidence',organizationPartyId:organizationPartyId,paymentId:paymentId,selected:(ec.web.errorParameters.moquiFormName === 'ReviewProviderRefund' ? ec.web.errorParameters.evidenceTokenList : financePayment.gatewayRefundValue?.evidenceTokenList) || null}"/>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Review provider refund"/>
+                                        </default-field>
+                                    </field>
+                                    <field-layout>
+                                        <field-ref name="organizationPartyId"/>
+                                        <field-ref name="paymentId"/>
+                                        <field-ref name="sourceVersion"/>
+                                        <field-ref name="action"/>
+                                        <field-ref name="findJson"/>
+                                        <field-ref name="gatewayFindJson"/>
+                                        <field-row>
+                                            <field-ref name="amount"/>
+                                            <field-ref name="effectiveDate"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="currencyUomId"/>
+                                            <field-ref name="referenceNumber"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="refundDraftToken"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="reason"/>
+                                            <field-ref name="evidenceTokenList"/>
+                                        </field-row>
+                                        <field-row>
+                                            <field-ref name="submit"/>
+                                        </field-row>
+                                    </field-layout>
+                                </form-single>
+                                <label text="Supporting evidence is optional. Select up to 10 files, 10 MiB each and 20 MiB total." type="p" style="text-caption m-muted"/>
+                            </container-dialog>
                             <container-dialog id="ManualRefundDialog" condition="financePayment.capabilities.canPreviewRefund &amp;&amp; financePayment.refundSummaryAvailable" button-text="Refund payment" title="Refund payment ${paymentId}" type="danger" width="760">
                                 <label text="Original cash remains unchanged. Review the separate refund and its funding application before confirming." type="p"/>
                                 <form-single name="ReviewManualRefund" transition="previewPaymentRefund" map="financePayment.refundValue || {}">
@@ -1226,7 +1340,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <container id="AccountingPaymentReviewSummary">
                     <label text="${paymentReview.paymentSummary?.partyName || ''} · ${paymentReview.paymentSummary?.cashDirection || ''}" type="p"/>
                     <label text="${paymentReview.isGateway ? 'Reviewed action amount' : 'Reviewed amount'} ${paymentReview.paymentSummary?.amount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.paymentSummary.amount),paymentReview.paymentSummary.currencyUomId) : 'Unavailable'} · ${paymentReview.paymentSummary?.currencyUomId || ''}" type="p"/>
-                    <label text="Authorized amount ${paymentReview.gatewaySummary?.instruction?.authorizedAmount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.gatewaySummary.instruction.authorizedAmount),paymentReview.gatewaySummary.instruction.currencyUomId || paymentReview.paymentSummary.currencyUomId) : ''} · ${paymentReview.gatewaySummary?.instruction?.currencyUomId || ''}" type="p" style="text-caption m-muted" condition="paymentReview.isGateway &amp;&amp; paymentReview.gatewaySummary?.instruction?.authorizedAmount != null"/>
+                    <label text="Authorized amount ${paymentReview.gatewaySummary?.instruction?.authorizedAmount != null ? ec.l10n.formatCurrency(toDecimal(paymentReview.gatewaySummary.instruction.authorizedAmount),paymentReview.gatewaySummary.instruction.currencyUomId || paymentReview.paymentSummary.currencyUomId) : ''} · ${paymentReview.gatewaySummary?.instruction?.currencyUomId || ''}" type="p" style="text-caption m-muted" condition="paymentReview.isGateway &amp;&amp; !paymentReview.isProviderRefund &amp;&amp; paymentReview.gatewaySummary?.instruction?.authorizedAmount != null"/>
                     <label text="Payment date ${paymentReview.paymentSummary?.accountingDateText || ''} · ${paymentReview.paymentSummary?.maskedMethodLabel || ''}" type="p"/>
                     <label text="${paymentReview.postingSummary?.effect || ''}" type="p"/>
                 </container>
@@ -1237,7 +1351,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Review ${paymentReview.previewId} · Expires ${paymentReview.expiresDateText || ''}" type="p" style="text-caption m-muted"/>
                 <label text="${paymentReview.action || ''} · Payment ${paymentId}" type="p"/>
                 <label text="Payment date ${paymentReview.effectiveDateText || ''} · Settlement date ${paymentReview.settlementDateText || ''}" type="p" style="text-caption m-muted"/>
-                <section name="ManualRefundReviewedFundingSection" condition="paymentReview.isRefund &amp;&amp; !!paymentReview.fundingRows?.length">
+                <section name="ManualRefundReviewedFundingSection" condition="(paymentReview.isRefund || paymentReview.isProviderRefund) &amp;&amp; !!paymentReview.fundingRows?.length">
                     <widgets>
                         <label text="Reviewed refund funding" type="h6"/>
                         <form-list name="ManualRefundReviewedFunding" list="paymentReview.fundingRows || []" skip-form="true" paginate="false">
@@ -1270,7 +1384,15 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <label text="Organization method ${paymentReview.reviewedMethods?.organization?.label || ''}" type="p" condition="paymentReview.isRefund &amp;&amp; !!paymentReview.reviewedMethods?.organization?.label"/>
                 <label text="Counterparty method ${paymentReview.reviewedMethods?.counterparty?.label || ''}" type="p" condition="paymentReview.isRefund &amp;&amp; !!paymentReview.reviewedMethods?.counterparty?.label"/>
-                <label text="Existing refund draft ${paymentReview.refundPaymentId}" type="p" condition="paymentReview.isRefund &amp;&amp; !!paymentReview.refundPaymentId"/>
+                <label text="Existing refund draft ${paymentReview.refundPaymentId}" type="p" condition="(paymentReview.isRefund || paymentReview.isProviderRefund) &amp;&amp; !!paymentReview.refundPaymentId"/>
+                <section name="ProviderRefundOriginalCaptureSection" condition="paymentReview.isProviderRefund &amp;&amp; !!paymentReview.gatewaySummary?.originalCapture">
+                    <widgets>
+                        <label text="Original capture ${paymentReview.gatewaySummary.originalCapture.paymentId}" type="p"/>
+                        <label text="Original provider operation ${paymentReview.gatewaySummary.originalCapture.providerOperationId || ''}" type="p" style="m-status-text"/>
+                        <label text="Original provider reference ${paymentReview.gatewaySummary.originalCapture.providerReference || ''}" type="p" style="m-status-text"/>
+                    </widgets>
+                </section>
+                <label text="Reviewed refund draft reservation ${paymentReview.draftClaim?.refundPaymentId || ''} · ${paymentReview.draftClaim?.status || ''}" type="p" condition="paymentReview.isProviderRefund &amp;&amp; !!paymentReview.draftClaim"/>
                 <section name="GatewayReviewedCapacitySection" condition="paymentReview.isGateway &amp;&amp; !!paymentReview.capacityEffectRows?.length">
                     <widgets>
                         <label text="Reviewed authorization capacity" type="h6"/>
@@ -1314,7 +1436,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                             <field name="holdKind">
                                 <default-field title="Reserved for">
-                                    <display/>
+                                    <display text="${holdLabel || holdKind}"/>
                                 </default-field>
                             </field>
                             <field name="amount" align="right">
@@ -1737,6 +1859,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="submit">
+                                <conditional-field condition="paymentReview.action === 'refund'" title="">
+                                    <submit text="Confirm gateway action" type="danger" confirmation="Confirm the reviewed refund against captured payment ${paymentId}?"/>
+                                </conditional-field>
                                 <conditional-field condition="paymentReview.action === 'release'" title="">
                                     <submit text="Confirm gateway action" type="danger" confirmation="Release the reviewed remaining authorization for payment ${paymentId}?"/>
                                 </conditional-field>
@@ -1886,7 +2011,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <section name="GatewayActualCashPaymentsSection" condition="paymentReview.isGateway &amp;&amp; !!paymentReview.actualPaymentRows?.length">
                     <widgets>
-                        <label text="Actual cash payments" type="h6"/>
+                        <label text="${paymentReview.isProviderRefund ? 'Actual refund payment' : 'Actual cash payments'}" type="h6"/>
                         <form-list name="GatewayActualCashPayments" list="paymentReview.actualPaymentRows || []" skip-form="true" paginate="false">
                             <field name="paymentId">
                                 <default-field title="Cash payment">
@@ -1967,6 +2092,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets>
                 </section>
                 <link url="${sharedLinks['Payments/GatewayTransactions']}" text="Inspect provider attempt" parameter-map="paymentReview.gatewayAttemptParameters" condition="paymentReview.isGateway &amp;&amp; paymentReview.hasResults"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}/Refunds" text="Edit provider refund preparation" parameter-map="paymentReview.editParameters" condition="paymentReview.isProviderRefund &amp;&amp; paymentReview.previewKind === 'gatewayAction' &amp;&amp; !paymentReview.hasResults"/>
                 <link url="confirmGatewayAction" text="Check saved gateway result" link-type="hidden-form" parameter-map="Object.assign({},paymentReview.confirmParameters,{reviewed:'Y'})" condition="paymentReview.hasResults &amp;&amp; paymentReview.previewKind === 'gatewayAction'"/>
                 <link url="confirmGatewayRecovery" text="Check saved posting result" link-type="hidden-form" parameter-map="Object.assign({},paymentReview.confirmParameters,{reviewed:'Y'})" condition="paymentReview.hasResults &amp;&amp; paymentReview.previewKind === 'gatewayRecovery'"/>
                 <link url="${sharedLinks['Payments/PaymentDetail']}/Refunds" text="Edit refund preparation" parameter-map="paymentReview.editParameters" condition="paymentReview.isRefund &amp;&amp; !paymentReview.hasResults"/>

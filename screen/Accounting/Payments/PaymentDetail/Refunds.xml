@@ -21,6 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="findJson"/>
     <parameter name="gatewayFindJson"/>
     <parameter name="refundEditPreviewId"/>
+    <parameter name="gatewayRefundEditPreviewId"/>
     <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="savePaymentDraft" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <transition-include name="previewPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
@@ -34,7 +35,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="confirmGatewayRecovery" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <actions>
         <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson,refundEditPreviewId:refundEditPreviewId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson,refundEditPreviewId:refundEditPreviewId,gatewayRefundEditPreviewId:gatewayRefundEditPreviewId}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
         <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
         <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
         <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>

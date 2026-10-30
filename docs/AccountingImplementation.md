@@ -322,3 +322,18 @@ The user's latest priority is code completion through P5, then a checkpoint befo
 walks are omitted. Focused BOSS server verification passes 24/24 across refund and unchanged payment cases, including
 actual confirmed money, exact retry, authorized source links, Treasury/admin projections and enabled child-owned
 output links in QVT/TUI/HTML. The corresponding first native gate passes 45/45. The final native 25-case gate also passes; all 21 new native cases and 53 distinct focused native cases pass across the gates. Acceptance commits are recorded in `plan/impl-accounting.md`.
+
+## P5b2b2 provider refunds
+
+The existing Payment/Gateway contexts now review native per-capture refund capacity, original provider identity, both
+cash/provider reservations and optional draft claims. Forms accept explicit amount/day/reason/reference and reviewed
+draft/evidence only. Retained editing preserves original revisions; current routing or replacement credential inputs
+cannot change the original capture. Pending/uncertain/accepted-unposted states expose lookup or reviewed recovery;
+completed results link only the actual refund child and that child's immutable issued documents.
+
+Eight new server cases pass within the 34/34 focused app gate, including actual Treasury/admin capture20→refund5+15,
+same-key retry after funding is fully consumed, same-payload AR refusal, actual funding/application/output identities,
+optional draft reuse and owner-bound preparation. QVT/TUI/HTML enabled output links use the actual child. Native's 13
+new money/hold/recovery/rollback/concurrency cases also pass. Independent review is complete; changed XML validates.
+No additional screenshot/browser/full-suite cycles were run. Transfers are next, followed by the P5 checkpoint and a
+pause before P6.

@@ -667,6 +667,14 @@ function gatewaySetup(currency) {
                     exactLookup: true,
                     releaseRemaining: true,
                     reviewedMethodSnapshot: true
+                },
+                refund: {
+                    enabled: true,
+                    originalCaptureOnly: true,
+                    partialRefund: true,
+                    idempotent: true,
+                    exactLookup: true,
+                    reviewedMethodSnapshot: true
                 }
             })
         }

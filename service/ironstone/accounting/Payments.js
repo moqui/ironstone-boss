@@ -112,10 +112,22 @@ function gatewayConfirmationKey(retained) {
 
 function gatewayOutputRows(retained, organizationPartyId) {
     if (retained.results?.financialState !== "completed") return []
+    const result = retained.results,
+        refund = retained.action === "refund" || result.action === "refund",
+        validRefund =
+            !refund ||
+            (result.cashPaymentId &&
+                result.refundPaymentId === result.cashPaymentId &&
+                result.originalPaymentId === result.paymentId)
     return rows(retained.results.outputRows).map(row =>
         Object.assign(row, {
-            // Issued cash documents belong to the actual capture child, never the authorization parent.
-            canOpen: row.canOpen === true && !!row.paymentId && !!row.outputId,
+            // Issued documents belong to the actual cash child, including a completed provider refund.
+            canOpen:
+                row.canOpen === true &&
+                !!row.paymentId &&
+                !!row.outputId &&
+                validRefund &&
+                (!refund || row.paymentId === result.cashPaymentId),
             outputParameters: {
                 organizationPartyId,
                 paymentId: row.paymentId || "",
@@ -133,10 +145,18 @@ function gatewayReviewPresentation(retained, organizationPartyId, currencyUomId 
     const operationKey = gatewayConfirmationKey(retained),
         review = reviewPresentation(retained, currencyUomId),
         result = retained.results || {},
-        completed = result.financialState === "completed",
+        providerRefund = retained.action === "refund" || result.action === "refund",
+        completed =
+            result.financialState === "completed" &&
+            (!providerRefund ||
+                (result.paymentId === retained.paymentId &&
+                    result.originalPaymentId === retained.paymentId &&
+                    !!result.cashPaymentId &&
+                    result.refundPaymentId === result.cashPaymentId)),
         stateText = gatewayStateDescriptions
     return Object.assign(review, {
         isGateway: true,
+        isProviderRefund: providerRefund,
         previewKind: retained.previewKind,
         financialOnly: retained.financialOnly === true,
         gatewaySummary: policy.display(retained.gatewaySummary || {}),
@@ -150,7 +170,14 @@ function gatewayReviewPresentation(retained, organizationPartyId, currencyUomId 
                     retained.after?.currencyUomId || retained.before?.currencyUomId || review.paymentSummary.currencyUomId
             })),
         plannedCapacityAssumption: retained.after?.assumption || null,
-        reservationRows: rows(retained.reservationEffects),
+        reservationRows: rows(retained.reservationEffects).map(row =>
+            Object.assign(row, {
+                sourceId: row.sourceId || row.paymentId,
+                holdLabel: {refund: "Provider refundable amount", cash: "Original cash funding"}[row.holdKind] || row.holdKind
+            })
+        ),
+        draftClaim: retained.draftClaim || null,
+        fundingRows: providerRefund ? refundFundingRows(retained, currencyUomId) : [],
         operationKey,
         confirmParameters: {previewId: retained.previewId, inputFingerprint: retained.inputFingerprint, operationKey},
         canConfirm: retained.canApply === true && !review.summaryUnavailable && !array(retained.blockers).length,
@@ -173,7 +200,7 @@ function gatewayReviewPresentation(retained, organizationPartyId, currencyUomId 
                 ? [
                       {
                           paymentId: result.cashPaymentId,
-                          label: "Captured payment",
+                          label: providerRefund ? "Refund payment" : "Captured payment",
                           recordParameters: {
                               organizationPartyId,
                               paymentId: result.cashPaymentId,
@@ -186,7 +213,7 @@ function gatewayReviewPresentation(retained, organizationPartyId, currencyUomId 
                 : [],
         applicationResultRows: completed ? review.applicationResultRows : [],
         postingResultRows: completed ? review.postingResultRows : [],
-        outputResultRows: gatewayOutputRows(retained, organizationPartyId)
+        outputResultRows: completed ? gatewayOutputRows(retained, organizationPartyId) : []
     })
 }
 
@@ -205,6 +232,8 @@ function gatewayAttemptPresentation(value, organizationPartyId) {
             "providerOperationId",
             "paymentId",
             "cashPaymentId",
+            "refundPaymentId",
+            "originalPaymentId",
             "action",
             "outcome",
             "providerState",
@@ -220,13 +249,19 @@ function gatewayAttemptPresentation(value, organizationPartyId) {
     result.capabilities = value.capabilities || {}
     result.paymentSummary = policy.display(value.paymentSummary || {})
     result.gatewaySummary = policy.display(value.gatewaySummary || {})
+    result.isProviderRefund = value.action === "refund"
+    result.draftClaim = value.draftClaim || null
     result.providerStateText = gatewayStateDescriptions[value.providerState] || value.providerState || ""
     result.financialStateText =
         value.financialState === "completed" && ["authorize", "release"].includes(value.action)
             ? "No cash posting required"
             : gatewayStateDescriptions[value.financialState] || value.financialState || ""
-    result.financialCompleted = value.financialState === "completed"
+    result.financialCompleted =
+        value.financialState === "completed" &&
+        (!result.isProviderRefund ||
+            (value.cashPaymentId && value.refundPaymentId === value.cashPaymentId && value.originalPaymentId === value.paymentId))
     if (!result.financialCompleted) delete result.cashPaymentId
+    if (!result.financialCompleted) delete result.refundPaymentId
     result.paymentParameters = {
         organizationPartyId,
         paymentId: value.paymentId,
@@ -238,7 +273,7 @@ function gatewayAttemptPresentation(value, organizationPartyId) {
         result.financialCompleted && value.cashPaymentId
             ? {organizationPartyId, paymentId: value.cashPaymentId, recordId: value.cashPaymentId, previewId: "", previewKind: ""}
             : null
-    result.outputRows = gatewayOutputRows({results: value}, organizationPartyId)
+    result.outputRows = result.financialCompleted ? gatewayOutputRows({results: value}, organizationPartyId) : []
     result.postingRows = result.financialCompleted
         ? array(value.acctgTransIds).map(acctgTransId => ({acctgTransId, canOpen: value.capabilities?.canReadLedger === true}))
         : []
@@ -281,7 +316,10 @@ function gatewayTransactionRows(value, organizationPartyId, filters = {}, provid
             },
             attemptParameters: row.attemptId ? Object.assign({}, filters, {organizationPartyId, attemptId: row.attemptId}) : null,
             cashPaymentParameters:
-                row.financialState === "completed" && row.cashPaymentId
+                row.financialState === "completed" &&
+                row.cashPaymentId &&
+                (row.action !== "refund" ||
+                    (row.originalPaymentId === row.paymentId && row.refundPaymentId === row.cashPaymentId))
                     ? {
                           organizationPartyId,
                           paymentId: row.cashPaymentId,
@@ -435,7 +473,8 @@ function unapplyInput(parameters) {
 }
 
 function gatewayActionInput(parameters) {
-    if (!["authorize", "capture", "release"].includes(parameters.action)) throw new Error("Choose an available gateway action")
+    if (!["authorize", "capture", "release", "refund"].includes(parameters.action))
+        throw new Error("Choose an available gateway action")
     const input = Object.fromEntries(
             [
                 "organizationPartyId",
@@ -450,12 +489,62 @@ function gatewayActionInput(parameters) {
             ].map(field => [field, parameters[field]])
         ),
         evidence = reviewedSelection(parameters.evidenceTokenList)
-    if (parameters.gatewayBindingToken) {
+    if (parameters.action === "refund") {
+        delete input.parentAttemptId
+        if (parameters.refundDraftToken) {
+            const draft = reviewedToken(parameters.refundDraftToken, "refund draft")
+            input.refundPaymentId = draft.id
+            input.refundSourceVersion = draft.version
+        }
+    } else if (parameters.gatewayBindingToken) {
         const binding = reviewedToken(parameters.gatewayBindingToken, "gateway")
         input.paymentGatewayConfigId = binding.id
         input.gatewayBindingVersion = binding.version
     }
     return Object.assign(input, {evidenceContentIdList: evidence.ids, evidenceVersions: evidence.versions})
+}
+
+function refundFundingRows(retained, currencyUomId = null) {
+    return [
+        "originalCashAmount",
+        "completedRefundAmount",
+        "heldRefundAmount",
+        "providerRefundedAmount",
+        "providerRefundableAmount",
+        "unappliedTotal",
+        "reservedAmount",
+        "availableAmount",
+        "refundableAmount"
+    ]
+        .filter(field => retained.before?.[field] != null || retained.after?.[field] != null)
+        .map(field => ({
+            label: {
+                originalCashAmount: "Original cash",
+                completedRefundAmount: "Refunded",
+                heldRefundAmount: "Refunds reserved",
+                providerRefundedAmount: "Provider refunded",
+                providerRefundableAmount: "Provider refundable",
+                unappliedTotal: "Unapplied cash",
+                reservedAmount: "Cash reserved",
+                availableAmount: "Available cash",
+                refundableAmount: "Available to refund"
+            }[field],
+            beforeAmount: retained.before?.[field] ?? null,
+            afterAmount: retained.after?.[field] ?? null,
+            currencyUomId: retained.refundSummary?.currencyUomId || currencyUomId
+        }))
+}
+
+function gatewayRefundPreparedValue(retained) {
+    return policy.pick(refundPreparedValue(retained), [
+        "sourceVersion",
+        "amount",
+        "effectiveDate",
+        "reason",
+        "referenceNumber",
+        "refundDraftToken",
+        "evidenceTokenList"
+    ])
 }
 
 function refundInput(parameters) {
@@ -824,6 +913,19 @@ function detailContext(parameters) {
         : null
     if (refundEdit && (refundEdit.paymentId !== paymentId || refundEdit.previewKind !== "refund"))
         throw new Error("PAYMENT_REVIEW_MISMATCH: This preparation belongs to another refund")
+    const gatewayRefundEdit = parameters.gatewayRefundEditPreviewId
+        ? policy.call(native + "get#PaymentGatewayActionPreview", {
+              organizationPartyId: scope.organizationPartyId,
+              previewId: parameters.gatewayRefundEditPreviewId
+          })
+        : null
+    if (
+        gatewayRefundEdit &&
+        (gatewayRefundEdit.paymentId !== paymentId ||
+            gatewayRefundEdit.previewKind !== "gatewayAction" ||
+            gatewayRefundEdit.action !== "refund")
+    )
+        throw new Error("PAYMENT_REVIEW_MISMATCH: This preparation belongs to another provider refund")
     const review = isGateway
         ? gatewayReviewPresentation(retained, scope.organizationPartyId, payment.currencyUomId)
         : previewKind === "refund"
@@ -848,6 +950,17 @@ function detailContext(parameters) {
                 operationKey: "",
                 refundEditPreviewId: review.previewId,
                 _openDialog: "ManualRefundDialog"
+            }
+        if (isGateway && review.isProviderRefund && previewKind === "gatewayAction")
+            review.editParameters = {
+                organizationPartyId: scope.organizationPartyId,
+                paymentId,
+                recordId: paymentId,
+                previewId: "",
+                previewKind: "",
+                operationKey: "",
+                gatewayRefundEditPreviewId: review.previewId,
+                _openDialog: "ProviderRefundDialog"
             }
         review.gatewayReturnParameters = Object.assign({}, gatewayFindParameters(parameters.gatewayFindJson), {
             organizationPartyId: scope.organizationPartyId
@@ -951,7 +1064,8 @@ function detailContext(parameters) {
         previewKind: "",
         findJson: parameters.findJson || "",
         operationKey: "",
-        refundEditPreviewId: ""
+        refundEditPreviewId: "",
+        gatewayRefundEditPreviewId: ""
     }
     return {
         organizationPartyId: scope.organizationPartyId,
@@ -963,6 +1077,7 @@ function detailContext(parameters) {
         findJson: parameters.findJson || "",
         gatewayFindJson: parameters.gatewayFindJson || "",
         refundEditPreviewId: parameters.refundEditPreviewId || "",
+        gatewayRefundEditPreviewId: parameters.gatewayRefundEditPreviewId || "",
         financePayment: Object.assign({}, payment, {
             title: payment.description || payment.partyName || payment.paymentId,
             sourceVersion: result.sourceVersion,
@@ -980,6 +1095,22 @@ function detailContext(parameters) {
             refundRows: array(result.refundRows).map(paymentRow),
             refundSummary: policy.display(result.refundSummary || {}),
             refundSummaryAvailable: result.refundSummary?.complete === true,
+            gatewayRefundValue: Object.assign(
+                {
+                    organizationPartyId: scope.organizationPartyId,
+                    paymentId,
+                    sourceVersion: result.sourceVersion,
+                    action: "refund",
+                    amount: "",
+                    effectiveDate: today(),
+                    currencyUomId: payment.currencyUomId,
+                    reason: "",
+                    referenceNumber: "",
+                    refundDraftToken: null,
+                    evidenceTokenList: []
+                },
+                gatewayRefundEdit ? gatewayRefundPreparedValue(gatewayRefundEdit) : {}
+            ),
             refundValue: Object.assign(
                 {
                     organizationPartyId: scope.organizationPartyId,
@@ -1015,6 +1146,8 @@ function detailContext(parameters) {
                           ["originalCashAmount", "Original cash"],
                           ["completedRefundAmount", "Refunded"],
                           ["heldRefundAmount", "Refunds reserved"],
+                          ["providerRefundedAmount", "Provider refunded"],
+                          ["providerRefundableAmount", "Provider refundable"],
                           ["unappliedTotal", "Unapplied cash"],
                           ["reservedAmount", "Cash reserved"],
                           ["availableAmount", "Available cash"],
@@ -1071,7 +1204,8 @@ function detailContext(parameters) {
                     "canPrintReceipt",
                     "canPrintDetail",
                     "canPrintCheck",
-                    "canPreviewRefund"
+                    "canPreviewRefund",
+                    "canGatewayRefund"
                 ].some(name => cap[name] === true),
             canReadLedger: cap.canReadLedger === true,
             canSettle:
@@ -1134,6 +1268,8 @@ function detailContext(parameters) {
     refundInput,
     refundReviewPresentation,
     refundPreparedValue,
+    gatewayRefundPreparedValue,
+    refundFundingRows,
     reviewPresentation,
     execute: (operation, parameters) => {
         if (operation === "list") return listContext(parameters)

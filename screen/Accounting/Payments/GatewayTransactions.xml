@@ -376,9 +376,16 @@ along with this software (see the LICENSE.md file). If not, see
                         </field-row>
                     </field-layout>
                 </form-single>
+                <section name="ProviderRefundAttemptCaptureSection" condition="selectedGatewayAttempt.isProviderRefund &amp;&amp; !!selectedGatewayAttempt.gatewaySummary?.originalCapture">
+                    <widgets>
+                        <label text="Original capture provider operation ${selectedGatewayAttempt.gatewaySummary.originalCapture.providerOperationId || ''}" type="p" style="m-status-text"/>
+                        <label text="Original capture reference ${selectedGatewayAttempt.gatewaySummary.originalCapture.providerReference || ''}" type="p" style="m-status-text"/>
+                    </widgets>
+                </section>
                 <label text="${selectedGatewayAttempt.errorMessage || ''}" type="p" style="text-warning" condition="!!selectedGatewayAttempt.errorMessage"/>
-                <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway" text="Authorization instruction ${selectedGatewayAttempt.paymentId}" parameter-map="selectedGatewayAttempt.paymentParameters"/>
-                <link url="${sharedLinks['Payments/PaymentDetail']}" text="Actual cash payment ${selectedGatewayAttempt.cashPaymentId}" parameter-map="selectedGatewayAttempt.cashPaymentParameters" condition="!!selectedGatewayAttempt.cashPaymentParameters"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}/${selectedGatewayAttempt.isProviderRefund ? 'Refunds' : 'Gateway'}" text="${selectedGatewayAttempt.isProviderRefund ? 'Original captured payment' : 'Authorization instruction'} ${selectedGatewayAttempt.paymentId}" parameter-map="selectedGatewayAttempt.paymentParameters"/>
+                <link url="${sharedLinks['Payments/PaymentDetail']}" text="${selectedGatewayAttempt.isProviderRefund ? 'Refund payment' : 'Actual cash payment'} ${selectedGatewayAttempt.cashPaymentId}" parameter-map="selectedGatewayAttempt.cashPaymentParameters" condition="!!selectedGatewayAttempt.cashPaymentParameters"/>
+<label text="Reviewed refund draft reservation ${selectedGatewayAttempt.draftClaim?.refundPaymentId || ''} · ${selectedGatewayAttempt.draftClaim?.status || ''}" type="p" condition="selectedGatewayAttempt.isProviderRefund &amp;&amp; !!selectedGatewayAttempt.draftClaim"/>
                 <link url="refreshGatewayAttempt" text="Check provider status" link-type="hidden-form" btn-type="primary" parameter-map="selectedGatewayAttempt.lookupParameters" condition="selectedGatewayAttempt.capabilities.canGatewayRefresh"/>
                 <label text="Status checks look up this recorded provider operation." type="p" style="text-caption m-muted" condition="selectedGatewayAttempt.capabilities.canGatewayRefresh"/>
                 <container-dialog id="GatewayRecoveryDialog" button-text="Review cash posting" title="Review cash posting for ${selectedGatewayAttempt.attemptId}" type="primary" width="760" condition="selectedGatewayAttempt.capabilities.canGatewayRecover">

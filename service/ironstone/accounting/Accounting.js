@@ -266,23 +266,6 @@ function adminOnly(entity, orderField) {
     }
 }
 
-function receivableCredits(parameters) {
-    const invoice = policy.record({
-        kind: "invoices",
-        recordId: parameters.invoiceId,
-        organizationPartyId: parameters.organizationPartyId
-    })
-    return policy
-        .find("mantle.account.invoice.Invoice", {
-            invoiceTypeEnumId: "InvoiceCreditMemo",
-            fromPartyId: invoice.toPartyId,
-            toPartyId: invoice.fromPartyId,
-            currencyUomId: invoice.currencyUomId
-        })
-        .condition("statusId", "in", ["InvoiceFinalized", "InvoiceSent", "InvoiceAcked"])
-        .orderBy("invoiceDate,invoiceId")
-}
-
 const enumTypes = [
     "GlAccountClass",
     "GlAccountType",
@@ -364,12 +347,6 @@ const choiceSources = {
         value: row => row.settlementTermId,
         label: row => row.description || row.settlementTermId
     },
-    receivableCredits: {
-        find: receivableCredits,
-        fields: ["invoiceId", "description", "referenceNumber"],
-        value: row => row.invoiceId,
-        label: row => row.invoiceId + (row.description ? " — " + row.description : "")
-    },
     taxAuthorities: entitySource("mantle.other.tax.TaxAuthority", "taxAuthorityId", "description"),
     timeUnits: uomSource("UT_TIME_FREQ_MEASURE"),
     currencies: uomSource("UT_CURRENCY_MEASURE"),
@@ -403,19 +380,16 @@ for (const enumTypeId of enumTypes) {
     }
 }
 choiceSources.invoiceTypes = choiceSources["enum:InvoiceType"]
+// The statuses of Mantle's receivable invoice status flow.
 choiceSources.invoiceStatuses = {
     find: () =>
         policy
             .find("moqui.basic.StatusItem", {statusTypeId: "Invoice"})
-            .condition("statusId", "in", [
-                "InvoiceInProcess",
-                "InvoiceFinalized",
-                "InvoiceSent",
-                "InvoiceAcked",
-                "InvoicePmtRecvd",
-                "InvoiceWriteOff",
-                "InvoiceCancelled"
-            ])
+            .condition(
+                "statusId",
+                "in",
+                policy.rows("moqui.basic.StatusFlowItem", {statusFlowId: "InvoiceReceivable"}).map(row => row.statusId)
+            )
             .orderBy("sequenceNum,description"),
     fields: ["statusId", "description"],
     value: row => row.statusId,
@@ -759,6 +733,27 @@ function choices(parameters) {
         )
     )
         return settlementChoices(parameters, scope)
+    if (parameters.choice === "receivableCredits") {
+        // The credits Mantle allows applying to the invoice: its linked credits, issued, with a balance.
+        const detail = policy.call("mantle.account.InvoiceServices.get#InvoiceFinanceDetail", {
+            invoiceId: parameters.invoiceId,
+            organizationPartyId: scope.organizationPartyId
+        })
+        const term = String(parameters.term || "").toLocaleLowerCase()
+        const options = Array.from(detail.creditRows || [])
+            .filter(
+                row =>
+                    !term ||
+                    row.invoiceId === parameters.selected ||
+                    [row.invoiceId, row.description, row.referenceNumber].some(text =>
+                        String(text || "")
+                            .toLocaleLowerCase()
+                            .includes(term)
+                    )
+            )
+            .map(row => ({value: row.invoiceId, label: row.invoiceId + (row.description ? " — " + row.description : "")}))
+        return {options}
+    }
     if (["invoiceAttachments", "reviewedInvoiceAttachments"].includes(parameters.choice)) {
         let selected = parameters.selected || []
         if (!Array.isArray(selected)) {

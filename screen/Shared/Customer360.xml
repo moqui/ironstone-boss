@@ -12,20 +12,24 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Customer" default-menu-include="false">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Customer"
+        default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
     <parameter name="appRoot"/>
     <always-actions>
         <script>if (appRoot &amp;&amp; appRoot !== 'Accounting') throw new Error('Customer context is not available')</script>
-        <service-call name="ironstone.accounting.AccessServices.get#SharedContext" in-map="{organizationPartyId:organizationPartyId,appRoot:'Accounting'}" out-map="accounting"/>
+        <service-call name="ironstone.accounting.AccessServices.get#SharedContext"
+                in-map="{organizationPartyId:organizationPartyId,appRoot:'Accounting'}" out-map="accounting"/>
         <set field="sharedLinks" from="accounting.sharedLinks"/>
     </always-actions>
     <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="saveIdentification">
         <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context" out-map="financeResult"/>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerIdentification" in-map="context"
+                    out-map="financeResult"/>
         </actions>
         <default-response url=".">
             <parameter name="customerPartyId"/>
@@ -35,7 +39,8 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="saveTaxRegistration">
         <actions>
-            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context" out-map="financeResult"/>
+            <service-call name="mantle.account.CustomerFinanceServices.store#CustomerTaxRegistration" in-map="context"
+                    out-map="financeResult"/>
         </actions>
         <default-response url=".">
             <parameter name="customerPartyId"/>
@@ -64,10 +69,13 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
     <subscreens default-item="Contact" always-use-full-path="true"/>
     <actions>
         <if condition="organizationPartyId">
-            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext" in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}" out-map="context" transaction="force-new" ignore-error="true"/>
+            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
+                    in-map="{organizationPartyId:organizationPartyId,customerPartyId:customerPartyId,appRoot:appRoot}"
+                    out-map="context" transaction="force-new" ignore-error="true"/>
         </if>
         <set field="customerFound" from="typeof customerDetail !== 'undefined' &amp;&amp; !!customerDetail?.partyId"/>
-        <set field="customerDetail" from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
+        <set field="customerDetail"
+                from="typeof customerDetail === 'undefined' || customerDetail === null ? {capabilities:{},summaryRows:[],contacts:[],orders:[],invoices:[],payments:[],agreements:[],paymentMethods:[],identifications:[],taxRegistrations:[]} : customerDetail"/>
     </actions>
     <widgets>
         <section-include name="CustomerOrganizationPrompt" location="component://mr-boss/template/AccountingReceivables.xml"/>
@@ -88,15 +96,21 @@ financeResult = ec.service.sync().name('mantle.account.CustomerFinanceServices.s
                             <label text="${customerPartyId}" type="p" style="text-caption m-muted"/>
                         </container>
                         <container style="col-12 col-sm-auto m-record-actions">
-                            <link url="${sharedLinks['Receivables/Statements']}" text="Customer statement" link-type="anchor-button" btn-type="primary" parameter-map="customerLinkParameters" condition="accounting.capabilities.arEdit"/>
+                            <link url="${sharedLinks['Receivables/Statements']}" text="Customer statement"
+                                    link-type="anchor-button" btn-type="primary" parameter-map="customerLinkParameters"
+                                    condition="accounting.capabilities.arEdit"/>
                             <button-menu text="More" icon="more_horiz">
-                                <link url="//Commons/Contacts/ContactDetail" text="Maintain contact" parameter-map="{partyId:customerPartyId}" condition="customerDetail.capabilities.partyEdit"/>
-                                <link url="${sharedLinks['Receivables/Invoices']}" text="Customer invoices" parameter-map="customerLinkParameters"/>
+                                <link url="//Commons/Contacts/ContactDetail" text="Maintain contact"
+                                        parameter-map="{partyId:customerPartyId}"
+                                        condition="customerDetail.capabilities.partyEdit"/>
+                                <link url="${sharedLinks['Receivables/Invoices']}" text="Customer invoices"
+                                        parameter-map="customerLinkParameters"/>
                             </button-menu>
                         </container>
                     </container>
                 </container>
-                <label text="The customer financial summary is unavailable because this result is incomplete. Open the customer invoice list to narrow the selection." type="p" style="text-warning" condition="customerDetail.incomplete"/>
+                <label text="The customer financial summary is unavailable because this result is incomplete. Open the customer invoice list to narrow the selection."
+                        type="p" style="text-warning" condition="customerDetail.incomplete"/>
                 <form-list name="CustomerFinancialSummary" list="customerDetail.summaryRows" skip-form="true" paginate="false">
                     <field name="currencyUomId">
                         <header-field title="Currency"/>

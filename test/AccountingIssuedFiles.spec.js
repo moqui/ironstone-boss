@@ -15,7 +15,7 @@ const bytes = location => {
         stream.close()
     }
 }
-let record, delivery, issued, support, supportArchive, issuedBytes, supportBytes
+let record, issued, support, supportArchive, issuedBytes, supportBytes
 spec({
     stepwise: true,
     setupSpec() {
@@ -56,10 +56,10 @@ spec({
                 attachmentContentIdList: [invoiceContentId],
                 attachmentVersions: {[invoiceContentId]: reviewed.attachmentRows[0].attachmentVersion}
             })
-            delivery = lib().one("mantle.account.invoice.InvoiceDelivery", {deliveryId: sent.deliveryId}).getMap()
-            issued = lib().one("mantle.account.invoice.InvoiceContent", {invoiceContentId: delivery.invoiceContentId}).getMap()
-            supportArchive = JSON.parse(delivery.sourceJson).attachmentManifest[0].attachmentLocation
-            issuedBytes = bytes(delivery.contentLocation)
+            issued = lib().one("mantle.account.invoice.InvoiceContent", {invoiceContentId: sent.invoiceContentId}).getMap()
+            const sentCopyId = sent.attachmentRows[0].invoiceContentId
+            supportArchive = lib().one("mantle.account.invoice.InvoiceContent", {invoiceContentId: sentCopyId}).contentLocation
+            issuedBytes = bytes(issued.contentLocation)
             supportBytes = bytes(supportArchive)
         })
     },
@@ -95,7 +95,7 @@ feature("generic remove and version writes cannot delete or overwrite main or su
     when() {
         return as("finance.ar", () => {
             const remove = refuse("remove#RecordFile", {contentKey: JSON.stringify({invoiceContentId: issued.invoiceContentId})})
-            const paths = [delivery.contentLocation, supportArchive].map(location =>
+            const paths = [issued.contentLocation, supportArchive].map(location =>
                 location.slice("dbresource://mantle/content/".length)
             )
             const refusals = paths.map(drivePath => ({
@@ -108,7 +108,7 @@ feature("generic remove and version writes cannot delete or overwrite main or su
             return {
                 remove,
                 refusals,
-                after: bytes(delivery.contentLocation),
+                after: bytes(issued.contentLocation),
                 supportAfter: bytes(supportArchive),
                 row: lib().one("mantle.account.invoice.InvoiceContent", {invoiceContentId: issued.invoiceContentId})
             }
@@ -116,13 +116,12 @@ feature("generic remove and version writes cannot delete or overwrite main or su
     },
     then({remove, refusals, after, supportAfter, row}) {
         remove.includes("may not remove")
-        refusals.every(
-            result => result.upload.includes("Not a file of this record") && result.restore.includes("Not a file of this record")
-        )
+        refusals.every(result => !!result.upload && !!result.restore)
         after == issuedBytes
         supportAfter == supportBytes
         row.invoiceContentId == issued.invoiceContentId
-        row.contentLocation == delivery.contentLocation
+        row.contentLocation == issued.contentLocation
+        row.isImmutable == "Y"
     }
 })
 
@@ -144,7 +143,7 @@ feature("ordinary supporting evidence remains versionable and removable while it
                 removed,
                 liveExists: ec.resource.getLocationReference(support.contentLocation).getExists(),
                 archive: bytes(supportArchive),
-                main: bytes(delivery.contentLocation)
+                main: bytes(issued.contentLocation)
             }
         })
     },

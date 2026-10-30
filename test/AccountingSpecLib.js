@@ -121,11 +121,11 @@ const paymentTabs = [
     ["History", "Payment history"]
 ]
 
-// A real snapshot owned by the current test user, rather than a successful render of the empty print route.
+// The customer's statements, so the statement routes render real content rather than an empty selection.
 function statementPreview() {
     return ec.service
         .sync()
-        .name("mantle.account.CollectionServices.preview#Statements")
+        .name("mantle.account.CollectionServices.get#Statements")
         .parameters({
             organizationPartyId: ids.organizationPartyId,
             customerPartyIdList: [ids.customerPartyId],
@@ -141,12 +141,8 @@ function statementPreview() {
 function routeFixtures() {
     const snapshot = statementPreview()
     if (!snapshot.statementRows?.some(row => row.invoiceRows?.some(invoice => invoice.invoiceId === ids.finalizedInvoiceId)))
-        throw new Error("Accounting screen fixtures require the finalized customer invoice in the statement snapshot")
-    const statementParameters = {
-        snapshotId: snapshot.snapshotId,
-        inputFingerprint: snapshot.inputFingerprint,
-        customerPartyId: ids.customerPartyId
-    }
+        throw new Error("Accounting screen fixtures require the finalized customer invoice in the customer statement")
+    const statementParameters = {customerPartyId: ids.customerPartyId, includeZeroBalance: "Y", showStatements: "Y"}
     const destinations = [
         ["Home", "Shortcuts"],
         ["Receivables/Invoices", "Invoices"],
@@ -194,8 +190,8 @@ function routeFixtures() {
         ["Receivables/BillingQueue", "Billing queue"],
         ["Receivables/ReceivablesWorkbench", "Allocate receipts and credits", {partyId: ids.settlementPartyId}],
         ["Receivables/InvoiceBatch", ids.invoiceId, {invoiceIdList: [ids.invoiceId, ids.finalizedInvoiceId]}],
-        ["Receivables/Statements", "Reviewed statement snapshot", statementParameters],
-        ["Receivables/StatementPrint", "Print statements", statementParameters],
+        ["Receivables/Statements", "Print statements", statementParameters],
+        ["Receivables/StatementPrint", "Customer statement", statementParameters],
         ["Receivables/InvoicePrint", "Open the printable invoice", {invoiceId: ids.finalizedInvoiceId}],
         ["Receivables/Customer360", "Another Company Making Everything", {customerPartyId: ids.customerPartyId}],
         ...invoiceTabs.map(([tab, text]) => [

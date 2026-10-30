@@ -12,7 +12,8 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoices" default-menu-index="1">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoices" default-menu-index="1">
     <parameter name="organizationPartyId"/>
     <parameter name="text"/>
     <parameter name="queue"/>
@@ -70,7 +71,8 @@ along with this software (see the LICENSE.md file). If not, see
             <widgets>
                 <container style="row items-center justify-between q-mb-md">
                     <label text="Invoices" type="h5"/>
-                    <container-dialog id="CreateReceivable" button-text="New invoice" title="New receivable" width="720" type="primary" condition="accounting.capabilities.arEdit">
+                    <container-dialog id="CreateReceivable" button-text="New invoice" title="New receivable" width="720"
+                            type="primary" condition="accounting.capabilities.arEdit">
                         <form-single name="CreateReceivable" transition="createReceivable">
                             <field name="organizationPartyId" from="organizationPartyId">
                                 <default-field title="">
@@ -80,7 +82,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="customerPartyId">
                                 <default-field title="Customer">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                        <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -95,7 +98,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="currencyUomId">
                                 <default-field title="Currency">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                                        <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -112,7 +116,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="settlementTermId">
                                 <default-field title="Payment terms">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                                        <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -157,7 +162,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="row q-gutter-xs q-mb-md">
                     <section-iterate name="InvoiceQueues" list="queueTabs" entry="queueTab">
                         <widgets>
-                            <link url="." text="${queueTab.title}" link-type="anchor-button" btn-type="default" style="${queueTab.active ? 'm-tonal text-primary' : ''}" parameter-map="queueTab.parameters"/>
+                            <link url="." text="${queueTab.title}" link-type="anchor-button" btn-type="default"
+                                    style="${queueTab.active ? 'm-tonal text-primary' : ''}" parameter-map="queueTab.parameters"/>
                         </widgets>
                     </section-iterate>
                 </container>
@@ -180,28 +186,32 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="customerPartyId">
                         <default-field title="Customer">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="currencyUomId">
                         <default-field title="Currency">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="statusId">
                         <default-field title="Status">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceStatuses',organizationPartyId:organizationPartyId,selected:statusId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'invoiceStatuses',organizationPartyId:organizationPartyId,selected:statusId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="invoiceTypeEnumId">
                         <default-field title="Document type">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceTypes',organizationPartyId:organizationPartyId,selected:invoiceTypeEnumId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'invoiceTypes',organizationPartyId:organizationPartyId,selected:invoiceTypeEnumId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -268,8 +278,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
                 <section name="InvoiceListView" condition="view === 'list'">
                     <widgets>
-                        <form-list name="InvoiceList" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-                            <row-selection id-field="invoiceId" parameter="invoiceIdList" list-mode="true" condition="accounting.capabilities.arEdit">
+                        <form-list name="InvoiceList" list="records" skip-form="true" paginate="true" select-columns="true"
+                                show-csv-button="true" show-xlsx-button="true">
+                            <row-selection id-field="invoiceId" parameter="invoiceIdList" list-mode="true"
+                                    condition="accounting.capabilities.arEdit">
                                 <action>
                                     <dialog button-text="Review selected invoices" title="Review selected invoices"/>
                                     <form-single name="ReviewInvoiceSelection" transition="reviewSelection">
@@ -298,13 +310,15 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="invoiceId">
                                 <header-field title="Invoice"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}" parameter-map="routeParameters"/>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}"
+                                            parameter-map="routeParameters"/>
                                 </default-field>
                             </field>
                             <field name="customerName">
                                 <header-field title="Customer"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}" parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
+                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}"
+                                            parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
                                 </default-field>
                             </field>
                             <field name="invoiceDate">
@@ -367,13 +381,15 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="invoiceId">
                                 <header-field title="Invoice"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}" parameter-map="routeParameters"/>
+                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${description || invoiceId}"
+                                            parameter-map="routeParameters"/>
                                 </default-field>
                             </field>
                             <field name="customerName">
                                 <header-field title="Customer"/>
                                 <default-field>
-                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}" parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
+                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${customerName}"
+                                            parameter-map="{customerPartyId:customerPartyId,organizationPartyId:organizationPartyId}"/>
                                 </default-field>
                             </field>
                             <field name="invoiceDate">
@@ -409,7 +425,8 @@ along with this software (see the LICENSE.md file). If not, see
                                     <field-ref name="unpaidTotal"/>
                                 </column>
                             </columns>
-                            <view-calendar start-field="dueDay" all-day-field="dueAllDay" title-field="description" color-field="statusId" key-fields="invoiceId"/>
+                            <view-calendar start-field="dueDay" all-day-field="dueAllDay" title-field="description"
+                                    color-field="statusId" key-fields="invoiceId"/>
                         </form-list>
                     </widgets>
                 </section>
@@ -420,10 +437,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="${summaryError.message || summaryError}" type="p" style="text-negative"/>
                             </widgets>
                         </section-iterate>
-                        <label text="The result is incomplete. Narrow the filters before using these totals." type="p" style="text-warning" condition="!summaryComplete"/>
+                        <label text="The result is incomplete. Narrow the filters before using these totals." type="p"
+                                style="text-warning" condition="!summaryComplete"/>
                         <section-iterate name="ReceivableCurrencySummaries" list="summaryGroups" entry="summaryGroup">
                             <widgets>
-                                <report-panel id="ReceivableSummary_${summaryGroup.currencyUomId}" frame="summaryGroup.frame" panel="summaryGroup.panel"/>
+                                <report-panel id="ReceivableSummary_${summaryGroup.currencyUomId}" frame="summaryGroup.frame"
+                                        panel="summaryGroup.panel"/>
                             </widgets>
                         </section-iterate>
                         <label text="No invoices match these filters." type="p" condition="!summaryGroups.length"/>

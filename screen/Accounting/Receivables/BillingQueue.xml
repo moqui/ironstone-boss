@@ -12,7 +12,9 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Billing queue" default-menu-index="2">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Billing queue"
+        default-menu-index="2">
     <parameter name="organizationPartyId"/>
     <parameter name="direction"/>
     <parameter name="customerPartyId"/>
@@ -64,14 +66,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="customerPartyId">
                         <default-field title="Customer">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
                             </drop-down>
                         </default-field>
                     </field>
                     <field name="workEffortId">
                         <default-field title="Project">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'projects',organizationPartyId:organizationPartyId,selected:workEffortId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'projects',organizationPartyId:organizationPartyId,selected:workEffortId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -131,7 +135,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="actions">
                         <header-field title=""/>
                         <default-field>
-                            <container-dialog id="TimeInvoice_${workEffortId}_${workerPartyId}" button-text="${direction === 'payable' ? 'Create draft bill' : 'Create draft invoice'}" title="${direction === 'payable' ? 'Create bill from approved work' : 'Create invoice from approved work'}" width="720" condition="billingCanCreate &amp;&amp; canInvoice">
+                            <container-dialog id="TimeInvoice_${workEffortId}_${workerPartyId}"
+                                    button-text="${direction === 'payable' ? 'Create draft bill' : 'Create draft invoice'}"
+                                    title="${direction === 'payable' ? 'Create bill from approved work' : 'Create invoice from approved work'}"
+                                    width="720" condition="billingCanCreate &amp;&amp; canInvoice">
                                 <form-single name="CreateApprovedTimeInvoice" transition="createTimeInvoice">
                                     <field name="organizationPartyId" from="organizationPartyId">
                                         <default-field title="">
@@ -174,14 +181,16 @@ along with this software (see the LICENSE.md file). If not, see
                                     <field name="invoiceId">
                                         <default-field title="Existing draft">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:direction === 'payable' ? 'bills' : 'invoices',organizationPartyId:organizationPartyId,selected:invoiceId}"/>
+                                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                        parameter-map="{choice:direction === 'payable' ? 'bills' : 'invoices',organizationPartyId:organizationPartyId,selected:invoiceId}"/>
                                             </drop-down>
                                         </default-field>
                                     </field>
                                     <field name="settlementTermId">
                                         <default-field title="Payment terms">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                        parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
                                             </drop-down>
                                         </default-field>
                                     </field>
@@ -207,7 +216,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </column>
                     </columns>
                 </form-list>
-                <label text="No approved unbilled work matches these filters." type="p" style="m-muted" condition="!billingRows.length"/>
+                <label text="No approved unbilled work matches these filters." type="p" style="m-muted"
+                        condition="!billingRows.length"/>
             </widgets>
         </section>
     </widgets>

@@ -380,14 +380,14 @@ feature("P4 batch review omits unavailable invoice values for AP while AR sees t
     }
 })
 
-feature("statement preview requires AR edit even when the reader can read the same invoices", {
+feature("customer statements require AR edit even when the reader can read the same invoices", {
     when() {
         const parameters = {
             organizationPartyId: receivablesIds.organizationPartyId,
             customerPartyIdList: [receivablesIds.customerPartyId],
             includeZeroBalance: true
         }
-        const service = "mantle.account.CollectionServices.preview#Statements"
+        const service = "mantle.account.CollectionServices.get#Statements"
         return {
             allowed: receivablesHelper.asUser("finance.ar", () => receivablesHelper.refusal(service, parameters), false),
             denied: receivablesHelper.asUser("finance.read", () => receivablesHelper.refusal(service, parameters), false)
@@ -529,15 +529,16 @@ feature("P4 server choices preserve selected labels outside the search page", {
                     })
                 }
                 finalize(target.invoiceId)
-                const credit = receivablesHelper.call(service + "create#LinkedCreditMemo", {
+                const credit = receivablesHelper.call(service + "create#InvoiceCreditMemo", {
                     organizationPartyId,
-                    invoiceId: target.invoiceId,
-                    creditAmount: 5,
+                    originalInvoiceId: target.invoiceId,
+                    amount: 5,
                     description: "Choice customer credit",
-                    operationKey: "choice-credit-" + ec.user.randomString(20),
-                    changeReason: "Prepare a linked credit choice"
+                    linkToOriginal: true,
+                    allocateToLines: true,
+                    operationKey: "choice-credit-" + ec.user.randomString(20)
                 })
-                finalize(credit.creditMemoInvoiceId)
+                finalize(credit.invoiceId)
                 const bill = receivablesHelper.call("mantle.ledger.AccountingServices.create#DraftDocument", {
                     kind: "bills",
                     organizationPartyId,
@@ -576,7 +577,7 @@ feature("P4 server choices preserve selected labels outside the search page", {
                         "enum:InvoiceType"
                     ].map(choice => ({choice})),
                     {choice: "bills", selected: bill.recordId},
-                    {choice: "receivableCredits", invoiceId: target.invoiceId, selected: credit.creditMemoInvoiceId},
+                    {choice: "receivableCredits", invoiceId: target.invoiceId, selected: credit.invoiceId},
                     {choice: "invoiceTypes", selected: "InvoiceSales"},
                     {choice: "invoiceStatuses", selected: "InvoiceFinalized"},
                     {
@@ -661,17 +662,18 @@ feature("a linked customer credit remains an AR record in the common reads and n
         const credit = receivablesHelper.asUser(
             "finance.ar",
             () =>
-                receivablesHelper.call("mantle.account.InvoiceServices.create#LinkedCreditMemo", {
+                receivablesHelper.call("mantle.account.InvoiceServices.create#InvoiceCreditMemo", {
                     organizationPartyId: receivablesIds.organizationPartyId,
-                    invoiceId: receivablesIds.finalizedInvoiceId,
-                    creditAmount: 5,
+                    originalInvoiceId: receivablesIds.finalizedInvoiceId,
+                    amount: 5,
                     description: "Credit access fixture",
-                    changeReason: "Verify the receivable boundary",
+                    linkToOriginal: true,
+                    allocateToLines: true,
                     operationKey: "access-credit-" + ec.user.randomString(20)
                 }),
             false
         )
-        const invoiceId = credit.creditMemoInvoiceId
+        const invoiceId = credit.invoiceId
         const parameters = {organizationPartyId: receivablesIds.organizationPartyId, recordId: invoiceId}
         const list = kind =>
             receivablesHelper.call("mantle.ledger.AccountingServices.find#Records", Object.assign({}, parameters, {kind}))

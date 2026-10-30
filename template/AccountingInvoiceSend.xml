@@ -12,7 +12,8 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <widgets>
         <section name="ReceivableSendForm">
             <widgets>
@@ -48,9 +49,12 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field>
                     </field>
                     <field name="reviewedAttachmentList">
-                        <conditional-field condition="(receivable.attachmentRows || []).length || receivable.attachmentDiscoveryIncomplete" title="Supporting files" tooltip="Optional. The invoice PDF is always included. Select up to 10 files, 10 MiB each and 20 MiB in total.">
+                        <conditional-field condition="receivable.canAttach" title="Supporting files"
+                                tooltip="Optional: up to 10 files, 10 MiB each, 20 MiB in all.">
                             <drop-down allow-empty="true" allow-multiple="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'reviewedInvoiceAttachments',organizationPartyId:organizationPartyId,invoiceId:invoiceId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'reviewedInvoiceAttachments',
+                                            organizationPartyId:organizationPartyId, invoiceId:invoiceId}"/>
                             </drop-down>
                         </conditional-field>
                         <default-field>
@@ -59,9 +63,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="attachmentHelp">
                         <default-field>
-                            <label text="The invoice PDF is included. Supporting files are optional; choose up to 10 files, 10 MiB each and 20 MiB in total." type="p" style="text-caption m-muted" condition="(receivable.attachmentRows || []).length || receivable.attachmentDiscoveryIncomplete"/>
-                            <label text="The invoice PDF is included. Add supporting documents in Files before sending if needed." type="p" style="text-caption m-muted" condition="!(receivable.attachmentRows || []).length &amp;&amp; !receivable.attachmentDiscoveryIncomplete"/>
-                            <label text="The available file list is limited. Review Files if a supporting document is missing from these choices." type="p" style="text-caption text-warning" condition="receivable.attachmentDiscoveryIncomplete"/>
+                            <label type="p" style="text-caption m-muted" condition="receivable.canAttach"
+                                    text="The invoice PDF is included. Supporting files are optional."/>
+                            <label type="p" style="text-caption m-muted" condition="!receivable.canAttach"
+                                    text="The invoice PDF is included. Add supporting documents in Files first."/>
+                            <label type="p" style="text-caption text-warning" condition="receivable.attachmentDiscoveryIncomplete"
+                                    text="Not every file is listed. Review Files if a supporting document is missing."/>
                         </default-field>
                     </field>
                     <field name="draftHelp">

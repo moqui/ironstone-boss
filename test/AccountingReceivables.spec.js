@@ -71,24 +71,10 @@ feature("a reader sees the same invoice lines without the AR editing controls", 
     }
 })
 
-feature("optional invoice supporting files retain the reviewed versions and default to no selection", {
+feature("optional invoice supporting files offer their reviewed versions and default to no selection", {
     when() {
-        const screen = ec.resource.script("component://mr-boss/service/ironstone/accounting/Receivables.js")
-        const tokens = ["file-one~opaque-reviewed-version", "file-two~older-version", "file-one~opaque-reviewed-version"]
-        const selected = screen.decodeReviewedAttachments(JSON.stringify(tokens))
-        const rejected = []
-        for (const invalid of [["file-one"], ["file-one~"], [null], {file: "version"}, ["file-one~old", "file-one~fresh"]]) {
-            try {
-                screen.decodeReviewedAttachments(invalid)
-            } catch (error) {
-                rejected.push(String(error.message))
-            }
-        }
         const parameters = {recordId: ids.finalizedInvoiceId}
         return {
-            selected,
-            empty: screen.decodeReviewedAttachments(null),
-            rejected,
             sender: helper.asUser("finance.ar", () => ({
                 context: helper.call("ironstone.accounting.ReceivableServices.get#InvoiceContext", {
                     organizationPartyId: ids.organizationPartyId,
@@ -99,12 +85,7 @@ feature("optional invoice supporting files retain the reviewed versions and defa
             reader: helper.asUser("finance.read", () => helper.page("Receivables/InvoiceDetail", parameters, "html"))
         }
     },
-    then({selected, empty, rejected, sender, reader}) {
-        selected.attachmentContentIdList == ["file-one", "file-two"]
-        selected.attachmentVersions == {"file-one": "opaque-reviewed-version", "file-two": "older-version"}
-        empty.attachmentContentIdList == []
-        empty.attachmentVersions == {}
-        rejected.length == 5
+    then({sender, reader}) {
         sender.context.invoiceSendValue.reviewedAttachmentList == []
         sender.context.receivable.attachmentRows.some(
             row => row.invoiceContentId === "BOSS_ACCT_AR_SUPPORT" && row.fileName === "Scope.txt" && !!row.attachmentVersion
@@ -267,40 +248,31 @@ feature("worker billing amounts require payable view and a reader gets no billin
     }
 })
 
-feature("a reviewed customer statement renders the stored snapshot", {
+feature("a customer statement shows the open balance on its screen and its print", {
     when() {
         return helper.asUser("finance.ar", () => {
-            const preview = helper.call("mantle.account.CollectionServices.preview#Statements", {
+            const selection = {customerPartyId: ids.customerPartyId, includeZeroBalance: "Y"}
+            const statements = helper.call("mantle.account.CollectionServices.get#Statements", {
                 organizationPartyId: ids.organizationPartyId,
                 customerPartyIdList: [ids.customerPartyId],
-                asOfDate: ec.user.nowTimestamp,
                 includeZeroBalance: true
             })
-            const result = helper.page("Receivables/Statements", {snapshotId: preview.snapshotId})
-            const expectedBalances = Array.from(preview.statementRows || []).map(
-                row =>
-                    "Opening " +
-                    ec.l10n.formatCurrency(row.openingBalance ?? 0, row.currencyUomId) +
-                    " · Closing " +
-                    ec.l10n.formatCurrency(row.closingBalance ?? 0, row.currencyUomId)
+            const balances = Array.from(statements.statementRows || []).map(
+                row => "Balance due " + ec.l10n.formatCurrency(row.closingBalance, row.currencyUomId)
             )
-            const statement = helper.page("Receivables/Statements", {snapshotId: preview.snapshotId}, "html")
-            const print = helper.page("Receivables/StatementPrint", {snapshotId: preview.snapshotId}, "html")
-            return {preview, result, expectedBalances, statement, print}
+            const screen = helper.page("Receivables/Statements", Object.assign({showStatements: "Y"}, selection), "html")
+            const print = helper.page("Receivables/StatementPrint", selection, "html")
+            return {balances, screen, print}
         })
     },
-    then({preview, result, expectedBalances, statement, print}) {
-        !!preview.snapshotId
-        !!preview.inputFingerprint
-        result.status == 200
-        result.errors == []
-        result.output.includes("Reviewed statement snapshot")
-        result.output.includes("Print statements")
-        expectedBalances.length > 0
-        statement.status == 200
-        statement.errors == []
+    then({balances, screen, print}) {
+        balances.length > 0
+        screen.status == 200
+        screen.errors == []
+        screen.output.includes("Statement preview")
+        screen.output.includes("Print statements")
         print.status == 200
         print.errors == []
-        expectedBalances.every(caption => statement.output.includes(caption) && print.output.includes(caption))
+        balances.every(caption => screen.output.includes(caption) && print.output.includes(caption))
     }
 })

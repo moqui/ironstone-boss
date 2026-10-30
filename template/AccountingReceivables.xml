@@ -12,10 +12,13 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <transition name="financeChangeStatus">
         <actions>
-            <service-call name="mantle.account.InvoiceServices.change#InvoiceState" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,action:action,lastUpdatedStamp:lastUpdatedStamp,operationKey:operationKey,changeReason:changeReason}" out-map="financeResult"/>
+            <service-call name="mantle.account.InvoiceServices.change#InvoiceState"
+                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,action:action,lastUpdatedStamp:lastUpdatedStamp,operationKey:operationKey,changeReason:changeReason}"
+                    out-map="financeResult"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
@@ -43,24 +46,38 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="financeSendInvoice">
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Receivables.js').decodeReviewedAttachments(typeof reviewedAttachmentList === 'undefined' ? null : reviewedAttachmentList))</script>
-            <service-call name="mantle.account.InvoiceServices.send#Invoice" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,toAddresses:toAddresses,note:note,operationKey:operationKey,sourceVersion:sourceVersion,attachmentContentIdList:attachmentContentIdList,attachmentVersions:attachmentVersions,template:'standard'}" out-map="financeResult"/>
-            <script><![CDATA[
-for (const recipient of Array.from(financeResult.recipientResults || [])) {
-    ec.message.addMessage((recipient.recipient || recipient.toAddress || 'Recipient') + ': ' +
-        (recipient.errorMessage || recipient.message || recipient.status || 'Processed'), recipient.errorMessage || recipient.status === 'Failed' ? 'warning' : 'success')
-}
-]]></script>
+            <!-- each chosen supporting file is invoiceContentId~version, the version the sender reviewed -->
+            <set field="reviewedTokens" from="typeof reviewedAttachmentList == 'undefined' || !reviewedAttachmentList ? [] :
+                typeof reviewedAttachmentList != 'string' ? Array.from(reviewedAttachmentList).map(String) :
+                reviewedAttachmentList.trim().startsWith('[') ? JSON.parse(reviewedAttachmentList) : [reviewedAttachmentList]"/>
+            <set field="attachmentContentIdList" from="reviewedTokens.map((token) => token.split('~')[0])"/>
+            <set field="attachmentVersions" from="Object.fromEntries(reviewedTokens
+                .map((token) => [token.split('~')[0], token.split('~').slice(1).join('~')]))"/>
+            <service-call name="mantle.account.InvoiceServices.send#Invoice" out-map="financeResult"
+                    in-map="{organizationPartyId:organizationPartyId, invoiceId:invoiceId, toAddresses:toAddresses, note:note,
+                        operationKey:operationKey, sourceVersion:sourceVersion, attachmentContentIdList:attachmentContentIdList,
+                        attachmentVersions:attachmentVersions}"/>
+            <iterate list="financeResult.recipientResults ?? []" entry="recipient">
+                <if condition="recipient.status == 'failed'"><then>
+                    <message type="warning">${recipient.recipient}: ${recipient.errorMessage}</message>
+                </then><else>
+                    <message type="success">${recipient.recipient}: ${recipient.status == 'queued' ? 'Queued for delivery' : 'Sent'}</message>
+                </else></if>
+            </iterate>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="financeCreditInvoice">
         <actions>
-            <service-call name="mantle.account.InvoiceServices.create#LinkedCreditMemo" in-map="context" out-map="financeResult"/>
+            <!-- create#InvoiceCreditMemo checks the finance access itself for a linked credit -->
+            <service-call name="mantle.account.InvoiceServices.create#InvoiceCreditMemo" out-map="financeResult"
+                    disable-authz="true" in-map="{originalInvoiceId:invoiceId, organizationPartyId:organizationPartyId,
+                        amount:creditAmount, description:description, operationKey:operationKey, linkToOriginal:true,
+                        allocateToLines:true}"/>
         </actions>
         <default-response url="${sharedLinks['Receivables/InvoiceDetail']}">
-            <parameter name="recordId" from="financeResult.creditMemoInvoiceId"/>
+            <parameter name="recordId" from="financeResult.invoiceId"/>
             <parameter name="organizationPartyId" from="organizationPartyId"/>
         </default-response>
         <error-response url="."/>
@@ -74,14 +91,18 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
     </transition>
     <transition name="financeApplyCredit">
         <actions>
-            <service-call name="mantle.account.InvoiceServices.apply#InvoiceCredit" in-map="{organizationPartyId:organizationPartyId,invoiceId:creditInvoiceId,toInvoiceId:invoiceId,amount:amount,operationKey:operationKey,changeReason:changeReason}" out-map="financeResult"/>
+            <service-call name="mantle.account.InvoiceServices.apply#InvoiceCredit"
+                    in-map="{organizationPartyId:organizationPartyId,invoiceId:creditInvoiceId,toInvoiceId:invoiceId,amount:amount,operationKey:operationKey,changeReason:changeReason}"
+                    out-map="financeResult"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="choices" read-only="true">
         <actions>
-            <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="{choice:choice,term:term,selected:selected,organizationPartyId:organizationPartyId,invoiceId:invoiceId}" out-map="found"/>
+            <service-call name="ironstone.accounting.AccessServices.get#Choices"
+                    in-map="{choice:choice,term:term,selected:selected,organizationPartyId:organizationPartyId,invoiceId:invoiceId}"
+                    out-map="found"/>
             <script>ec.web.sendJsonResponse(found.options)</script>
         </actions>
         <default-response type="none"/>
@@ -104,13 +125,16 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                 </section>
                 <section name="AccountingInvoiceFound" condition="recordFound">
                     <widgets>
-                        <context record-entity="mantle.account.invoice.Invoice" record-id="${invoiceId}" title="${receivable.title}"/>
+                        <context record-entity="mantle.account.invoice.Invoice" record-id="${invoiceId}"
+                                title="${receivable.title}"/>
                         <container style="m-record-header">
                             <container style="row items-start q-col-gutter-md">
                                 <container style="col m-record-title">
                                     <label text="${invoiceId} · ${receivable.title}" type="h5"/>
-                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${receivable.customerName}" parameter-map="{customerPartyId:receivable.customerPartyId,organizationPartyId:organizationPartyId}"/>
-                                    <label text="${receivable.invoiceDateText || 'No invoice date'} · Due ${receivable.dueDateText || 'not set'}" type="p" style="text-caption m-muted"/>
+                                    <link url="${sharedLinks['Receivables/Customer360']}" text="${receivable.customerName}"
+                                            parameter-map="{customerPartyId:receivable.customerPartyId,organizationPartyId:organizationPartyId}"/>
+                                    <label text="${receivable.invoiceDateText || 'No invoice date'} · Due ${receivable.dueDateText || 'not set'}"
+                                            type="p" style="text-caption m-muted"/>
                                 </container>
                                 <container style="col-auto m-record-status">
                                     <render-mode>
@@ -122,18 +146,34 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                 </container>
                             </container>
                             <container style="row items-center q-gutter-sm m-record-foot m-record-actions">
-                                <link url="financeChangeStatus" text="Approve invoice" btn-type="primary" link-type="hidden-form" icon="sym_o_task_alt" condition="receivable.isDraft &amp;&amp; receivable.canApprove &amp;&amp; !receivable.canFinalize" confirmation="Approve invoice ${invoiceId} for ${receivable.totalText}?" parameter-map="{invoiceId:invoiceId,organizationPartyId:organizationPartyId,action:'approve',lastUpdatedStamp:receivable.lastUpdatedStamp,operationKey:invoiceOperationKey}"/>
-                                <link url="financeChangeStatus" text="Finalize invoice" btn-type="primary" link-type="hidden-form" icon="sym_o_task_alt" condition="receivable.isDraft &amp;&amp; receivable.canFinalize" confirmation="Finalize invoice ${invoiceId} for ${receivable.totalText}?" parameter-map="{invoiceId:invoiceId,organizationPartyId:organizationPartyId,action:'finalize',lastUpdatedStamp:receivable.lastUpdatedStamp,operationKey:invoiceOperationKey}"/>
-                                <container-dialog id="AccountingInvoiceSend" button-text="Send invoice" title="Send invoice ${invoiceId}" width="720" type="primary" condition="receivable.canSend &amp;&amp; !receivable.isDraft">
-                                    <section-include name="ReceivableSendForm" location="component://mr-boss/template/AccountingInvoiceSend.xml"/>
+                                <link url="financeChangeStatus" text="Approve invoice" btn-type="primary" link-type="hidden-form"
+                                        icon="sym_o_task_alt"
+                                        condition="receivable.isDraft &amp;&amp; receivable.canApprove &amp;&amp; !receivable.canFinalize"
+                                        confirmation="Approve invoice ${invoiceId} for ${receivable.totalText}?"
+                                        parameter-map="{invoiceId:invoiceId,organizationPartyId:organizationPartyId,action:'approve',lastUpdatedStamp:receivable.lastUpdatedStamp,operationKey:invoiceOperationKey}"/>
+                                <link url="financeChangeStatus" text="Finalize invoice" btn-type="primary" link-type="hidden-form"
+                                        icon="sym_o_task_alt" condition="receivable.isDraft &amp;&amp; receivable.canFinalize"
+                                        confirmation="Finalize invoice ${invoiceId} for ${receivable.totalText}?"
+                                        parameter-map="{invoiceId:invoiceId,organizationPartyId:organizationPartyId,action:'finalize',lastUpdatedStamp:receivable.lastUpdatedStamp,operationKey:invoiceOperationKey}"/>
+                                <container-dialog id="AccountingInvoiceSend" button-text="Send invoice"
+                                        title="Send invoice ${invoiceId}" width="720" type="primary"
+                                        condition="receivable.canSend &amp;&amp; !receivable.isDraft">
+                                    <section-include name="ReceivableSendForm"
+                                            location="component://mr-boss/template/AccountingInvoiceSend.xml"/>
                                 </container-dialog>
-                                <link url="${receivable.printUrl}" text="Print" icon="sym_o_print" target-window="_blank" url-type="plain"/>
+                                <link url="${receivable.printUrl}" text="Print" icon="sym_o_print" target-window="_blank"
+                                        url-type="plain"/>
                                 <button-menu text="More" icon="more_horiz">
-                                    <container-dialog id="AccountingDraftInvoiceSend" button-text="Finalize and send" title="Finalize and send invoice ${invoiceId}" width="720" condition="receivable.canSend &amp;&amp; receivable.isDraft">
-                                        <section-include name="ReceivableSendForm" location="component://mr-boss/template/AccountingInvoiceSend.xml"/>
+                                    <container-dialog id="AccountingDraftInvoiceSend" button-text="Finalize and send"
+                                            title="Finalize and send invoice ${invoiceId}" width="720"
+                                            condition="receivable.canSend &amp;&amp; receivable.isDraft">
+                                        <section-include name="ReceivableSendForm"
+                                                location="component://mr-boss/template/AccountingInvoiceSend.xml"/>
                                     </container-dialog>
-                                    <container-dialog id="AccountingInvoiceEdit" button-text="Edit invoice" title="Edit invoice ${invoiceId}" width="720" condition="receivable.canEdit">
-                                        <form-single name="FinanceInvoiceHeader" transition="financeSaveHeader" map="invoiceHeaderValue">
+                                    <container-dialog id="AccountingInvoiceEdit" button-text="Edit invoice"
+                                            title="Edit invoice ${invoiceId}" width="720" condition="receivable.canEdit">
+                                        <form-single name="FinanceInvoiceHeader" transition="financeSaveHeader"
+                                                map="invoiceHeaderValue">
                                             <field name="organizationPartyId" from="organizationPartyId">
                                                 <default-field title="">
                                                     <hidden/>
@@ -162,7 +202,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                             <field name="settlementTermId">
                                                 <default-field title="Payment terms">
                                                     <drop-down allow-empty="true">
-                                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
+                                                        <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                                parameter-map="{choice:'terms',organizationPartyId:organizationPartyId,selected:settlementTermId}"/>
                                                     </drop-down>
                                                 </default-field>
                                             </field>
@@ -204,7 +245,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                             </field-layout>
                                         </form-single>
                                     </container-dialog>
-                                    <container-dialog id="AccountingCreditMemo" button-text="Create credit memo" title="Credit invoice ${invoiceId}" width="720" condition="receivable.canCredit">
+                                    <container-dialog id="AccountingCreditMemo" button-text="Create credit memo"
+                                            title="Credit invoice ${invoiceId}" width="720" condition="receivable.canCredit">
                                         <form-single name="FinanceCreditMemo" transition="financeCreditInvoice">
                                             <field name="organizationPartyId" from="organizationPartyId">
                                                 <default-field title="">
@@ -243,7 +285,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                             </field>
                                         </form-single>
                                     </container-dialog>
-                                    <container-dialog id="AccountingReverseDraft" button-text="Reverse draft direction" title="Reverse draft ${invoiceId}" width="720" condition="receivable.canEdit">
+                                    <container-dialog id="AccountingReverseDraft" button-text="Reverse draft direction"
+                                            title="Reverse draft ${invoiceId}" width="720" condition="receivable.canEdit">
                                         <form-single name="FinanceReverseDraft" transition="financeReverseInvoice">
                                             <field name="organizationPartyId" from="organizationPartyId">
                                                 <default-field title="">
@@ -272,7 +315,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                             </field>
                                         </form-single>
                                     </container-dialog>
-                                    <container-dialog id="InvoiceState_resume" button-text="Resume changes" title="Resume changes ${invoiceId}" condition="receivable.canResume">
+                                    <container-dialog id="InvoiceState_resume" button-text="Resume changes"
+                                            title="Resume changes ${invoiceId}" condition="receivable.canResume">
                                         <form-single name="InvoiceStateResume" transition="financeChangeStatus">
                                             <field name="organizationPartyId" from="organizationPartyId">
                                                 <default-field>
@@ -311,7 +355,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                             </field>
                                         </form-single>
                                     </container-dialog>
-                                    <container-dialog id="InvoiceState_cancel" button-text="Cancel invoice" title="Cancel invoice ${invoiceId}" condition="receivable.canCancel" type="danger">
+                                    <container-dialog id="InvoiceState_cancel" button-text="Cancel invoice"
+                                            title="Cancel invoice ${invoiceId}" condition="receivable.canCancel" type="danger">
                                         <form-single name="InvoiceStateCancel" transition="financeChangeStatus">
                                             <field name="organizationPartyId" from="organizationPartyId">
                                                 <default-field>
@@ -352,7 +397,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                     </container-dialog>
                                     <link url="${receivable.pdfUrl}" text="Download PDF" url-type="plain" target-window="_blank"/>
                                 </button-menu>
-                                <link url="${sharedLinks['Receivables/Invoices']}" text="Back to invoices" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                                <link url="${sharedLinks['Receivables/Invoices']}" text="Back to invoices"
+                                        parameter-map="{organizationPartyId:organizationPartyId}"/>
                             </container>
                         </container>
                         <dashboard min-width="180">
@@ -410,7 +456,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         <container-box>
                             <box-header title="Delivery outcomes"/>
                             <box-body>
-                                <form-list name="InvoiceDeliveries" list="receivable.deliveryRecipients" skip-form="true" paginate="false">
+                                <form-list name="InvoiceDeliveries" list="receivable.deliveryRecipients" skip-form="true"
+                                        paginate="false">
                                     <field name="recipient">
                                         <default-field title="Recipient">
                                             <display/>
@@ -463,7 +510,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
         <section name="InvoiceItems" condition="recordFound">
             <widgets>
                 <label text="Items and taxes" type="h6"/>
-                <container-dialog id="AddReceivableLine" button-text="Add line" title="Add invoice line" width="720" type="primary" condition="receivable.canEdit">
+                <container-dialog id="AddReceivableLine" button-text="Add line" title="Add invoice line" width="720"
+                        type="primary" condition="receivable.canEdit">
                     <form-single name="FinanceAddInvoiceItem" transition="financeStoreItem">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="">
@@ -483,14 +531,16 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         <field name="itemTypeEnumId">
                             <default-field title="Line type">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceItemTypes',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}"/>
+                                    <dynamic-options transition="choices" server-search="true" min-length="0"
+                                            parameter-map="{choice:'invoiceItemTypes',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="productId">
                             <default-field title="Product">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}"/>
+                                    <dynamic-options transition="choices" server-search="true" min-length="0"
+                                            parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -577,7 +627,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                     <field name="actions">
                         <header-field title=""/>
                         <default-field>
-                            <container-dialog id="EditReceivableLine_${invoiceItemSeqId}" button-text="Edit" title="Edit invoice line ${invoiceItemSeqId}" width="720" condition="receivable.canEdit">
+                            <container-dialog id="EditReceivableLine_${invoiceItemSeqId}" button-text="Edit"
+                                    title="Edit invoice line ${invoiceItemSeqId}" width="720" condition="receivable.canEdit">
                                 <form-single name="FinanceEditInvoiceItem" transition="financeStoreItem">
                                     <field name="organizationPartyId" from="organizationPartyId">
                                         <default-field title="">
@@ -602,14 +653,16 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                     <field name="itemTypeEnumId">
                                         <default-field title="Line type">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'invoiceItemTypes',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}"/>
+                                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                        parameter-map="{choice:'invoiceItemTypes',organizationPartyId:organizationPartyId,selected:itemTypeEnumId}"/>
                                             </drop-down>
                                         </default-field>
                                     </field>
                                     <field name="productId">
                                         <default-field title="Product">
                                             <drop-down allow-empty="true">
-                                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}"/>
+                                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                        parameter-map="{choice:'products',organizationPartyId:organizationPartyId,selected:productId}"/>
                                             </drop-down>
                                         </default-field>
                                     </field>
@@ -651,7 +704,10 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                                     </field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="financeDeleteItem" text="Remove" link-type="hidden-form" btn-type="danger" condition="receivable.canEdit" confirmation="Remove line ${invoiceItemSeqId} from invoice ${invoiceId}?" parameter-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,invoiceItemSeqId:invoiceItemSeqId,lastUpdatedStamp:lastUpdatedStamp}"/>
+                            <link url="financeDeleteItem" text="Remove" link-type="hidden-form" btn-type="danger"
+                                    condition="receivable.canEdit"
+                                    confirmation="Remove line ${invoiceItemSeqId} from invoice ${invoiceId}?"
+                                    parameter-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId,invoiceItemSeqId:invoiceItemSeqId,lastUpdatedStamp:lastUpdatedStamp}"/>
                         </default-field>
                     </field>
                     <columns type="mobile">
@@ -665,13 +721,15 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="This invoice has no lines. Add a line before finalizing it." type="p" style="m-muted" condition="!receivable.lines.length"/>
+                <label text="This invoice has no lines. Add a line before finalizing it." type="p" style="m-muted"
+                        condition="!receivable.lines.length"/>
             </widgets>
         </section>
         <section name="InvoicePayments" condition="recordFound">
             <widgets>
                 <label text="Payments and credits" type="h6"/>
-                <container-dialog id="ApplyReceivableCredit" button-text="Apply a credit" title="Apply credit to invoice ${invoiceId}" width="720" condition="receivable.canApply">
+                <container-dialog id="ApplyReceivableCredit" button-text="Apply a credit"
+                        title="Apply credit to invoice ${invoiceId}" width="720" condition="receivable.canApply">
                     <form-single name="FinanceApplyCredit" transition="financeApplyCredit">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="">
@@ -691,7 +749,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         <field name="creditInvoiceId">
                             <default-field title="Credit memo">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'receivableCredits',organizationPartyId:organizationPartyId,selected:creditInvoiceId,invoiceId:invoiceId}"/>
+                                    <dynamic-options transition="choices" server-search="true" min-length="0"
+                                            parameter-map="{choice:'receivableCredits',organizationPartyId:organizationPartyId,selected:creditInvoiceId,invoiceId:invoiceId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -716,10 +775,12 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                     <field name="paymentId">
                         <header-field title="Payment or credit"/>
                         <conditional-field condition="!!paymentId">
-                            <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}" parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['Payments/PaymentDetail']}" text="${paymentId}"
+                                    parameter-map="{recordId:paymentId,organizationPartyId:organizationPartyId}"/>
                         </conditional-field>
                         <conditional-field condition="!!counterpartInvoiceId">
-                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${counterpartInvoiceId}" parameter-map="{recordId:counterpartInvoiceId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${counterpartInvoiceId}"
+                                    parameter-map="{recordId:counterpartInvoiceId,organizationPartyId:organizationPartyId}"/>
                         </conditional-field>
                         <default-field>
                             <display text="${paymentApplicationId || ''}"/>
@@ -754,7 +815,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="No receipts or credits are applied to this invoice." type="p" style="m-muted" condition="!receivable.payments.length"/>
+                <label text="No receipts or credits are applied to this invoice." type="p" style="m-muted"
+                        condition="!receivable.payments.length"/>
             </widgets>
         </section>
         <section name="InvoiceOrders" condition="recordFound">
@@ -796,7 +858,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="No order lines are linked to this invoice." type="p" style="m-muted" condition="!invoiceOrderRows.length"/>
+                <label text="No order lines are linked to this invoice." type="p" style="m-muted"
+                        condition="!invoiceOrderRows.length"/>
             </widgets>
         </section>
         <section name="InvoiceShipments" condition="recordFound">
@@ -831,7 +894,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="No shipments are linked to this invoice." type="p" style="m-muted" condition="!invoiceShipmentRows.length"/>
+                <label text="No shipments are linked to this invoice." type="p" style="m-muted"
+                        condition="!invoiceShipmentRows.length"/>
             </widgets>
         </section>
         <section name="InvoiceBudget" condition="recordFound">
@@ -866,8 +930,10 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="Budget allocation evidence is unavailable for this invoice." type="p" style="m-muted" condition="!receivable.budgetEvidenceAvailable"/>
-                <label text="No budget allocation is linked to this invoice." type="p" style="m-muted" condition="receivable.budgetEvidenceAvailable &amp;&amp; !receivable.budgets.length"/>
+                <label text="Budget allocation evidence is unavailable for this invoice." type="p" style="m-muted"
+                        condition="!receivable.budgetEvidenceAvailable"/>
+                <label text="No budget allocation is linked to this invoice." type="p" style="m-muted"
+                        condition="receivable.budgetEvidenceAvailable &amp;&amp; !receivable.budgets.length"/>
             </widgets>
         </section>
         <section name="InvoiceGeneralLedger" condition="recordFound">
@@ -877,7 +943,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                     <field name="acctgTransId">
                         <header-field title="Transaction"/>
                         <conditional-field condition="accounting.capabilities.reportRead || accounting.capabilities.glPost">
-                            <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId}" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}" text="${acctgTransId}"
+                                    parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
                         </conditional-field>
                         <default-field>
                             <display/>
@@ -912,8 +979,10 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="Ledger details require ledger read access." type="p" style="m-muted" condition="!accounting.capabilities.reportRead &amp;&amp; !accounting.capabilities.glPost"/>
-                <label text="No ledger transaction is linked to this invoice." type="p" style="m-muted" condition="(accounting.capabilities.reportRead || accounting.capabilities.glPost) &amp;&amp; !receivable.ledger.length"/>
+                <label text="Ledger details require ledger read access." type="p" style="m-muted"
+                        condition="!accounting.capabilities.reportRead &amp;&amp; !accounting.capabilities.glPost"/>
+                <label text="No ledger transaction is linked to this invoice." type="p" style="m-muted"
+                        condition="(accounting.capabilities.reportRead || accounting.capabilities.glPost) &amp;&amp; !receivable.ledger.length"/>
             </widgets>
         </section>
         <section name="InvoiceFiles" condition="recordFound">
@@ -925,7 +994,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
         <section name="InvoiceConversation" condition="recordFound">
             <widgets>
                 <label text="Conversation" type="h6"/>
-                <chatter id="AccountingInvoiceConversation" record-entity="mantle.account.invoice.Invoice" record-id="${invoiceId}" default-tab="log"/>
+                <chatter id="AccountingInvoiceConversation" record-entity="mantle.account.invoice.Invoice"
+                        record-id="${invoiceId}" default-tab="log"/>
             </widgets>
         </section>
         <section name="InvoiceHistory" condition="recordFound">
@@ -973,7 +1043,8 @@ for (const recipient of Array.from(financeResult.recipientResults || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="No changes have been recorded for this invoice." type="p" style="m-muted" condition="!receivable.history.length"/>
+                <label text="No changes have been recorded for this invoice." type="p" style="m-muted"
+                        condition="!receivable.history.length"/>
             </widgets>
         </section>
     </widgets>

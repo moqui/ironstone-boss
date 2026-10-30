@@ -12,7 +12,9 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Budget details" default-menu-index="6">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Budget details"
+        default-menu-index="6">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="invoiceId"/>
@@ -27,11 +29,17 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <actions>
         <if condition="typeof receivable === 'undefined' || receivable === null">
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext" in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context" transaction="force-new" ignore-error="true"/>
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
+                    in-map="{organizationPartyId:organizationPartyId,invoiceId:invoiceId || recordId}" out-map="context"
+                    transaction="force-new" ignore-error="true"/>
             <set field="recordFound" from="typeof receivable !== 'undefined' &amp;&amp; !!receivable?.invoiceId"/>
-            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ? {lines:[],payments:[],sources:[],shipments:[],ledger:[],content:[],history:[],budgets:[],deliveries:[],deliveryRecipients:[],totals:{}} : receivable"/>
-            <set field="invoiceHeaderValue" from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
-            <set field="invoiceSendValue" from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
+            <set field="receivable" from="typeof receivable === 'undefined' || receivable === null ?
+                {lines:[], payments:[], sources:[], shipments:[], ledger:[], content:[], history:[], budgets:[],
+                    deliveryRecipients:[], totals:{}} : receivable"/>
+            <set field="invoiceHeaderValue"
+                    from="typeof invoiceHeaderValue === 'undefined' || invoiceHeaderValue === null ? {} : invoiceHeaderValue"/>
+            <set field="invoiceSendValue"
+                    from="typeof invoiceSendValue === 'undefined' || invoiceSendValue === null ? {} : invoiceSendValue"/>
         </if>
         <set field="invoiceCurrencyUomId" from="typeof receivable === 'undefined' ? null : receivable.currencyUomId"/>
     </actions>

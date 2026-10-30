@@ -12,7 +12,9 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice batch" default-menu-include="false">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Invoice batch"
+        default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="invoiceIdList"/>
     <parameter name="operationKey"/>
@@ -27,7 +29,9 @@ if (reviewed !== 'Y') throw new Error('Review the selected invoices before proce
 invoiceIdList = Array.isArray(invoiceIdList) ? invoiceIdList : /^\s*\[/.test(String(invoiceIdList || '')) ? JSON.parse(invoiceIdList) : String(invoiceIdList || '').split(',').filter(Boolean)
 sourceVersions = typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions
 ]]></script>
-            <service-call name="mantle.account.InvoiceServices.process#InvoiceBatch" in-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,action:batchAction,operationKey:operationKey,sourceVersions:typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions,template:'standard',toAddresses:toAddresses}" out-map="batchResult"/>
+            <service-call name="mantle.account.InvoiceServices.process#InvoiceBatch"
+                    in-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,action:batchAction,operationKey:operationKey,sourceVersions:typeof sourceVersions === 'string' ? JSON.parse(sourceVersions) : sourceVersions,template:'standard',toAddresses:toAddresses}"
+                    out-map="batchResult"/>
             <script><![CDATA[
 for (const result of Array.from(batchResult.results || [])) {
     const text = (result.invoiceId || 'Invoice') + ': ' + (result.message || result.errorMessage || result.error || result.status || (result.success ? 'Completed' : 'Failed'))
@@ -48,14 +52,17 @@ for (const result of Array.from(batchResult.results || [])) {
     </transition>
     <transition name="exportInvoices" read-only="true">
         <actions>
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context" out-map="exported"/>
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context"
+                    out-map="exported"/>
             <script>ec.web.sendTextResponse(exported.batchCsv,'text/csv','Accounting-invoices.csv')</script>
         </actions>
         <default-response type="none"/>
     </transition>
     <transition name="downloadPrintedInvoice" read-only="true">
         <actions>
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchOutput" in-map="{organizationPartyId:organizationPartyId,invoiceId:downloadInvoiceId,operationKey:operationKey}" out-map="printed"/>
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchOutput"
+                    in-map="{organizationPartyId:organizationPartyId,invoiceId:downloadInvoiceId,operationKey:operationKey}"
+                    out-map="printed"/>
             <script>ec.web.sendResourceResponse(printed.fileLocation,false,printed.fileName)</script>
         </actions>
         <default-response type="none"/>
@@ -67,7 +74,8 @@ for (const result of Array.from(batchResult.results || [])) {
         <set field="batchCount" from="0"/>
         <set field="sourceVersions" from="sourceVersions || null"/>
         <if condition="organizationPartyId">
-            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context" out-map="context"/>
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceBatchContext" in-map="context"
+                    out-map="context"/>
         </if>
     </actions>
     <widgets>
@@ -76,12 +84,14 @@ for (const result of Array.from(batchResult.results || [])) {
         <section name="OrganizationChosen" condition="organizationPartyId">
             <widgets>
                 <label text="Review selected invoices" type="h5"/>
-                <label text="Review each customer, amount and recipient before sending. A failed invoice leaves the rest available to process." type="p"/>
+                <label text="Review each customer, amount and recipient before sending. A failed invoice leaves the rest available to process."
+                        type="p"/>
                 <form-list name="InvoiceBatchReview" list="batchRows" skip-form="true" paginate="false">
                     <field name="invoiceId">
                         <header-field title="Invoice"/>
                         <default-field>
-                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}" parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
+                            <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}"
+                                    parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
                         </default-field>
                     </field>
                     <field name="customerName">
@@ -126,7 +136,8 @@ for (const result of Array.from(batchResult.results || [])) {
                         </column>
                     </columns>
                 </form-list>
-                <label text="Select invoices from the invoice list to start a review." type="p" style="m-muted" condition="!batchRows.length"/>
+                <label text="Select invoices from the invoice list to start a review." type="p" style="m-muted"
+                        condition="!batchRows.length"/>
                 <section name="InvoiceBatchConfirmation" condition="batchCount &gt; 0 &amp;&amp; batchAction !== 'export'">
                     <widgets>
                         <form-single name="InvoiceBatchConfirm" transition="processBatch" map="context">
@@ -172,14 +183,18 @@ for (const result of Array.from(batchResult.results || [])) {
                             </field>
                             <field name="submit">
                                 <default-field title="">
-                                    <submit text="Process reviewed invoices" confirmation="Process ${batchCount} reviewed invoices? Each failure will be named."/>
+                                    <submit text="Process reviewed invoices"
+                                            confirmation="Process ${batchCount} reviewed invoices? Each failure will be named."/>
                                 </default-field>
                             </field>
                         </form-single>
                     </widgets>
                 </section>
-                <link url="." text="Review another send" link-type="anchor-button" condition="batchResults.length" parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,operationKey:'',sourceVersions:'',toAddresses:'',batchAction:'send'}"/>
-                <link url="exportInvoices" text="Export reviewed invoices" link-type="anchor-button" icon="sym_o_download" condition="batchCount &gt; 0" parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList}"/>
+                <link url="." text="Review another send" link-type="anchor-button" condition="batchResults.length"
+                        parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList,operationKey:'',sourceVersions:'',toAddresses:'',batchAction:'send'}"/>
+                <link url="exportInvoices" text="Export reviewed invoices" link-type="anchor-button" icon="sym_o_download"
+                        condition="batchCount &gt; 0"
+                        parameter-map="{organizationPartyId:organizationPartyId,invoiceIdList:invoiceIdList}"/>
                 <section name="InvoiceBatchResults" condition="batchResults.length">
                     <widgets>
                         <label text="Invoice results" type="h6"/>
@@ -211,7 +226,8 @@ for (const result of Array.from(batchResult.results || [])) {
                             </field>
                             <field name="download">
                                 <default-field title="Output">
-                                    <link url="downloadPrintedInvoice" text="Download reviewed PDF" condition="hasPrint" parameter-map="{organizationPartyId:organizationPartyId,operationKey:operationKey,downloadInvoiceId:invoiceId}"/>
+                                    <link url="downloadPrintedInvoice" text="Download reviewed PDF" condition="hasPrint"
+                                            parameter-map="{organizationPartyId:organizationPartyId,operationKey:operationKey,downloadInvoiceId:invoiceId}"/>
                                 </default-field>
                             </field>
                             <columns type="mobile">
@@ -229,7 +245,8 @@ for (const result of Array.from(batchResult.results || [])) {
                         </form-list>
                     </widgets>
                 </section>
-                <link url="${sharedLinks['Receivables/Invoices']}" text="Back to invoices" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                <link url="${sharedLinks['Receivables/Invoices']}" text="Back to invoices"
+                        parameter-map="{organizationPartyId:organizationPartyId}"/>
             </widgets>
         </section>
     </widgets>

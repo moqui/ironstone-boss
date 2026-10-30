@@ -12,52 +12,53 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Statements" default-menu-index="3">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Statements" default-menu-index="3">
     <parameter name="organizationPartyId"/>
     <parameter name="customerPartyId"/>
-    <parameter name="snapshotId"/>
-    <parameter name="inputFingerprint"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="includeZeroBalance"/>
+    <parameter name="showStatements"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingReceivables.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="previewStatements">
-        <actions>
-            <service-call name="mantle.account.CollectionServices.preview#Statements" in-map="{organizationPartyId:organizationPartyId,customerPartyIdList:customerPartyId ? [customerPartyId] : null,fromDate:fromDate,asOfDate:asOfDate,currencyUomId:currencyUomId,includeZeroBalance:includeZeroBalance === 'Y'}" out-map="preview"/>
-            <set field="snapshotId" from="preview.snapshotId"/>
-            <set field="inputFingerprint" from="preview.inputFingerprint"/>
-        </actions>
-        <default-response url=".">
-            <parameter name="snapshotId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="customerPartyId"/>
-            <parameter name="inputFingerprint"/>
-        </default-response>
+        <actions><set field="showStatements" value="Y"/></actions>
+        <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="sendStatements">
         <actions>
-            <service-call name="mantle.account.CollectionServices.send#Statements" in-map="{snapshotId:snapshotId,inputFingerprint:inputFingerprint,operationKey:operationKey,toAddresses:toAddresses}" out-map="delivery"/>
-            <script><![CDATA[
-for (const result of Array.from(delivery.results || [])) {
-    const accepted = ['sent','queued'].includes(result.status)
-    const outcome = result.status === 'queued' ? 'Queued for delivery' : result.status === 'sent' ? 'Sent' : result.errorMessage || 'Failed'
-    ec.message.addMessage((result.recipient || result.customerPartyId || 'Recipient') + ': ' + outcome,
-        accepted && !result.errorMessage ? 'success' : 'warning')
-}
-]]></script>
+            <set field="statementSelection" from="{organizationPartyId:organizationPartyId,
+                customerPartyIdList:(customerPartyId ? [customerPartyId] : null), currencyUomId:currencyUomId || null,
+                asOfDate:asOfDate || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
+            <service-call name="mantle.account.CollectionServices.send#Statements" out-map="delivery"
+                    in-map="Object.assign({operationKey:operationKey, toAddresses:toAddresses || null}, statementSelection)"/>
+            <iterate list="delivery.results ?? []" entry="result">
+                <set field="outcome" from="result.status == 'queued' ? 'Queued for delivery' : result.status == 'sent' ? 'Sent' :
+                    (result.errorMessage || 'Failed')"/>
+                <if condition="result.status == 'failed'"><then>
+                    <message type="warning">${result.recipient || result.customerPartyId}: ${outcome}</message>
+                </then><else>
+                    <message type="success">${result.recipient}: ${outcome}</message>
+                </else></if>
+            </iterate>
+            <set field="showStatements" value="Y"/>
         </actions>
-        <default-response url=".">
-            <parameter name="snapshotId"/>
-            <parameter name="organizationPartyId"/>
-            <parameter name="customerPartyId"/>
-            <parameter name="inputFingerprint"/>
-        </default-response>
+        <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <set field="statementPreview" from="{}"/>
-        <if condition="snapshotId">
-            <service-call name="mantle.account.CollectionServices.get#StatementPreview" in-map="{snapshotId:snapshotId,organizationPartyId:organizationPartyId}" out-map="statementPreview"/>
+        <set field="statements" from="{}"/>
+        <if condition="organizationPartyId &amp;&amp; showStatements == 'Y'">
+            <service-call name="mantle.account.CollectionServices.get#Statements" out-map="statements" transaction="force-new"
+                    ignore-error="true" in-map="{organizationPartyId:organizationPartyId,
+                        customerPartyIdList:(customerPartyId ? [customerPartyId] : null), currencyUomId:currencyUomId || null,
+                        asOfDate:asOfDate || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
         </if>
+        <set field="printParameters" from="{organizationPartyId:organizationPartyId, customerPartyId:customerPartyId,
+            currencyUomId:currencyUomId, asOfDate:asOfDate, includeZeroBalance:includeZeroBalance}"/>
     </actions>
     <widgets>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -74,24 +75,24 @@ for (const result of Array.from(delivery.results || [])) {
                     <field name="customerPartyId">
                         <default-field title="Customer">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,selected:customerPartyId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'parties',
+                                            organizationPartyId:organizationPartyId, selected:customerPartyId}"/>
                             </drop-down>
                         </default-field>
                     </field>
-                    <field name="fromDate">
-                        <default-field title="From">
-                            <date-time type="date"/>
-                        </default-field>
-                    </field>
                     <field name="asOfDate">
-                        <default-field title="As of">
+                        <default-field title="As of"
+                                tooltip="The aging is as of this date; the balances are the open ones today.">
                             <date-time type="date"/>
                         </default-field>
                     </field>
                     <field name="currencyUomId">
                         <default-field title="Currency">
                             <drop-down allow-empty="true">
-                                <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:currencyUomId}"/>
+                                <dynamic-options transition="choices" server-search="true" min-length="0"
+                                        parameter-map="{choice:'currencies',
+                                            organizationPartyId:organizationPartyId, selected:currencyUomId}"/>
                             </drop-down>
                         </default-field>
                     </field>
@@ -108,46 +109,54 @@ for (const result of Array.from(delivery.results || [])) {
                         </default-field>
                     </field>
                 </form-single>
-                <section name="StatementSnapshot" condition="!!snapshotId">
+                <section name="StatementPreview" condition="showStatements == 'Y'">
                     <widgets>
-                        <label text="Reviewed statement snapshot" type="h6"/>
-                        <section-iterate name="StatementCurrencies" list="statementPreview.statementRows || []" entry="statementRow">
+                        <label text="Statement preview" type="h6"/>
+                        <label text="No customer has an open balance for this selection." type="p" style="m-muted"
+                                condition="!(statements.statementRows ?? []).length"/>
+                        <section-iterate name="StatementCurrencies" list="statements.statementRows ?? []" entry="statementRow">
                             <widgets>
                                 <container-box>
-                                    <box-header title="${statementRow.customerName || statementRow.customerPartyId} · ${statementRow.currencyUomId}"/>
+                                    <box-header title="${statementRow.customerName} · ${statementRow.currencyUomId}"/>
                                     <box-body>
-                                        <label text="Opening ${ec.l10n.formatCurrency(statementRow.openingBalance ?? 0, statementRow.currencyUomId)} · Closing ${ec.l10n.formatCurrency(statementRow.closingBalance ?? 0, statementRow.currencyUomId)}" type="p"/>
-                                        <label text="Recipients: ${(statementRow.recipients || []).join(', ') || 'Choose a recipient before sending'}" type="p" style="text-caption m-muted"/>
-                                        <form-list name="StatementInvoices" list="statementRow.invoiceRows || []" skip-form="true" paginate="false">
+                                        <label type="p" text="Unpaid ${statementRow.unpaidText}"/>
+                                        <label type="p" text="Unapplied ${statementRow.unappliedText}"/>
+                                        <label type="p" text="Balance due ${statementRow.closingBalanceText}"/>
+                                        <label type="p" style="text-caption m-muted"
+                                                text="Recipients: ${statementRow.recipients.join(', ') || 'none'}"/>
+                                        <form-list name="StatementInvoices" list="statementRow.invoiceRows" skip-form="true"
+                                                paginate="false">
                                             <field name="invoiceId">
                                                 <default-field title="Invoice">
-                                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}" parameter-map="{recordId:invoiceId,organizationPartyId:organizationPartyId}"/>
+                                                    <link url="${sharedLinks['Receivables/InvoiceDetail']}" text="${invoiceId}"
+                                                            parameter-map="{recordId:invoiceId,
+                                                                organizationPartyId:organizationPartyId}"/>
                                                 </default-field>
                                             </field>
-                                            <field name="invoiceDate">
+                                            <field name="invoiceDateText">
                                                 <default-field title="Date">
-                                                    <display text="${invoiceDateText || ''}"/>
+                                                    <display/>
                                                 </default-field>
                                             </field>
-                                            <field name="dueDate">
+                                            <field name="dueDateText">
                                                 <default-field title="Due">
-                                                    <display text="${dueDateText || ''}"/>
+                                                    <display/>
                                                 </default-field>
                                             </field>
                                             <field name="invoiceTotal" align="right">
-                                                <default-field title="Original">
+                                                <default-field title="Total">
                                                     <display currency-unit-field="currencyUomId"/>
                                                 </default-field>
                                             </field>
                                             <field name="unpaidTotal" align="right">
-                                                <default-field title="Remaining">
+                                                <default-field title="Unpaid">
                                                     <display currency-unit-field="currencyUomId"/>
                                                 </default-field>
                                             </field>
                                             <columns type="mobile">
                                                 <column>
                                                     <field-ref name="invoiceId"/>
-                                                    <field-ref name="dueDate"/>
+                                                    <field-ref name="dueDateText"/>
                                                 </column>
                                                 <column>
                                                     <field-ref name="invoiceTotal"/>
@@ -155,7 +164,8 @@ for (const result of Array.from(delivery.results || [])) {
                                                 </column>
                                             </columns>
                                         </form-list>
-                                        <form-list name="StatementReceipts" list="statementRow.paymentRows || []" skip-form="true" paginate="false">
+                                        <form-list name="StatementReceipts" list="statementRow.paymentRows" skip-form="true"
+                                                paginate="false">
                                             <field name="paymentId">
                                                 <default-field title="Receipt">
                                                     <display/>
@@ -167,7 +177,7 @@ for (const result of Array.from(delivery.results || [])) {
                                                 </default-field>
                                             </field>
                                             <field name="amount" align="right">
-                                                <default-field title="Original">
+                                                <default-field title="Amount">
                                                     <display currency-unit-field="currencyUomId"/>
                                                 </default-field>
                                             </field>
@@ -190,64 +200,33 @@ for (const result of Array.from(delivery.results || [])) {
                                 </container-box>
                             </widgets>
                         </section-iterate>
-                        <html-view html="${statementPreview.previewHtml || ''}" text="Customer statement snapshot ${snapshotId}"/>
-                        <section name="StatementDeliveryResults" condition="(statementPreview.results || []).length">
+                        <section name="StatementActions" condition="(statements.statementRows ?? []).length">
                             <widgets>
-                                <label text="Statement delivery results" type="h6"/>
-                                <form-list name="StatementDeliveryResults" list="statementPreview.results" skip-form="true" paginate="false">
-                                    <field name="customerPartyId">
-                                        <default-field title="Customer">
-                                            <display/>
-                                        </default-field>
-                                    </field>
-                                    <field name="currencyUomId">
-                                        <default-field title="Currency">
-                                            <display-entity entity-name="moqui.basic.Uom"/>
-                                        </default-field>
-                                    </field>
-                                    <field name="recipient">
-                                        <default-field title="Recipient">
-                                            <display/>
-                                        </default-field>
-                                    </field>
-                                    <field name="status">
-                                        <default-field title="Outcome">
-                                            <display/>
-                                        </default-field>
-                                    </field>
-                                    <field name="errorMessage">
-                                        <default-field title="Failure">
-                                            <display/>
-                                        </default-field>
-                                    </field>
-                                    <columns type="mobile">
-                                        <column>
-                                            <field-ref name="customerPartyId"/>
-                                            <field-ref name="recipient"/>
-                                        </column>
-                                        <column>
-                                            <field-ref name="status"/>
-                                            <field-ref name="errorMessage"/>
-                                        </column>
-                                    </columns>
-                                </form-list>
-                            </widgets>
-                        </section>
-                        <link url="${sharedLinks['Receivables/StatementPrint']}" text="Print statements" target-window="_blank" parameter-map="{snapshotId:snapshotId,organizationPartyId:organizationPartyId}"/>
-                        <section name="StatementSend" condition="accounting.capabilities.arEdit">
-                            <widgets>
-                                <form-single name="StatementDelivery" transition="sendStatements">
+                                <link url="${sharedLinks['Receivables/StatementPrint']}" text="Print statements"
+                                        target-window="_blank" parameter-map="printParameters"/>
+                                <form-single name="StatementDelivery" transition="sendStatements"
+                                        condition="accounting.capabilities.arEdit">
                                     <field name="organizationPartyId" from="organizationPartyId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="snapshotId" from="snapshotId">
+                                    <field name="customerPartyId" from="customerPartyId">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
                                     </field>
-                                    <field name="inputFingerprint" from="statementPreview.inputFingerprint">
+                                    <field name="currencyUomId" from="currencyUomId">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="asOfDate" from="asOfDate">
+                                        <default-field title="">
+                                            <hidden/>
+                                        </default-field>
+                                    </field>
+                                    <field name="includeZeroBalance" from="includeZeroBalance">
                                         <default-field title="">
                                             <hidden/>
                                         </default-field>
@@ -264,7 +243,7 @@ for (const result of Array.from(delivery.results || [])) {
                                     </field>
                                     <field name="submit">
                                         <default-field title="">
-                                            <submit text="Send reviewed statements" confirmation="Send the reviewed statements?"/>
+                                            <submit text="Send statements" confirmation="Send these statements?"/>
                                         </default-field>
                                     </field>
                                 </form-single>

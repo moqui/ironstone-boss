@@ -5,6 +5,7 @@ const native = "mantle.account.PaymentServices."
 const organizationPartyId = helper.ids.organizationPartyId
 const paymentId = "BOSS_ACCT_PAY_DRAFT"
 const contextService = "ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+const reviewService = "ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext"
 const request = {organizationPartyId, paymentId}
 function rejected(action) {
     try {
@@ -161,7 +162,8 @@ feature("retained payment review confirmation has a stable preview-bound retry k
         first.operationKey != changed.operationKey
         first.confirmParameters.inputFingerprint == "fingerprint"
         first.evidenceRows[0].version == "reviewed"
-        first.ledgerPreview[0].currencyUomId == "USD"
+        first.ledgerPreviewRows[0].currencyUomId == "USD"
+        first.ledgerPreviewRows[0].debit == "12.50"
         first.canConfirm == true
         first.paymentSummary.amount == "12.50"
         unavailable.canConfirm == false
@@ -188,8 +190,8 @@ feature("treasury and receivable readers receive the same allowed payment identi
         treasury.financePayment.canEdit == true
         receivable.financePayment.canEdit == false
         reader.financePayment.canEdit == false
-        treasury.paymentHeaderValue.effectiveDate == treasury.financePayment.accountingDateText
-        String(treasury.paymentHeaderValue.effectiveDate).match(/^\d{4}-\d{2}-\d{2}$/) != null
+        treasury.paymentDraftValue.effectiveDate == treasury.financePayment.accountingDateText
+        String(treasury.paymentDraftValue.effectiveDate).match(/^\d{4}-\d{2}-\d{2}$/) != null
         !/"(?:accountNumber|routingNumber|cardNumber|gatewayResponse|credentials)"/.test(JSON.stringify(receivable))
     }
 })
@@ -232,19 +234,19 @@ feature("a retained payment review cannot be presented under another valid same-
                 reason: "Read-only confirmation review"
             })
             return {
-                first: helper.call(contextService, Object.assign({}, request, {previewId: firstPreview.previewId})),
-                other: helper.call(contextService, {
+                first: helper.call(reviewService, Object.assign({}, request, {previewId: firstPreview.previewId})),
+                other: helper.call(reviewService, {
                     organizationPartyId,
                     paymentId: otherPaymentId,
                     previewId: otherPreview.previewId
                 }),
-                refused: helper.refusal(contextService, Object.assign({}, request, {previewId: otherPreview.previewId}))
+                refused: helper.refusal(reviewService, Object.assign({}, request, {previewId: otherPreview.previewId}))
             }
         })
     },
     then({first, other, refused}) {
-        first.recordFound == true
-        other.recordFound == true
+        first.reviewFound == true
+        other.reviewFound == true
         first.paymentReview.paymentId == first.paymentId
         other.paymentReview.paymentId == other.paymentId
         first.paymentId != other.paymentId
@@ -259,7 +261,7 @@ feature("payment list and all seven tabs render actual authorized fields in QVT 
                 ["Payments/Payments", "Payments"],
                 ["Payments/PaymentDetail/Overview", "Payment overview"],
                 ["Payments/PaymentDetail/Applications", "Applications and open items"],
-                ["Payments/PaymentDetail/Gateway", "Gateway evidence"],
+                ["Payments/PaymentDetail/Gateway", "Gateway answers"],
                 ["Payments/PaymentDetail/Refunds", "Linked refunds"],
                 ["Payments/PaymentDetail/GeneralLedger", "Payment ledger"],
                 ["Payments/PaymentDetail/Files", "Payment files and issued documents"],
@@ -286,14 +288,20 @@ feature("payment list and all seven tabs render actual authorized fields in QVT 
     }
 })
 
-feature("payment header pairs visible treasury actions with reader absence and read-only gateway evidence", {
+feature("the payment header shows treasury its one primary action and More menu, and readers neither", {
     when() {
+        const treasury = helper.asUser("finance.treasury", () => helper.page("Payments/PaymentDetail", request))
+        // each dialog and form of the header has its own id on the page
+        const ids = [...treasury.output.matchAll(/<(?:m-form|m-container-dialog)\b[^>]*\bid="([^"]+)"/g)].map(match => match[1])
         return {
-            treasury: helper.asUser("finance.treasury", () => helper.page("Payments/PaymentDetail", request)),
+            treasury,
+            ids,
             reader: helper.asUser("finance.ar", () => helper.page("Payments/PaymentDetail", request))
         }
     },
-    then({treasury, reader}) {
+    then({treasury, ids, reader}) {
+        ids.length > 4
+        new Set(ids).size == ids.length
         !treasury.errors.length
         !reader.errors.length
         treasury.output.includes("Validate payment")
@@ -489,12 +497,17 @@ feature("a completed payment owned by #user renders authorized posting reference
                     previewKind: "state",
                     lastStandalone: "-4"
                 },
-                presented = helper.call(contextService, parameters).paymentReview
+                presented = helper.call(reviewService, parameters).paymentReview
             // The real app mount supplies its authorized shared links and resolves //Accounting destinations.
             const pages = ["qvt", "tui", "html"].map(mode => {
                 const renderer = ec.screen.makeTest().rootScreen("component://webroot/screen/webroot.xml").renderMode(mode)
                 if (mode === "qvt") renderer.withStaticData()
-                const rendered = renderer.render("apps/Accounting/Payments/PaymentDetail", parameters, null),
+                // the shell loads a qvt tab on its own, so the qvt render is the review alone
+                const rendered = renderer.render(
+                        "apps/Accounting/Payments/PaymentDetail/Review",
+                        mode === "qvt" ? Object.assign({}, parameters, {lastStandalone: "true"}) : parameters,
+                        null
+                    ),
                     output = String(rendered.output || ""),
                     links = []
                 let postingGridPresent = false,
@@ -506,14 +519,14 @@ feature("a completed payment owned by #user renders authorized posting reference
                         if (Array.isArray(value)) pending.push(...value)
                         else if (value && typeof value === "object") {
                             if (value.t === "link") links.push(value)
-                            if (value.t === "formList" && value.name === "PaymentActualPostingResults") postingGridPresent = true
-                            if (value.t === "formList" && value.name === "PaymentStateEffects") effectGridPresent = true
+                            if (value.t === "formList" && value.name === "ReviewPostingResults") postingGridPresent = true
+                            if (value.t === "formList" && value.name === "ReviewEffects") effectGridPresent = true
                             pending.push(...Object.values(value).filter(item => item && typeof item === "object"))
                         }
                     }
                 } else {
-                    postingGridPresent = /\bid="PaymentActualPostingResults[^"]*_table"/.test(output)
-                    effectGridPresent = /\bid="PaymentStateEffects[^"]*_table"/.test(output)
+                    postingGridPresent = /\bid="ReviewPostingResults[^"]*_table"/.test(output)
+                    effectGridPresent = /\bid="ReviewEffects[^"]*_table"/.test(output)
                     for (const match of output.matchAll(/<(a|m-link)\b([^>]*)>([\s\S]*?)<\/\1>/g)) {
                         const href = match[2].match(/\bhref="([^"]*)"/)
                         if (href)
@@ -566,10 +579,12 @@ feature("a completed payment owned by #user renders authorized posting reference
             page =>
                 page.status === 200 &&
                 !page.errors.length &&
-                page.output.includes("Completed results") &&
+                page.output.includes("Payment change completed") &&
                 page.output.includes("Issued files")
         )
         pages.every(page => page.postingGridPresent === expectLedger)
+        // under its review the header offers no other change of the payment
+        pages.every(page => !page.output.includes("Void payment"))
         presented.effectRows.length > 0
         pages.every(page => page.effectGridPresent === true)
         pages.every(page => expectedPostingIds.every(id => page.output.includes(id)))

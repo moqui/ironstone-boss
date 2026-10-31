@@ -12,15 +12,23 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- Quick create uses the same native reviewed draft form as the payment list. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="New payment" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<!-- Quick create's New payment: the payment list's draft form (template/AccountingPayments.xml PaymentDraftForm), which
+    opens the new payment. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="New payment"
+        default-menu-index="1"
+        default-menu-include="false">
     <parameter name="organizationPartyId"/>
-    <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
-    <transition-include name="createPaymentDraft" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="savePaymentDraft" location="component://mr-boss/template/AccountingPayments.xml"/>
     <actions>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentListContext" in-map="context" out-map="context"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentListContext"
+                in-map="{organizationPartyId:organizationPartyId, pageSize:1}"
+                out-map="listContext"/>
+        <set field="paymentDraftValue" from="listContext.paymentDraftValue"/>
     </actions>
     <widgets>
-        <section-include name="PaymentDraftEditorContent" location="component://mr-boss/screen/Accounting/Payments/Payments.xml"/>
+        <section-include name="PaymentDraftForm" location="component://mr-boss/template/AccountingPayments.xml"/>
     </widgets>
 </screen>

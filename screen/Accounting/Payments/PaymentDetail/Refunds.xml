@@ -12,41 +12,257 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="Refunds" default-menu-index="4">
+<!-- PaymentDetail's Refunds tab: what is refunded and left to refund, the refund payments, and Refund payment (a separate
+    refund payment, mantle.account.PaymentServices.preview#PaymentRefund) or Refund through the gateway, each reviewed in
+    PaymentDetail/Review. It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Refunds"
+        default-menu-index="4">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="paymentId"/>
-    <parameter name="previewId"/>
-    <parameter name="previewKind"/>
-    <parameter name="findJson"/>
-    <parameter name="gatewayFindJson"/>
-    <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="savePaymentDraft" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentRefund" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentRefund" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="lookupGatewayDetails" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+    <transition name="previewPaymentRefund">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentRefund" in-map="context"
+                    out-map="refundPreview"/>
+            <set field="previewId" from="refundPreview.previewId"/>
+            <set field="previewKind" value="refund"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Review"/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="previewGatewayAction" location="component://mr-boss/template/AccountingPayments.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
-        <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
-        <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
-        <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
-        <set field="paymentReview" from="paymentContext.paymentReview || {results:{},effectRows:[],evidenceRows:[],applicationEffects:[],ledgerPreview:[],blockers:[]}"/>
-        <set field="paymentId" from="paymentContext.paymentId || paymentId || recordId"/>
-        <set field="findJson" from="paymentContext.findJson || ''"/>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+        <set field="refundValue" from="financePayment?.refundValue || {}"/>
+        <!-- the choices' selected values: those of a submit that failed, else the form's -->
+        <set field="refundChoice"
+                from="ec.web.errorParameters?.moquiFormName == 'PaymentRefund' ? ec.web.errorParameters : refundValue"/>
     </actions>
     <widgets>
-        <section-include name="PaymentUnavailable" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-        <section-include name="PaymentRetainedReview" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-        <section name="PaymentRefundsTab" condition="recordFound &amp;&amp; !financePayment.hasReview">
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentRefunds" condition="recordFound">
             <widgets>
-                <section-include name="PaymentRefundsContent" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+                <container-box>
+                    <box-header title="Refunds"/>
+                    <box-toolbar>
+                        <container-dialog id="PaymentRefundDialog"
+                                button-text="Refund payment"
+                                title="Refund payment ${paymentId}"
+                                width="760"
+                                type="default"
+                                condition="financePayment.canPreviewRefund">
+                            <label text="A separate refund payment is delivered, posted on its date and applied to this payment."
+                                    type="p"/>
+                            <label text="Available to refund: ${financePayment.refundableText}"
+                                    type="p"
+                                    style="text-caption m-muted"/>
+                            <form-single name="PaymentRefund" transition="previewPaymentRefund" map="refundValue">
+                                <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                <field name="paymentId"><default-field><hidden/></default-field></field>
+                                <field name="amount">
+                                    <default-field title="Refund amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="effectiveDate">
+                                    <default-field title="Refund date">
+                                        <date-time type="date"/>
+                                    </default-field>
+                                </field>
+                                <field name="paymentInstrumentEnumId">
+                                    <default-field title="Instrument">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    depends-optional="true"
+                                                    parameter-map="{choice:'paymentDraftInstruments',
+                                                        organizationPartyId:organizationPartyId,
+                                                        selected:refundChoice.paymentInstrumentEnumId || null}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="organizationMethodToken">
+                                    <default-field title="Organization method">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    depends-optional="true"
+                                                    parameter-map="{choice:'reviewedOrganizationPaymentMethods',
+                                                        organizationPartyId:organizationPartyId,
+                                                        cashDirection:refundValue.cashDirection, partyId:refundValue.partyId,
+                                                        currencyUomId:refundValue.currencyUomId,
+                                                        selected:refundChoice.organizationMethodToken || null}">
+                                                <depends-on field="effectiveDate"/>
+                                            </dynamic-options>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="counterpartyMethodToken">
+                                    <default-field title="Counterparty method"
+                                            tooltip="The customer's or supplier's account or card the refund goes to">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    depends-optional="true"
+                                                    parameter-map="{choice:'reviewedCounterpartyPaymentMethods',
+                                                        organizationPartyId:organizationPartyId,
+                                                        cashDirection:refundValue.cashDirection, partyId:refundValue.partyId,
+                                                        currencyUomId:refundValue.currencyUomId,
+                                                        selected:refundChoice.counterpartyMethodToken || null}">
+                                                <depends-on field="effectiveDate"/>
+                                            </dynamic-options>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="referenceNumber">
+                                    <default-field title="Reference">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="reason">
+                                    <default-field title="Reason">
+                                        <text-area rows="2"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Review refund"/>
+                                    </default-field>
+                                </field>
+                                <field-layout>
+                                    <field-ref name="organizationPartyId"/>
+                                    <field-ref name="paymentId"/>
+                                    <field-row>
+                                        <field-ref name="amount"/>
+                                        <field-ref name="effectiveDate"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="paymentInstrumentEnumId"/>
+                                        <field-ref name="referenceNumber"/>
+                                    </field-row>
+                                    <field-row>
+                                        <field-ref name="organizationMethodToken"/>
+                                        <field-ref name="counterpartyMethodToken"/>
+                                    </field-row>
+                                    <field-ref name="reason"/>
+                                    <field-ref name="submit"/>
+                                </field-layout>
+                            </form-single>
+                        </container-dialog>
+                        <!-- over all the gateway actions, as the header does, so the dialog keeps its own index on the page -->
+                        <section-iterate name="GatewayRefund" list="financePayment.gatewayActionRows" entry="gatewayAction">
+                            <widgets>
+                                <section name="GatewayRefundDialog" condition="gatewayAction.placement == 'refunds'">
+                                    <widgets>
+                                        <section-include name="PaymentGatewayDialog"
+                                                location="component://mr-boss/template/AccountingPayments.xml"/>
+                                    </widgets>
+                                </section>
+                            </widgets>
+                        </section-iterate>
+                    </box-toolbar>
+                    <box-body>
+                        <section name="RefundSummary" condition="financePayment.refundSummaryAvailable">
+                            <widgets>
+                                <form-list name="PaymentRefundSummary"
+                                        list="financePayment.refundSummaryRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="label">
+                                        <default-field title="Amount of">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="label"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <label text="Not refundable now: the payment is not delivered, is a refund, or is all refunded."
+                                        type="p"
+                                        style="m-muted"
+                                        condition="!financePayment.canPreviewRefund &amp;&amp; !financePayment.canGatewayRefund"/>
+                            </widgets>
+                        </section>
+                        <label text="Refunds require treasury access."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.refundSummaryAvailable"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Linked refunds"/>
+                    <box-body>
+                        <form-list name="PaymentRefunds" list="financePayment.refundRows" skip-form="true" paginate="false">
+                            <field name="paymentId">
+                                <default-field title="Refund payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${paymentId}"
+                                            link-type="anchor"
+                                            parameter-map="recordParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="statusDescription">
+                                <default-field title="Status">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                            statusColor}">${
+                                            WebUtilities.encodeHtml(statusDescription || '')}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                            text: statusDescription || ""})}]]></text>
+                                        <text type="html">${statusDescription || ''}</text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="accountingDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="statusDescription"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="This payment has no refunds."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.refundRows.length"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

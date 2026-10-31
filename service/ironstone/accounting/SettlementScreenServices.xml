@@ -12,10 +12,12 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
     <service verb="get" noun="WorkbenchContext" allow-remote="false">
-        <description>Read a customer's open receivable items, the user's settlement draft kept by Mantle behind draftId, and
-            the retained settlement review with previewId, shaped for the workbench. Changes nothing.</description>
+        <description>Read a customer's open receivable items and the user's settlement draft kept by Mantle behind draftId,
+            shaped for the workbench. Refuses a user without receivable read authority and an organization the user may
+            not work in. Changes nothing.</description>
         <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
         <in-parameters>
             <parameter name="pageIndex" type="Integer"/>
@@ -37,7 +39,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="paymentTargetRowsPageIndex" type="Integer"/>
             <parameter name="paymentTargetRowsPageSize" type="Integer"/>
             <parameter name="draftId" type="String"/>
-            <parameter name="previewId" type="String"/>
         </in-parameters>
         <out-parameters>
             <parameter name="organizationPartyId" type="String"/>
@@ -50,7 +51,6 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="dueBucket" type="String"/>
             <parameter name="draftId" type="String"/>
             <parameter name="workbench" type="Map"/>
-            <parameter name="settlementReview" type="Map"/>
             <parameter name="draftAllocations" type="List"/>
             <parameter name="draftAdjustments" type="List"/>
             <parameter name="invoiceRows" type="List"/>
@@ -95,7 +95,6 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="dueBucket" from="screenContext.dueBucket"/>
             <set field="draftId" from="screenContext.draftId"/>
             <set field="workbench" from="screenContext.workbench"/>
-            <set field="settlementReview" from="screenContext.settlementReview"/>
             <set field="draftAllocations" from="screenContext.draftAllocations"/>
             <set field="draftAdjustments" from="screenContext.draftAdjustments"/>
             <set field="invoiceRows" from="screenContext.invoiceRows"/>
@@ -126,6 +125,37 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="paymentTargetRowsPageMaxIndex" from="screenContext.paymentTargetRowsPageMaxIndex"/>
             <set field="paymentTargetRowsPageRangeLow" from="screenContext.paymentTargetRowsPageRangeLow"/>
             <set field="paymentTargetRowsPageRangeHigh" from="screenContext.paymentTargetRowsPageRangeHigh"/>
+        </actions>
+    </service>
+    <service verb="get" noun="SettlementReviewContext" allow-remote="false">
+        <description>A retained settlement review for Receivables/SettlementReview
+            (mantle.account.PaymentServices.get#SettlementPreview): its allocations, adjustments, balances before and after
+            and postings, its results once confirmed, and the parameters of the way back to the selection with the user's
+            draft (draftId). Every part is there: a review that does not exist, expired or is another user's has
+            reviewFound false. Refuses a payable review, a user without receivable read authority and an organization the
+            user may not work in. Changes nothing.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="previewId" type="String"/>
+            <parameter name="draftId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId" type="String"/>
+            <parameter name="draftId" type="String"/>
+            <parameter name="reviewFound" type="Boolean"/>
+            <parameter name="settlementReview" type="Map"/>
+            <parameter name="selectionParameters" type="Map"/>
+            <parameter name="newSelectionParameters" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="screenContext" from="ec.resource.script(settlements).execute('settlementReview', context)"/>
+            <set field="previewId" from="screenContext.previewId"/>
+            <set field="draftId" from="screenContext.draftId"/>
+            <set field="reviewFound" from="screenContext.reviewFound"/>
+            <set field="settlementReview" from="screenContext.settlementReview"/>
+            <set field="selectionParameters" from="screenContext.selectionParameters"/>
+            <set field="newSelectionParameters" from="screenContext.newSelectionParameters"/>
         </actions>
     </service>
     <service verb="edit" noun="SettlementDraft" allow-remote="false">

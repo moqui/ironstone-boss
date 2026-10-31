@@ -194,15 +194,9 @@ function retainedDraft(preview) {
     }
 }
 
-function preview(parameters) {
-    return lib.optional(
-        native + "get#SettlementPreview",
-        {previewId: parameters.previewId, organizationPartyId: parameters.organizationPartyId},
-        "Settlement review " + parameters.previewId
-    )
-}
-
-function reviewPresentation(retained) {
+// A settlement review for Receivables/SettlementReview, every part present; its ledger and posting rows are those of the
+// review screens' shared sections.
+function reviewPresentation(retained, organizationPartyId = retained.organizationPartyId) {
     const currencyUomId = retained.currencyUomId
     const after = new Map(rows(retained.afterBalances).map(row => [row.sourceKey, row]))
     const labelFor = key => {
@@ -213,7 +207,20 @@ function reviewPresentation(retained) {
             item.id
         )
     }
-    return Object.assign(plain(retained), {
+    const results = {
+        allocationResults: rows(retained.results?.allocationResults).map(row =>
+            Object.assign(row, {currencyUomId, sourceLabel: labelFor(row.sourceKey), targetLabel: labelFor(row.targetKey)})
+        ),
+        adjustmentResults: rows(retained.results?.adjustmentResults).map(row => Object.assign(row, {currencyUomId})),
+        remainingRows: rows(retained.results?.remainingRows).map(row =>
+            Object.assign(row, {currencyUomId: row.currencyUomId || currencyUomId})
+        ),
+        settlementId: retained.results?.settlementId || null
+    }
+    const hasResults = !!results.settlementId
+    const canReadLedger = retained.capabilities?.canReadLedger === true
+    const shown = plain(retained)
+    return Object.assign(shown, {
         selectionThroughDate: retained.selectionThroughDateText || day(retained.selectionThroughDate),
         allocationRows: rows(retained.allocationRows).map(row =>
             Object.assign(row, {
@@ -237,53 +244,47 @@ function reviewPresentation(retained) {
             beforeRemaining: row.remaining,
             afterRemaining: after.get(row.sourceKey)?.remaining
         })),
-        ledgerRows: rows(retained.ledgerPreview).map(row =>
-            Object.assign(row, {
-                glAccountCode: row.accountCode || row.glAccountId,
-                glAccountName: row.accountName,
-                debit: row.debitCreditFlag === "D" ? row.amount : null,
-                credit: row.debitCreditFlag === "C" ? row.amount : null,
-                currencyUomId: row.currencyUomId || currencyUomId
-            })
+        ledgerPreviewRows: lib.ledgerPreviewRows(retained.ledgerPreview, currencyUomId, retained.accountingDateText),
+        hasResults,
+        canReadLedger,
+        canConfirm: retained.canApply === true && !hasResults,
+        confirmation:
+            "Apply this settlement for " +
+            (retained.partyName || retained.partyId || "") +
+            " on " +
+            (retained.accountingDateText || "") +
+            "?",
+        factRows: lib.factRows([
+            ["Customer", retained.partyName || retained.partyId],
+            ["Settlement date", retained.accountingDateText],
+            ["Documents through", retained.selectionThroughDateText || shown.selectionThroughDateText],
+            ["Expires", shown.expiresDateText]
+        ]),
+        confirmParameters: {
+            organizationPartyId,
+            previewId: retained.previewId,
+            inputFingerprint: retained.inputFingerprint,
+            operationKey: retained.operationKey
+        },
+        postingResultRows: lib.postingResultRows(
+            [...results.allocationResults, ...results.adjustmentResults].flatMap(row => array(row.acctgTransIds)),
+            canReadLedger
         ),
-        results: retained.results
-            ? Object.assign({}, retained.results, {
-                  allocationResults: rows(retained.results.allocationResults).map(row =>
-                      Object.assign(row, {
-                          currencyUomId,
-                          sourceLabel: labelFor(row.sourceKey),
-                          targetLabel: labelFor(row.targetKey),
-                          postingIdsText: array(row.acctgTransIds).join(", ")
-                      })
-                  ),
-                  adjustmentResults: rows(retained.results.adjustmentResults).map(row =>
-                      Object.assign(row, {currencyUomId, postingIdsText: array(row.acctgTransIds).join(", ")})
-                  )
-              })
-            : {}
+        outputResultRows: [],
+        results
     })
 }
 
+// The workbench: the customer's open items, a page of each kind, and the user's draft of allocations and adjustments.
 function workbench(parameters) {
-    let current = scope(parameters)
-    const retained = parameters.previewId
-        ? preview(Object.assign({}, parameters, {organizationPartyId: current.organizationPartyId}))
-        : null
-    if (retained?.direction && retained.direction !== "receivable") throw new Error("This workbench is for customer receivables")
-    let draft,
-        selectionReset = false
-    if (retained) {
-        draft = retainedDraft(retained)
-        current = Object.assign(current, draft.scope)
-    } else {
-        const stored = storedDraft(parameters.draftId)
-        const incoming = parseDraft(stored)
-        const changedScope =
-            incoming.scope &&
-            Object.keys(draftScope(current)).some(key => String(incoming.scope[key] || "") !== String(current[key] || ""))
-        selectionReset = !!changedScope && parameters.filterSubmit === "Y"
-        draft = scopedDraft(selectionReset ? null : stored, current)
-    }
+    const current = scope(parameters)
+    const stored = storedDraft(parameters.draftId)
+    const incoming = parseDraft(stored)
+    const changedScope =
+        incoming.scope &&
+        Object.keys(draftScope(current)).some(key => String(incoming.scope[key] || "") !== String(current[key] || ""))
+    const selectionReset = !!changedScope && parameters.filterSubmit === "Y"
+    const draft = scopedDraft(selectionReset ? null : stored, current)
     const pageByKind = Object.fromEntries(
         kinds.map(kind => [
             kind,
@@ -300,7 +301,7 @@ function workbench(parameters) {
         ])
     )
     if (selectedKeys.length > 200) throw new Error("Choose at most 200 distinct open items in one settlement")
-    const requested = !retained && !!(current.organizationPartyId && current.partyId && current.currencyUomId)
+    const requested = !!(current.organizationPartyId && current.partyId && current.currencyUomId)
     const found = requested
         ? policy.call(
               native + "find#OpenItems",
@@ -351,6 +352,7 @@ function workbench(parameters) {
             target = tokenLabel(row.targetToken)
         return Object.assign({}, row, {
             rowId: "allocation-" + index,
+            draftAction: "updateAllocation",
             sourceLabel: source.label,
             targetLabel: target.label,
             reviewNote:
@@ -365,7 +367,7 @@ function workbench(parameters) {
         })
     })
     const accounts =
-        draft.adjustments.length && current.capabilities.arEdit && !retained
+        draft.adjustments.length && current.capabilities.arEdit
             ? policy.call(native + "find#SettlementAdjustmentAccounts", {
                   organizationPartyId: current.organizationPartyId,
                   direction: "receivable",
@@ -383,6 +385,7 @@ function workbench(parameters) {
     const adjustments = draft.adjustments.map((row, index) =>
         Object.assign({}, row, {
             rowId: "adjustment-" + index,
+            draftAction: "updateAdjustment",
             targetLabel: tokenLabel(row.targetToken).label,
             kindLabel: adjustmentLabels[row.itemTypeEnumId] || row.itemTypeEnumId,
             accountLabel: row.glAccountId ? accountLabels[row.glAccountId] || row.glAccountId : "Choose a posting account",
@@ -391,27 +394,13 @@ function workbench(parameters) {
     )
     const draftId = selectionReset ? null : parameters.draftId || null
     const filters = Object.assign(draftScope(current), {text: parameters.text || "", dueBucket: parameters.dueBucket || ""})
-    const review = retained
-        ? reviewPresentation(retained)
-        : {
-              allocationRows: [],
-              adjustmentRows: [],
-              balanceRows: [],
-              ledgerRows: [],
-              errors: [],
-              warnings: [],
-              results: {allocationResults: [], adjustmentResults: [], remainingRows: []}
-          }
     return Object.assign(output, filters, {
         draftId,
         draftAllocations: allocations,
         draftAdjustments: adjustments,
-        settlementReview: review,
         workbench: {
             scope: filters,
-            canEdit:
-                !!current.capabilities.arEdit &&
-                (retained ? retained.capabilities?.canApply === true : hasReadResult && found.capabilities?.canApply === true),
+            canEdit: !!current.capabilities.arEdit && hasReadResult && found.capabilities?.canApply === true,
             ready: !!(current.organizationPartyId && current.partyId && current.currencyUomId),
             hasOpenItemResult: !requested || hasReadResult,
             unavailable: requested && !hasReadResult,
@@ -421,20 +410,45 @@ function workbench(parameters) {
             balanceAsOfDate: found.balanceAsOfDate || null,
             balanceBasis: found.balanceBasis || "current",
             hasDraft: !!(draft.allocations.length || draft.adjustments.length),
-            hasReview: !!retained,
-            hasResults: !!retained?.results?.settlementId,
             selectionReset,
-            previewUnavailable: !!parameters.previewId && !retained,
-            previewId: parameters.previewId || null,
             filters,
-            editParameters: Object.assign({}, filters, {draftId, previewId: ""}),
-            scopeParameters: Object.assign({}, filters, {draftId: "", previewId: ""})
+            editParameters: Object.assign({}, filters, {draftId}),
+            addAllocationParameters: Object.assign({}, filters, {draftId, draftAction: "addAllocation"}),
+            addAdjustmentParameters: Object.assign({}, filters, {draftId, draftAction: "addAdjustment"}),
+            scopeParameters: Object.assign({}, filters, {draftId: ""})
         }
     })
 }
 
-// The workbench context, and the draft edit and preview request of the workbench's services.
-const operations = {workbench, editDraft, previewRequest}
+// The settlement review Receivables/SettlementReview shows, every part present: a review that does not exist, expired or
+// is another user's has reviewFound false. The way back to the selection carries the review's customer, currency and
+// dates and the user's draft (draftId). Refuses a user without receivable read authority and a payable review.
+function settlementReview(parameters) {
+    const current = scope(parameters)
+    const retained = parameters.previewId
+        ? lib.optional(
+              native + "get#SettlementPreview",
+              {previewId: parameters.previewId, organizationPartyId: current.organizationPartyId},
+              "Settlement review " + parameters.previewId
+          )
+        : null
+    if (retained?.direction && retained.direction !== "receivable") throw new Error("This workbench is for customer receivables")
+    const reviewFound = !!retained?.previewId
+    const selection = reviewFound
+        ? retainedDraft(retained).scope
+        : draftScope(Object.assign({}, current, {direction: "receivable"}))
+    return {
+        previewId: parameters.previewId || "",
+        draftId: parameters.draftId || "",
+        reviewFound,
+        settlementReview: reviewPresentation(reviewFound ? retained : {}, current.organizationPartyId),
+        selectionParameters: Object.assign({}, selection, {draftId: parameters.draftId || ""}),
+        newSelectionParameters: Object.assign({}, selection, {draftId: ""})
+    }
+}
+
+// The workbench and review contexts, and the draft edit and preview request of the workbench's services.
+const operations = {workbench, settlementReview, editDraft, previewRequest}
 function execute(op, parameters) {
     if (!operations[op]) throw new Error("Unknown settlement screen operation " + op)
     return operations[op](parameters)

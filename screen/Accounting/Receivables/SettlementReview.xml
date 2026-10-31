@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A retained settlement review (ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext): the customer's
+    allocations and adjustments on one settlement date, the balances before and after and the postings it plans, and Confirm
+    settlement (mantle.account.PaymentServices.apply#Settlement). Once applied it shows the applications, adjustments,
+    remaining balances and posted transactions. Back to selection returns to the workbench with the user's draft. A
+    review that expired or is another user's is "not available". -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Settlement review"
+        default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="previewId"/>
+    <parameter name="draftId"/>
+    <transition name="confirmSettlement">
+        <actions>
+            <service-call name="mantle.account.PaymentServices.apply#Settlement"
+                    in-map="{previewId:previewId, inputFingerprint:inputFingerprint, operationKey:operationKey}"
+                    out-map="settlementResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext"
+                in-map="context"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
+        <set field="review" from="settlementReview"/>
+        <set field="workbenchParameters" from="selectionParameters || {organizationPartyId:organizationPartyId}"/>
+    </actions>
+    <widgets>
+        <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                text="Receivables workbench"
+                link-type="anchor"
+                icon="arrow_back"
+                parameter-map="workbenchParameters"/>
+        <section name="SettlementReviewNotAvailable" condition="!reviewFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Settlement review not available"/>
+                    <box-body>
+                        <label text="This review expired or is not yours. Open the customer's selection to prepare a new one."
+                                type="p"/>
+                        <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                                text="Back to the workbench"
+                                link-type="anchor"
+                                parameter-map="workbenchParameters"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="SettlementReview" condition="reviewFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Settlement for ${review.partyName || review.partyId}"/>
+                    <box-toolbar>
+                        <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                                text="Back to selection"
+                                link-type="anchor"
+                                condition="!review.hasResults"
+                                parameter-map="workbenchParameters"/>
+                    </box-toolbar>
+                    <box-body>
+                        <section-include name="ReviewFacts" location="component://mr-boss/template/AccountingPayments.xml"/>
+                        <label text="Balances were current when this review was prepared." type="p" style="text-caption m-muted"/>
+                        <section-iterate name="SettlementReviewErrors" list="review.errors || []" entry="reviewError">
+                            <widgets>
+                                <label text="${reviewError.message || reviewError}" type="p" style="text-warning"/>
+                            </widgets>
+                        </section-iterate>
+                        <section name="ConfirmSettlementReview" condition="review.canConfirm">
+                            <widgets>
+                                <form-single name="ConfirmSettlement"
+                                        transition="confirmSettlement"
+                                        map="review.confirmParameters">
+                                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                    <field name="previewId"><default-field><hidden/></default-field></field>
+                                    <field name="inputFingerprint"><default-field><hidden/></default-field></field>
+                                    <field name="operationKey"><default-field><hidden/></default-field></field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Confirm settlement"
+                                                    type="primary"
+                                                    confirmation="${review.confirmation}"/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <label text="This review can no longer be confirmed. Go back to the selection to prepare a new one."
+                                type="p"
+                                style="m-muted"
+                                condition="!review.canConfirm &amp;&amp; !review.hasResults"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Allocations"/>
+                    <box-body>
+                        <form-list name="SettlementReviewAllocations"
+                                list="review.allocationRows"
+                                skip-form="true"
+                                paginate="false">
+                            <field name="sourceLabel">
+                                <default-field title="Receipt or credit">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="targetLabel">
+                                <default-field title="Invoice or payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Apply amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="sourceLabel"/>
+                                    <field-ref name="targetLabel"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No allocations." type="p" style="m-muted" condition="!review.allocationRows.length"/>
+                    </box-body>
+                </container-box>
+                <section name="SettlementReviewAdjustments" condition="review.adjustmentRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Adjustments"/>
+                            <box-body>
+                                <form-list name="SettlementReviewAdjustments"
+                                        list="review.adjustmentRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="invoiceId">
+                                        <default-field title="Invoice">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="itemTypeDescription">
+                                        <default-field title="Adjustment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="accountLabel">
+                                        <default-field title="Posting account">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reason">
+                                        <default-field title="Reason">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="invoiceId"/>
+                                            <field-ref name="itemTypeDescription"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                            <field-ref name="accountLabel"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container-box>
+                    <box-header title="Balances"/>
+                    <box-body>
+                        <form-list name="SettlementReviewBalances" list="review.balanceRows" skip-form="true" paginate="false">
+                            <field name="label">
+                                <default-field title="Document">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeRemaining" align="right">
+                                <default-field title="Open before">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="afterRemaining" align="right">
+                                <default-field title="Open after">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="label"/>
+                                </column>
+                                <column>
+                                    <field-ref name="beforeRemaining"/>
+                                    <field-ref name="afterRemaining"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+                <section-include name="ReviewLedgerPreview" location="component://mr-boss/template/AccountingPayments.xml"/>
+                <label text="Posting details require ledger read access."
+                        type="p"
+                        style="m-muted"
+                        condition="!review.canReadLedger"/>
+                <section name="SettlementResults" condition="review.hasResults">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Settlement applied"/>
+                            <box-toolbar>
+                                <link url="confirmSettlement"
+                                        text="Check saved result"
+                                        link-type="hidden-form"
+                                        parameter-map="review.confirmParameters"/>
+                                <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                                        text="Start another settlement"
+                                        link-type="anchor"
+                                        parameter-map="newSelectionParameters"/>
+                            </box-toolbar>
+                            <box-body>
+                                <form-list name="SettlementApplicationResults"
+                                        list="review.results.allocationResults"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="sourceLabel">
+                                        <default-field title="Receipt or credit">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="targetLabel">
+                                        <default-field title="Invoice or payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentApplicationId">
+                                        <default-field title="Application">
+                                            <display style="text-mono"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amountApplied" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceLabel"/>
+                                            <field-ref name="targetLabel"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amountApplied"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <section name="SettlementAdjustmentResults" condition="review.results.adjustmentResults.length">
+                                    <widgets>
+                                        <form-list name="SettlementAdjustmentResults"
+                                                list="review.results.adjustmentResults"
+                                                skip-form="true"
+                                                paginate="false">
+                                            <field name="invoiceId">
+                                                <default-field title="Invoice">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="adjustmentInvoiceId">
+                                                <default-field title="Adjustment document">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="amountApplied" align="right">
+                                                <default-field title="Amount">
+                                                    <display currency-unit-field="currencyUomId"/>
+                                                </default-field>
+                                            </field>
+                                            <columns type="mobile">
+                                                <column>
+                                                    <field-ref name="invoiceId"/>
+                                                    <field-ref name="adjustmentInvoiceId"/>
+                                                </column>
+                                                <column>
+                                                    <field-ref name="amountApplied"/>
+                                                </column>
+                                            </columns>
+                                        </form-list>
+                                    </widgets>
+                                </section>
+                                <form-list name="SettlementRemainingResults"
+                                        list="review.results.remainingRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="sourceId">
+                                        <default-field title="Document">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="remaining" align="right">
+                                        <default-field title="Open now">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceId"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="remaining"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section-include name="ReviewPostingResults" location="component://mr-boss/template/AccountingPayments.xml"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

@@ -245,6 +245,22 @@ feature("the settlement workbench renders current scoped balances and hides allo
     }
 })
 
+feature("each allocation of a draft has its own edit dialog, which posts its row and the update action", {
+    when() {
+        return helper.asUser("finance.ar", () => {
+            const draft = fixtureDraft()
+            const parameters = Object.assign({}, draft.scope, {draftId: storeDraft(draft)})
+            return {pages: ["qvt", "tui", "html"].map(mode => helper.page("Receivables/ReceivablesWorkbench", parameters, mode))}
+        })
+    },
+    then({pages}) {
+        pages.every(page => page.status === 200 && !page.errors.length)
+        pages.every(page => page.output.includes("Save allocation") && page.output.includes("Preview settlement"))
+        pages.every(page => page.output.includes("allocation-0") && page.output.includes("allocation-1"))
+        pages.every(page => page.output.includes("updateAllocation") && page.output.includes("addAllocation"))
+    }
+})
+
 feature("search and due filtering retain the draft while explicit customer or date changes start a new selection", {
     when() {
         return helper.asUser("finance.ar", () => {
@@ -296,9 +312,9 @@ feature("the retained native review owns mixed amounts and versions even when cl
             const tampered = JSON.parse(JSON.stringify(draft))
             tampered.allocations[0].amount = "999999"
             const parameters = Object.assign({}, draft.scope, {previewId: preview.previewId, draftId: storeDraft(tampered)})
-            const context = helper.call("ironstone.accounting.SettlementScreenServices.get#WorkbenchContext", parameters)
+            const context = helper.call("ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext", parameters)
             const reloaded = helper.call(
-                "ironstone.accounting.SettlementScreenServices.get#WorkbenchContext",
+                "ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext",
                 Object.assign({}, parameters, {text: "reloaded"})
             )
             const refusal = helper.refusal("mantle.account.PaymentServices.apply#Settlement", {
@@ -306,7 +322,10 @@ feature("the retained native review owns mixed amounts and versions even when cl
                 inputFingerprint: preview.inputFingerprint + "-changed",
                 operationKey: context.settlementReview.operationKey
             })
-            const afterRefusal = helper.call("ironstone.accounting.SettlementScreenServices.get#WorkbenchContext", parameters)
+            const afterRefusal = helper.call(
+                "ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext",
+                parameters
+            )
             const nextPreview = helper.call(
                 "mantle.account.PaymentServices.preview#Settlement",
                 Object.assign({}, draft.scope, original, {
@@ -316,12 +335,12 @@ feature("the retained native review owns mixed amounts and versions even when cl
                 })
             )
             const nextContext = helper.call(
-                "ironstone.accounting.SettlementScreenServices.get#WorkbenchContext",
+                "ironstone.accounting.SettlementScreenServices.get#SettlementReviewContext",
                 Object.assign({}, draft.scope, {previewId: nextPreview.previewId})
             )
             const outputs = ["html", "qvt", "tui"].map(mode => ({
                 mode,
-                result: helper.page("Receivables/ReceivablesWorkbench", parameters, mode)
+                result: helper.page("Receivables/SettlementReview", parameters, mode)
             }))
             return {
                 preview,
@@ -339,8 +358,12 @@ feature("the retained native review owns mixed amounts and versions even when cl
     then({preview, context, reloaded, afterRefusal, nextContext, refusal, original, retained, outputs}) {
         !!preview.previewId
         !!preview.inputFingerprint
-        context.workbench.hasReview == true
-        context.workbench.hasResults == false
+        context.reviewFound == true
+        context.settlementReview.hasResults == false
+        context.settlementReview.canConfirm == true
+        !!context.draftId
+        context.selectionParameters.draftId == context.draftId
+        context.selectionParameters.partyId == context.settlementReview.partyId
         context.settlementReview.operationKey == preview.operationKey
         context.settlementReview.operationKey.startsWith("settle-")
         reloaded.settlementReview.operationKey == context.settlementReview.operationKey
@@ -364,7 +387,7 @@ feature("the retained native review owns mixed amounts and versions even when cl
             row =>
                 row.result.status === 200 &&
                 !row.result.errors.length &&
-                row.result.output.includes("Reviewed settlement") &&
+                row.result.output.includes("Settlement for") &&
                 row.result.output.includes("Confirm settlement")
         )
         outputs.every(row => !row.result.output.includes("$999,999.00"))
@@ -376,11 +399,7 @@ feature("an unavailable review renders safely without a confirm action or exposi
     when() {
         return helper.asUser("finance.read", () => ({
             renders: ["qvt", "tui"].map(mode =>
-                helper.page(
-                    "Receivables/ReceivablesWorkbench",
-                    {partyId: helper.ids.customerPartyId, currencyUomId: "USD", previewId: "SETTLEMENT_NOT_AVAILABLE"},
-                    mode
-                )
+                helper.page("Receivables/SettlementReview", {previewId: "SETTLEMENT_NOT_AVAILABLE"}, mode)
             ),
             foreign: helper.refusal("ironstone.accounting.SettlementScreenServices.get#WorkbenchContext", {
                 organizationPartyId: helper.ids.foreignOrganizationPartyId,

@@ -114,7 +114,7 @@ const customerTabs = [
 const paymentTabs = [
     ["Overview", "Payment overview"],
     ["Applications", "Applications and open items"],
-    ["Gateway", "Gateway evidence"],
+    ["Gateway", "Gateway answers"],
     ["Refunds", "Linked refunds"],
     ["GeneralLedger", "Payment ledger"],
     ["Files", "Payment files and issued documents"],
@@ -170,6 +170,10 @@ function routeFixtures() {
         ["Payments/GatewayTransactions", "Gateway transactions", {paymentId: ids.paymentDeliveredId}],
         ["Payments/PaymentPrint", "Payment document", {paymentId: ids.paymentDeliveredId, outputType: "receipt"}],
         ["QuickCreate/NewPayment", "Create payment"],
+        // the review screens without a review: their not-available state
+        ["Payments/PaymentDetail/Review", "Review not available", {recordId: ids.paymentDraftId, lastStandalone: "true"}],
+        ["Payments/TransferReview", "Transfer review not available"],
+        ["Receivables/SettlementReview", "Settlement review not available"],
         ...paymentTabs.map(([tab, text]) => [
             "Payments/PaymentDetail/" + tab,
             text,

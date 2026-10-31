@@ -25,10 +25,9 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <transition name="choices" read-only="true">
         <actions>
-            <service-call name="ironstone.accounting.AccessServices.get#Choices"
-                    out-map="found"
-                    in-map="{choice:choice, term:term, selected:selected,
-                        organizationPartyId:organizationPartyId, invoiceId:invoiceId}"/>
+            <!-- get#Choices declares what each choice reads: the payment and settlement choices their payment, party,
+                currency and dates -->
+            <service-call name="ironstone.accounting.AccessServices.get#Choices" in-map="context" out-map="found"/>
             <script>ec.web.sendJsonResponse(found.options)</script>
         </actions>
         <default-response type="none"/>

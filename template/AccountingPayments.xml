@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- Parts of the payment screens. A screen includes each transition it uses by name (transition-include) and each section
+    (section-include), and the choices transition of template/AccountingParts.xml for the drop-downs.
+    - PaymentNotAvailable: PaymentDetail's and its tabs' state for a payment the user may not see (recordFound false);
+    - savePaymentDraft, with the PaymentDraftForm section (paymentDraftValue): a new payment or a draft's changes; it opens
+      the payment (Payments, QuickCreate/NewPayment, PaymentDetail's Edit draft);
+    - previewGatewayAction, with the PaymentGatewayDialog section (gatewayAction, a row of financePayment's gateway
+      actions): authorize, capture, release or refund through the gateway, reviewed in PaymentDetail/Review;
+    - the PaymentStateDialog section (stateAction, a row of financePayment's state actions) posts to PaymentDetail's
+      previewPaymentState;
+    - previewInternalTransfer, with the InternalTransferForm section (transferValue): a transfer between two of the
+      organization's cash methods, reviewed in Payments/TransferReview;
+    - ReviewFacts, ReviewLedgerPreview, ReviewPostingResults and ReviewOutputResults: the parts the review screens share
+      (PaymentDetail/Review, Payments/TransferReview, Receivables/SettlementReview), over the screen's review: its
+      factRows, ledgerPreviewRows, postingResultRows and outputResultRows. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <transition name="savePaymentDraft">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.save#PaymentDraft" in-map="context"
+                    out-map="savedPayment"/>
+            <set field="paymentId" from="savedPayment.paymentId"/>
+            <set field="recordId" from="savedPayment.paymentId"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}"/>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewGatewayAction">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentGatewayAction" in-map="context"
+                    out-map="gatewayPreview"/>
+            <set field="previewId" from="gatewayPreview.previewId"/>
+            <set field="previewKind" value="gateway"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Review"/>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewInternalTransfer">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#InternalTransfer" in-map="context"
+                    out-map="transferPreview"/>
+            <set field="previewId" from="transferPreview.previewId"/>
+        </actions>
+        <default-response url="../TransferReview"/>
+        <error-response url="."/>
+    </transition>
+    <widgets>
+        <section name="PaymentNotAvailable" condition="!recordFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Payment not available"/>
+                    <box-body>
+                        <label text="Payment ${paymentId || recordId || ''} does not exist, or you may not see it."
+                                type="p"/>
+                        <link url="${sharedLinks['Payments/Payments']}"
+                                text="Back to payments"
+                                link-type="anchor"
+                                parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="PaymentDraftForm">
+            <actions>
+                <!-- the choices' selected values: those of a submit that failed, else the form's -->
+                <set field="draftChoice"
+                        from="ec.web.errorParameters?.moquiFormName == 'PaymentDraft' ? ec.web.errorParameters
+                            : paymentDraftValue"/>
+            </actions>
+            <widgets>
+                <form-single name="PaymentDraft" transition="savePaymentDraft" map="paymentDraftValue">
+                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                    <field name="paymentId"><default-field><hidden/></default-field></field>
+                    <field name="sourceVersion"><default-field><hidden/></default-field></field>
+                    <field name="operationKey"><default-field><hidden/></default-field></field>
+                    <field name="cashDirection">
+                        <default-field title="Direction">
+                            <drop-down>
+                                <option key="incoming" text="Incoming receipt"/>
+                                <option key="outgoing" text="Outgoing payment"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="partyId">
+                        <default-field title="Counterparty">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'paymentParties', organizationPartyId:organizationPartyId,
+                                            selected:draftChoice.partyId || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="amount">
+                        <default-field title="Amount">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'currencies', organizationPartyId:organizationPartyId,
+                                            selected:draftChoice.currencyUomId || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="effectiveDate">
+                        <default-field title="Payment date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="paymentInstrumentEnumId">
+                        <default-field title="Instrument">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'paymentDraftInstruments', organizationPartyId:organizationPartyId,
+                                            selected:draftChoice.paymentInstrumentEnumId || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="organizationMethodToken">
+                        <default-field title="Organization method">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'reviewedOrganizationPaymentMethods',
+                                            organizationPartyId:organizationPartyId,
+                                            selected:draftChoice.organizationMethodToken || null}">
+                                    <depends-on field="cashDirection"/>
+                                    <depends-on field="partyId"/>
+                                    <depends-on field="currencyUomId"/>
+                                    <depends-on field="effectiveDate"/>
+                                </dynamic-options>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="counterpartyMethodToken">
+                        <default-field title="Counterparty method"
+                                tooltip="The customer's or supplier's account or card, when the payment names one">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'reviewedCounterpartyPaymentMethods',
+                                            organizationPartyId:organizationPartyId,
+                                            selected:draftChoice.counterpartyMethodToken || null}">
+                                    <depends-on field="cashDirection"/>
+                                    <depends-on field="partyId"/>
+                                    <depends-on field="currencyUomId"/>
+                                    <depends-on field="effectiveDate"/>
+                                </dynamic-options>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="referenceNumber">
+                        <default-field title="Reference">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="comments">
+                        <default-field title="Comments">
+                            <text-area rows="3"/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="${paymentDraftValue.paymentId ? 'Save payment' : 'Create payment'}"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-ref name="organizationPartyId"/>
+                        <field-ref name="paymentId"/>
+                        <field-ref name="sourceVersion"/>
+                        <field-ref name="operationKey"/>
+                        <field-row>
+                            <field-ref name="cashDirection"/>
+                            <field-ref name="partyId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="amount"/>
+                            <field-ref name="currencyUomId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="effectiveDate"/>
+                            <field-ref name="paymentInstrumentEnumId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="organizationMethodToken"/>
+                            <field-ref name="counterpartyMethodToken"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="referenceNumber"/>
+                            <field-ref name="comments"/>
+                        </field-row>
+                        <field-ref name="submit"/>
+                    </field-layout>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="PaymentStateDialog">
+            <actions>
+                <set field="stateChoice"
+                        from="ec.web.errorParameters?.moquiFormName == 'PaymentState' ? ec.web.errorParameters : {}"/>
+                <set field="dialogType" from="stateAction.primary ? 'primary' : stateAction.danger ? 'danger' : 'default'"/>
+            </actions>
+            <widgets>
+                <container-dialog id="${stateAction.dialogId}"
+                        button-text="${stateAction.title}"
+                        title="${stateAction.title}: ${financePayment.title}"
+                        type="${dialogType}"
+                        width="760">
+                    <form-single name="PaymentState" transition="previewPaymentState" map="stateAction">
+                        <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="sourceVersion"><default-field><hidden/></default-field></field>
+                        <field name="action"><default-field><hidden/></default-field></field>
+                        <field name="settlementDate">
+                            <conditional-field condition="stateAction.withSettlementDate" title="Settlement date">
+                                <date-time type="date"/>
+                            </conditional-field>
+                            <default-field>
+                                <ignored/>
+                            </default-field>
+                        </field>
+                        <field name="referenceNumber">
+                            <default-field title="Reference">
+                                <text-line/>
+                            </default-field>
+                        </field>
+                        <field name="reason">
+                            <default-field title="Reason">
+                                <text-area rows="3"/>
+                            </default-field>
+                        </field>
+                        <field name="evidenceTokenList">
+                            <default-field title="Supporting files" tooltip="Up to 10 files, 10 MiB each and 20 MiB in all">
+                                <drop-down allow-empty="true" allow-multiple="true">
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            depends-optional="true"
+                                            parameter-map="{choice:'reviewedPaymentEvidence',
+                                                organizationPartyId:organizationPartyId, paymentId:paymentId,
+                                                selected:stateChoice.evidenceTokenList || null}"/>
+                                </drop-down>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Review change"/>
+                            </default-field>
+                        </field>
+                        <field-layout>
+                            <field-ref name="organizationPartyId"/>
+                            <field-ref name="paymentId"/>
+                            <field-ref name="sourceVersion"/>
+                            <field-ref name="action"/>
+                            <field-row>
+                                <field-ref name="settlementDate"/>
+                                <field-ref name="referenceNumber"/>
+                            </field-row>
+                            <field-row>
+                                <field-ref name="reason"/>
+                                <field-ref name="evidenceTokenList"/>
+                            </field-row>
+                            <field-ref name="submit"/>
+                        </field-layout>
+                    </form-single>
+                    <label text="Not every file is listed: check the Files tab for a missing one."
+                            type="p"
+                            style="text-caption text-warning"
+                            condition="financePayment.evidenceIncomplete"/>
+                </container-dialog>
+            </widgets>
+        </section>
+        <section name="PaymentGatewayDialog">
+            <actions>
+                <set field="dialogType"
+                        from="gatewayAction.primary ? 'primary' : gatewayAction.danger ? 'danger' : 'default'"/>
+            </actions>
+            <widgets>
+                <container-dialog id="${gatewayAction.dialogId}"
+                        button-text="${gatewayAction.title}"
+                        title="${gatewayAction.title}: ${financePayment.title}"
+                        type="${dialogType}"
+                        width="640">
+                    <label text="${gatewayAction.effectText}" type="p"/>
+                    <label text="Available to refund: ${financePayment.refundableText}"
+                            type="p"
+                            style="text-caption m-muted"
+                            condition="gatewayAction.amountEditable"/>
+                    <form-single name="PaymentGateway" transition="previewGatewayAction" map="gatewayAction">
+                        <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="action"><default-field><hidden/></default-field></field>
+                        <field name="amount">
+                            <conditional-field condition="gatewayAction.amountEditable" title="Refund amount">
+                                <text-line/>
+                            </conditional-field>
+                            <default-field title="Amount">
+                                <display currency-unit-field="currencyUomId"/>
+                            </default-field>
+                        </field>
+                        <field name="reason">
+                            <default-field title="Reason">
+                                <text-area rows="2"/>
+                            </default-field>
+                        </field>
+                        <field name="submit">
+                            <default-field title="">
+                                <submit text="Review gateway action"/>
+                            </default-field>
+                        </field>
+                    </form-single>
+                </container-dialog>
+            </widgets>
+        </section>
+        <section name="InternalTransferForm">
+            <actions>
+                <set field="transferChoice"
+                        from="ec.web.errorParameters?.moquiFormName == 'InternalTransfer' ? ec.web.errorParameters
+                            : transferValue"/>
+            </actions>
+            <widgets>
+                <label text="Choose two of the organization's cash methods. A fee needs an expense account." type="p"/>
+                <form-single name="InternalTransfer" transition="previewInternalTransfer" map="transferValue">
+                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                    <field name="fromMethodToken">
+                        <default-field title="From">
+                            <drop-down>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'internalTransferMethods', organizationPartyId:organizationPartyId,
+                                            selected:transferChoice.fromMethodToken || null}">
+                                    <depends-on field="currencyUomId"/>
+                                    <depends-on field="effectiveDate"/>
+                                </dynamic-options>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="toMethodToken">
+                        <default-field title="To">
+                            <drop-down>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'internalTransferMethods', organizationPartyId:organizationPartyId,
+                                            selected:transferChoice.toMethodToken || null}">
+                                    <depends-on field="currencyUomId"/>
+                                    <depends-on field="effectiveDate"/>
+                                </dynamic-options>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="amount">
+                        <default-field title="Amount">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="currencyUomId">
+                        <default-field title="Currency">
+                            <drop-down>
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'currencies', organizationPartyId:organizationPartyId,
+                                            selected:transferChoice.currencyUomId || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="effectiveDate">
+                        <default-field title="Accounting date">
+                            <date-time type="date"/>
+                        </default-field>
+                    </field>
+                    <field name="feeAmount">
+                        <default-field title="Fee">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="feeGlAccountId">
+                        <default-field title="Fee account">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        depends-optional="true"
+                                        parameter-map="{choice:'internalTransferFeeAccounts',
+                                            organizationPartyId:organizationPartyId,
+                                            selected:transferChoice.feeGlAccountId || null}">
+                                    <depends-on field="currencyUomId"/>
+                                    <depends-on field="effectiveDate"/>
+                                </dynamic-options>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="feePartyId">
+                        <default-field title="Fee paid to"
+                                tooltip="The bank or other party the fee is paid to; the from method's bank when left empty">
+                            <drop-down allow-empty="true">
+                                <dynamic-options transition="choices"
+                                        server-search="true"
+                                        min-length="0"
+                                        parameter-map="{choice:'parties', organizationPartyId:organizationPartyId,
+                                            selected:transferChoice.feePartyId || null}"/>
+                            </drop-down>
+                        </default-field>
+                    </field>
+                    <field name="referenceNumber">
+                        <default-field title="Reference">
+                            <text-line/>
+                        </default-field>
+                    </field>
+                    <field name="reason">
+                        <default-field title="Reason">
+                            <text-area rows="3"/>
+                        </default-field>
+                    </field>
+                    <field name="submit">
+                        <default-field title="">
+                            <submit text="Review transfer"/>
+                        </default-field>
+                    </field>
+                    <field-layout>
+                        <field-ref name="organizationPartyId"/>
+                        <field-row>
+                            <field-ref name="fromMethodToken"/>
+                            <field-ref name="toMethodToken"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="amount"/>
+                            <field-ref name="currencyUomId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="effectiveDate"/>
+                            <field-ref name="feeAmount"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="feeGlAccountId"/>
+                            <field-ref name="feePartyId"/>
+                        </field-row>
+                        <field-row>
+                            <field-ref name="referenceNumber"/>
+                            <field-ref name="reason"/>
+                        </field-row>
+                        <field-ref name="submit"/>
+                    </field-layout>
+                </form-single>
+            </widgets>
+        </section>
+        <section name="ReviewFacts">
+            <widgets>
+                <form-list name="ReviewFacts" list="review.factRows" skip-form="true" skip-header="true" paginate="false">
+                    <field name="label">
+                        <default-field title="">
+                            <display style="m-muted"/>
+                        </default-field>
+                    </field>
+                    <field name="value">
+                        <default-field title="">
+                            <display/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="label"/>
+                        </column>
+                        <column>
+                            <field-ref name="value"/>
+                        </column>
+                    </columns>
+                </form-list>
+            </widgets>
+        </section>
+        <section name="ReviewLedgerPreview" condition="review.ledgerPreviewRows.length">
+            <widgets>
+                <container-box>
+                    <box-header title="Planned postings"/>
+                    <box-body>
+                        <form-list name="ReviewLedgerPreview" list="review.ledgerPreviewRows" skip-form="true" paginate="false">
+                            <field name="accountText">
+                                <default-field title="Account">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="note">
+                                <default-field title="For">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Posting date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="debit" align="right">
+                                <default-field title="Debit">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="credit" align="right">
+                                <default-field title="Credit">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="accountText"/>
+                                    <field-ref name="note"/>
+                                </column>
+                                <column>
+                                    <field-ref name="debit"/>
+                                    <field-ref name="credit"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="ReviewPostingResults" condition="review.postingResultRows.length">
+            <widgets>
+                <container-box>
+                    <box-header title="Posted transactions"/>
+                    <box-body>
+                        <form-list name="ReviewPostingResults" list="review.postingResultRows" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <conditional-field condition="canOpen" title="Transaction">
+                                    <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}"
+                                            text="${acctgTransId}"
+                                            link-type="anchor"
+                                            parameter-map="{recordId:acctgTransId, acctgTransId:acctgTransId,
+                                                organizationPartyId:organizationPartyId, previewId:''}"/>
+                                </conditional-field>
+                                <default-field title="Transaction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="note">
+                                <default-field title="For">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="acctgTransId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="note"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="ReviewOutputResults" condition="review.outputResultRows.length">
+            <widgets>
+                <container-box>
+                    <box-header title="Issued files"/>
+                    <box-body>
+                        <form-list name="ReviewOutputResults" list="review.outputResultRows" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <conditional-field condition="canOpen" title="File">
+                                    <link url="${sharedLinks['Payments/PaymentPrint']}"
+                                            text="${fileName || outputId}"
+                                            link-type="anchor"
+                                            parameter-map="outputParameters"/>
+                                </conditional-field>
+                                <default-field title="File">
+                                    <display text="${fileName || outputId || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="outputTypeText">
+                                <default-field title="Document">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                </column>
+                                <column>
+                                    <field-ref name="outputTypeText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

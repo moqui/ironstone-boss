@@ -12,41 +12,94 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd" default-menu-title="General ledger" default-menu-index="5">
+<!-- PaymentDetail's General ledger tab: the transactions the payment posted and their reversals, for a user with ledger read
+    authority. It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="General ledger"
+        default-menu-index="5">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="paymentId"/>
-    <parameter name="previewId"/>
-    <parameter name="previewKind"/>
-    <parameter name="findJson"/>
-    <parameter name="gatewayFindJson"/>
-    <transition-include name="choices" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="savePaymentDraft" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentState" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentUnapply" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmGatewayAction" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="lookupGatewayDetails" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="previewPaymentRefund" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-    <transition-include name="confirmPaymentRefund" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
     <actions>
-        <set field="paymentContext" from="{}"/>
-        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext" in-map="{organizationPartyId:organizationPartyId,paymentId:paymentId || recordId,previewId:previewId,previewKind:previewKind,findJson:findJson,gatewayFindJson:gatewayFindJson}" out-map="paymentContext" transaction="force-new" ignore-error="true"/>
-        <set field="recordFound" from="!!paymentContext.financePayment?.paymentId"/>
-        <set field="financePayment" from="paymentContext.financePayment || {capabilities:{},totals:{},stateActions:[],maskedMethodRows:[],applicationRows:[],refundRows:[],gatewayRows:[],ledgerRows:[],contentRows:[],historyRows:[],sourceRows:[],baseParameters:{}}"/>
-        <set field="paymentHeaderValue" from="paymentContext.paymentHeaderValue || {}"/>
-        <set field="paymentReview" from="paymentContext.paymentReview || {results:{},effectRows:[],evidenceRows:[],applicationEffects:[],ledgerPreview:[],blockers:[]}"/>
-        <set field="paymentId" from="paymentContext.paymentId || paymentId || recordId"/>
-        <set field="findJson" from="paymentContext.findJson || ''"/>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
     </actions>
     <widgets>
-        <section-include name="PaymentUnavailable" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-        <section-include name="PaymentRetainedReview" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
-        <section name="PaymentGeneralLedgerTab" condition="recordFound &amp;&amp; !financePayment.hasReview">
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentGeneralLedger" condition="recordFound">
             <widgets>
-                <section-include name="PaymentGeneralLedgerContent" location="component://mr-boss/screen/Accounting/Payments/PaymentDetail.xml"/>
+                <container-box>
+                    <box-header title="Payment ledger"/>
+                    <box-body>
+                        <section name="PaymentLedgerRows" condition="financePayment.canReadLedger">
+                            <widgets>
+                                <form-list name="PaymentLedger"
+                                        list="financePayment.ledgerRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="acctgTransId">
+                                        <default-field title="Transaction">
+                                            <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}"
+                                                    text="${acctgTransId}"
+                                                    link-type="anchor"
+                                                    parameter-map="transactionParameters"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="acctgTransTypeEnumId">
+                                        <default-field title="Type">
+                                            <display-entity entity-name="moqui.basic.Enumeration"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="transactionDateText">
+                                        <default-field title="Date">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="postedText">
+                                        <default-field title="Posted">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reverseOfAcctgTransId">
+                                        <default-field title="Reverses">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reversedByAcctgTransId">
+                                        <default-field title="Reversed by">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="acctgTransId"/>
+                                            <field-ref name="acctgTransTypeEnumId"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="transactionDateText"/>
+                                            <field-ref name="postedText"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <label text="This payment has not posted anything yet."
+                                        type="p"
+                                        style="m-muted"
+                                        condition="!financePayment.ledgerRows.length"/>
+                            </widgets>
+                        </section>
+                        <label text="Ledger details require accounting report access."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.canReadLedger"/>
+                    </box-body>
+                </container-box>
             </widgets>
         </section>
     </widgets>

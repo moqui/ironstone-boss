@@ -37,6 +37,11 @@ const context = parameters =>
         "ironstone.accounting.PaymentScreenServices.get#PaymentContext",
         Object.assign({organizationPartyId: org}, parameters)
     )
+const reviewContext = parameters =>
+    app.call(
+        "ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext",
+        Object.assign({organizationPartyId: org}, parameters)
+    )
 
 feature("the manual refund dialog sends the reviewed fields and the chosen methods' ids only", {
     when() {
@@ -74,12 +79,12 @@ feature("treasury reviews and confirms a manual refund on the Refunds tab; the r
                 ),
                 preview = app.call(native + "preview#PaymentRefund", input),
                 parameters = {paymentId, previewId: preview.previewId, previewKind: "refund"},
-                review = context(parameters).paymentReview,
-                reviewPages = ["qvt", "tui", "html"].map(mode => app.page("Payments/PaymentDetail/Refunds", parameters, mode)),
+                review = reviewContext(parameters).paymentReview,
+                reviewPages = ["qvt", "tui", "html"].map(mode => app.page("Payments/PaymentDetail/Review", parameters, mode)),
                 first = app.call(native + "refund#ReviewedPayment", review.confirmParameters),
                 retry = app.call(native + "refund#ReviewedPayment", review.confirmParameters),
-                completed = context(parameters).paymentReview,
-                resultPages = ["qvt", "html"].map(mode => app.page("Payments/PaymentDetail/Refunds", parameters, mode)),
+                completed = reviewContext(parameters).paymentReview,
+                resultPages = ["qvt", "html"].map(mode => app.page("Payments/PaymentDetail/Review", parameters, mode)),
                 after = context({paymentId}).financePayment
             return {paymentId, detail, review, reviewPages, first, retry, completed, resultPages, after}
         })
@@ -88,22 +93,22 @@ feature("treasury reviews and confirms a manual refund on the Refunds tab; the r
         detail.capabilities.canPreviewRefund == true
         toDecimal(detail.refundValue.amount).eq(50)
         detail.refundValue.organizationMethodToken.startsWith("BOSS_ACCT_GW_BANK~")
-        review.isRefund == true
+        review.previewKind == "refund"
         review.canConfirm == true
-        review.reviewedMethods.organization.paymentMethodId == "BOSS_ACCT_GW_BANK"
+        review.factRows.some(row => row.label == "Organization method")
         review.fundingRows.find(row => row.label == "Available to refund").afterAmount == 35
         reviewPages.every(
             page =>
                 page.status === 200 &&
                 !page.errors.length &&
-                page.output.includes("Reviewed refund") &&
-                page.output.includes("Confirm refund")
+                page.output.includes("Refund payment") &&
+                page.output.includes("Confirm by")
         )
         first.statusId == "PmntDelivered"
         retry.alreadyApplied == true
         retry.refundPaymentId == first.refundPaymentId
         completed.hasResults == true
-        completed.actualRefundRows[0].paymentId == first.refundPaymentId
+        completed.resultPaymentRows[0].paymentId == first.refundPaymentId
         resultPages.every(page => page.status === 200 && !page.errors.length && page.output.includes("Refund completed"))
         after.refundRows.some(row => row.paymentId == first.refundPaymentId)
         after.refundSummaryRows.find(row => row.label == "Available to refund").amount == 35
@@ -155,7 +160,8 @@ feature("a refund through the gateway dialog delivers a refund payment linked to
                 )
                 return app.call(
                     native + "execute#PaymentGatewayAction",
-                    context({paymentId, previewId: preview.previewId, previewKind: "gateway"}).paymentReview.confirmParameters
+                    reviewContext({paymentId, previewId: preview.previewId, previewKind: "gateway"}).paymentReview
+                        .confirmParameters
                 )
             }
             run("authorize")
@@ -169,7 +175,7 @@ feature("a refund through the gateway dialog delivers a refund payment linked to
     },
     then({before, refunded, after, page}) {
         before.capabilities.canGatewayRefund == true
-        toDecimal(before.gatewayRefundValue.amount).eq(30)
+        toDecimal(before.gatewayActionRows.find(row => row.action == "refund").amount).eq(30)
         refunded.outcome == "accepted"
         refunded.refundStatusId == "PmntDelivered"
         after.refundRows.some(row => row.paymentId == refunded.refundPaymentId)

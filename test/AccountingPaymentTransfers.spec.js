@@ -176,7 +176,7 @@ feature("transfer preparation decodes exact reviewed method revisions and exclud
 feature("transfer preparation restores retained tokens and the canonical day without re-reviewing methods", {
     when() {
         return {
-            value: transferScreen().execute("transferPreparedValue", {
+            value: transferScreen().transferValue("organization", null, {
                 fromPaymentMethodId: "from",
                 fromMethodVersion: "reviewed-from",
                 toPaymentMethodId: "to",
@@ -237,12 +237,11 @@ feature("transfer review keeps one preview-bound confirmation key and plans the 
         first.operationKey != other.operationKey
         first.operationKey.length <= 40
         first.plannedLegRows.map(row => row.legText).join() == "Transfer,Fee"
-        first.ledgerRows.length == 0
+        first.ledgerPreviewRows.length == 0
         unavailable.canConfirm == false
         incomplete.canConfirm == false
-        first.editParameters.transferPreviewId == ""
-        first.editParameters.operationKey == ""
-        first.editParameters.transferEditPreviewId == "reviewed-transfer"
+        first.confirmParameters.previewId == "reviewed-transfer"
+        first.confirmParameters.operationKey == first.operationKey
     }
 })
 
@@ -269,14 +268,14 @@ feature("completed transfer links open the exact transfer and fee payments and o
         view.actualLegRows.map(row => row.legText + ":" + row.recordParameters.paymentId).join() ==
             "Transfer:actual-transfer,Fee:actual-fee"
         view.actualLegRows.every(row => row.canOpen)
-        view.postingRows.length == 3
-        view.outputRows[0].canOpen == true
-        view.outputRows[0].outputParameters.recordId == "actual-transfer"
-        view.outputRows[1].canOpen == false
-        view.outputRows[1].outputParameters.paymentId == ""
-        view.outputRows[2].canOpen == false
+        view.postingResultRows.length == 3
+        view.outputResultRows[0].canOpen == true
+        view.outputResultRows[0].outputParameters.recordId == "actual-transfer"
+        view.outputResultRows[1].canOpen == false
+        view.outputResultRows[1].outputParameters.paymentId == ""
+        view.outputResultRows[2].canOpen == false
         claims.every(claim => !claim.hasResults && !claim.actualLegRows.length)
-        claims.every(claim => !claim.postingRows.length && !claim.outputRows.length)
+        claims.every(claim => !claim.postingResultRows.length && !claim.outputResultRows.length)
         invalidLeg.actualLegRows[0].canOpen == false
         invalidLeg.actualLegRows[0].recordParameters.recordId == ""
     }
@@ -287,14 +286,10 @@ feature("the same real method selection permits Treasury and refuses AR transfer
         const allowed = transferHelper.asUser("finance.treasury", () => {
             const selection = transferSelection(),
                 preview = transferNative("preview#InternalTransfer", selection.input),
-                parameters = {organizationPartyId: selection.organizationPartyId, transferPreviewId: preview.previewId},
-                context = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", parameters),
-                prepared = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", {
-                    organizationPartyId: selection.organizationPartyId,
-                    transferEditPreviewId: preview.previewId
-                }),
-                pages = ["qvt", "tui"].map(mode => transferPage("Payments", parameters, mode))
-            return {selection, preview, context, prepared, pages}
+                parameters = {organizationPartyId: selection.organizationPartyId, previewId: preview.previewId},
+                context = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#TransferReviewContext", parameters),
+                pages = ["qvt", "tui"].map(mode => transferPage("TransferReview", parameters, mode))
+            return {selection, preview, context, pages}
         })
         return {
             allowed,
@@ -309,9 +304,13 @@ feature("the same real method selection permits Treasury and refuses AR transfer
                     effectiveDate: allowed.selection.effectiveDate,
                     selectedIdList: [allowed.selection.from.paymentMethodId, allowed.selection.to.paymentMethodId]
                 }),
-                context: transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", {
+                list: transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", {
+                    organizationPartyId: allowed.selection.organizationPartyId
+                }),
+                // another user's review is not available to the receivables user
+                review: transferHelper.call("ironstone.accounting.PaymentScreenServices.get#TransferReviewContext", {
                     organizationPartyId: allowed.selection.organizationPartyId,
-                    transferPreviewId: allowed.preview.previewId
+                    previewId: allowed.preview.previewId
                 })
             }))
         }
@@ -321,21 +320,20 @@ feature("the same real method selection permits Treasury and refuses AR transfer
         allowed.preview.canApply == true
         allowed.context.transferReview.canConfirm == true
         allowed.context.transferReview.hasResults == false
-        allowed.context.transferReview.ledgerRows.length == 0
+        allowed.context.reviewFound == true
+        allowed.context.transferReview.ledgerPreviewRows.length == 0
         allowed.context.transferReview.operationKey.length <= 40
-        allowed.prepared.transferValue.fromMethodToken ==
+        allowed.context.transferValue.fromMethodToken ==
             allowed.selection.from.paymentMethodId + "~" + allowed.selection.from.version
-        allowed.prepared.transferValue.toMethodToken == allowed.selection.to.paymentMethodId + "~" + allowed.selection.to.version
-        allowed.prepared.transferValue.effectiveDate == allowed.selection.effectiveDate
-        allowed.pages.every(
-            page => page.status === 200 && !page.errors.length && page.output.includes("Reviewed internal transfer")
-        )
+        allowed.context.transferValue.toMethodToken == allowed.selection.to.paymentMethodId + "~" + allowed.selection.to.version
+        allowed.context.transferValue.effectiveDate == allowed.selection.effectiveDate
+        allowed.pages.every(page => page.status === 200 && !page.errors.length && page.output.includes("Internal transfer of"))
         allowed.pages.every(page => page.output.includes(allowed.preview.accountingDateText))
         refused.preview.includes("PERMISSION_DENIED")
         refused.methods.includes("PERMISSION_DENIED")
-        refused.context.paymentList.canTransfer == false
-        refused.context.transferUnavailable == true
-        refused.context.paymentList.hasTransferReview == false
+        refused.list.paymentList.canTransfer == false
+        refused.review.reviewFound == false
+        refused.review.transferReview.factRows.length == 0
         !/"(?:accountNumber|routingNumber|cardNumber|credentials|providerBody)"/.test(JSON.stringify(allowed))
     }
 })
@@ -367,9 +365,9 @@ feature("a fee-bearing transfer from the demo cash, its fee paid to a chosen par
                     previewId: reviewed.previewId
                 }),
                 operationKey = "app-trf-" + preview.previewId,
-                initial = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", {
+                initial = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#TransferReviewContext", {
                     organizationPartyId: selection.organizationPartyId,
-                    transferPreviewId: preview.previewId
+                    previewId: preview.previewId
                 }),
                 confirmed = transferNative("create#InternalTransfer", {
                     previewId: preview.previewId,
@@ -385,11 +383,14 @@ feature("a fee-bearing transfer from the demo cash, its fee paid to a chosen par
                     inputFingerprint: preview.inputFingerprint,
                     operationKey
                 }),
-                parameters = {organizationPartyId: selection.organizationPartyId, transferPreviewId: preview.previewId},
-                presented = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", parameters),
+                parameters = {organizationPartyId: selection.organizationPartyId, previewId: preview.previewId},
+                presented = transferHelper.call(
+                    "ironstone.accounting.PaymentScreenServices.get#TransferReviewContext",
+                    parameters
+                ),
                 outputRows = Array.from(retained.results.outputRows),
                 postingIds = Array.from(retained.results.acctgTransIds || []),
-                pages = ["qvt", "tui", "html"].map(mode => transferPage("Payments", parameters, mode)),
+                pages = ["qvt", "tui", "html"].map(mode => transferPage("TransferReview", parameters, mode)),
                 legs = [confirmed.paymentId, confirmed.feePaymentId].map(paymentId => {
                     const detail = transferNative("get#PaymentFinanceDetail", {
                             organizationPartyId: selection.organizationPartyId,
@@ -462,13 +463,13 @@ feature("a fee-bearing transfer from the demo cash, its fee paid to a chosen par
         retried.feePaymentId == confirmed.feePaymentId
         JSON.stringify(retried.outputRows.map(row => row.outputId)) == JSON.stringify(outputRows.map(row => row.outputId))
         expectLedger ? confirmed.acctgTransIds.length === 3 : confirmed.acctgTransIds == null
-        JSON.stringify(presented.transferReview.postingRows.map(row => row.acctgTransId)) == postingIdJson
-        Boolean(presented.transferReview.ledgerRows.length) == expectLedger
+        JSON.stringify(presented.transferReview.postingResultRows.map(row => row.acctgTransId)) == postingIdJson
+        Boolean(presented.transferReview.ledgerPreviewRows.length) == expectLedger
         outputRows.length == 1
         outputRows[0].outputType == "detail" && outputRows[0].canOpen === true
         outputRows[0].paymentId == confirmed.paymentId
         presented.transferReview.actualLegRows.every(row => row.canOpen === true)
-        presented.transferReview.outputRows.every(row => row.canOpen === true && row.outputParameters.sourceVersion === "")
+        presented.transferReview.outputResultRows.every(row => row.canOpen === true && row.outputParameters.sourceVersion === "")
         legs[0].detail.payment.paymentTypeEnumId == "PtInternalTransfer"
         legs[1].detail.payment.paymentTypeEnumId == "PtDisbursement"
         legs.every(leg => leg.detail.applicationRows.length === 0)

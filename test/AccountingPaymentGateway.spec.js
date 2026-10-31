@@ -36,7 +36,7 @@ function act(paymentId, action, extra = {}) {
             Object.assign({organizationPartyId: org, paymentId, action, reason: "Customer instruction"}, extra)
         ),
         preview = app.call(native + "preview#PaymentGatewayAction", input),
-        review = app.call("ironstone.accounting.PaymentScreenServices.get#PaymentContext", {
+        review = app.call("ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext", {
             organizationPartyId: org,
             paymentId,
             previewId: preview.previewId,
@@ -94,28 +94,38 @@ feature("treasury reviews and confirms an authorization and a capture; the revie
                 }),
                 preview = app.call(native + "preview#PaymentGatewayAction", input),
                 parameters = {paymentId, previewId: preview.previewId, previewKind: "gateway"},
-                reviewPages = ["qvt", "tui", "html"].map(mode => app.page("Payments/PaymentDetail/Gateway", parameters, mode)),
-                context = app.call("ironstone.accounting.PaymentScreenServices.get#PaymentContext", parameters),
+                reviewPages = ["qvt", "tui", "html"].map(mode => app.page("Payments/PaymentDetail/Review", parameters, mode)),
+                context = app.call(
+                    "ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext",
+                    Object.assign({organizationPartyId: org}, parameters)
+                ),
                 first = app.call(native + "execute#PaymentGatewayAction", context.paymentReview.confirmParameters),
                 retry = app.call(native + "execute#PaymentGatewayAction", context.paymentReview.confirmParameters),
-                resultPages = ["qvt", "html"].map(mode => app.page("Payments/PaymentDetail/Gateway", parameters, mode)),
+                resultPages = ["qvt", "html"].map(mode => app.page("Payments/PaymentDetail/Review", parameters, mode)),
                 after = app.call(native + "get#PaymentFinanceDetail", {organizationPartyId: org, paymentId})
             return {detail, context, reviewPages, first, retry, resultPages, after}
         })
     },
     then({detail, context, reviewPages, first, retry, resultPages, after}) {
         detail.financePayment.capabilities.canGatewayAuthorize == true
-        detail.financePayment.gatewayPrimaryAction == "authorize"
+        detail.financePayment.primaryAction == "authorize"
+        detail.financePayment.gatewayActionRows
+            .filter(row => row.primary)
+            .map(row => row.action)
+            .join() == "authorize"
+        !detail.financePayment.stateActionRows.some(row => row.primary)
         detail.financePayment.gatewayActions.gatewayDescription == "Demonstration test gateway"
-        context.paymentReview.isGateway == true
+        context.reviewFound == true
+        context.paymentReview.previewKind == "gateway"
+        context.paymentReview.title == "Capture payment"
         context.paymentReview.canConfirm == true
         context.paymentReview.effectRows[0].afterText == "Delivered"
         reviewPages.every(
             page =>
                 page.status === 200 &&
                 !page.errors.length &&
-                page.output.includes("Reviewed gateway action") &&
-                page.output.includes("Confirm gateway action")
+                page.output.includes("Capture payment") &&
+                page.output.includes("Confirm by")
         )
         first.outcome == "accepted"
         retry.alreadyApplied == true

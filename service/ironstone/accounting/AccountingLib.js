@@ -8,7 +8,7 @@ const today = () => ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
 // A day as yyyy-MM-dd text in the user's zone; today when none is given.
 const day = value =>
     value ? (/^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : ec.l10n.format(value, "yyyy-MM-dd")) : today()
-const money = (value, currency) => (value == null ? "" : ec.l10n.formatCurrency(value, currency))
+const money = (value, currency) => (value == null || value === "" ? "" : ec.l10n.formatCurrency(toDecimal(value), currency))
 const statusText = statusId => (statusId ? policy.one("moqui.basic.StatusItem", {statusId})?.description || statusId : "")
 
 // The finance scope of an Accounting screen. Refuses another app root and, when capabilities are named, a user who has
@@ -80,9 +80,9 @@ function paging(result, list = "records", source = null, pageSize = 20) {
     )
 }
 
-// The parameters of a link to a record's detail screen: the record itself, not a review of it.
+// The parameters of a link to a record's detail screen.
 function recordParameters(organizationPartyId, recordId, fields = {}) {
-    return Object.assign({organizationPartyId, recordId, previewId: "", previewKind: ""}, fields)
+    return Object.assign({organizationPartyId, recordId}, fields)
 }
 
 // The operation key of a form a user submits once: a sequenced id, so a resubmitted form is answered as the first.
@@ -111,6 +111,41 @@ function effectRows(before = {}, after = {}, specs = []) {
         .filter(row => row.beforeText !== "" || row.afterText !== "")
 }
 
+// The rows of the review screens' shared sections (template/AccountingPayments.xml). A planned posting line: its account,
+// debit or credit, currency, posting day and a note (noteOf names the plan: its leg, the transaction it reverses). A plan
+// with lines gives a row for each line; one without is itself a line.
+function ledgerPreviewRows(plans, currencyUomId = null, accountingDateText = "", noteOf = () => "") {
+    return array(plans).flatMap(plan => {
+        const lines = plan.lines ? array(plan.lines) : [plan]
+        return lines.map(line => {
+            const row = plain(line)
+            return {
+                accountText:
+                    [row.accountCode || row.glAccountCode, row.accountName || row.glAccountName].filter(Boolean).join(" · ") ||
+                    row.glAccountId ||
+                    "",
+                debit: row.debitCreditFlag === "D" ? row.amount : null,
+                credit: row.debitCreditFlag === "C" ? row.amount : null,
+                currencyUomId: row.currencyUomId || plan.amountUomId || plan.currencyUomId || currencyUomId,
+                accountingDateText: plan.accountingDateText || accountingDateText || "",
+                note: noteOf(plan) || ""
+            }
+        })
+    })
+}
+// A posted transaction of a completed review, which the user may open when canOpen.
+function postingResultRows(acctgTransIds, canOpen = true, note = "") {
+    return [...new Set(array(acctgTransIds).filter(id => typeof id === "string" && !!id))].map(acctgTransId => ({
+        acctgTransId,
+        canOpen,
+        note
+    }))
+}
+// The label and value rows of a review's summary, leaving out those without a value.
+function factRows(facts) {
+    return facts.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({label, value: String(value)}))
+}
+
 ;({
     policy,
     array,
@@ -132,5 +167,8 @@ function effectRows(before = {}, after = {}, specs = []) {
     operationKey,
     reviewKey,
     changeRows,
-    effectRows
+    effectRows,
+    ledgerPreviewRows,
+    postingResultRows,
+    factRows
 })

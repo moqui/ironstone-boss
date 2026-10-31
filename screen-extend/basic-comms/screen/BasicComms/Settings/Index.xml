@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- IronStone's cards on the Comms settings index: Chat, Calls, and the reading defaults and keys in Commons Preferences. -->
+<screen-extend xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <widgets-extend name="SettingsCards" where="append">
+        <row-col md="4" sm="6"><container-box><box-header title="Chat"/><box-body>
+            <label type="p" text="Notifications, sounds, Enter to send, message previews and when you show as away." style="m-muted"/>
+            <link url="../Chat" text="Chat settings" icon="sym_o_chat"/>
+        </box-body></container-box></row-col>
+        <row-col md="4" sm="6"><container-box><box-header title="Calls"/><box-body>
+            <label type="p" text="Camera, microphone and ringtone: coming with calls." style="m-muted"/>
+            <link url="../Calls" text="Calls" icon="sym_o_call"/>
+        </box-body></container-box></row-col>
+        <row-col md="4" sm="6"><container-box><box-header title="Reading and keys"/><box-body>
+            <label type="p" text="Where the reading pane goes, marking mail read, undo send, pictures in mail, and the keyboard shortcuts are in Commons Preferences." style="m-muted"/>
+            <container style="row q-gutter-sm">
+                <render-mode><text type="qvt"><![CDATA[<m-link href="/qapps/Commons/Settings/Preferences"><q-btn dense unelevated no-caps class="m-btn-tonal" icon="sym_o_tune">]]></text><text type="tui" template="false">[]</text></render-mode>
+                <label type="span" text="Preferences" style="q-ml-sm"/>
+                <render-mode><text type="qvt"><![CDATA[</q-btn></m-link><m-link href="/qapps/Commons/Settings/Notifications"><q-btn dense unelevated no-caps class="m-btn-tonal" icon="sym_o_notifications">]]></text><text type="tui" template="false">[]</text></render-mode>
+                <label type="span" text="Notifications" style="q-ml-sm"/>
+                <render-mode><text type="qvt"><![CDATA[</q-btn></m-link>]]></text><text type="tui" template="false">[]</text></render-mode>
+            </container>
+        </box-body></container-box></row-col>
+    </widgets-extend>
+</screen-extend>

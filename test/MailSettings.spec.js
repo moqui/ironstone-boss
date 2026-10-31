@@ -92,7 +92,7 @@ function seedInboxMessage(subject, fromName, fromAddress, messageId, messageDate
 
 feature("an account of this spec's own, for the rules to run on", {
     when() {
-        const made = sys(() => call("ironstone.comms.MailSettingsServices.save#AccountConnection", { emailAddress: "rules@acme.example", accountKindEnumId: "EakExternal",
+        const made = sys(() => call("org.moqui.comms.MailSettingsServices.save#AccountConnection", { emailAddress: "rules@acme.example", accountKindEnumId: "EakExternal",
             storeHost: "127.0.0.1", storePort: "1", smtpHost: "127.0.0.1", smtpPort: "1", smtpSecurity: "none", mailPassword: "x" }))
         ownId = made.emailAccountId
         ownInbox = one("moqui.basic.email.EmailFolder", { emailAccountId: ownId, folderKindEnumId: "EfkInbox" }).emailFolderId
@@ -302,7 +302,7 @@ feature("out of office: the demo's reply shows off; turned on for three days it 
         shownInside.output.includes("partner.example.org, ally.example.com")
         offKeepsAudience.internalDomains == "partner.example.org,ally.example.com"
         !shownInside.output.includes("counts as a contact")
-        shownInside.output.includes("Your contacts are your personal contacts")
+        shownInside.output.includes("Your contacts are the people your address book knows")
         offKeepsAudience.enabled == "N"
         offKeepsAudience.replyAudienceEnumId == "EraInternal"
         shown.errors == ""

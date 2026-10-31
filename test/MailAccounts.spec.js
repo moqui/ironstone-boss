@@ -11,7 +11,7 @@
 // Run: ./moq test mr-boss --spec MailAccounts
 const webroot = "component://webroot/screen/webroot.xml"
 const comms = "component://mr-boss/screen/Comms.xml"
-const SETTINGS = "ironstone.comms.MailSettingsServices"
+const SETTINGS = "org.moqui.comms.MailSettingsServices"
 const BASE = "Settings/MailAccounts"
 const PASSWORD = "s3cret-app-pass"
 
@@ -57,7 +57,7 @@ spec({
 feature("the wizard has five steps, Address first; the list and the account's page render", {
     when() {
         const wizard = sys(() => {
-            const str = ec.screen.makeTest().rootScreen("component://mr-boss/screen/Comms/Settings/MailAccounts/Add.xml").renderMode("qvt").withStaticData().render("", {}, null)
+            const str = ec.screen.makeTest().rootScreen("component://basic-comms/screen/BasicComms/Settings/MailAccounts/Add.xml").renderMode("qvt").withStaticData().render("", {}, null)
             const output = String(str.output || "")
             ec.message.clearErrors()
             return { status: str.status, errors: str.errorMessages.join(" | "), output }

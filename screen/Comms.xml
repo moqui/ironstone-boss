@@ -28,6 +28,9 @@ along with this software (see the LICENSE.md file). If not, see
             (the theme values STRT_CHATTER_SCREEN and STRT_RECORD_FILES_SCREEN; impl-drawers-commons.md R5) -->
         <subscreens-item name="Chatter" location="component://mr-boss/screen/Shared/Chatter.xml" menu-include="false"/>
         <subscreens-item name="RecordFiles" location="component://mr-boss/screen/Shared/RecordFiles.xml" menu-include="false"/>
+        <!-- the screens of the framework's BasicComms, mounted here and extended from screen-extend/basic-comms
+            (plans/Comms-Framework.md §3.4) -->
+        <subscreens-item name="Settings" location="component://basic-comms/screen/BasicComms/Settings.xml" menu-title="Settings" menu-index="6"/>
     </subscreens>
 
     <!-- What Comms offers the suite shell (design-drawers-commons.md §1.5, §1.7): an email and a chat message in the + menu,
@@ -41,6 +44,8 @@ along with this software (see the LICENSE.md file). If not, see
         <notification-topic topic="ChatMention"/>
         <notification-topic topic="NewMail"/>
         <keymap><key keys="g i" label="Inbox" screen="Comms/Inbox"/></keymap>
+        <!-- the Internal account and mailboxes in the BasicComms screens (plans/Comms-Framework.md §3.3) -->
+        <inbox-source name="boss.internal" service="ironstone.comms.InboxServices.get#InboxSource"/>
     </shell-providers>
 
     <widgets><subscreens-panel id="comms-panel" type="popup"/></widgets>

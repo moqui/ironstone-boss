@@ -15,7 +15,7 @@
 // Run: ./moq test mr-boss --spec MailSignIn
 const webroot = "component://webroot/screen/webroot.xml"
 const comms = "component://mr-boss/screen/Comms.xml"
-const SETTINGS = "ironstone.comms.MailSettingsServices"
+const SETTINGS = "org.moqui.comms.MailSettingsServices"
 const BASE = "Settings/MailAccounts"
 const PROVIDER = "EopBossSpec"
 const DOMAIN = "boss-oauth.example"

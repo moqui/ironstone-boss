@@ -1014,33 +1014,27 @@ along with this software (see the LICENSE.md file). If not, see
         ]]></script></actions>
     </service>
 
-    <service verb="sync" noun="UserAccounts">
-        <description>"Sync now": each mail account of the user with a server (not paused or removed) starts a sync on a
-            service worker as the user (org.moqui.impl.EmailClientServices.sync#EmailAccount, which checks the user reaches
-            the account and reports busy while another sync of it runs). Each account on its own: one that cannot start is
-            logged and named in failedList. emailAccountId syncs that account only.</description>
-        <in-parameters><parameter name="emailAccountId"/></in-parameters>
+    <service verb="get" noun="InboxSource">
+        <implements service="org.moqui.comms.ProviderInterfaces.inbox#Source"/>
+        <description>The inbox-source provider of IronStone (Comms.xml shell-providers, boss.internal) for the BasicComms
+            screens (plans/Comms-Framework.md §3.3): operation accounts answers the user's Internal account (internal messages
+            and mailboxes), which BasicComms lists only because this provider is there; settings and threads answer nothing
+            more yet, the Inbox being IronStone's own (screen/Comms/Inbox).</description>
         <out-parameters>
-            <parameter name="startedList" type="List"/>
-            <parameter name="failedList" type="List"/>
+            <parameter name="accountList" type="List"/>
+            <parameter name="settingsList" type="List"/>
+            <parameter name="threadList" type="List"/>
         </out-parameters>
         <actions><script><![CDATA[
-            startedList = []
-            failedList = []
+            accountList = []
+            settingsList = []
+            threadList = []
+            if (operation !== 'accounts') return
             const access = ec.service.sync().name('org.moqui.impl.EmailClientServices.get#EmailAccountAccess').call()
             if (ec.message.hasError()) return
-            const accounts = Array.from(access.accountList || []).filter((account) => !account.isInternal && account.emailServerId &&
-                    !['EasPaused', 'EasRemoved'].includes(account.statusId) && (!emailAccountId || account.emailAccountId === emailAccountId))
-            if (emailAccountId && accounts.length === 0) { ec.message.addError(`Email account ${emailAccountId} not found`); return }
-            for (const account of accounts) {
-                try {
-                    ec.service.async().name('org.moqui.impl.EmailClientServices.sync#EmailAccount').parameter('emailAccountId', account.emailAccountId).call()
-                    startedList.push(account.emailAccountId)
-                } catch (err) {
-                    failedList.push(account.emailAccountId)
-                    ec.logger.error(`Sync of email account ${account.emailAccountId} did not start: ${err && err.message ? err.message : err}`)
-                }
-            }
+            accountList = Array.from(access?.accountList || []).filter((account) => account.isInternal)
+                    .map((account) => ({itemId: account.emailAccountId, emailAccountId: account.emailAccountId,
+                        accountName: ec.l10n.localize('Internal messages'), isInternal: true}))
         ]]></script></actions>
     </service>
 

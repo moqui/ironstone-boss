@@ -21,7 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     ironstone.commons.CalendarServices.set#CalendarDefaults, which Calendar.qvue reads); and MailDefaults: where the reading pane goes,
     whether archive opens the next conversation, when an open message is marked read, how long Undo send waits, whether
     pictures in mail show at once, threads or messages, the default account, where the signature goes and the two phone
-    swipe actions (ironstone.comms.MailSettingsServices.set#MailDefaults, the preferences the Inbox and Compose read). Sound
+    swipe actions (org.moqui.comms.MailSettingsServices.set#MailDefaults, the preferences the Inbox and Compose read). Sound
     defaults come later. -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
         default-menu-title="Preferences" default-menu-index="2" server-static="qvt" menu-image="sym_o_tune" menu-image-type="icon">
@@ -48,7 +48,7 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <transition name="saveMailDefaults">
-        <service-call name="ironstone.comms.MailSettingsServices.set#MailDefaults" in-map="{readingPane:readingPane, archiveOpensNext:(archiveOpensNext == 'Y' ? 'Y' : 'N'),
+        <service-call name="org.moqui.comms.MailSettingsServices.set#MailDefaults" in-map="{readingPane:readingPane, archiveOpensNext:(archiveOpensNext == 'Y' ? 'Y' : 'N'),
                 markReadSeconds:markReadSeconds, undoSeconds:undoSeconds, remoteImages:(remoteImages == 'always' ? 'always' : 'ask'),
                 conversationView:conversationView, defaultAccountId:defaultAccountId, signaturePlacement:signaturePlacement,
                 swipeLeft:swipeLeft, swipeRight:swipeRight}"/>
@@ -83,7 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- the calendar defaults and the user's own personal calendars, one of which is the default -->
         <service-call name="ironstone.commons.CalendarServices.get#CalendarDefaults" out-map="calendarDefaultsOut"/>
         <service-call name="mantle.work.CalendarServices.get#UserCalendars" out-map="userCalendarsOut"/>
-        <service-call name="ironstone.comms.MailSettingsServices.get#MailDefaults" out-map="mailDefaultsOut"/>
+        <service-call name="org.moqui.comms.MailSettingsServices.get#MailDefaults" out-map="mailDefaultsOut"/>
         <script><![CDATA[
             const defaults = calendarDefaultsOut.defaults || {}
             calendarDefaults = {view: defaults.view, weekStart: String(defaults.weekStart ?? 0), workStart: defaults.workStart, workEnd: defaults.workEnd,

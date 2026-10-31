@@ -171,7 +171,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="syncNow">
         <actions><script><![CDATA[
-            const out = ec.service.sync().name('ironstone.comms.InboxServices.sync#UserAccounts').parameter('emailAccountId', emailAccountId || null).call()
+            const out = ec.service.sync().name('org.moqui.comms.MailSettingsServices.sync#UserAccounts').parameter('emailAccountId', emailAccountId || null).call()
             ec.web.sendJsonResponse(ec.message.hasError() ? {} : {startedList: out.startedList, failedList: out.failedList})
         ]]></script></actions>
         <default-response type="none"/>

@@ -32,6 +32,12 @@ feature("a Products price reader resolves a dated selection and downloads matchi
         csv.text.includes("BOSS_PRD_OWN")
         !csv.text.includes("BOSS_PRD_OTHER")
         csv.text.includes("13.5")
+    }
+})
+feature("a Products price reader downloads the matching xlsx", {
+    requires: ["xlsx"],
+    expect() {
+        const s = session({user: "catalog.price.read"})
         const xlsx = s.get("/apps/Products/Prices/PriceLists/PriceListDetail.xlsx", {
             params: {priceListId: "BOSS_PRICE_LIST", productIds: "BOSS_PRD_OWN,BOSS_PRD_OTHER", quantity: 2}
         })

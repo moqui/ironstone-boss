@@ -1,3 +1,0 @@
-[{"t": "dynamicContainer", "id": "MailTui", "url": ${JSON.stringify(sri.buildUrl('../MailTui').addParameter('view', view || null).addParameter('account', account || null)
-    .addParameter('folder', folder || null).addParameter('label', label || null).addParameter('mailbox', mailbox || null).addParameter('q', q || null)
-    .addParameter('unreadOnly', unreadOnly || null).addParameter('cursor', cursor || null).getUrlWithParams())}}]

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- IronStone's parts of the BasicComms Inbox (plans/Comms-Framework.md §3.4, A3): the mailboxes (Mantle's contact lists of type
+    MAILBOX: browse, join, leave, delivery, members, settings), their member drop-down by party, and Save to Files and the drive
+    picker of the Commons drives. The threads, the reading pane and the rail come from IronStone's inbox-source provider. -->
+<screen-extend xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <transition-include name="pickerData" location="component://mr-boss/template/FilePickerTransitions.xml"/>
+    <transition-include name="pickerFolder" location="component://mr-boss/template/FilePickerTransitions.xml"/>
+    <!-- the users of the mailbox member drop-downs, by party: [{value, label}] -->
+    <transition name="searchUsers" read-only="true">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('ironstone.shared.ChatterServices.search#Users').parameters({term: term || '', limit: 12}).call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? [] : Array.from(out.userList || []).map((user) => ({value: user.partyId, label: user.label})))
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <!-- the mailboxes to browse and join: public ones and the user's private ones -->
+    <transition name="mailboxes" method="get" read-only="true">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.find#ContactLists').parameters({contactListTypeEnumId: 'MAILBOX',
+                searchText: searchText || null}).call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {contactListList: out.contactListList})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+
+    <!-- mailboxes: join (a member of a public one, a request for a private one), leave, delivery, members, settings -->
+    <transition name="mailboxJoin">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.join#ContactList').parameter('contactListId', contactListId || '').call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {statusId: out.statusId, messageInfos: [{type: 'success',
+                message: ec.l10n.localize(out.statusId === 'CLPT_PENDING' ? 'Asked to join: an owner will answer' : 'Joined')}]})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxLeave">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.leave#ContactList').parameter('contactListId', contactListId || '').call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {left: out.left})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxDelivery">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.set#ContactListPartyDelivery').parameters({contactListId: contactListId || '',
+                deliveryEnumId: deliveryEnumId || null}).call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {effectiveDeliveryEnumId: out.effectiveDeliveryEnumId})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxAddMember">
+        <actions><script><![CDATA[
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.add#ContactListParty').parameters({contactListId: contactListId || '',
+                partyId: partyId || '', roleTypeId: roleTypeId || null}).call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {statusId: out.statusId})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxRemoveMember">
+        <actions><script><![CDATA[
+            ec.service.sync().name('mantle.marketing.ContactListServices.remove#ContactListParty').parameters({contactListId: contactListId || '', partyId: partyId || ''}).call()
+            ec.web.sendJsonResponse({})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxDecline">
+        <actions><script><![CDATA[
+            ec.service.sync().name('mantle.marketing.ContactListServices.decline#ContactListParty').parameters({contactListId: contactListId || '', partyId: partyId || ''}).call()
+            ec.web.sendJsonResponse({})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxCreate">
+        <actions><script><![CDATA[
+            const members = memberPartyIds ? String(memberPartyIds).split(',').map((id) => id.trim()).filter((id) => id) : []
+            const out = ec.service.sync().name('mantle.marketing.ContactListServices.create#ContactList').parameters({contactListTypeEnumId: 'MAILBOX',
+                contactListName: contactListName || '', description: description || null, isPublic: isPublic === 'Y' ? 'Y' : 'N',
+                postingEnumId: postingEnumId || null, defaultDeliveryEnumId: defaultDeliveryEnumId || null, memberPartyIdList: members}).call()
+            ec.web.sendJsonResponse(ec.message.hasError() ? {} : {contactListId: out.contactListId})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="mailboxUpdate">
+        <actions><script><![CDATA[
+            ec.service.sync().name('mantle.marketing.ContactListServices.update#ContactList').parameters({contactListId: contactListId || '',
+                contactListName: contactListName || null, description: description ?? null, isPublic: isPublic === 'Y' || isPublic === 'N' ? isPublic : null,
+                postingEnumId: postingEnumId || null, defaultDeliveryEnumId: defaultDeliveryEnumId || null,
+                archived: archived === 'true' ? true : (archived === 'false' ? false : null)}).call()
+            ec.web.sendJsonResponse({})
+        ]]></script></actions>
+        <default-response type="none"/>
+    </transition>
+
+</screen-extend>

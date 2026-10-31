@@ -1,6 +1,0 @@
-[{"t": "dynamicContainer", "id": "ComposeTui", "url": ${JSON.stringify(sri.buildUrl('../ComposeTui').addParameter('emailMessageId', emailMessageId || null)
-    .addParameter('replyToEmailMessageId', replyToEmailMessageId || null).addParameter('replyAll', replyAll || null)
-    .addParameter('replyToCommEventId', replyToCommEventId || null).addParameter('replyToSender', replyToSender || null)
-    .addParameter('contactListId', contactListId || null).addParameter('to', to || null).addParameter('cc', cc || null).addParameter('bcc', bcc || null)
-    .addParameter('subject', subject || null).addParameter('body', body || null).addParameter('recordEntity', recordEntity || null)
-    .addParameter('recordId', recordId || null).getUrlWithParams())}}]

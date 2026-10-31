@@ -926,9 +926,10 @@ along with this software (see the LICENSE.md file). If not, see
                 // the user's own uploads only
                 let uploads = []
                 if (uploadsJson) { try { uploads = JSON.parse(uploadsJson) } catch (err) { ec.message.addError('The attachments are not JSON'); return } }
-                const prefix = `dbresource://ironstone/compose/${ec.user.userId}/`
+                // the user's own uploads: the BasicComms composer's (dbresource://comms/compose/) or IronStone's earlier ones
+                const prefixes = [`dbresource://comms/compose/${ec.user.userId}/`, `dbresource://ironstone/compose/${ec.user.userId}/`]
                 for (const upload of Array.from(uploads || [])) {
-                    if (!upload || !String(upload.location || '').startsWith(prefix) || String(upload.location).includes('..')) {
+                    if (!upload || !prefixes.some((prefix) => String(upload.location || '').startsWith(prefix)) || String(upload.location).includes('..')) {
                         ec.message.addError(L('Attachment not found') + ': ' + (upload?.name || '')); return }
                 }
                 const html = String(body || '') + (quoteHtml ? String(quoteHtml) : '')

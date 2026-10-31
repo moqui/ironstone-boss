@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- IronStone's boxes on the BasicComms Home (plans/Comms-Framework.md D-A4): Needs reply, the follow-ups due and the meetings
+    with Join before the chat rooms, and the mailboxes with unread after the shortcuts; their lists come from IronStone's
+    get#CommsHome, which its inbox-source provider answers. -->
+<screen-extend xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <widgets-extend name="HomeRooms" where="before">
+        <container-box><box-header title="Needs reply"/><box-toolbar>
+            <link url="/qapps/Comms/Inbox" url-type="plain" link-type="anchor" text="Inbox"/>
+        </box-toolbar><box-body-nopad>
+            <form-list name="NeedsReply" list="needsReplyList" skip-form="true" skip-header="true" paginate="false">
+                <field name="subject"><default-field><link url="${link}" url-type="plain" text="${subject}"/></default-field></field>
+                <field name="who"><default-field><display style="text-caption"/></default-field></field>
+                <field name="whenText" align="right"><default-field><display style="text-caption m-muted text-no-wrap"/></default-field></field>
+                <columns type="mobile">
+                    <column><field-ref name="subject"/><field-ref name="who"/></column>
+                    <column><field-ref name="whenText"/></column>
+                </columns>
+            </form-list>
+            <section name="NoNeedsReply" condition="!needsReplyList.length"><widgets>
+                <label type="p" text="Nothing waiting for your answer" style="m-muted q-pa-sm q-mb-none"/>
+            </widgets></section>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header title="Follow-ups due"/><box-toolbar>
+            <link url="/qapps/Commons/Tasks" url-type="plain" link-type="anchor" text="Tasks"/>
+        </box-toolbar><box-body-nopad>
+            <form-list name="FollowUps" list="followUpList" skip-form="true" skip-header="true" paginate="false">
+                <field name="title"><default-field><link url="${link}" url-type="plain" text="${title}"/></default-field></field>
+                <field name="kindLabel"><default-field><display style="text-caption"/></default-field></field>
+                <field name="dueText" align="right"><conditional-field condition="overdue"><label text="${dueText}" style="text-warning text-no-wrap"/></conditional-field>
+                    <default-field><label text="${dueText}" style="text-no-wrap"/></default-field></field>
+                <columns type="mobile">
+                    <column><field-ref name="title"/><field-ref name="kindLabel"/></column>
+                    <column><field-ref name="dueText"/></column>
+                </columns>
+            </form-list>
+            <section name="NoFollowUps" condition="!followUpList.length"><widgets>
+                <label type="p" text="No calls or emails to follow up this week" style="m-muted q-pa-sm q-mb-none"/>
+            </widgets></section>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header title="Upcoming meetings"/><box-toolbar>
+            <link url="/qapps/Commons/Calendar" url-type="plain" link-type="anchor" text="Calendar"/>
+        </box-toolbar><box-body-nopad>
+            <form-list name="Meetings" list="meetingList" skip-form="true" skip-header="true" paginate="false">
+                <field name="title"><default-field><link url="${link}" url-type="plain" text="${title}"/></default-field></field>
+                <field name="whenText"><default-field><display style="${isNow ? 'text-caption text-positive text-weight-medium' : 'text-caption'}"/></default-field></field>
+                <field name="join" align="right"><conditional-field condition="joinUrl">
+                    <link url="${joinUrl}" url-type="plain" text="Join" icon="sym_o_videocam" link-type="anchor-button" target-window="_blank"/></conditional-field>
+                    <default-field><display text=""/></default-field></field>
+                <columns type="mobile">
+                    <column><field-ref name="title"/><field-ref name="whenText"/></column>
+                    <column><field-ref name="join"/></column>
+                </columns>
+            </form-list>
+            <section name="NoMeetings" condition="!meetingList.length"><widgets>
+                <label type="p" text="No meetings today or in the next two days" style="m-muted q-pa-sm q-mb-none"/>
+            </widgets></section>
+        </box-body-nopad></container-box>
+    </widgets-extend>
+    <widgets-extend name="HomeShortcuts" where="after">
+        <container-box><box-header title="Mailboxes with unread"/><box-body-nopad>
+            <form-list name="MailboxesUnread" list="mailboxList" skip-form="true" skip-header="true" paginate="false">
+                <field name="name"><default-field><link url="${link}" url-type="plain" text="${name}"/></default-field></field>
+                <field name="countText" align="right"><default-field><display style="text-caption text-weight-medium text-no-wrap"/></default-field></field>
+            </form-list>
+            <section name="NoMailboxes" condition="!mailboxList.length"><widgets>
+                <label type="p" text="Nothing new in your mailboxes" style="m-muted q-pa-sm q-mb-none"/>
+            </widgets></section>
+        </box-body-nopad></container-box>
+    </widgets-extend>
+</screen-extend>

@@ -30,6 +30,8 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="RecordFiles" location="component://mr-boss/screen/Shared/RecordFiles.xml" menu-include="false"/>
         <!-- the screens of the framework's BasicComms, mounted here and extended from screen-extend/basic-comms
             (plans/Comms-Framework.md §3.4) -->
+        <subscreens-item name="Home" location="component://basic-comms/screen/BasicComms/Home.xml" menu-title="Home" menu-index="1"/>
+        <subscreens-item name="Inbox" location="component://basic-comms/screen/BasicComms/Inbox.xml" menu-title="Inbox" menu-index="2"/>
         <subscreens-item name="Chat" location="component://basic-comms/screen/BasicComms/Chat.xml" menu-title="Chat" menu-index="3"/>
         <subscreens-item name="ChatTui" location="component://basic-comms/screen/BasicComms/ChatTui.xml" menu-include="false"/>
         <subscreens-item name="Panel" location="component://basic-comms/screen/BasicComms/Panel.xml" menu-include="false"/>

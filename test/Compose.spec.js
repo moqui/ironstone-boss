@@ -308,7 +308,7 @@ feature("quick create's Email loads the composer in its one client mode, qvue, w
     then({ output, errors, qvtStatus }) {
         errors == ""
         output.includes("module.exports")
-        output.includes("BossCompose")
+        output.includes("MailCompose")
         output.includes("mScreen.parameters")
         !output.includes("curUrl")
         qvtStatus != 200

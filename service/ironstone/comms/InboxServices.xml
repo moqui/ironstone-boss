@@ -1016,25 +1016,50 @@ along with this software (see the LICENSE.md file). If not, see
 
     <service verb="get" noun="InboxSource">
         <implements service="org.moqui.comms.ProviderInterfaces.inbox#Source"/>
-        <description>The inbox-source provider of IronStone (Comms.xml shell-providers, boss.internal) for the BasicComms
-            screens (plans/Comms-Framework.md §3.3): operation accounts answers the user's Internal account (internal messages
-            and mailboxes), which BasicComms lists only because this provider is there; settings and threads answer nothing
-            more yet, the Inbox being IronStone's own (screen/Comms/Inbox).</description>
+        <description>The inbox-source provider of IronStone (Comms.xml shell-providers, boss.internal) for the BasicComms Inbox,
+            MessageDetail, Compose and Home (plans/Comms-Framework.md §3.3, A3). The BasicComms screens call
+            org.moqui.comms.InboxServices.run#Operation, which hands each operation here: IronStone answers it with its own
+            service of that name (this file, ComposeServices, CommsHomeServices), over the mail and its internal messages and
+            mailboxes together, so its Inbox is one list. Only the operations named here are answered (handled false for any
+            other). Links to Commons are added: an invitation's event (eventUrl). operation accounts answers the user's Internal
+            account, for the account lists of the mail settings.</description>
         <out-parameters>
+            <parameter name="handled" type="Boolean"/>
+            <parameter name="result" type="Map"/>
             <parameter name="accountList" type="List"/>
-            <parameter name="settingsList" type="List"/>
-            <parameter name="threadList" type="List"/>
         </out-parameters>
         <actions><script><![CDATA[
+            handled = false
+            result = null
             accountList = []
-            settingsList = []
-            threadList = []
-            if (operation !== 'accounts') return
-            const access = ec.service.sync().name('org.moqui.impl.EmailClientServices.get#EmailAccountAccess').call()
+            if (operation === 'accounts') {
+                const access = ec.service.sync().name('org.moqui.impl.EmailClientServices.get#EmailAccountAccess').call()
+                if (ec.message.hasError()) return
+                accountList = Array.from(access?.accountList || []).filter((account) => account.isInternal)
+                        .map((account) => ({itemId: account.emailAccountId, emailAccountId: account.emailAccountId,
+                            accountName: ec.l10n.localize('Internal messages'), isInternal: true}))
+                handled = true
+                return
+            }
+            const INBOX = 'ironstone.comms.InboxServices.', COMPOSE = 'ironstone.comms.ComposeServices.', HOME = 'ironstone.comms.CommsHomeServices.'
+            const SERVICES = {
+                'get#InboxData': INBOX, 'find#InboxRows': INBOX, 'get#ThreadView': INBOX, 'get#MessageAttachment': INBOX, 'set#ThreadState': INBOX,
+                'apply#ViewAction': INBOX, 'get#MessageDetail': INBOX, 'search#Messages': INBOX, 'get#ContactCard': INBOX, 'search#LinkRecords': INBOX,
+                'link#ThreadRecord': INBOX, 'unlink#ThreadRecord': INBOX, 'prepare#CreateFromMessage': INBOX, 'respond#Invitation': INBOX,
+                'get#MailboxHeader': INBOX, 'save#MessageFiles': INBOX,
+                'get#ComposeData': COMPOSE, 'search#Recipients': COMPOSE, 'send#Compose': COMPOSE, 'cancel#ComposeSend': COMPOSE,
+                'save#ComposeDraft': COMPOSE, 'attach#DriveFiles': COMPOSE, 'remove#ComposeAttachment': COMPOSE, 'discard#ComposeDraft': COMPOSE,
+                'get#CommsHome': HOME
+            }
+            if (!SERVICES[operation]) return
+            const out = ec.service.sync().name(SERVICES[operation] + operation).parameters(parameters || {}).call()
             if (ec.message.hasError()) return
-            accountList = Array.from(access?.accountList || []).filter((account) => account.isInternal)
-                    .map((account) => ({itemId: account.emailAccountId, emailAccountId: account.emailAccountId,
-                        accountName: ec.l10n.localize('Internal messages'), isInternal: true}))
+            result = out || {}
+            const eventUrl = (workEffortId) => workEffortId ? '/qapps/Commons/Calendar/EventDetail?workEffortId=' + encodeURIComponent(workEffortId) : null
+            if (operation === 'respond#Invitation') result.eventUrl = eventUrl(result.workEffortId)
+            if (operation === 'get#ThreadView' && result.thread) for (const message of Array.from(result.thread.messageList || []))
+                if (message.invitation) message.invitation.eventUrl = eventUrl(message.invitation.workEffortId)
+            handled = true
         ]]></script></actions>
     </service>
 

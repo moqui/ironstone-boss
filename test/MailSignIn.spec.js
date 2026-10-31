@@ -155,7 +155,7 @@ feature("set up: Connect shows the button; startSignIn answers the provider's ad
         connect.output.includes("Or use a password or an app password instead")
         component.status == 200
         component.output.includes("module.exports")
-        component.output.includes("BossMailSignIn")
+        component.output.includes("MailSignIn")
         component.output.includes("moqui.oauthPopup")
         started.errors == ""
         started.json.authUrl.startsWith("https://login.boss-oauth.example/authorize?")

@@ -4,7 +4,8 @@ Oct 18, 2026 — reviewed; mailboxes added after review (§12); terminology pass
 contact book, `EmailClientServices`, meeting room); drives and revision storage after mr-moqui's
 git and version-diff work (§9, §10, §19); implementation review against mr-moqui and Mantle, its findings
 (R1–R27) and the build plan in [impl-drawers-commons.md](impl-drawers-commons.md); Oct 30 — Comms moves to a
-framework component, with chat federation, voice and an SFU, in mr-moqui `plans/Comms-Framework.md` (§2.2, §13, §14)
+framework component, with chat federation, voice and an SFU, in mr-moqui `plans/Comms-Framework.md` (here §2.2, §13,
+§14)
 
 The suite chrome every IronStone app runs in (the header, the Assist drawer, the tray panel
 and the palette), and the two shared apps that feed it: **IronStone Commons** (contacts,
@@ -304,10 +305,10 @@ card.
 
 ### 2.2 Comms
 
-Oct 30, 2026: the mail, chat and call screens move to the framework component `runtime/base-component/comms`, and
-this app mounts them and adds its parts (the Internal account and mailboxes, record links, Consent, Moderation,
-Chatter) by `screen-extend`, hook theme values, declared actions and panel slots (mr-moqui `plans/Comms-Framework.md`
-§3). What follows is the BOSS app as designed before that move. The plan names which screens move, split or stay.
+Oct 30, 2026: the mail, chat and call screens move to the framework component `runtime/base-component/basic-comms`
+(the `BasicComms` app), and this app mounts them and adds its parts (the Internal account and mailboxes, record links,
+Consent, Moderation, Chatter) by `screen-extend`, providers, declared actions and panel slots (mr-moqui
+`plans/Comms-Framework.md` §3). The launcher shows this app, not BasicComms. What follows is the BOSS app as designed before that move. The plan names which screens move, split or stay.
 
 Root `screen/Comms.xml`, menu title "IronStone Comms", icon `sym_o_forum`, default item `Inbox`
 (the landing `Home` is in the menu but a mail app opens on its inbox). Menu:
@@ -1563,8 +1564,9 @@ that today's Mailbox implementation already performs them.
 
 ## 13. Chat
 
-Federation and bridges (a Matrix appservice, then an XMPP server; WhatsApp, Telegram and SMS; later a Matrix
-homeserver in Moqui) and end-to-end encrypted rooms are planned in mr-moqui `plans/Comms-Framework.md` §4.
+Federation and bridges (SMS, WhatsApp, Meta and Telegram first, then an XMPP server, then a Matrix server in Moqui;
+a Matrix appservice on an external homeserver as an option) and end-to-end encrypted rooms are planned in mr-moqui
+`plans/Comms-Framework.md` §4.
 
 Chat is Slack and Teams inside the suite, over the framework's Matrix-style store
 (initial-design): a **room** (`ChatRoom`, new, §19) is a direct message, a private or public
@@ -1988,7 +1990,7 @@ bare `entity-find`.
 | Chat store | data model | Framework entities `moqui.chat.ChatRoom` {type, name, topic, avatar, visibility, recordEntityName, recordId, retentionDays}, `ChatRoomMember` {userId or agent reference, role, joinedDate, lastReadEventId, notificationLevel, pinned}, `ChatEvent` {room, eventSeq, type, senderUserId, contentJson, replyToEventId, threadRootEventId, editsEventId, sentDate}, `ChatAttachment` (DbResource), and later `ChatPoll` and `ChatPollVote` | Chat, ChatPanel, Chatter | initial-design "Matrix-style persistence" |
 | Chat services | service type + protocol server | `org.moqui.impl.ChatServices`: `find#Rooms`, `create#Room`, `update#Room`, `add#Member`, `remove#Member`, `set#MemberRole`, `set#Notification`, `get#Timeline`, `send#Message`, `edit#Message`, `redact#Message`, `react#Message`, `pin#Message`, `mark#Read`, `upload#Attachment`, `create#Poll`, `vote#Poll`; typing, read markers and new events on WebSocket topics `chatRoom:<id>` and `chatUser:<id>`; an agent entry point for the Assist port | Chat | |
 | WebRTC | protocol server | Signaling over the notification WebSocket (offer, answer, ICE), TURN built in (coturn documented), an SFU for every call from the first (mr-moqui `plans/Comms-Framework.md` §6) | Calls, Call, LiveCall | initial-design "WebRTC built into mr-moqui" |
-| Call store and services | data model + service type | `moqui.chat.CallSession` {chatRoomId, startedDate, endedDate, startedBy}, `CallParticipant`, `CallLink` {token, name, expiry, policy}; `org.moqui.impl.CallServices` `start#Call`, `join#Call`, `leave#Call`, `admit#Guest`, `create#CallLink`, `revoke#CallLink`, `find#Calls`; a finished call writes the `Call` communication event | Calls, Call, LiveCall | |
+| Call store and services | data model + service type | `moqui.call.CallSession` (mr-moqui `plans/Comms-Framework.md` §5.4 has the full model), `CallParticipant`, `CallLink` {token, name, expiry, policy}; `org.moqui.impl.CallServices` `start#Call`, `join#Call`, `leave#Call`, `admit#Guest`, `create#CallLink`, `revoke#CallLink`, `find#Calls`; a finished call writes the `Call` communication event | Calls, Call, LiveCall | |
 | `CommunicationEventType` `Call` | seed data | `Call` (voice or video call in BOSS) beside `Phone` (a logged external call) | Chatter, call history | |
 | Call recording | tool | Recording a call to a `DbResource` file with consent shown to every participant | Call | later |
 
@@ -2111,9 +2113,9 @@ Each with the answer the author would give.
 - **Encryption (S/MIME, PGP).** Recommended: later; Nextcloud Mail's Mailvelope and S/MIME code
   is the reference when it comes.
 - **Chat federation.** Matrix-style is internal persistence, not the Matrix protocol.
-  Decided Oct 30, 2026 (mr-moqui `plans/Comms-Framework.md` §4): a Matrix appservice first, then
-  an XMPP server (OMEMO passed through), the business channels, and later a Matrix homeserver
-  in Moqui.
+  Decided Oct 30, 2026 (mr-moqui `plans/Comms-Framework.md` §4, revised the same day for embedded
+  first): the business channels first, then an XMPP server (OMEMO carried through PEP), then a
+  Matrix server in Moqui; a Matrix appservice on an external homeserver is an option.
 - **Phone installation.** A PWA manifest and web push are framework work. Decided Oct 30, 2026:
   built first, as step P0 of mr-moqui `plans/Comms-Framework.md` §7.
 - **Where the Office app (WOPI) opens from.** The Files preview and New menu assume it.

@@ -36,8 +36,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="createPaymentDraft">
         <actions>
-            <script>draftInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').draftInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.create#PaymentDraft" in-map="draftInput" out-map="createdPayment"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.save#PaymentDraft" in-map="context" out-map="createdPayment"/>
             <set field="recordId" from="createdPayment.paymentId"/>
             <set field="paymentId" from="createdPayment.paymentId"/>
         </actions>
@@ -49,8 +48,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="previewInternalTransfer">
         <actions>
-            <script>transferInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').transferInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.preview#InternalTransfer" in-map="transferInput" out-map="preparedTransfer"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#InternalTransfer" in-map="context" out-map="preparedTransfer"/>
             <set field="transferPreviewId" from="preparedTransfer.previewId"/>
             <set field="transferEditPreviewId" value=""/>
         </actions>
@@ -218,7 +216,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="InternalTransferDialogSection" condition="paymentList.canTransfer">
                     <widgets>
                         <container-dialog id="AccountingInternalTransferDialog" button-text="Transfer funds" title="Transfer funds" width="760">
-                            <label text="Choose two organization cash methods. A fee needs an expense account and is paid to the from bank." type="p"/>
+                            <label text="Choose two organization cash methods. A fee needs an expense account and the party it is paid to; the from bank's party when left empty." type="p"/>
                             <form-single name="ReviewInternalTransfer" transition="previewInternalTransfer" map="transferValue || {}">
                                 <field name="organizationPartyId" from="organizationPartyId">
                                     <default-field title="">
@@ -277,6 +275,16 @@ along with this software (see the LICENSE.md file). If not, see
                                         </drop-down>
                                     </default-field>
                                 </field>
+                                <field name="feePartyId">
+                                    <default-field title="Fee paid to" tooltip="The bank or other party the fee is paid to">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices" server-search="true" min-length="0"
+                                                    parameter-map="{choice:'parties',organizationPartyId:organizationPartyId,
+                                                        selected:(ec.web.errorParameters.moquiFormName === 'ReviewInternalTransfer' ?
+                                                            ec.web.errorParameters.feePartyId : transferValue.feePartyId) || null}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
                                 <field name="referenceNumber">
                                     <default-field title="Reference">
                                         <text-line/>
@@ -308,9 +316,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field-row>
                                     <field-row>
                                         <field-ref name="feeGlAccountId"/>
-                                        <field-ref name="referenceNumber"/>
+                                        <field-ref name="feePartyId"/>
                                     </field-row>
                                     <field-row>
+                                        <field-ref name="referenceNumber"/>
                                         <field-ref name="reason"/>
                                     </field-row>
                                     <field-row>

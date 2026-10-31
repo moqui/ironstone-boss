@@ -1,5 +1,6 @@
 // App routing and shell shapes. Native services remain the finance authority.
-const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
+const lib = ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
+const policy = lib.policy
 
 // The list and detail screen of each record kind, under the app root.
 const listPaths = {
@@ -37,7 +38,7 @@ function recordLink(kind, recordId) {
 }
 
 function access(parameters) {
-    if (parameters.appRoot && parameters.appRoot !== "Accounting") throw new Error("Unknown accounting mount")
+    const scope = lib.access(parameters)
     const linkPaths = [
         ...Object.values(listPaths),
         ...Object.values(detailPaths),
@@ -54,7 +55,7 @@ function access(parameters) {
         "Reports/TrialBalance",
         "Reports/GeneralLedger"
     ]
-    return Object.assign(policy.scope(parameters), {
+    return Object.assign(scope, {
         appRoot: "Accounting",
         linkBase: "//Accounting",
         webBase: "/qapps/Accounting",
@@ -489,8 +490,7 @@ function paymentChoices(parameters, scope) {
             })
         return {options}
     }
-    const decode = ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js").reviewedToken,
-        selections = chosen.map(token => ({token, ...decode(token, "reviewed item")}))
+    const selections = chosen.map(token => ({token, ...lib.token(token, "reviewed item")}))
     let rows,
         selectedRows,
         idField,
@@ -603,8 +603,7 @@ function settlementChoices(parameters, scope) {
                 options.push({value: row.glAccountId, label: accountLabel(row)})
         return {options}
     }
-    const decode = ec.resource.script("component://mr-boss/service/ironstone/accounting/Settlements.js").itemToken
-    const selections = chosen.map(token => ({token, ...decode(token)}))
+    const selections = chosen.map(token => ({token, ...lib.settlementToken(token)}))
     const kinds = {
         settlementSources: ["payment", "credit"],
         settlementTargets: ["invoice", "paymentTarget"],

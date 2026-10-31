@@ -1,5 +1,6 @@
 const helper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
 const screen = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/Payments.js")
+const lib = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
 const native = "mantle.account.PaymentServices."
 const organizationPartyId = helper.ids.organizationPartyId
 const paymentId = "BOSS_ACCT_PAY_DRAFT"
@@ -16,7 +17,7 @@ function rejected(action) {
 
 feature("payment draft decoding retains reviewed method revisions and excludes derived financial fields", {
     when() {
-        return screen().draftInput({
+        return screen().execute("draftInput", {
             organizationPartyId,
             cashDirection: "incoming",
             partyId: "customer",
@@ -53,7 +54,7 @@ feature("payment evidence keeps originally selected versions and rejects conflic
     when() {
         const module = screen()
         return {
-            input: module.stateInput({
+            input: module.execute("stateInput", {
                 organizationPartyId,
                 paymentId,
                 sourceVersion: "reviewed-source",
@@ -62,8 +63,8 @@ feature("payment evidence keeps originally selected versions and rejects conflic
                 reason: "Receipt matched",
                 evidenceTokenList: ["file-one~version-one", "file-two~version-two"]
             }),
-            invalid: rejected(() => module.reviewedSelection(["file-one"])),
-            conflicting: rejected(() => module.reviewedSelection(["file-one~old", "file-one~new"]))
+            invalid: rejected(() => lib().tokens(["file-one"], "evidence file")),
+            conflicting: rejected(() => lib().tokens(["file-one~old", "file-one~new"], "evidence file"))
         }
     },
     then({input, invalid, conflicting}) {
@@ -79,7 +80,7 @@ feature("application correction and return filters retain reviewed intent withou
     when() {
         const module = screen()
         return {
-            input: module.unapplyInput({
+            input: module.execute("unapplyInput", {
                 organizationPartyId,
                 paymentId,
                 sourceVersion: "payment-reviewed",

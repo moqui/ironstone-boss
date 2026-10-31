@@ -129,9 +129,7 @@ function configuration() {
         postingGuardEnabled: "Y",
         requiredLedgerDimensionsEnabled: "Y",
         forwardIssuanceRepostEnabled: "Y",
-        singleCurrencyDocumentsOnly: "Y",
-        settlementApplicationGuardEnabled: "Y",
-        paymentAutoApplicationEnabled: "Y"
+        singleCurrencyDocumentsOnly: "Y"
     })
     createOnce("mantle.ledger.account.GlAccountOrganization", {organizationPartyId, glAccountId: "258300000"}, {fromDate: 0})
     for (const isPayable of ["Y", "N"])
@@ -421,8 +419,6 @@ function settlementDocuments(currency) {
             paymentId,
             fromPartyId: partyId,
             toPartyId: organizationPartyId,
-            financeOrganizationPartyId: organizationPartyId,
-            financeDirection: "receivable",
             paymentTypeEnumId: "PtInvoicePayment",
             paymentInstrumentEnumId: "PiCash",
             toPaymentMethodId: "BOSS_ACCT_STL_CASH",
@@ -430,7 +426,6 @@ function settlementDocuments(currency) {
             amountUomId: currency,
             statusId: "PmntPromised",
             effectiveDate: at,
-            accountingDate: day,
             comments: "Available settlement receipt " + amount
         })
         policy.call("update#mantle.account.payment.Payment", {paymentId, statusId: "PmntDelivered"})
@@ -501,8 +496,7 @@ function paymentDocuments(currency) {
     ]) {
         const selectedMethodId = outgoing && !cashOnly ? bankMethodId : methodId,
             instrument = outgoing && !cashOnly ? "PiCompanyCheck" : "PiCash"
-        // Fixed fixture IDs start as ordinary drafts, then the native workflow explicitly adopts them.
-        // No caller can set the managed provenance through a generic entity writer.
+        // Fixed fixture IDs start as ordinary drafts, then store#PaymentDraft adopts them with their methods.
         createOnce(
             "mantle.account.payment.Payment",
             {paymentId},
@@ -522,7 +516,8 @@ function paymentDocuments(currency) {
         )
         let detail = policy.call(native + "get#PaymentFinanceDetail", {organizationPartyId, paymentId})
         const row = policy.one("mantle.account.payment.Payment", {paymentId})
-        if (row.lifecycleManaged !== "Y") {
+        // A draft is adopted once store#PaymentDraft has given it its reference.
+        if (row.paymentRefNum !== paymentId) {
             const method = policy
                 .call(native + "find#PaymentMethods", {
                     organizationPartyId,
@@ -757,12 +752,12 @@ function gatewayDraft(parameters) {
             amountUomId: currency,
             statusId: "PmntProposed",
             effectiveDate: at,
-            accountingDate: day,
             toPaymentMethodId: orgMethodId,
             comments: "Demonstration provider instruction"
         }
     )
-    if (policy.one("mantle.account.payment.Payment", {paymentId}).lifecycleManaged === "Y") return {complete: true}
+    // Adopted once store#PaymentDraft has given the draft its reference.
+    if (policy.one("mantle.account.payment.Payment", {paymentId}).paymentRefNum === paymentId) return {complete: true}
     const versions = {}
     for (const [role, id] of [
         ["organization", orgMethodId],

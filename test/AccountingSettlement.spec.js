@@ -1,5 +1,6 @@
 const helper = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js")
 const screen = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/Settlements.js")
+const lib = () => ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
 const scope = {
     organizationPartyId: helper.ids.organizationPartyId,
     partyId: helper.ids.customerPartyId,
@@ -16,12 +17,8 @@ const storeDraft = draft =>
     }).draftId
 const storedDraft = draftId =>
     screen().parseDraft(helper.call("mantle.account.PaymentServices.get#SettlementDraft", {draftId}).draftJson)
-// Runs a screen operation as its transition does, then clears the draft ID it put in this spec's context.
-function run(op, parameters) {
-    const result = screen().execute(op, parameters)
-    ec.context.putAll({draftId: null})
-    return result
-}
+// Runs a screen operation as its service does.
+const run = (op, parameters) => screen().execute(op, parameters)
 const request = (draft, extra = {}) => Object.assign({}, scope, {draftId: storeDraft(draft)}, extra)
 const customerPartyId = "BOSS_ACCT_STL_CUSTOMER"
 const currentScope = () =>
@@ -189,9 +186,9 @@ feature("malformed, conflicting and excessive draft selections cannot replace re
         const excessive = mixedDraft()
         excessive.allocations = Array.from({length: 201}, () => excessive.allocations[0])
         return {
-            missing: refused(() => module.itemToken("invoice:one")),
-            malformed: refused(() => module.itemToken("invoice:%XX~reviewed")),
-            wrongKind: refused(() => module.itemToken("bank:private~reviewed")),
+            missing: refused(() => lib().settlementToken("invoice:one")),
+            malformed: refused(() => lib().settlementToken("invoice:%XX~reviewed")),
+            wrongKind: refused(() => lib().settlementToken("bank:private~reviewed")),
             conflicting: refused(() => module.selection(conflicting)),
             excessive: refused(() => module.parseDraft(JSON.stringify(excessive))),
             scopeChange: helper.asUser("finance.ar", () =>
@@ -347,7 +344,7 @@ feature("the retained native review owns mixed amounts and versions even when cl
         context.settlementReview.operationKey == preview.operationKey
         context.settlementReview.operationKey.startsWith("settle-")
         reloaded.settlementReview.operationKey == context.settlementReview.operationKey
-        refusal.includes("STALE_PREVIEW")
+        refusal.includes("SETTLEMENT_PREVIEW_MISMATCH")
         afterRefusal.settlementReview.operationKey == context.settlementReview.operationKey
         afterRefusal.settlementReview.inputFingerprint == context.settlementReview.inputFingerprint
         nextContext.settlementReview.operationKey != context.settlementReview.operationKey

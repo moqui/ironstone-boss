@@ -1,10 +1,9 @@
 // Screen context for receivables. Mantle's services own every financial read and change and their authorization; this
 // adds the screen's labels, links and paging names.
-const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
+const lib = ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
+const {policy, array, money} = lib
+const plainRows = lib.rows
 const nativeInvoice = "mantle.account.InvoiceServices."
-const array = value => Array.from(value || [])
-const money = (value, currency) => (value == null ? "" : ec.l10n.formatCurrency(value, currency))
-const plainRows = value => array(value).map(policy.display)
 const emailStatus = statusId =>
     ({ES_SENT: "Sent", ES_READY: "Queued for delivery", ES_SCHEDULED: "Queued for delivery"})[statusId] || "Failed"
 // The color of an invoice status chip (style guide §5.2): draft grey, in progress primary, sent info, paid positive,
@@ -27,10 +26,7 @@ const statusColor = statusId => statusColors[statusId] || "grey-7"
 // A user without the view permission is refused; a record that does not exist or is not visible is only not found.
 const refused = error => String(error.message).includes("PERMISSION_DENIED")
 
-function access(parameters) {
-    if (parameters.appRoot && parameters.appRoot !== "Accounting") throw new Error("Receivables context is not available")
-    return policy.scope(parameters)
-}
+const access = parameters => lib.access(parameters)
 
 // The invoice for its detail screen, with every list and flag present: an invoice that does not exist or is not visible
 // to the user has recordFound false and empty parts, so a screen shows its "not available" state.
@@ -108,7 +104,7 @@ function invoiceContext(parameters) {
         organizationPartyId,
         invoiceHeaderValue: Object.assign({}, invoice, {invoiceId, invoiceDate: invoice.invoiceDateValue}),
         invoiceSendValue: {invoiceId, toAddresses: output.sendTo, note: "", reviewedAttachmentList: []},
-        invoiceOperationKey: "invoice-" + ec.user.randomString(24)
+        invoiceOperationKey: lib.operationKey("invoice")
     }
 }
 
@@ -205,10 +201,7 @@ function billingQueue(parameters) {
         nativeInvoice + "find#ApprovedTimeBilling",
         Object.assign({}, parameters, {organizationPartyId: scope.organizationPartyId})
     )
-    const paging = {}
-    for (const name of ["Count", "PageSize", "PageIndex", "PageMaxIndex", "PageRangeLow", "PageRangeHigh"])
-        paging["billingRows" + name] = output["records" + name]
-    return Object.assign({}, output, paging, {
+    return Object.assign({}, output, lib.paging(output, "billingRows", "records"), {
         billingRows: plainRows(output.records).map(row => Object.assign(row, {amount: row.approvedAmount})),
         billingCapabilities: scope.capabilities,
         direction,
@@ -221,7 +214,7 @@ function billingQueue(parameters) {
                 ? [{value: "payable", label: "Worker bills"}]
                 : [])
         ],
-        billingOperationKey: parameters.operationKey || "time-" + ec.user.randomString(24)
+        billingOperationKey: parameters.operationKey || lib.operationKey("time")
     })
 }
 
@@ -391,7 +384,7 @@ function batchContext(parameters) {
                   batchRows.filter(row => row.available).map(row => [row.invoiceId, policy.ms(row.lastUpdatedStamp)])
               ),
         invoiceIdList: ids,
-        batchOperationKey: parameters.operationKey || "batch-" + ec.user.randomString(24),
+        batchOperationKey: parameters.operationKey || lib.operationKey("batch"),
         batchCount: ids.length
     }
 }

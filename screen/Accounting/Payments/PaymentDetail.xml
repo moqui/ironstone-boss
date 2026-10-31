@@ -29,8 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="savePaymentDraft">
         <actions>
-            <script>draftInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').draftInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.store#PaymentDraft" in-map="draftInput" out-map="savedPayment"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.save#PaymentDraft" in-map="context" out-map="savedPayment"/>
             <script><![CDATA[
                 // A successful edit starts a new review. Consume earlier failed-submit state before the redirected GET restores it.
                 if (!ec.message.hasError() && savedPayment.paymentId && savedPayment.sourceVersion) void ec.web.errorParameters
@@ -45,8 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="previewPaymentState">
         <actions>
             <set field="previewKind" value="state"/>
-            <script>stateInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').stateInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.preview#PaymentState" in-map="stateInput" out-map="paymentStatePreview"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentState" in-map="context" out-map="paymentStatePreview"/>
             <set field="previewId" from="paymentStatePreview.previewId"/>
         </actions>
         <default-response url=".">
@@ -74,8 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="previewPaymentUnapply">
         <actions>
             <set field="previewKind" value="unapply"/>
-            <script>unapplyInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').unapplyInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.preview#PaymentUnapply" in-map="unapplyInput" out-map="paymentUnapplyPreview"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentUnapply" in-map="context" out-map="paymentUnapplyPreview"/>
             <set field="previewId" from="paymentUnapplyPreview.previewId"/>
         </actions>
         <default-response url=".">
@@ -103,8 +100,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="previewPaymentRefund">
         <actions>
             <set field="previewKind" value="refund"/>
-            <script>refundInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').refundInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.preview#PaymentRefund" in-map="refundInput" out-map="refundPreview"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentRefund" in-map="context" out-map="refundPreview"/>
             <set field="previewId" from="refundPreview.previewId"/>
         </actions>
         <default-response url="${sharedLinks['Payments/PaymentDetail']}/Refunds">
@@ -134,8 +130,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="previewGatewayAction">
         <actions>
             <set field="previewKind" value="gateway"/>
-            <script>gatewayInput = ec.resource.script('component://mr-boss/service/ironstone/accounting/Payments.js').gatewayActionInput(context)</script>
-            <service-call name="mantle.account.PaymentServices.preview#PaymentGatewayAction" in-map="gatewayInput" out-map="gatewayPreview"/>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentGatewayAction" in-map="context" out-map="gatewayPreview"/>
             <set field="previewId" from="gatewayPreview.previewId"/>
         </actions>
         <default-response url="${sharedLinks['Payments/PaymentDetail']}/Gateway">
@@ -1709,6 +1704,14 @@ along with this software (see the LICENSE.md file). If not, see
                                         </column>
                                     </columns>
                                 </form-list>
+                                <section name="PaymentTransferFeeSection" condition="!!financePayment.feeParameters">
+                                    <widgets>
+                                        <label text="${financePayment.feeText}" type="p"/>
+                                        <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                                text="Fee payment ${financePayment.transferSummary.feePaymentId}"
+                                                parameter-map="financePayment.feeParameters" style="m-status-text"/>
+                                    </widgets>
+                                </section>
                             </widgets>
                         </section>
                         <form-single name="PaymentSummary" map="financePayment">

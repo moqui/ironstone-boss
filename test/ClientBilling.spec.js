@@ -146,48 +146,11 @@ const newEmails = (templateId, before) =>
             }))
     )
 
-// These raw, nonposted applications exercise the legacy client projection, not reviewed settlement.
-function useLegacySettlementFixtures() {
-    const preference = call("mantle.ledger.LedgerServices.find#PartyAcctgPreference", {
-        organizationPartyId: "ORG_ZIZI_SERVICES"
-    }).partyAcctgPreference
-    if (!preference?.organizationPartyId) throw new Error("ClientBilling needs an inherited accounting preference")
-    made.settlementGuard = {
-        organizationPartyId: preference.organizationPartyId,
-        originalFlag: preference.settlementApplicationGuardEnabled ?? null
-    }
-    if (made.settlementGuard.originalFlag !== "N")
-        call("update#mantle.ledger.config.PartyAcctgPreference", {
-            organizationPartyId: made.settlementGuard.organizationPartyId,
-            settlementApplicationGuardEnabled: "N"
-        })
-}
-function restoreSettlementGuard() {
-    if (!made.settlementGuard || made.settlementGuard.originalFlag === "N") return
-    ec.message.pushErrors()
-    try {
-        ec.service
-            .sync()
-            .name("update#mantle.ledger.config.PartyAcctgPreference")
-            .parameters({
-                organizationPartyId: made.settlementGuard.organizationPartyId,
-                settlementApplicationGuardEnabled: made.settlementGuard.originalFlag
-            })
-            .requireNewTransaction(true)
-            .throwOnError(true)
-            .call()
-    } finally {
-        ec.message.clearErrors()
-        ec.message.popErrors()
-    }
-}
-
 spec({
     stepwise: false,
     setupSpec() {
         login("john.doe")
         sys(() => {
-            useLegacySettlementFixtures()
             const invoice = (invoiceId, fromPartyId, toPartyId, statusId, projectId, amount, invoiceTypeEnumId) => {
                 call("create#mantle.account.invoice.Invoice", {
                     invoiceId,
@@ -309,63 +272,34 @@ spec({
     },
     cleanupSpec() {
         sys(() => {
-            try {
-                ec.entity
-                    .find("mantle.work.effort.WorkEffortSetting")
-                    .condition({workEffortId: "ACME", settingTypeEnumId: "WstShareHours"})
-                    .deleteAll()
-                for (const id of ["CBT_PAY", "CBT_PAY_B"]) {
-                    // Financial source guards serialize even legacy cleanup against first native adoption.
-                    call("delete#mantle.account.payment.PaymentApplication", {paymentApplicationId: id + "_A"})
-                    call("delete#mantle.account.payment.Payment", {paymentId: id})
-                }
-                for (const id of made.entries)
-                    ec.entity.find("mantle.work.time.TimeEntry").condition("timeEntryId", id).deleteAll()
-                ec.entity.find("mantle.work.time.Timesheet").condition("timesheetId", "CBT_TS").deleteAll()
-                for (const invoiceId of Object.values(INV)) {
-                    ec.entity.find("mantle.work.effort.WorkEffortInvoice").condition("invoiceId", invoiceId).deleteAll()
-                    const invoice = ec.entity.find("mantle.account.invoice.Invoice").condition("invoiceId", invoiceId).one()
-                    if (invoice) {
-                        invoice.statusId = "InvoiceCancelled"
-                        invoice.update()
-                    }
-                }
-                for (const id of made.updates) {
-                    for (const entityName of ["mantle.work.effort.WorkEffortCommEvent", "mantle.work.effort.WorkEffortUpdate"])
-                        ec.entity.find(entityName).condition("communicationEventId", id).deleteAll()
-                    ec.entity
-                        .find("mantle.party.communication.CommunicationEvent")
-                        .condition("communicationEventId", id)
-                        .deleteAll()
-                }
-                const acme = ec.entity.find("mantle.work.effort.WorkEffort").condition("workEffortId", "ACME").one()
-                acme.healthEnumId = made.acmeHealth ?? null
-                acme.update()
-            } finally {
-                restoreSettlementGuard()
+            ec.entity
+                .find("mantle.work.effort.WorkEffortSetting")
+                .condition({workEffortId: "ACME", settingTypeEnumId: "WstShareHours"})
+                .deleteAll()
+            for (const id of ["CBT_PAY", "CBT_PAY_B"]) {
+                // Financial source guards serialize even legacy cleanup against first native adoption.
+                call("delete#mantle.account.payment.PaymentApplication", {paymentApplicationId: id + "_A"})
+                call("delete#mantle.account.payment.Payment", {paymentId: id})
             }
+            for (const id of made.entries) ec.entity.find("mantle.work.time.TimeEntry").condition("timeEntryId", id).deleteAll()
+            ec.entity.find("mantle.work.time.Timesheet").condition("timesheetId", "CBT_TS").deleteAll()
+            for (const invoiceId of Object.values(INV)) {
+                ec.entity.find("mantle.work.effort.WorkEffortInvoice").condition("invoiceId", invoiceId).deleteAll()
+                const invoice = ec.entity.find("mantle.account.invoice.Invoice").condition("invoiceId", invoiceId).one()
+                if (invoice) {
+                    invoice.statusId = "InvoiceCancelled"
+                    invoice.update()
+                }
+            }
+            for (const id of made.updates) {
+                for (const entityName of ["mantle.work.effort.WorkEffortCommEvent", "mantle.work.effort.WorkEffortUpdate"])
+                    ec.entity.find(entityName).condition("communicationEventId", id).deleteAll()
+                ec.entity.find("mantle.party.communication.CommunicationEvent").condition("communicationEventId", id).deleteAll()
+            }
+            const acme = ec.entity.find("mantle.work.effort.WorkEffort").condition("workEffortId", "ACME").one()
+            acme.healthEnumId = made.acmeHealth ?? null
+            acme.update()
         })
-    }
-})
-
-feature("legacy client-billing applications keep their default-off date and currency metadata", {
-    when() {
-        return sys(() => ({
-            preference: call("mantle.ledger.LedgerServices.find#PartyAcctgPreference", {
-                organizationPartyId: "ORG_ZIZI_SERVICES"
-            }).partyAcctgPreference,
-            applications: ["CBT_PAY_A", "CBT_PAY_B_A"].map(paymentApplicationId =>
-                ec.entity
-                    .find("mantle.account.payment.PaymentApplication")
-                    .condition("paymentApplicationId", paymentApplicationId)
-                    .one()
-            )
-        }))
-    },
-    then({preference, applications}) {
-        preference.organizationPartyId == made.settlementGuard.organizationPartyId
-        preference.settlementApplicationGuardEnabled == "N"
-        applications.every(row => row != null && row.accountingDate == null && row.currencyUomId == null)
     }
 })
 
@@ -442,9 +376,9 @@ feature("a client lists only its organization's invoices sent to it on its clien
         !sheldon.list.output.includes("Worker invoices")
         !sheldon.list.output
             .includes("To send")
-            [
-                (INV.draft, INV.finalized, INV.acmeApp, INV.worker, INV.workerToAcme, INV.expense, INV.bluth)
-            ].filter(id => sheldon.list.output.includes(id) || sheldon.tui.output.includes(id)) == []
+            [(INV.draft, INV.finalized, INV.acmeApp, INV.worker, INV.workerToAcme, INV.expense, INV.bluth)].filter(
+                id => sheldon.list.output.includes(id) || sheldon.tui.output.includes(id)
+            ) == []
         made.brightwater.filter(id => sheldon.list.output.includes(id)) == []
         leaksOf(sheldon.list.output + sheldon.tui.output, OTHER_TOTALS.concat(ACME_SECRETS)) == []
         sheldon.other.rowList.length == 0

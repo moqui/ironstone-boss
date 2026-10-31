@@ -1,13 +1,11 @@
 // Payment screen projections and reviewed-choice decoding. Mantle owns financial decisions and mutations.
-const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
+const lib = ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
+const {policy, array, rows, today, statusText, recordParameters, tokenOf} = lib
 const native = "mantle.account.PaymentServices."
-const array = value => Array.from(value || [])
-const rows = value => array(value).map(row => policy.display(row))
 const paymentRow = value =>
     Object.assign(policy.display(value), {
         paymentInstrumentDescription: value.instrumentDescription || value.paymentInstrumentDescription
     })
-const today = () => ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
 const filterNames = ["queue", "partyId", "paymentInstrumentEnumId", "statusId", "currencyUomId", "fromDay", "throughDay", "text"]
 const gatewayFilterNames = [
     "paymentId",
@@ -57,46 +55,14 @@ function gatewayFindParameters(value) {
     )
 }
 
-function access(parameters) {
-    if (parameters.appRoot && parameters.appRoot !== "Accounting") throw new Error("Payment context is not available")
-    const scope = policy.scope(parameters)
-    const cap = scope.capabilities
-    if (!(cap.paymentRead || cap.reportRead || cap.arRead || cap.apRead || cap.admin || cap.systemAdmin))
-        throw new Error("Payment read authority is required")
-    return scope
-}
-
-// These tokens preserve the revision the user selected. Never discover a new revision during a submitted write.
-function reviewedToken(value, label = "payment method") {
-    if (typeof value !== "string" || value.length > 2048) throw new Error("Choose a " + label + " from the list")
-    const separator = value.lastIndexOf("~")
-    if (separator < 1 || separator === value.length - 1) throw new Error("Review the selected " + label + " again")
-    return {id: value.slice(0, separator), version: value.slice(separator + 1)}
-}
-
-function reviewedSelection(value, label = "evidence file", maximum = 10) {
-    let selected = value == null || value === "" ? [] : value
-    if (typeof selected === "string") selected = selected.trim().startsWith("[") ? JSON.parse(selected) : [selected]
-    if (!Array.isArray(selected) || selected.length > maximum) throw new Error("Choose at most " + maximum + " " + label + "s")
-    const versions = new Map()
-    for (const token of selected) {
-        const item = reviewedToken(token, label)
-        if (versions.has(item.id) && versions.get(item.id) !== item.version)
-            throw new Error("An item has different reviewed revisions. Choose it again")
-        versions.set(item.id, item.version)
-    }
-    return {ids: Array.from(versions.keys()), versions: Object.fromEntries(versions)}
-}
-
-const statusText = statusId => (statusId ? policy.one("moqui.basic.StatusItem", {statusId})?.description || statusId : "")
+const access = parameters =>
+    lib.access(
+        parameters,
+        ["paymentRead", "reportRead", "arRead", "apRead", "admin", "systemAdmin"],
+        "Payment read authority is required"
+    )
 // A payment detail link that opens the payment itself, not a review.
-const recordParameters = (organizationPartyId, paymentId) => ({
-    organizationPartyId,
-    paymentId,
-    recordId: paymentId,
-    previewId: "",
-    previewKind: ""
-})
+const paymentParameters = (organizationPartyId, paymentId) => recordParameters(organizationPartyId, paymentId, {paymentId})
 
 // The parts of a retained review that the generic review sections show, empty where a gateway or refund review has none.
 function reviewBase(retained, payment, operationKey) {
@@ -132,8 +98,7 @@ function reviewBase(retained, payment, operationKey) {
 
 function gatewayReviewPresentation(retained, payment, organizationPartyId) {
     if (!retained?.previewId) return null
-    const operationKey =
-            retained.operationKey || "gw-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
+    const operationKey = lib.reviewKey(retained, "gw"),
         result = retained.results || {},
         refund = retained.action === "refund",
         hasResults = retained.status === "complete" && !!result.outcome,
@@ -160,15 +125,14 @@ function gatewayReviewPresentation(retained, payment, organizationPartyId) {
             }
         ],
         fundingRows: refund
-            ? [
-                  ["Refunded", "completedRefundAmount", amount],
-                  ["Available to refund", "refundableAmount", toDecimal(0).subtract(amount)]
-              ].map(([label, field, change]) => ({
-                  label,
-                  beforeAmount: summary[field],
-                  afterAmount: summary[field] == null ? null : toDecimal(summary[field]).add(change),
-                  currencyUomId: retained.currencyUomId
-              }))
+            ? lib.changeRows(
+                  summary,
+                  [
+                      ["Refunded", "completedRefundAmount", amount],
+                      ["Available to refund", "refundableAmount", toDecimal(0).subtract(amount)]
+                  ],
+                  retained.currencyUomId
+              )
             : [],
         canConfirm: retained.canApply === true && retained.status === "review",
         hasResults,
@@ -189,7 +153,7 @@ function gatewayReviewPresentation(retained, payment, organizationPartyId) {
                       {
                           paymentId: result.refundPaymentId,
                           label: "Refund payment · " + statusText(result.refundStatusId),
-                          recordParameters: recordParameters(organizationPartyId, result.refundPaymentId)
+                          recordParameters: paymentParameters(organizationPartyId, result.refundPaymentId)
                       }
                   ]
                 : []
@@ -202,8 +166,8 @@ function gatewayTransactionRows(value, organizationPartyId, providerNames = {}) 
             currencyUomId: row.amountUomId,
             outcomeText: gatewayOutcomeText[row.outcome] || row.outcome || "",
             providerName: providerNames[row.paymentGatewayConfigId] || row.paymentGatewayConfigId || "",
-            paymentParameters: recordParameters(organizationPartyId, row.paymentId),
-            refundParameters: row.refundPaymentId ? recordParameters(organizationPartyId, row.refundPaymentId) : null
+            paymentParameters: paymentParameters(organizationPartyId, row.paymentId),
+            refundParameters: row.refundPaymentId ? paymentParameters(organizationPartyId, row.refundPaymentId) : null
         })
     )
 }
@@ -226,29 +190,19 @@ function gatewayTransactionsContext(parameters) {
     let providerNames = {},
         providerLabelsUnavailable = false
     if (scope.organizationPartyId && providerIds.length) {
-        try {
-            const providers = policy.probe(native + "find#PaymentGatewayProviders", {
-                organizationPartyId: scope.organizationPartyId,
-                selectedIdList: providerIds,
-                pageSize: 1
-            })
-            providerNames = Object.fromEntries(
-                array(providers.selectedRows).map(row => [row.paymentGatewayConfigId, row.description])
-            )
-        } catch (error) {
-            ec.logger.warn("Gateway provider labels are unavailable: " + error.message)
-            providerLabelsUnavailable = true
-        }
+        const providers = lib.optional(
+            native + "find#PaymentGatewayProviders",
+            {organizationPartyId: scope.organizationPartyId, selectedIdList: providerIds, pageSize: 1},
+            "Gateway provider labels are unavailable"
+        )
+        providerNames = Object.fromEntries(
+            array(providers?.selectedRows).map(row => [row.paymentGatewayConfigId, row.description])
+        )
+        providerLabelsUnavailable = !providers
     }
-    return Object.assign({}, filters, {
+    return Object.assign({}, filters, lib.paging(result), {
         organizationPartyId: scope.organizationPartyId,
         records: gatewayTransactionRows(nativeRows, scope.organizationPartyId, providerNames),
-        recordsCount: result.recordCount ?? 0,
-        recordsPageIndex: result.pageIndex ?? 0,
-        recordsPageSize: result.pageSize ?? 20,
-        recordsPageMaxIndex: result.pageMaxIndex ?? 0,
-        recordsPageRangeLow: result.pageRangeLow ?? 0,
-        recordsPageRangeHigh: result.pageRangeHigh ?? 0,
         gatewayTransactions: {
             ready: !!scope.organizationPartyId,
             available: result.complete === true,
@@ -282,7 +236,7 @@ function draftInput(parameters) {
         ["counterpartyMethodToken", "counterparty"]
     ]) {
         if (!parameters[field]) continue
-        const method = reviewedToken(parameters[field])
+        const method = lib.token(parameters[field], "payment method")
         input[prefix + "PaymentMethodId"] = method.id
         input[prefix + "MethodVersion"] = method.version
     }
@@ -290,7 +244,7 @@ function draftInput(parameters) {
 }
 
 function stateInput(parameters) {
-    const evidence = reviewedSelection(parameters.evidenceTokenList)
+    const evidence = lib.tokens(parameters.evidenceTokenList, "evidence file")
     return Object.assign(
         Object.fromEntries(
             ["organizationPartyId", "paymentId", "sourceVersion", "action", "settlementDate", "referenceNumber", "reason"].map(
@@ -302,7 +256,7 @@ function stateInput(parameters) {
 }
 
 function unapplyInput(parameters) {
-    const selected = reviewedSelection(parameters.applicationTokenList, "application", 200)
+    const selected = lib.tokens(parameters.applicationTokenList, "application", 200)
     return {
         organizationPartyId: parameters.organizationPartyId,
         paymentId: parameters.paymentId,
@@ -338,7 +292,7 @@ function transferInput(parameters) {
         ].map(field => [field, parameters[field]])
     )
     for (const prefix of ["from", "to"]) {
-        const method = reviewedToken(parameters[prefix + "MethodToken"], "transfer method")
+        const method = lib.token(parameters[prefix + "MethodToken"], "transfer method")
         input[prefix + "PaymentMethodId"] = method.id
         input[prefix + "MethodVersion"] = method.version
     }
@@ -347,14 +301,8 @@ function transferInput(parameters) {
 
 function transferPreparedValue(retained) {
     return {
-        fromMethodToken:
-            retained.fromPaymentMethodId && retained.fromMethodVersion
-                ? retained.fromPaymentMethodId + "~" + retained.fromMethodVersion
-                : null,
-        toMethodToken:
-            retained.toPaymentMethodId && retained.toMethodVersion
-                ? retained.toPaymentMethodId + "~" + retained.toMethodVersion
-                : null,
+        fromMethodToken: tokenOf(retained.fromPaymentMethodId, retained.fromMethodVersion),
+        toMethodToken: tokenOf(retained.toPaymentMethodId, retained.toMethodVersion),
         amount: retained.principalAmount,
         currencyUomId: retained.currencyUomId,
         effectiveDate: retained.accountingDateText,
@@ -381,8 +329,7 @@ function transferPresentation(retained, organizationPartyId) {
             retained.totalAmount != null &&
             !!retained.currencyUomId &&
             !!retained.accountingDateText,
-        operationKey =
-            retained.operationKey || "trf-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
+        operationKey = lib.reviewKey(retained, "trf"),
         actualIds = {transfer: result.paymentId, fee: result.feePaymentId},
         legTexts = {transfer: "Transfer", fee: "Fee"}
     return Object.assign({}, policy.display(retained), {
@@ -413,13 +360,7 @@ function transferPresentation(retained, organizationPartyId) {
                   return Object.assign(row, {
                       legText: legTexts[row.leg] || row.leg,
                       canOpen: own,
-                      recordParameters: {
-                          organizationPartyId,
-                          paymentId: own ? row.paymentId : "",
-                          recordId: own ? row.paymentId : "",
-                          previewId: "",
-                          previewKind: ""
-                      }
+                      recordParameters: paymentParameters(organizationPartyId, own ? row.paymentId : "")
                   })
               })
             : [],
@@ -474,14 +415,13 @@ function refundInput(parameters) {
     )
     for (const prefix of ["organization", "counterparty"])
         if (parameters[prefix + "MethodToken"])
-            input[prefix + "PaymentMethodId"] = reviewedToken(parameters[prefix + "MethodToken"], "method").id
+            input[prefix + "PaymentMethodId"] = lib.token(parameters[prefix + "MethodToken"], "method").id
     return input
 }
 
 function refundReviewPresentation(retained, payment, organizationPartyId) {
     if (!retained?.previewId) return null
-    const operationKey =
-            retained.operationKey || "rfd-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32),
+    const operationKey = lib.reviewKey(retained, "rfd"),
         result = retained.results || {},
         hasResults = retained.status === "complete" && !!result.refundPaymentId,
         summary = retained.refundSummary || {},
@@ -496,16 +436,15 @@ function refundReviewPresentation(retained, payment, organizationPartyId) {
             counterparty: retained.counterpartyMethod || null
         },
         effectRows: [],
-        fundingRows: [
-            ["Refunded", "completedRefundAmount", amount],
-            ["Unapplied cash", "unappliedTotal", toDecimal(0).subtract(amount)],
-            ["Available to refund", "refundableAmount", toDecimal(0).subtract(amount)]
-        ].map(([label, field, change]) => ({
-            label,
-            beforeAmount: summary[field],
-            afterAmount: summary[field] == null ? null : toDecimal(summary[field]).add(change),
-            currencyUomId: retained.currencyUomId
-        })),
+        fundingRows: lib.changeRows(
+            summary,
+            [
+                ["Refunded", "completedRefundAmount", amount],
+                ["Unapplied cash", "unappliedTotal", toDecimal(0).subtract(amount)],
+                ["Available to refund", "refundableAmount", toDecimal(0).subtract(amount)]
+            ],
+            retained.currencyUomId
+        ),
         canConfirm: retained.canApply === true && retained.status === "review",
         hasResults,
         resultsTitle: "Refund completed",
@@ -531,7 +470,7 @@ function refundReviewPresentation(retained, payment, organizationPartyId) {
                       paymentId: result.refundPaymentId,
                       amount: result.amount,
                       currencyUomId: result.currencyUomId,
-                      recordParameters: recordParameters(organizationPartyId, result.refundPaymentId)
+                      recordParameters: paymentParameters(organizationPartyId, result.refundPaymentId)
                   }
               ]
             : []
@@ -580,15 +519,9 @@ function listContext(parameters) {
             transferUnavailable = true
         }
     }
-    return Object.assign({}, filters, {
+    return Object.assign({}, filters, lib.paging(result), {
         organizationPartyId: scope.organizationPartyId,
         records,
-        recordsCount: result.recordCount ?? 0,
-        recordsPageIndex: result.pageIndex ?? 0,
-        recordsPageSize: result.pageSize ?? 20,
-        recordsPageMaxIndex: result.pageMaxIndex ?? 0,
-        recordsPageRangeLow: result.pageRangeLow ?? 0,
-        recordsPageRangeHigh: result.pageRangeHigh ?? 0,
         transferPreviewId: parameters.transferPreviewId || "",
         transferEditPreviewId: parameters.transferEditPreviewId || "",
         transferReview: transferReview || {},
@@ -603,6 +536,7 @@ function listContext(parameters) {
                 effectiveDate: today(),
                 feeAmount: "0",
                 feeGlAccountId: null,
+                feePartyId: null,
                 referenceNumber: "",
                 reason: ""
             },
@@ -622,6 +556,7 @@ function listContext(parameters) {
             detailParameters: {
                 organizationPartyId: scope.organizationPartyId,
                 paymentId: "",
+                recordId: "",
                 previewId: "",
                 previewKind: "",
                 operationKey: "",
@@ -647,9 +582,7 @@ function listContext(parameters) {
             cashDirection: filters.queue === "outgoing" ? "outgoing" : "incoming",
             currencyUomId: scope.organizationPartyId ? policy.preference(scope.organizationPartyId).baseCurrencyUomId : null,
             effectiveDate: today(),
-            operationKey:
-                "pay-" +
-                policy.hash({userId: ec.user.userId, at: String(ec.user.nowTimestamp), random: Math.random()}).slice(0, 32)
+            operationKey: lib.operationKey("pay")
         }
     })
 }
@@ -659,8 +592,7 @@ function reviewPresentation(retained, currencyUomId = null) {
     const paymentSummary = retained.paymentSummary || {}
     const hasSummary =
         paymentSummary.paymentId === retained.paymentId && paymentSummary.amount != null && !!paymentSummary.currencyUomId
-    const operationKey =
-        retained.operationKey || "pay-" + policy.hash({previewId: retained.previewId, userId: ec.user.userId}).slice(0, 32)
+    const operationKey = lib.reviewKey(retained, "pay")
     return Object.assign({}, policy.display(retained), {
         before: policy.display(retained.before || {}),
         after: policy.display(retained.after || {}),
@@ -741,18 +673,12 @@ function reviewPresentation(retained, currencyUomId = null) {
                 value: retained.results[field]
             })),
         canConfirm: retained.canApply === true && hasSummary && !array(retained.blockers).length && !retained.results?.paymentId,
-        effectRows: [
+        effectRows: lib.effectRows(retained.before, retained.after, [
             ["Status", "statusDescription", "statusId"],
             ["Payment date", "accountingDateText", "effectiveDateText"],
             ["Settlement date", "settlementDateText"],
             ["Reference", "referenceNumber", "paymentRefNum"]
-        ]
-            .map(([label, ...fields]) => ({
-                label,
-                beforeText: fields.map(field => retained.before?.[field]).find(value => value != null && value !== "") || "",
-                afterText: fields.map(field => retained.after?.[field]).find(value => value != null && value !== "") || ""
-            }))
-            .filter(row => row.beforeText !== "" || row.afterText !== "")
+        ])
     })
 }
 
@@ -761,6 +687,7 @@ function detailContext(parameters) {
     const paymentId = parameters.paymentId || parameters.recordId
     const result = policy.call(native + "get#PaymentFinanceDetail", {organizationPartyId: scope.organizationPartyId, paymentId})
     const payment = paymentRow(result.payment || {})
+    const transfer = result.transferSummary || {}
     const cap = result.capabilities || {}
     if (!payment.paymentId || cap.canRead !== true) throw new Error("Payment detail is not available")
     const previewKind = parameters.previewKind || "state"
@@ -809,14 +736,10 @@ function detailContext(parameters) {
                           ? "Payables/BillDetail"
                           : "Receivables/InvoiceDetail"
                       : null
-            row.recordParameters = {
-                organizationPartyId: scope.organizationPartyId,
-                recordId: row.sourceId,
+            row.recordParameters = recordParameters(scope.organizationPartyId, row.sourceId, {
                 paymentId: row.sourceKind === "payment" ? row.sourceId : "",
-                invoiceId: row.sourceKind === "invoice" ? row.sourceId : "",
-                previewId: "",
-                previewKind: ""
-            }
+                invoiceId: row.sourceKind === "invoice" ? row.sourceId : ""
+            })
         }
         if (!isGateway && previewKind !== "refund")
             for (const row of review.outputResultRows)
@@ -851,7 +774,7 @@ function detailContext(parameters) {
             : ["validate", "deliver", "confirm"].find(
                   action => cap["can" + action[0].toUpperCase() + action.slice(1)] === true
               ) || null
-    const methodVersion = id => array(result.maskedMethodRows).find(row => row.paymentMethodId === id)?.version
+    const methodToken = id => tokenOf(id, array(result.maskedMethodRows).find(row => row.paymentMethodId === id)?.version)
     const organizationMethodId =
         payment.organizationPaymentMethodId ||
         (payment.cashDirection === "incoming" ? payment.toPaymentMethodId : payment.paymentMethodId)
@@ -864,25 +787,15 @@ function detailContext(parameters) {
         sourceVersion: result.sourceVersion,
         effectiveDate: payment.effectiveDateValue || payment.accountingDateText || today(),
         referenceNumber: payment.referenceNumber || payment.paymentRefNum || "",
-        organizationMethodToken:
-            organizationMethodId && methodVersion(organizationMethodId)
-                ? organizationMethodId + "~" + methodVersion(organizationMethodId)
-                : null,
-        counterpartyMethodToken:
-            counterpartyMethodId && methodVersion(counterpartyMethodId)
-                ? counterpartyMethodId + "~" + methodVersion(counterpartyMethodId)
-                : null,
+        organizationMethodToken: methodToken(organizationMethodId),
+        counterpartyMethodToken: methodToken(counterpartyMethodId),
         operationKey: "pay-" + policy.hash({paymentId, sourceVersion: result.sourceVersion, userId: ec.user.userId}).slice(0, 32)
     })
-    const baseParameters = {
-        organizationPartyId: scope.organizationPartyId,
+    const baseParameters = recordParameters(scope.organizationPartyId, paymentId, {
         paymentId,
-        recordId: paymentId,
-        previewId: "",
-        previewKind: "",
         findJson: parameters.findJson || "",
         operationKey: ""
-    }
+    })
     return {
         organizationPartyId: scope.organizationPartyId,
         paymentId,
@@ -911,15 +824,16 @@ function detailContext(parameters) {
             transferLegRows: rows(result.transferLegRows).map(row =>
                 Object.assign(row, {
                     legText: {outgoing: "Outgoing", incoming: "Incoming"}[row.leg] || row.leg,
-                    recordParameters: {
-                        organizationPartyId: scope.organizationPartyId,
-                        paymentId: row.paymentId,
-                        recordId: row.paymentId,
-                        previewId: "",
-                        previewKind: ""
-                    }
+                    recordParameters: paymentParameters(scope.organizationPartyId, row.paymentId)
                 })
             ),
+            feeParameters: transfer.feePaymentId ? paymentParameters(scope.organizationPartyId, transfer.feePaymentId) : null,
+            feeText: transfer.feePaymentId
+                ? "Fee " +
+                  lib.money(toDecimal(transfer.feeAmount ?? 0), transfer.currencyUomId) +
+                  " paid to " +
+                  (transfer.feePartyName || transfer.feePartyId || "")
+                : "",
             refundSummary: policy.display(result.refundSummary || {}),
             refundSummaryAvailable: !!result.refundSummary,
             gatewayRefundValue: {
@@ -941,14 +855,8 @@ function detailContext(parameters) {
                 reason: "",
                 referenceNumber: "",
                 paymentInstrumentEnumId: payment.paymentInstrumentEnumId || null,
-                organizationMethodToken:
-                    organizationMethodId && methodVersion(organizationMethodId)
-                        ? organizationMethodId + "~" + methodVersion(organizationMethodId)
-                        : null,
-                counterpartyMethodToken:
-                    counterpartyMethodId && methodVersion(counterpartyMethodId)
-                        ? counterpartyMethodId + "~" + methodVersion(counterpartyMethodId)
-                        : null
+                organizationMethodToken: methodToken(organizationMethodId),
+                counterpartyMethodToken: methodToken(counterpartyMethodId)
             },
             refundSummaryRows: result.refundSummary
                 ? [
@@ -1026,14 +934,11 @@ function detailContext(parameters) {
             evidenceRows: rows(result.evidenceRows),
             evidenceIncomplete: !!result.evidenceIncomplete,
             baseParameters,
-            returnParameters: Object.assign({}, findParameters(parameters.findJson), {
-                organizationPartyId: scope.organizationPartyId,
-                paymentId: "",
-                recordId: "",
-                previewId: "",
-                previewKind: "",
-                operationKey: ""
-            }),
+            returnParameters: Object.assign(
+                {},
+                findParameters(parameters.findJson),
+                recordParameters(scope.organizationPartyId, "", {paymentId: "", operationKey: ""})
+            ),
             settlementParameters: {
                 organizationPartyId: scope.organizationPartyId,
                 partyId: payment.partyId,
@@ -1057,27 +962,27 @@ function detailContext(parameters) {
     }
 }
 
-;({
-    reviewedToken,
-    findParameters,
-    gatewayFindParameters,
-    reviewedSelection,
-    gatewayReviewPresentation,
-    gatewayTransactionRows,
+// The screen contexts, and the inputs of the payment write services: each decodes the reviewed tokens of a form into
+// the Mantle service's parameters and passes nothing else.
+const operations = {
+    list: listContext,
+    detail: detailContext,
+    gatewayTransactions: gatewayTransactionsContext,
     draftInput,
     stateInput,
     unapplyInput,
     gatewayActionInput,
-    refundInput,
-    refundReviewPresentation,
     transferInput,
     transferPreparedValue,
-    transferPresentation,
-    reviewPresentation,
+    refundInput
+}
+// The review presentations are also exported for the specs that check them.
+;({
     execute: (operation, parameters) => {
-        if (operation === "list") return listContext(parameters)
-        if (operation === "detail") return detailContext(parameters)
-        if (operation === "gatewayTransactions") return gatewayTransactionsContext(parameters)
-        throw new Error("Unknown payment screen operation")
-    }
+        if (!operations[operation]) throw new Error("Unknown payment screen operation " + operation)
+        return operations[operation](parameters)
+    },
+    findParameters,
+    reviewPresentation,
+    transferPresentation
 })

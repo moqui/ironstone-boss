@@ -64,35 +64,20 @@ along with this software (see the LICENSE.md file). If not, see
             const pkFields = Object.keys(ec.entity.makeValue(content.entityName).getPrimaryKeys())
             contentType = {entityName: content.entityName, keyField: content.keyField, typeField: content.typeField, dateField: content.dateField,
                 pkFields: pkFields, createService: found[0], idField: found[1], enumTypeId: found[2], catalogCanChange: true}
-            // a journal entry's files change with the GL posting permission on its organization (catalogCanChange is this
-            // service's may-change flag for every kind of record)
-            if (info.recordEntityName === 'mantle.ledger.transaction.AcctgTrans') {
-                const finance = ec.resource.script('component://mr-mantle/service/mantle/ledger/AccountingPolicy.js')
-                try {
-                    finance.record({kind: 'journals', recordId: info.recordId}, 'glPost')
-                } catch (error) {
-                    ec.logger.info('Journal ' + info.recordId + ' files are read only: ' + error.message)
+            // A journal entry's, invoice's or payment's files: Mantle says who may change them, whether a payment's are kept
+            // as issued and who reads its checks (catalogCanChange is this service's may-change flag for every kind of record).
+            if (['mantle.ledger.transaction.AcctgTrans', 'mantle.account.invoice.Invoice', 'mantle.account.payment.Payment']
+                    .includes(info.recordEntityName)) {
+                const finance = ec.service.sync().name('mantle.ledger.AccountingServices.get#RecordContentPolicy')
+                    .parameters({recordEntityName: info.recordEntityName, recordId: info.recordId}).call()
+                // a payment the user may not read has no files to show (Mantle's reason, not its wording)
+                if (finance?.reasonCode === 'RECORD_UNAVAILABLE') throw new Error('PAYMENT_UNAVAILABLE: Payment is not available')
+                if (!finance?.canChange) {
+                    ec.logger.info(info.recordEntityName + ' ' + info.recordId + ' files are read only: ' + finance?.reasonCode)
                     contentType.catalogCanChange = false
                 }
-            }
-            // Native invoice authority also applies to Files callbacks with artifact authorization disabled.
-            if (info.recordEntityName === 'mantle.account.invoice.Invoice') {
-                const invoice = ec.resource.script('component://mr-mantle/service/mantle/account/InvoiceWorkflowLib.js')
-                try {
-                    invoice.writeInvoice({invoiceId: info.recordId,
-                        organizationPartyId: invoice.policy.access().activeOrganizationPartyId || null}, false)
-                } catch (error) {
-                    ec.logger.info('Invoice ' + info.recordId + ' files are read only: ' + error.message)
-                    contentType.catalogCanChange = false
-                }
-            }
-            // A payment's files: Mantle says who may add them, whether they are kept as issued and who reads checks.
-            if (info.recordEntityName === 'mantle.account.payment.Payment') {
-                const access = ec.service.sync().name('mantle.account.PaymentServices.get#PaymentAccess')
-                    .parameters({paymentId: info.recordId}).call()
-                contentType.paymentContentLocked = !!access?.contentLocked
-                contentType.paymentCanReadCheck = !!access?.canReadCheck
-                if (!access?.canChange) contentType.catalogCanChange = false
+                contentType.paymentContentLocked = !!finance?.contentLocked
+                contentType.paymentCanReadCheck = !!finance?.canReadCheck
             }
             // Catalog content is master data. The same capability holds under Commons, Products and internal callbacks;
             // inherited entity permission or having uploaded the file earlier never substitutes for it.
@@ -212,7 +197,7 @@ along with this software (see the LICENSE.md file). If not, see
                 const preferred = enums.find((item) => /Internal$/.test(item.enumId)) || enums.find((item) => /(Other|General|Attachment|SupportingMedia)$/.test(item.enumId))
                 defaultTypeId = preferred ? preferred.enumId : null
 
-                // a payment's check images only for treasury (content.paymentCanReadCheck, from get#PaymentAccess)
+                // a payment's check images only for treasury (content.paymentCanReadCheck, from get#RecordContentPolicy)
                 const isPayment = entityName === 'mantle.account.payment.Payment'
                 const fileQuery = () => {
                     let query = ec.entity.find(content.entityName).condition(content.keyField, recordId)

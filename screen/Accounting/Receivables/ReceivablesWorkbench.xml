@@ -44,17 +44,17 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="editDraft">
         <actions>
-            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
-            <script>ec.resource.script(settlements).execute('editDraft', context)</script>
+            <service-call name="ironstone.accounting.SettlementScreenServices.edit#SettlementDraft" in-map="context"
+                    out-map="editedDraft"/>
+            <set field="draftId" from="editedDraft.draftId"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="previewSettlement">
         <actions>
-            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
-            <set field="settlementInput" from="ec.resource.script(settlements).execute('previewRequest', context)"/>
-            <service-call name="mantle.account.PaymentServices.preview#Settlement" in-map="settlementInput" out-map="reviewedSettlement"/>
+            <service-call name="ironstone.accounting.SettlementScreenServices.preview#Settlement" in-map="context"
+                    out-map="reviewedSettlement"/>
             <set field="previewId" from="reviewedSettlement.previewId"/>
         </actions>
         <default-response url="."/>

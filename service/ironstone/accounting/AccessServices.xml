@@ -36,7 +36,17 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="webBase" type="String"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('access', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Accounting.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('access', context)"/>
+            <set field="capabilities" from="screenContext.capabilities"/>
+            <set field="organizationPartyIds" from="screenContext.organizationPartyIds"/>
+            <set field="allowedOrganizationPartyIds" from="screenContext.allowedOrganizationPartyIds"/>
+            <set field="activeOrganizationPartyId" from="screenContext.activeOrganizationPartyId"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="appRoot" from="screenContext.appRoot"/>
+            <set field="sharedLinks" from="screenContext.sharedLinks"/>
+            <set field="linkBase" from="screenContext.linkBase"/>
+            <set field="webBase" from="screenContext.webBase"/>
         </actions>
     </service>
     <service verb="search" noun="Records" allow-remote="false">
@@ -50,7 +60,9 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="rows" type="List"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('search', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Accounting.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('search', context)"/>
+            <set field="rows" from="screenContext.rows"/>
         </actions>
     </service>
     <service verb="get" noun="Choices" allow-remote="false">
@@ -76,7 +88,9 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="options" type="List"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('choices', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Accounting.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('choices', context)"/>
+            <set field="options" from="screenContext.options"/>
         </actions>
     </service>
     <service verb="select" noun="Organization" allow-remote="false">
@@ -86,7 +100,9 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="organizationPartyId" type="String"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('selectOrganization', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Accounting.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('selectOrganization', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
         </actions>
     </service>
 </services>

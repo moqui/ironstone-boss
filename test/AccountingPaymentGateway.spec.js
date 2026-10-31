@@ -31,7 +31,8 @@ function promised(amount = "40") {
 }
 // Review and confirm one action as the screen does: the dialog's input, then the confirm form's operation key.
 function act(paymentId, action, extra = {}) {
-    const input = screen().gatewayActionInput(
+    const input = screen().execute(
+            "gatewayActionInput",
             Object.assign({organizationPartyId: org, paymentId, action, reason: "Customer instruction"}, extra)
         ),
         preview = app.call(native + "preview#PaymentGatewayAction", input),
@@ -46,7 +47,7 @@ function act(paymentId, action, extra = {}) {
 
 feature("the gateway dialogs send only the action, reason and a refund's amount", {
     when() {
-        const input = screen().gatewayActionInput({
+        const input = screen().execute("gatewayActionInput", {
                 organizationPartyId: org,
                 paymentId: "P1",
                 action: "capture",
@@ -55,10 +56,15 @@ feature("the gateway dialogs send only the action, reason and a refund's amount"
                 paymentGatewayConfigId: "OTHER",
                 operationKey: "x"
             }),
-            refund = screen().gatewayActionInput({organizationPartyId: org, paymentId: "P1", action: "refund", amount: "5"})
+            refund = screen().execute("gatewayActionInput", {
+                organizationPartyId: org,
+                paymentId: "P1",
+                action: "refund",
+                amount: "5"
+            })
         let unknown = ""
         try {
-            screen().gatewayActionInput({organizationPartyId: org, paymentId: "P1", action: "lookup"})
+            screen().execute("gatewayActionInput", {organizationPartyId: org, paymentId: "P1", action: "lookup"})
         } catch (error) {
             unknown = error.message
         }
@@ -80,7 +86,7 @@ feature("treasury reviews and confirms an authorization and a capture; the revie
                 paymentId
             })
             act(paymentId, "authorize")
-            const input = screen().gatewayActionInput({
+            const input = screen().execute("gatewayActionInput", {
                     organizationPartyId: org,
                     paymentId,
                     action: "capture",

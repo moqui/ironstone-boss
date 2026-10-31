@@ -138,7 +138,7 @@ function transferPage(path, parameters, mode) {
 feature("transfer preparation decodes exact reviewed method revisions and excludes financial result overrides", {
     when() {
         return {
-            input: transferScreen().transferInput({
+            input: transferScreen().execute("transferInput", {
                 organizationPartyId: "organization",
                 fromMethodToken: "reviewed-from~old-from",
                 toMethodToken: "reviewed-to~old-to",
@@ -176,7 +176,7 @@ feature("transfer preparation decodes exact reviewed method revisions and exclud
 feature("transfer preparation restores retained tokens and the canonical day without re-reviewing methods", {
     when() {
         return {
-            value: transferScreen().transferPreparedValue({
+            value: transferScreen().execute("transferPreparedValue", {
                 fromPaymentMethodId: "from",
                 fromMethodVersion: "reviewed-from",
                 toPaymentMethodId: "to",
@@ -340,7 +340,7 @@ feature("the same real method selection permits Treasury and refuses AR transfer
     }
 })
 
-feature("actual fee-bearing transfers retain one transfer payment, its fee payment, its detail and role-scoped postings", {
+feature("a fee-bearing transfer from the demo cash, its fee paid to a chosen party, shows its fee payment on its detail", {
     where: [
         {username: "finance.treasury", expectLedger: false},
         {username: "finance.admin", expectLedger: true}
@@ -348,12 +348,25 @@ feature("actual fee-bearing transfers retain one transfer payment, its fee payme
     when({username, expectLedger}) {
         return transferHelper.asUser(username, () => {
             const selection = transferSelection(),
-                operationKey = "app-trf-" + ec.user.randomString(16),
-                preview = transferNative("preview#InternalTransfer", {
-                    ...selection.input,
-                    referenceNumber: operationKey,
+                // the BOSS form's fields: reviewed method tokens and the party paid the fee
+                reviewed = transferHelper.call("ironstone.accounting.PaymentScreenServices.preview#InternalTransfer", {
+                    organizationPartyId: selection.organizationPartyId,
+                    fromMethodToken: selection.from.paymentMethodId + "~" + selection.from.version,
+                    toMethodToken: selection.to.paymentMethodId + "~" + selection.to.version,
+                    amount: "10",
+                    currencyUomId: selection.currencyUomId,
+                    effectiveDate: selection.effectiveDate,
+                    feeAmount: "1",
+                    feeGlAccountId: selection.fee.glAccountId,
+                    feePartyId: selection.input.feePartyId,
+                    referenceNumber: "Fee-bearing cash transfer",
                     reason: "Actual paired cash transfer with an explicit expense fee"
                 }),
+                preview = transferNative("get#InternalTransferPreview", {
+                    organizationPartyId: selection.organizationPartyId,
+                    previewId: reviewed.previewId
+                }),
+                operationKey = "app-trf-" + preview.previewId,
                 initial = transferHelper.call("ironstone.accounting.PaymentScreenServices.get#PaymentListContext", {
                     organizationPartyId: selection.organizationPartyId,
                     transferPreviewId: preview.previewId
@@ -428,6 +441,7 @@ feature("actual fee-bearing transfers retain one transfer payment, its fee payme
         legs
     }) {
         preview.canApply == true
+        preview.feePartyId == selection.input.feePartyId
         initial.transferReview.canConfirm == true
         initial.transferReview.hasResults == false
         initial.transferReview.actualLegRows.length == 0
@@ -463,6 +477,10 @@ feature("actual fee-bearing transfers retain one transfer payment, its fee payme
         legs[0].detail.payment.cashDirection == "transfer"
         legs[1].detail.payment.cashDirection == "outgoing"
         legs[0].detail.transferSummary.paymentId == confirmed.paymentId
+        legs[0].detail.transferSummary.feePaymentId == confirmed.feePaymentId
+        legs[0].detail.transferSummary.feePartyId == selection.input.feePartyId
+        legs[0].context.financePayment.feeParameters.paymentId == confirmed.feePaymentId
+        legs[0].page.output.includes(confirmed.feePaymentId)
         legs[0].context.financePayment.transferLegRows.length == 2
         legs[0].detail.capabilities.canPrintDetail == true
         legs[0].detail.capabilities.canPrintReceipt == false

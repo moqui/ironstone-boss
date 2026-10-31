@@ -40,7 +40,7 @@ const context = parameters =>
 
 feature("the manual refund dialog sends the reviewed fields and the chosen methods' ids only", {
     when() {
-        return screen().refundInput({
+        return screen().execute("refundInput", {
             organizationPartyId: org,
             paymentId: "P1",
             amount: "5",
@@ -68,7 +68,10 @@ feature("treasury reviews and confirms a manual refund on the Refunds tab; the r
         const paymentId = receipt()
         return app.asUser("finance.treasury", () => {
             const detail = context({paymentId}).financePayment,
-                input = screen().refundInput(Object.assign({}, detail.refundValue, {amount: "15", reason: "Unused deposit"})),
+                input = screen().execute(
+                    "refundInput",
+                    Object.assign({}, detail.refundValue, {amount: "15", reason: "Unused deposit"})
+                ),
                 preview = app.call(native + "preview#PaymentRefund", input),
                 parameters = {paymentId, previewId: preview.previewId, previewKind: "refund"},
                 review = context(parameters).paymentReview,
@@ -145,7 +148,8 @@ feature("a refund through the gateway dialog delivers a refund payment linked to
             const run = (action, extra = {}) => {
                 const preview = app.call(
                     native + "preview#PaymentGatewayAction",
-                    screen().gatewayActionInput(
+                    screen().execute(
+                        "gatewayActionInput",
                         Object.assign({organizationPartyId: org, paymentId, action, reason: "Customer request"}, extra)
                     )
                 )

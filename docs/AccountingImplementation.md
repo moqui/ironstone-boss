@@ -207,9 +207,8 @@ GL. Genuine unapplied cash still supports partial receipts and splits. Shared in
 backing posting changes and application deletion as well as the new services. Existing undated postings retain their
 UTC timestamp basis; new SQL book days remain stable across viewers' zones. Earlier application dates refuse.
 
-The separately adopted `settlementApplicationGuardEnabled` defaults N and is required for the new financial writer;
-`paymentAutoApplicationEnabled` independently defaults N. Existing history is never backfilled. Default-off application
-fields and audit behavior remain covered. Financial read authority and matching AR/AP edit authority are checked
+The settlement controls are always on: every application through Mantle's apply services is checked, with no
+organization preference to turn them off. Existing history is never backfilled. Financial read authority and matching AR/AP edit authority are checked
 without artifact authorization; PAYMENT_EDIT alone cannot allocate trade documents. Restricted bank/gateway data and
 unauthorized ledger projections are omitted.
 

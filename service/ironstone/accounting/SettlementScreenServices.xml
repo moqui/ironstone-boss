@@ -84,7 +84,101 @@ along with this software (see the LICENSE.md file). If not, see
         </out-parameters>
         <actions>
             <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
-            <script>ec.resource.script(settlements).execute('workbench', context)</script>
+            <set field="screenContext" from="ec.resource.script(settlements).execute('workbench', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="partyId" from="screenContext.partyId"/>
+            <set field="direction" from="screenContext.direction"/>
+            <set field="currencyUomId" from="screenContext.currencyUomId"/>
+            <set field="asOfDate" from="screenContext.asOfDate"/>
+            <set field="effectiveDate" from="screenContext.effectiveDate"/>
+            <set field="text" from="screenContext.text"/>
+            <set field="dueBucket" from="screenContext.dueBucket"/>
+            <set field="draftId" from="screenContext.draftId"/>
+            <set field="workbench" from="screenContext.workbench"/>
+            <set field="settlementReview" from="screenContext.settlementReview"/>
+            <set field="draftAllocations" from="screenContext.draftAllocations"/>
+            <set field="draftAdjustments" from="screenContext.draftAdjustments"/>
+            <set field="invoiceRows" from="screenContext.invoiceRows"/>
+            <set field="creditRows" from="screenContext.creditRows"/>
+            <set field="paymentRows" from="screenContext.paymentRows"/>
+            <set field="paymentTargetRows" from="screenContext.paymentTargetRows"/>
+            <set field="invoiceRowsCount" from="screenContext.invoiceRowsCount"/>
+            <set field="invoiceRowsPageIndex" from="screenContext.invoiceRowsPageIndex"/>
+            <set field="invoiceRowsPageSize" from="screenContext.invoiceRowsPageSize"/>
+            <set field="invoiceRowsPageMaxIndex" from="screenContext.invoiceRowsPageMaxIndex"/>
+            <set field="invoiceRowsPageRangeLow" from="screenContext.invoiceRowsPageRangeLow"/>
+            <set field="invoiceRowsPageRangeHigh" from="screenContext.invoiceRowsPageRangeHigh"/>
+            <set field="creditRowsCount" from="screenContext.creditRowsCount"/>
+            <set field="creditRowsPageIndex" from="screenContext.creditRowsPageIndex"/>
+            <set field="creditRowsPageSize" from="screenContext.creditRowsPageSize"/>
+            <set field="creditRowsPageMaxIndex" from="screenContext.creditRowsPageMaxIndex"/>
+            <set field="creditRowsPageRangeLow" from="screenContext.creditRowsPageRangeLow"/>
+            <set field="creditRowsPageRangeHigh" from="screenContext.creditRowsPageRangeHigh"/>
+            <set field="paymentRowsCount" from="screenContext.paymentRowsCount"/>
+            <set field="paymentRowsPageIndex" from="screenContext.paymentRowsPageIndex"/>
+            <set field="paymentRowsPageSize" from="screenContext.paymentRowsPageSize"/>
+            <set field="paymentRowsPageMaxIndex" from="screenContext.paymentRowsPageMaxIndex"/>
+            <set field="paymentRowsPageRangeLow" from="screenContext.paymentRowsPageRangeLow"/>
+            <set field="paymentRowsPageRangeHigh" from="screenContext.paymentRowsPageRangeHigh"/>
+            <set field="paymentTargetRowsCount" from="screenContext.paymentTargetRowsCount"/>
+            <set field="paymentTargetRowsPageIndex" from="screenContext.paymentTargetRowsPageIndex"/>
+            <set field="paymentTargetRowsPageSize" from="screenContext.paymentTargetRowsPageSize"/>
+            <set field="paymentTargetRowsPageMaxIndex" from="screenContext.paymentTargetRowsPageMaxIndex"/>
+            <set field="paymentTargetRowsPageRangeLow" from="screenContext.paymentTargetRowsPageRangeLow"/>
+            <set field="paymentTargetRowsPageRangeHigh" from="screenContext.paymentTargetRowsPageRangeHigh"/>
+        </actions>
+    </service>
+    <service verb="edit" noun="SettlementDraft" allow-remote="false">
+        <description>Add, change or remove an allocation or adjustment of the user's settlement draft, kept by Mantle
+            (store#SettlementDraft) behind draftId, for one customer, currency and date selection. Open items come as
+            reviewed kind:id~version tokens; refuses a source that is not a receipt or credit, a target that is not an
+            invoice or payment, an adjustment of anything but an invoice, a draft of another selection and more than 200
+            allocations or 50 adjustments. Needs receivable edit authority.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="partyId"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="asOfDate"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="draftId"/>
+            <parameter name="draftAction" required="true"><description>addAllocation, updateAllocation, removeAllocation,
+                addAdjustment, updateAdjustment or removeAdjustment</description></parameter>
+            <parameter name="rowId"/>
+            <parameter name="sourceToken"/>
+            <parameter name="targetToken"/>
+            <parameter name="amount"/>
+            <parameter name="itemTypeEnumId"/>
+            <parameter name="glAccountId"/>
+            <parameter name="reason"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="draftId"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="draftId" from="ec.resource.script(settlements).execute('editDraft', context).draftId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="Settlement" allow-remote="false">
+        <description>Review the user's settlement draft (draftId) through mantle.account.PaymentServices.preview#Settlement
+            with the versions of its open items as the user chose them. Refuses a draft of another selection. Needs
+            receivable edit authority.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="partyId"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="asOfDate"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="draftId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#Settlement" out-map="reviewedSettlement"
+                    in-map="ec.resource.script(settlements).execute('previewRequest', context)"/>
+            <set field="previewId" from="reviewedSettlement.previewId"/>
         </actions>
     </service>
 </services>

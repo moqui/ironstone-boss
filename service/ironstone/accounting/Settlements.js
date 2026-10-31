@@ -1,29 +1,13 @@
 // Settlement screen state is a draft only, kept by Mantle behind a draft ID. Mantle owns eligibility, previews, money,
 // posting, confirmation and the operation key.
-const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
+const lib = ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
+const {policy, array, plain, rows, day} = lib
 const native = "mantle.account.PaymentServices."
-const array = value => Array.from(value || [])
-const plain = value => policy.display(value)
-const rows = value => array(value).map(plain)
-const today = () => ec.l10n.format(ec.user.nowTimestamp, "yyyy-MM-dd")
-const day = value =>
-    value ? (/^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : ec.l10n.format(value, "yyyy-MM-dd")) : today()
-const kinds = ["invoice", "credit", "payment", "paymentTarget"]
+const kinds = lib.settlementKinds
 const maxDraftBytes = 262144
 const adjustmentLabels = {ItemWriteOff: "Write-off", ItemPromptDiscount: "Discount"}
 
-function itemToken(value) {
-    if (typeof value !== "string" || value.length > 2048) throw new Error("Choose an open item from the list")
-    const at = value.lastIndexOf("~")
-    if (at < 1 || at === value.length - 1) throw new Error("Review the selected open item before continuing")
-    const key = value.slice(0, at)
-    const colon = key.indexOf(":")
-    const kind = key.slice(0, colon)
-    if (colon < 1 || !kinds.includes(kind)) throw new Error("Choose an open item from the list")
-    const id = decodeURIComponent(key.slice(colon + 1))
-    if (!id || kind + ":" + encodeURIComponent(id) !== key) throw new Error("Choose an open item from the list")
-    return {key, kind, id, version: value.slice(at + 1)}
-}
+const itemToken = lib.settlementToken
 
 function parseDraft(value) {
     if (value == null || value === "") return {allocations: [], adjustments: []}
@@ -84,12 +68,12 @@ function selection(draft) {
 }
 
 function scope(parameters, edit = false) {
-    if (parameters.appRoot && parameters.appRoot !== "Accounting")
-        throw new Error("Settlement is not available in this application")
-    const access = policy.scope(parameters)
+    const access = lib.access(
+        parameters,
+        ["arRead", "paymentRead", "reportRead", "admin", "systemAdmin"],
+        "Receivable settlement read authority is required"
+    )
     const cap = access.capabilities
-    if (!(cap.arRead || cap.paymentRead || cap.reportRead || cap.admin || cap.systemAdmin))
-        throw new Error("Receivable settlement read authority is required")
     if (edit && !cap.arEdit) throw new Error("Receivable editing authority is required")
     return {
         organizationPartyId: access.organizationPartyId,
@@ -211,25 +195,11 @@ function retainedDraft(preview) {
 }
 
 function preview(parameters) {
-    ec.message.pushErrors()
-    try {
-        return (
-            ec.service
-                .sync()
-                .name(native + "get#SettlementPreview")
-                .parameters({previewId: parameters.previewId, organizationPartyId: parameters.organizationPartyId})
-                .disableAuthz()
-                .requireNewTransaction(true)
-                .throwOnError(true)
-                .call() || null
-        )
-    } catch (error) {
-        ec.logger.warn("Settlement review " + parameters.previewId + ": " + error.message)
-        return null
-    } finally {
-        ec.message.clearErrors()
-        ec.message.popErrors()
-    }
+    return lib.optional(
+        native + "get#SettlementPreview",
+        {previewId: parameters.previewId, organizationPartyId: parameters.organizationPartyId},
+        "Settlement review " + parameters.previewId
+    )
 }
 
 function reviewPresentation(retained) {
@@ -356,29 +326,14 @@ function workbench(parameters) {
                 parsed.kind === "payment" || parsed.kind === "paymentTarget"
                     ? "Payments/PaymentDetail"
                     : "Receivables/InvoiceDetail",
-            routeParameters: {organizationPartyId: current.organizationPartyId, recordId: parsed.id}
+            routeParameters: lib.recordParameters(current.organizationPartyId, parsed.id)
         })
     }
     for (const kind of kinds) {
         const list = rows(found[kind + "Rows"]).map(route)
         for (const row of list) rowMap.set(row.sourceKey, row)
         output[kind + "Rows"] = list
-        const info = pageInfo[kind] || {}
-        for (const [suffix, name] of [
-            ["Count", "recordCount"],
-            ["PageIndex", "pageIndex"],
-            ["PageSize", "pageSize"],
-            ["PageMaxIndex", "pageMaxIndex"],
-            ["PageRangeLow", "pageRangeLow"],
-            ["PageRangeHigh", "pageRangeHigh"]
-        ])
-            output[kind + "Rows" + suffix] =
-                info[name] ??
-                (name === "pageIndex" || name === "recordCount" || name === "pageRangeLow" || name === "pageRangeHigh"
-                    ? 0
-                    : name === "pageSize"
-                      ? pageByKind[kind].pageSize
-                      : -1)
+        Object.assign(output, lib.paging(pageInfo[kind], kind + "Rows", null, pageByKind[kind].pageSize))
     }
     for (const row of rows(found.selectedRows)) rowMap.set(row.sourceKey, route(row))
     const tokenLabel = token => {
@@ -478,12 +433,11 @@ function workbench(parameters) {
     })
 }
 
+// The workbench context, and the draft edit and preview request of the workbench's services.
 const operations = {workbench, editDraft, previewRequest}
-// Runs one screen operation and puts its results in the caller's context.
 function execute(op, parameters) {
     if (!operations[op]) throw new Error("Unknown settlement screen operation " + op)
-    const result = operations[op](parameters)
-    ec.context.putAll(result)
-    return result
+    return operations[op](parameters)
 }
-;({itemToken, parseDraft, selection, retainedDraft, execute})
+// The draft forms are also exported for the specs that check them.
+;({execute, parseDraft, selection, retainedDraft})

@@ -113,17 +113,19 @@ feature("Mark done answers a message and takes the task off Today", {
     when() {
         const done = post("markDone", { workEffortId: "BOSS_DEMO_TODAY_OVERDUE" })
         const status = one("mantle.work.effort.WorkEffort", { workEffortId: "BOSS_DEMO_TODAY_OVERDUE" }).statusId
-        return { done, status, ids: allIds(view()), shown: panel().output }
+        const after = view()
+        return { done, status, ids: allIds(after), overdueLeft: titlesOf(after, "overdue").length, shown: panel().output }
     },
-    then({ done, status, ids, shown }) {
+    then({ done, status, ids, overdueLeft, shown }) {
         done.errors == ""
         done.json.messageInfos[0].message.includes("Send the signed service agreement")
         !done.json.screenUrl
         status == "WeComplete"
         !ids.includes("BOSS_DEMO_TODAY_OVERDUE")
-        // the panel again: no Overdue group left
+        // the panel again: the Overdue group only while something is still overdue, as another spec's open task due
+        // before today is (TimelineWalk imports work items with fixed due dates); alone it is gone
         !shown.includes("Send the signed service agreement to Bob Acme")
-        !shown.includes(">Overdue</span>")
+        shown.includes(">Overdue</span>") == overdueLeft > 0
     },
 })
 

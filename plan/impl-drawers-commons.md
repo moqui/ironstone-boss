@@ -146,7 +146,7 @@ Each finding was verified in the code. Each resolution is now part of the design
     cover. A separate record stays only for a fact with an identity of its own, such as an approval decision, a posting
     or a count, and the plan says why.
   - Mantle's existing uses of both patterns are kept, not replaced.
-- **Demo data.** BOSS adds `data/BossDemoData.xml` (type demo) per milestone so specs and screenshots have content.
+- **Demo data.** BOSS adds `data/BossDemoData.xml` (type demo) per milestone so specs and walks have content.
 - **Done for a milestone:**
   - Tests: `cargo test` for the touched crates, with goldens reviewed; the new Mantle specs in `test/suite.js` passing
     under `./moq test mr-mantle`; `./moq test mr-boss` passing, with `test/AppStructure.spec.js` extended to

@@ -247,9 +247,9 @@ along with this software (see the LICENSE.md file). If not, see
                                             <display/>
                                         </default-field>
                                     </field>
-                                    <field name="emailMessageId">
-                                        <default-field title="Mail reference">
-                                            <display style="text-mono"/>
+                                    <field name="sentDateText">
+                                        <default-field title="Sent">
+                                            <display/>
                                         </default-field>
                                     </field>
                                     <field name="download">
@@ -269,7 +269,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <column>
                                             <field-ref name="outcome"/>
                                             <field-ref name="errorMessage"/>
-                                            <field-ref name="emailMessageId"/>
+                                            <field-ref name="sentDateText"/>
                                             <field-ref name="download"/>
                                         </column>
                                     </columns>

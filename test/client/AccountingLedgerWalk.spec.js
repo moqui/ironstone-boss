@@ -62,7 +62,7 @@ feature("a GL operator creates balanced lines, reviews and posts a journal", {
             return true
         }) == true
         page.getByRole("button", {
-            name: "Post reviewed entry",
+            name: "Post entry",
             exact: true
         }).click()
         page.waitFor(() => document.querySelector(".m-record-status")?.innerText.includes("Posted"))

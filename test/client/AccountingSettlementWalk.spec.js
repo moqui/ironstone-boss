@@ -54,13 +54,10 @@ function addAllocation(page, source, target, amount) {
 }
 function previewSettlement(page) {
     page.getByRole("button", {name: "Preview settlement", exact: true}).click()
-    page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reviewed settlement"))
+    page.waitForURL(/\/SettlementReview\?/)
+    page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Settlement for Settlement customer"))
 }
 function confirmSettlement(page) {
-    page.getByRole("checkbox", {
-        name: "I reviewed the allocations, adjustments, accounts and settlement date",
-        exact: true
-    }).click()
     page.evaluate(() => {
         window.confirm = () => true
         return true
@@ -113,7 +110,7 @@ feature("AR reviews a partial receipt and credit together and retries the saved 
         addAllocation(page, "BOSS_ACCT_STL_RECEIPT60", "BOSS_ACCT_STL_INV100", "60")
         addAllocation(page, "BOSS_ACCT_STL_CREDIT25", "BOSS_ACCT_STL_INV100", "25")
         previewSettlement(page)
-        rowText(page, "ReviewedBalances", "BOSS_ACCT_STL_INV100").includes("15.00")
+        rowText(page, "SettlementReviewBalances", "BOSS_ACCT_STL_INV100").includes("15.00")
         const reviewedIdentity = confirmationIdentity(page)
         page.goto(page.url()).status == 200
         JSON.stringify(confirmationIdentity(page)) == JSON.stringify(reviewedIdentity)

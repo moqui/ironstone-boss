@@ -479,7 +479,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                     <field name="submit">
                                         <default-field title="">
-                                            <submit text="Post reviewed entry" type="primary" confirmation="Post ${entryName}?"/>
+                                            <submit text="Post entry" type="primary" confirmation="Post ${entryName}?"/>
                                         </default-field>
                                     </field>
                                 </form-single>

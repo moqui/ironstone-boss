@@ -75,7 +75,6 @@ function invoiceContext(parameters) {
             createdDateText: row.sentDateText,
             statusDescription: emailStatus(row.statusId),
             errorMessage: row.statusId === "ES_SENT" || row.statusId === "ES_READY" ? "" : "Not sent",
-            emailMessageId: row.emailMessageId,
             sentFilesText: issuedFiles.map(file => file.contentLocation.split("/").pop()).join(", ")
         })),
         budgets: plainRows(output.budgetRows),
@@ -349,7 +348,9 @@ function batchContext(parameters) {
             hasPrint: false,
             outcome: {sent: "Sent", queued: "Queued for delivery"}[recipient.status] || "Failed",
             errorMessage: recipient.errorMessage || "",
-            emailMessageId: recipient.emailMessageId
+            sentDateText: recipient.emailMessageId
+                ? policy.dateText(policy.one("moqui.basic.email.EmailMessage", {emailMessageId: recipient.emailMessageId})?.sentDate)
+                : ""
         }))
     })
     const csvCell = (value, numeric) => {

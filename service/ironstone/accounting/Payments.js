@@ -566,7 +566,7 @@ function reviewPresentation(retained, kind = "state", organizationPartyId = null
         danger: endActions.includes(action) || kind === "unapply" || kind === "refund" || ["release", "refund"].includes(action),
         returnTab: gateway && action === "refund" ? "Refunds" : reviewTabs[kind],
         amountText,
-        expiresDateText: retained.expiresDateText || "",
+        expiresDateText: retained.expiresDateText || policy.dateText(retained.expiresDate),
         confirmation: title + " " + retained.paymentId + (amountText ? " for " + amountText : "") + "?",
         paymentSummary: summary,
         summaryUnavailable: !summaryAvailable || amount == null || !currency,

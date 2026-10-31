@@ -67,19 +67,19 @@ function sendInvoice(page, addresses) {
     page.getByRole("tab", {name: "Overview", exact: true}).click()
     page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Delivery outcomes"))
 }
-function mailReferences(page, recipient) {
+// The Delivery outcomes rows of a recipient, as their text: recipient, sent date, outcome, failure and files.
+function deliveryRows(page, recipient) {
     return page.evaluate(
         recipient =>
-            Array.from(document.querySelectorAll(".tr"))
-                .filter(row => row.innerText.includes(recipient))
-                .map(row => row.querySelector(".text-mono")?.innerText.trim())
-                .filter(Boolean),
+            Array.from(document.querySelectorAll('[id^="InvoiceDeliveries"][id$="_table"] .tr'))
+                .map(row => row.innerText.replace(/\s+/g, " ").trim())
+                .filter(text => text.includes(recipient)),
         recipient
     )
 }
 
 // One pass through the live client: the new-invoice and line dialogs post, the header's finalize and send actions
-// work, a bad recipient is reported beside the good one, and sending again keeps the one mail reference. Batches,
+// work, a bad recipient is reported beside the good one, and each send is a row of who it went to and when. Batches,
 // supporting files, currency refusal, billing from time and reader access are AccountingReceivables (mr-boss) and
 // mr-mantle's AccountingReceivables specs.
 feature("an AR user creates, finalizes and sends an invoice without a store", {
@@ -97,18 +97,34 @@ feature("an AR user creates, finalizes and sends an invoice without a store", {
         const recipient = "accounting.customer@example.test"
         sendInvoice(page, recipient + ",bad-address")
         page.text().includes("Invalid recipient address")
-        const firstReferences = mailReferences(page, recipient)
-        firstReferences.length == 1
+        // the deliveries show who was sent to and when, not a mail id
+        const header = page.evaluate(
+            () => document.querySelector('[id^="InvoiceDeliveries"][id$="_table"] .tr')?.innerText.replace(/\s+/g, " ") || ""
+        )
+        header.includes("Recipient") && header.includes("Sent")
+        !page.text().includes("Mail reference")
+        page.waitFor(recipient => document.querySelector('[id^="InvoiceDeliveries"][id$="_table"]')?.innerText.includes(recipient), {
+            arg: recipient
+        })
+        const first = deliveryRows(page, recipient)
+        first.length == 1
+        /Queued for delivery|Sent/.test(first[0])
+        // the finalize sent to the customer's billing address: its row has the sent date
+        page.waitFor(() =>
+            /billing\.acme@test\.com \d{4}-\d{2}-\d{2}/.test(
+                document.querySelector('[id^="InvoiceDeliveries"][id$="_table"]')?.innerText.replace(/\s+/g, " ")
+            )
+        )
+        // sending again from the reloaded dialog is a new send: a second mail to the recipient, the first one kept
         sendInvoice(page, recipient + ",bad-address")
         page.waitFor(
             recipient =>
-                Array.from(document.querySelectorAll(".tr")).filter(
-                    row => row.innerText.includes(recipient) && row.querySelector(".text-mono")?.innerText.trim()
-                ).length >= 2,
+                Array.from(document.querySelectorAll('[id^="InvoiceDeliveries"][id$="_table"] .tr')).filter(row =>
+                    row.innerText.includes(recipient)
+                ).length == 2,
             {arg: recipient}
         )
-        const replayReferences = mailReferences(page, recipient)
-        new Set(replayReferences).size == 1
-        replayReferences[0] == firstReferences[0]
+        deliveryRows(page, recipient).length == 2
+        deliveryRows(page, recipient).includes(first[0])
     }
 })

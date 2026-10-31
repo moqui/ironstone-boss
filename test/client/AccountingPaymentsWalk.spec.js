@@ -66,7 +66,7 @@ function createManualPayment(page, direction, amount, reference) {
     page.goto(paymentsRoute).status == 200
     page.getByRole("button", {name: "New payment", exact: true}).click()
     const dialog = page.getByRole("dialog")
-    choosePaymentOption(page, dialog, "Cash direction", null, direction === "incoming" ? "Incoming receipt" : "Outgoing payment")
+    choosePaymentOption(page, dialog, "Direction", null, direction === "incoming" ? "Incoming receipt" : "Outgoing payment")
     choosePaymentOption(page, dialog, "Counterparty", "Payment customer", "Payment customer")
     dialog.locator('input[name="amount"]').fill(amount)
     const day = page.evaluate(() => document.querySelector('[role="dialog"] input[name="effectiveDate"]')?.value)
@@ -76,7 +76,7 @@ function createManualPayment(page, direction, amount, reference) {
     choosePaymentOption(page, dialog, "Organization method", "Accounting payment cash", /Accounting payment cash/)
     dialog.locator('input[name="referenceNumber"]').fill(reference)
     dialog.locator('textarea[name="comments"]').fill("Payment lifecycle walk " + reference)
-    const selected = visiblePaymentFormFields(page, "createPaymentDraft")
+    const selected = visiblePaymentFormFields(page, "savePaymentDraft")
     assert(selected.partyId === "BOSS_ACCT_PAY_CUSTOMER", "The actual create form retains the selected counterparty")
     assert(!!selected.currencyUomId, "The actual create form retains its explicit currency")
     assert(
@@ -84,62 +84,66 @@ function createManualPayment(page, direction, amount, reference) {
         "The actual create form submits the selected organization method and its reviewed revision"
     )
     dialog.getByRole("button", {name: "Create payment", exact: true}).click()
+    page.waitForURL(/\/PaymentDetail/)
     page.waitFor(() => document.querySelector(".m-record-header")?.innerText.includes("Payment customer"))
     const id = page.evaluate(
         () => new URL(location.href).searchParams.get("recordId") || new URL(location.href).searchParams.get("paymentId")
     )
     assert(!!id, "Creating the draft opens its actual payment")
-    page.waitFor(() => !!document.querySelector('[id^="PaymentSummary_amount"][id$="_display"]'))
     return {paymentId: id, day, organizationMethodToken: selected.organizationMethodToken}
 }
-function previewPaymentState(page, button, reference, reason) {
+// The header's action for the payment's state (the primary button, or an item of More), its dialog, and the review
+function previewPaymentState(page, action, reference, reason) {
     page.locator(".m-record-actions")
-        .getByRole("button", {name: new RegExp(button + "$")})
+        .getByRole("button", {name: new RegExp(action + "$")})
         .click()
     const dialog = page.getByRole("dialog")
     dialog.locator('input[name="referenceNumber"]').fill(reference)
     dialog.locator('textarea[name="reason"]').fill(reason)
-    dialog.getByRole("button", {name: "Review payment change", exact: true}).click()
-    page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Reviewed payment change"))
+    dialog.getByRole("button", {name: "Review change", exact: true}).click()
+    page.waitForURL(/\/PaymentDetail\/Review\?/)
+    page.waitFor(() => window.moqui.screenForms.some(form => /\/confirmReview$/.test(form.action) && form.fields?.previewId))
 }
 function paymentConfirmationIdentity(page) {
-    page.waitFor(() =>
-        window.moqui.screenForms.some(form => /\/confirmPaymentState$/.test(form.action) && form.fields?.previewId)
-    )
+    page.waitFor(() => window.moqui.screenForms.some(form => /\/confirmReview$/.test(form.action) && form.fields?.previewId))
     return JSON.parse(
         page.evaluate(() => {
-            const form = window.moqui.screenForms.find(
-                form => /\/confirmPaymentState$/.test(form.action) && form.fields?.previewId
-            )
+            const form = window.moqui.screenForms.find(form => /\/confirmReview$/.test(form.action) && form.fields?.previewId)
             return JSON.stringify({
                 paymentId: form.fields.paymentId,
                 previewId: form.fields.previewId,
+                previewKind: form.fields.previewKind,
                 inputFingerprint: form.fields.inputFingerprint,
                 operationKey: form.fields.operationKey
             })
         })
     )
 }
-function confirmPaymentState(page) {
+// The review's own button names the change ("Validate payment"); its result stays on the review
+function confirmPaymentState(page, action) {
     const identity = paymentConfirmationIdentity(page)
-    page.getByRole("checkbox", {name: "I reviewed the payment, evidence, application and posting effects", exact: true}).click()
     page.evaluate(() => {
         window.confirm = () => true
         return true
     }) == true
-    page.getByRole("button", {name: "Confirm payment change", exact: true}).click()
+    page.locator(".q-page form")
+        .getByRole("button", {name: action, exact: true})
+        .click()
     page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Payment change completed"))
-    page.waitFor(() => new URL(location.href).searchParams.get("previewKind") === "state")
     assert(
         page.evaluate(() => new URL(location.href).searchParams.get("previewId")) === identity.previewId,
-        "The first confirmation retains the reviewed native identity"
+        "The confirmation shows the reviewed preview's result"
+    )
+    assert(
+        page.evaluate(() => new URL(location.href).searchParams.get("paymentId")) === identity.paymentId,
+        "The confirmation stays on its payment"
     )
     assert(
         page.evaluate(
-            id => document.querySelector('[id^="PaymentChangeResults"][id$="_table"]')?.innerText.includes(id),
+            id => document.querySelector('[id^="ReviewResultFacts"][id$="_table"]')?.innerText.includes(id),
             identity.paymentId
         ),
-        "The first confirmation displays the actual payment result"
+        "The confirmation displays the actual payment result"
     )
 }
 function completedPaymentIdentity(page) {
@@ -154,12 +158,12 @@ function completedPaymentIdentity(page) {
                     label: link.innerText.trim()
                 }))
             return JSON.stringify({
-                event: text("PaymentChangeResults"),
-                applications: text("PaymentActualApplicationResults"),
-                postings: text("PaymentActualPostingResults"),
-                postingReferences: references("PaymentActualPostingResults", "acctgTransId"),
-                files: text("PaymentActualOutputResults"),
-                outputReferences: references("PaymentActualOutputResults", "outputId")
+                result: text("ReviewResultFacts"),
+                applications: text("ReviewResultApplications"),
+                postings: text("ReviewPostingResults"),
+                postingReferences: references("ReviewPostingResults", "acctgTransId"),
+                files: text("ReviewOutputResults"),
+                outputReferences: references("ReviewOutputResults", "outputId")
             })
         })
     )
@@ -173,18 +177,25 @@ feature("treasury creates an incoming draft, validates it, records delivery and 
         const page = paymentPage()
         const made = createManualPayment(page, "incoming", "12.50", "IN-12.50")
         previewPaymentState(page, "Validate payment", "IN-12.50", "Payment details reviewed")
-        confirmPaymentState(page)
+        page.text().includes("Payment details reviewed")
+        confirmPaymentState(page, "Validate payment")
         page.getByRole("link", {name: "Back to payment", exact: true}).click()
         page.waitFor(() => !new URL(location.href).searchParams.get("previewId"))
+        page.waitFor(() => document.querySelector(".m-record-status")?.innerText.includes("Promised"))
         previewPaymentState(page, "Record delivery", "CASH-12.50", "Cash receipt counted and matched")
         page.text().includes(made.day)
+        page.text().includes("12.50")
         const reviewed = paymentConfirmationIdentity(page)
+        reviewed.paymentId == made.paymentId
         page.goto(page.url()).status == 200
         JSON.stringify(paymentConfirmationIdentity(page)) == JSON.stringify(reviewed)
-        confirmPaymentState(page)
+        confirmPaymentState(page, "Record delivery")
         const event = completedPaymentIdentity(page)
+        event.result.includes("Delivered")
+        // the receipt and the payment detail, each a link to its file
         event.outputReferences.length >= 2
-        page.getByRole("button", {name: "Check saved payment result", exact: true}).click()
+        event.outputReferences.every(row => !!row.id)
+        page.getByRole("button", {name: "Check saved result", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Payment change completed"))
         JSON.stringify(completedPaymentIdentity(page)) == JSON.stringify(event)
     }

@@ -97,6 +97,8 @@ along with this software (see the LICENSE.md file). If not, see
                                         type="p"
                                         style="text-caption m-muted"/>
                                 <form-single name="ConfirmReview" transition="confirmReview" map="review.confirmParameters">
+                                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                    <field name="paymentId"><default-field><hidden/></default-field></field>
                                     <field name="previewId"><default-field><hidden/></default-field></field>
                                     <field name="previewKind"><default-field><hidden/></default-field></field>
                                     <field name="inputFingerprint"><default-field><hidden/></default-field></field>

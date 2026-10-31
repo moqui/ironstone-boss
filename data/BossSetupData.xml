@@ -494,11 +494,6 @@ along with this software (see the LICENSE.md file). If not, see
         An existing database needs this row loaded (the STRT_AVATAR_URL enumeration comes with the framework seed). -->
     <moqui.screen.ScreenThemeResource screenThemeId="DEFAULT_QUASAR" sequenceNum="311" resourceTypeEnumId="STRT_AVATAR_URL"
             resourceValue="/apps/Commons/Settings/Account/userPhoto?userId=${userId}"/>
-    <!-- the do not disturb hours of Comms Settings, Chat (ironstone.comms.ChatServices.apply#DndHours). A success is not kept:
-        the user's hours are the record. -->
-    <moqui.service.job.ServiceJob jobName="apply_ChatDndHours" description="Do not disturb hours of the chat users (IronStone)"
-            serviceName="ironstone.comms.ChatServices.apply#DndHours" cronExpression="0 */5 * * * ?" paused="N"
-            errorHistoryOnly="Y"/>
     <!-- Contacts (design-drawers-commons.md §6, impl M4): contact admins change and delete directory contacts and review the
         duplicates (Commons/Contacts/Duplicates), with Mantle's CONTACT_ADMIN permission (which the ADMIN group has too). A pair
         a contact admin marks "not a duplicate" is Mantle's PartyNotDuplicate; the PartySetting BossNotDuplicates that held such

@@ -12,532 +12,63 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- What the Comms Chat screens show and do (design-drawers-commons.md §13 Chat, §4 ChatPanel, §17 ChatSettings;
-    impl-drawers-commons.md M10), over org.moqui.impl.ChatServices: the rail's rooms with their record, the room view (the
-    room, its members, a page of its timeline and the names it shows), the mention list, sending with the records a message
-    links to, files, new rooms and the record room of a record, a task, request or event from a message, the palette's rooms,
-    and the user's chat preferences with the do not disturb hours.
+<!-- IronStone's records in the BasicComms Chat screens (mr-moqui basic-comms, plans/Comms-Framework.md §3.3): the providers
+    Comms.xml declares (record-lookup boss.records, record-link boss.records, create-from boss.records) over Mantle's
+    communication services. The BasicComms services call them as the user, under Comms' authorization and entity filters.
 
-    Access (IronStone R21): ChatServices checks every room against the current user's member row, a public room's
-    visibility or a record room's record (the theme value STRT_RECORD_VISIBLE_SERVICE, which BOSS seeds as
-    mantle.party.CommunicationServices.get#RecordLinkInfo with checkOnly), so a room the user may not reach, and a file of
-    one, is "not found". Nothing here takes the current user's id from the caller: the users these services name are the
-    other members of a direct room, the members to add, or the member a moderator changes, which ChatServices checks against
-    the room's roles. A chat message read directly (create from a message) is read after get#RoomAccess says the user may
-    read its room. -->
+    Access (IronStone R21): ChatServices checks every room against the current user's member row, a public room's visibility or
+    a record room's record (the theme value STRT_RECORD_VISIBLE_SERVICE, which BOSS seeds as
+    mantle.party.CommunicationServices.get#RecordLinkInfo with checkOnly). A chat message read directly (create from a message)
+    is read after get#RoomAccess says the user may read its room. -->
 <services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
 
-    <!-- ========== Preferences ========== -->
-
-    <service verb="get" noun="ChatPrefs">
-        <description>The current user's chat preferences with their defaults: enterSends (CHAT_ENTER_SENDS, Y: Enter sends and
-            Shift+Enter is a new line; N: Ctrl+Enter sends), sounds (CHAT_SOUNDS, Y), readReceipts (CHAT_READ_RECEIPTS, Y),
-            typing (CHAT_TYPING, Y: send and show typing), linkPreviews (CHAT_LINK_PREVIEWS, Y: the framework fetches the
-            previews of the links the user sends; N: none), notifyDefault (CHAT_NOTIFY_DEFAULT: all, mentions or none for the
-            rooms the user makes or joins, which the framework's ChatServices start a membership at; empty for the room's own
-            default), notifyPreview (CHAT_NOTIFY_PREVIEW, Y: a mention's notification has the message text; N: only who
-            mentioned the user where, read by the framework's notify#Mention), autoAwayMinutes (CHAT_AUTO_AWAY_MINUTES,
-            10, which the framework's presence reads), dndFrom and dndTo (CHAT_DND_FROM and CHAT_DND_TO, HH:mm in the
-            user's time zone, apply#DndHours), and statusPresets (CHAT_STATUS_PRESETS, a JSON list of {emoji, text,
-            clearAfter}: minutes, today, week or 0 for never; five presets until the user changes them; the account menu's
-            status dialog, WebrootChat.js, reads the same preference).</description>
-        <out-parameters><parameter name="prefs" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
-            const pref = (key) => { const value = ec.user.getPreference(key); return value == null || String(value).trim() === '' ? null : String(value).trim() }
-            const flag = (key, fallback) => { const value = pref(key); return value == null ? fallback : (value === 'Y' || value === 'true') }
-            const L = (text) => ec.l10n.localize(text)
-            let presets = null
-            try { presets = JSON.parse(pref('CHAT_STATUS_PRESETS') || 'null') } catch (err) { presets = null }
-            if (!Array.isArray(presets)) presets = [{emoji: '📅', text: L('In a meeting'), clearAfter: '60'}, {emoji: '🚌', text: L('Commuting'), clearAfter: '30'},
-                {emoji: '🤒', text: L('Out sick'), clearAfter: 'today'}, {emoji: '🏠', text: L('Working remotely'), clearAfter: 'today'},
-                {emoji: '🌴', text: L('On vacation'), clearAfter: '0'}]
-            const level = pref('CHAT_NOTIFY_DEFAULT')
-            const minutes = Number(pref('CHAT_AUTO_AWAY_MINUTES'))
-            prefs = {enterSends: flag('CHAT_ENTER_SENDS', true), sounds: flag('CHAT_SOUNDS', true), readReceipts: flag('CHAT_READ_RECEIPTS', true),
-                typing: flag('CHAT_TYPING', true), linkPreviews: flag('CHAT_LINK_PREVIEWS', true), notifyDefault: ['all', 'mentions', 'none'].includes(level) ? level : '', notifyPreview: flag('CHAT_NOTIFY_PREVIEW', true),
-                autoAwayMinutes: minutes > 0 ? minutes : 10, dndFrom: pref('CHAT_DND_FROM'), dndTo: pref('CHAT_DND_TO'),
-                statusPresets: presets.filter((item) => item && (item.text || item.emoji)).slice(0, 12).map((item) => ({emoji: String(item.emoji || ''),
-                    text: String(item.text || ''), clearAfter: String(item.clearAfter ?? '0')}))}
-        ]]></script></actions>
-    </service>
-
-    <service verb="store" noun="ChatPrefs">
-        <description>Save the chat preferences of ChatSettings (get#ChatPrefs names them); a preference not given stays. The
-            do not disturb hours are both set (HH:mm) or both cleared.</description>
+    <service verb="get" noun="RecordLookup">
+        <implements service="org.moqui.comms.ProviderInterfaces.record#Lookup"/>
+        <description>IronStone's record-lookup provider (Comms.xml shell-providers, boss.records) for the BasicComms Chat
+            screens (plans/Comms-Framework.md §3.3), over the user's own reach of the records:
+            - info: for records, each record's {recordEntityName, recordId, entity, visible, title, typeLabel, url, icon}
+              (ironstone.shared.ChatterServices.get#RecordInfo under the user's filters); one that cannot be read is logged and
+              left out;
+            - card: the record card of recordEntityName and recordId (get#RecordCard);
+            - search: the records to file a message on for text (InboxServices.search#LinkRecords), as optionList;
+            - links: the records the /qapps links of a message's body name (find#MessageRecords).</description>
         <in-parameters>
-            <parameter name="enterSends"/>
-            <parameter name="sounds"/>
-            <parameter name="readReceipts"/>
-            <parameter name="typing"/>
-            <parameter name="linkPreviews"/>
-            <parameter name="notifyPreview"/>
-            <parameter name="notifyDefault"/>
-            <parameter name="autoAwayMinutes"/>
-            <parameter name="dndFrom"/>
-            <parameter name="dndTo"/>
-            <parameter name="saveFlags" type="Boolean" default="false"><description>The form has the check boxes, so an
-                empty one is N</description></parameter>
-            <parameter name="saveDnd" type="Boolean" default="false"/>
+            <parameter name="operation" required="true"/>
+            <parameter name="records" type="List"/>
+            <parameter name="body" allow-html="any"/>
         </in-parameters>
-        <actions><script><![CDATA[
-            const yn = (value) => value === 'Y' || value === 'true' || value === true ? 'Y' : 'N'
-            if (saveFlags) {
-                ec.user.setPreference('CHAT_ENTER_SENDS', yn(enterSends))
-                ec.user.setPreference('CHAT_SOUNDS', yn(sounds))
-                ec.user.setPreference('CHAT_READ_RECEIPTS', yn(readReceipts))
-                ec.user.setPreference('CHAT_TYPING', yn(typing))
-                ec.user.setPreference('CHAT_LINK_PREVIEWS', yn(linkPreviews))
-                ec.user.setPreference('CHAT_NOTIFY_PREVIEW', yn(notifyPreview))
-            } else {
-                if (enterSends != null) ec.user.setPreference('CHAT_ENTER_SENDS', yn(enterSends))
-                if (sounds != null) ec.user.setPreference('CHAT_SOUNDS', yn(sounds))
-                if (readReceipts != null) ec.user.setPreference('CHAT_READ_RECEIPTS', yn(readReceipts))
-                if (typing != null) ec.user.setPreference('CHAT_TYPING', yn(typing))
-                if (linkPreviews != null) ec.user.setPreference('CHAT_LINK_PREVIEWS', yn(linkPreviews))
-                if (notifyPreview != null) ec.user.setPreference('CHAT_NOTIFY_PREVIEW', yn(notifyPreview))
-            }
-            if (notifyDefault != null) {
-                if (!['', 'all', 'mentions', 'none'].includes(String(notifyDefault))) { ec.message.addError(ec.l10n.localize('Choose all, mentions or nothing')); return }
-                ec.user.setPreference('CHAT_NOTIFY_DEFAULT', String(notifyDefault))
-            }
-            if (autoAwayMinutes != null && String(autoAwayMinutes) !== '') {
-                const minutes = Number(autoAwayMinutes)
-                if (!(minutes >= 1 && minutes <= 480)) { ec.message.addError(ec.l10n.localize('Away after 1 to 480 minutes')); return }
-                ec.user.setPreference('CHAT_AUTO_AWAY_MINUTES', String(Math.round(minutes)))
-            }
-            if (saveDnd) {
-                const hhmm = (value) => {
-                    const text = String(value || '').trim()
-                    const match = /^(\d{1,2}):(\d{2})/.exec(text)
-                    if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return null
-                    return String(match[1]).padStart(2, '0') + ':' + match[2]
-                }
-                const from = hhmm(dndFrom), to = hhmm(dndTo)
-                if ((dndFrom || dndTo) && !(from && to)) { ec.message.addError(ec.l10n.localize('Give both times of the do not disturb hours, or neither')); return }
-                if (from && to && from === to) { ec.message.addError(ec.l10n.localize('The do not disturb hours end when they start')); return }
-                ec.user.setPreference('CHAT_DND_FROM', from || '')
-                ec.user.setPreference('CHAT_DND_TO', to || '')
-            }
-        ]]></script></actions>
-    </service>
-
-    <service verb="store" noun="StatusPreset">
-        <description>Add a status preset (emoji, text, clearAfter) at the end of the list, or remove the one at index.</description>
-        <in-parameters>
-            <parameter name="action" required="true"><description>add or remove</description></parameter>
-            <parameter name="index" type="Integer"/>
-            <parameter name="emoji"/>
-            <parameter name="text"/>
-            <parameter name="clearAfter"/>
-        </in-parameters>
-        <out-parameters><parameter name="statusPresets" type="List"/></out-parameters>
-        <actions><script><![CDATA[
-            const current = ec.service.sync().name('ironstone.comms.ChatServices.get#ChatPrefs').call().prefs.statusPresets
-            const list = Array.from(current || [])
-            if (action === 'add') {
-                const shownText = String(text || '').trim(), shownEmoji = String(emoji || '').trim()
-                if (!shownText && !shownEmoji) { ec.message.addError(ec.l10n.localize('A status needs a text or an emoji')); return }
-                if (Array.from(shownText).length > 100) { ec.message.addError(ec.l10n.localize('A status is up to 100 characters')); return }
-                if (Array.from(shownEmoji).length > 16 || /[<>]/.test(shownEmoji)) { ec.message.addError(ec.l10n.localize('An emoji is a few characters')); return }
-                if (list.length >= 12) { ec.message.addError(ec.l10n.localize('Twelve presets at most')); return }
-                const clear = ['0', '30', '60', '240', 'today', 'week'].includes(String(clearAfter || '0')) ? String(clearAfter || '0') : '0'
-                list.push({emoji: shownEmoji, text: shownText, clearAfter: clear})
-            } else if (action === 'remove') {
-                if (index == null || index < 0 || index >= list.length) { ec.message.addError(ec.l10n.localize('No such preset')); return }
-                list.splice(index, 1)
-            } else { ec.message.addError(`Unknown action ${action}`); return }
-            ec.user.setPreference('CHAT_STATUS_PRESETS', JSON.stringify(list))
-            statusPresets = list
-        ]]></script></actions>
-    </service>
-
-    <service verb="use" noun="StatusPreset">
-        <description>Set the current user's status text and emoji from the preset at index (org.moqui.impl.ChatServices.set#UserStatus),
-            clearing after its minutes, at the end of today or of this week (Sunday) in the user's time zone, or never.</description>
-        <in-parameters><parameter name="index" type="Integer" required="true"/></in-parameters>
-        <out-parameters><parameter name="myStatus" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
-            const presets = Array.from(ec.service.sync().name('ironstone.comms.ChatServices.get#ChatPrefs').call().prefs.statusPresets || [])
-            const preset = index != null && index >= 0 ? presets[index] : null
-            if (!preset) { ec.message.addError(ec.l10n.localize('No such preset')); return }
-            const params = {statusText: preset.text || '', emoji: preset.emoji || ''}
-            const clear = String(preset.clearAfter || '0')
-            if (/^\d+$/.test(clear)) params.clearAfterMinutes = Number(clear)
-            else {
-                // the end of the user's day, or of the week's Sunday: the date in the user's zone, then its last second there
-                const today = String(ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd'))
-                const [year, month, day] = today.split('-').map(Number)
-                const civil = new Date(Date.UTC(year, month - 1, day))
-                if (clear === 'week') civil.setUTCDate(civil.getUTCDate() + (7 - civil.getUTCDay()) % 7)
-                const last = civil.getUTCFullYear() + '-' + String(civil.getUTCMonth() + 1).padStart(2, '0') + '-' + String(civil.getUTCDate()).padStart(2, '0')
-                params.clearAtDate = ec.l10n.parseTimestamp(last + ' 23:59:59', 'yyyy-MM-dd HH:mm:ss')
-            }
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.set#UserStatus').parameters(params).call()
-            if (!ec.message.hasError()) myStatus = out.myStatus
-        ]]></script></actions>
-    </service>
-
-    <service verb="apply" noun="NotifyDefault">
-        <description>Put the current user's default notification level (CHAT_NOTIFY_DEFAULT) on every room the user is in but
-            the direct ones (ChatSettings, Apply to my rooms). Each room on its own: one that fails is logged and the rest
-            go on.</description>
         <out-parameters>
-            <parameter name="updatedCount" type="Integer"/>
-            <parameter name="failedCount" type="Integer"/>
+            <parameter name="recordList" type="List"/>
+            <parameter name="card" type="Map"/>
+            <parameter name="optionList" type="List"/>
         </out-parameters>
         <actions><script><![CDATA[
-            updatedCount = 0; failedCount = 0
-            const LEVELS = {all: 'CnlAll', mentions: 'CnlMentions', none: 'CnlNone'}
-            const level = String(ec.user.getPreference('CHAT_NOTIFY_DEFAULT') || '').trim()
-            if (!LEVELS[level]) { ec.message.addError(ec.l10n.localize('Choose a default notification level first')); return }
-            const rooms = ec.service.sync().name('org.moqui.impl.ChatServices.find#Rooms').parameter('limit', 1000).call()
-            if (ec.message.hasError()) return
-            for (const room of Array.from(rooms.roomList || [])) {
-                if (!room.isMember || room.roomTypeEnumId === 'CrtDirect' || room.notificationLevelEnumId === LEVELS[level]) continue
-                ec.message.pushErrors()
-                try {
-                    ec.service.sync().name('org.moqui.impl.ChatServices.set#Notification').parameters({chatRoomId: room.chatRoomId,
-                        notificationLevelEnumId: level}).requireNewTransaction(true).call()
-                    if (ec.message.hasError()) { failedCount++; ec.logger.warn(`Chat: notification level not set on room ${room.chatRoomId}: ${ec.message.errorsString}`) }
-                    else updatedCount++
-                } catch (err) {
-                    failedCount++
-                    ec.logger.warn(`Chat: notification level not set on room ${room.chatRoomId}: ${err && err.message ? err.message : err}`)
-                } finally { ec.message.clearErrors(); ec.message.popErrors() }
-            }
-        ]]></script></actions>
-    </service>
-
-    <service verb="apply" noun="DndHours" authenticate="anonymous-all" allow-remote="false">
-        <description>The do not disturb hours (ChatSettings; a ServiceJob every five minutes): a user whose CHAT_DND_FROM and
-            CHAT_DND_TO window, in the user's time zone, holds now and whose status is online is put on do not disturb, noted
-            in CHAT_DND_AUTO; once the window is over a status this put on do not disturb goes back to online (a status the
-            user changed in between stays). A window from 22:00 to 07:00 runs over midnight. Each user on their own (a status in
-            its own transaction): one that fails is logged and the rest go on.</description>
-        <out-parameters>
-            <parameter name="dndCount" type="Integer"/>
-            <parameter name="backCount" type="Integer"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            dndCount = 0; backCount = 0
-            const toMinutes = (text) => { const match = /^(\d{1,2}):(\d{2})$/.exec(String(text || '').trim()); return match ? Number(match[1]) * 60 + Number(match[2]) : null }
-            const users = {}
-            for (const row of ec.entity.find('moqui.security.UserPreference').condition('preferenceKey', 'in', ['CHAT_DND_FROM', 'CHAT_DND_TO', 'CHAT_DND_AUTO'])
-                    .disableAuthz().list()) (users[row.userId] = users[row.userId] || {})[row.preferenceKey] = row.preferenceValue
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try {
-                for (const userId of Object.keys(users)) {
-                    const prefs = users[userId]
-                    const auto = prefs.CHAT_DND_AUTO === 'Y'
-                    const from = toMinutes(prefs.CHAT_DND_FROM), to = toMinutes(prefs.CHAT_DND_TO)
-                    if (!auto && (from == null || to == null)) continue
+            recordList = []
+            optionList = []
+            card = null
+            if (operation === 'info') {
+                for (const wanted of Array.from(records || [])) {
                     ec.message.pushErrors()
                     try {
-                        const account = ec.entity.find('moqui.security.UserAccount').condition('userId', userId).one()
-                        if (!account || account.disabled === 'Y') continue
-                        // the user's local time: the time zone of this run is the user's for the formatting
-                        ec.user.setTimeZone(account.timeZone || null)
-                        const now = toMinutes(ec.l10n.format(ec.user.nowTimestamp, 'HH:mm'))
-                        const inside = from != null && to != null && from !== to && (from < to ? (now >= from && now < to) : (now >= from || now < to))
-                        const status = ec.entity.find('moqui.security.UserStatus').condition('userId', userId).one()
-                        const statusId = status ? (status.statusEnumId || 'UpsOnline') : 'UpsOnline'
-                        const setAuto = (value) => {
-                            const row = ec.entity.makeValue('moqui.security.UserPreference')
-                            row.setFields({userId: userId, preferenceKey: 'CHAT_DND_AUTO', preferenceValue: value}, true, null, null)
-                            row.createOrUpdate()
-                        }
-                        if (inside && !auto && statusId === 'UpsOnline') {
-                            ec.service.sync().name('org.moqui.impl.ChatServices.set#UserStatus').parameters({userId: userId, status: 'dnd'}).requireNewTransaction(true).call()
-                            if (!ec.message.hasError()) { setAuto('Y'); dndCount++ }
-                        } else if (!inside && auto) {
-                            if (statusId === 'UpsDnd') ec.service.sync().name('org.moqui.impl.ChatServices.set#UserStatus').parameters({userId: userId, status: 'online'})
-                                    .requireNewTransaction(true).call()
-                            if (!ec.message.hasError()) { setAuto('N'); backCount++ }
-                        }
-                        if (ec.message.hasError()) ec.logger.error(`Chat do not disturb hours of user ${userId} not applied: ${ec.message.errorsString}`)
+                        const out = ec.service.sync().name('ironstone.shared.ChatterServices.get#RecordInfo').parameters({recordEntityName: wanted.recordEntityName,
+                            recordId: wanted.recordId}).call()
+                        recordList.push({recordEntityName: wanted.recordEntityName, recordId: wanted.recordId,
+                            entity: out?.info?.recordEntityName || wanted.recordEntityName, visible: !!out?.visible, title: out?.visible ? out.title : null,
+                            typeLabel: out?.visible ? out.typeLabel : null, url: out?.visible ? (out.url || null) : null, icon: out?.icon || 'sym_o_description'})
                     } catch (err) {
-                        ec.logger.error(`Chat do not disturb hours of user ${userId} not applied: ${err && err.message ? err.message : err}`)
+                        ec.logger.warn(`Chat: the record ${wanted.recordEntityName} ${wanted.recordId} could not be read: ${err && err.message ? err.message : err}`)
                     } finally { ec.message.clearErrors(); ec.message.popErrors() }
                 }
-            } finally {
-                ec.user.setTimeZone(null)
-                if (!wasDisabled) ec.artifactExecution.enableAuthz()
+            } else if (operation === 'card') {
+                card = ec.service.sync().name('ironstone.shared.ChatterServices.get#RecordCard').parameters({recordEntityName: recordEntityName,
+                    recordId: recordId}).call()?.card || null
+            } else if (operation === 'search') {
+                optionList = Array.from(ec.service.sync().name('ironstone.comms.InboxServices.search#LinkRecords').parameter('term', text || '').call()?.optionList || [])
+            } else if (operation === 'links') {
+                recordList = Array.from(ec.service.sync().name('ironstone.comms.ChatServices.find#MessageRecords').parameter('body', body || '').call()?.recordList || [])
             }
         ]]></script></actions>
     </service>
-
-    <!-- ========== Rooms ========== -->
-
-    <service verb="decorate" noun="Rooms" allow-remote="false">
-        <description>Internal: a room list as the rail shows it, each room with url (its Chat link) and, for a record room, record
-            {visible, title, typeLabel, url, icon} (ironstone.shared.ChatterServices.get#RecordInfo under the user's filters: a record
-            the user no longer sees keeps the room's name). A record that cannot be read is logged and the room stays.</description>
-        <in-parameters><parameter name="roomList" type="List"/></in-parameters>
-        <out-parameters><parameter name="roomList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
-            const records = {}
-            roomList = Array.from(roomList || []).map((source) => {
-                const room = Object.assign({}, source)
-                room.url = '/qapps/Comms/Chat?chatRoomId=' + encodeURIComponent(room.chatRoomId)
-                room.record = null
-                if (room.recordEntityName && room.recordId) {
-                    const key = room.recordEntityName + '|' + room.recordId
-                    if (records[key] === undefined) {
-                        records[key] = null
-                        ec.message.pushErrors()
-                        try {
-                            const out = ec.service.sync().name('ironstone.shared.ChatterServices.get#RecordInfo').parameters({recordEntityName: room.recordEntityName,
-                                recordId: room.recordId}).call()
-                            records[key] = out && out.visible ? {visible: true, title: out.title, typeLabel: out.typeLabel, url: out.url || null,
-                                icon: out.icon || 'sym_o_description', entity: out.info.recordEntityName, id: room.recordId}
-                                : {visible: false, title: room.roomName || room.recordId, typeLabel: null, url: null, icon: 'sym_o_description',
-                                    entity: room.recordEntityName, id: room.recordId}
-                        } catch (err) {
-                            ec.logger.warn(`Chat: the record of room ${room.chatRoomId} could not be read: ${err && err.message ? err.message : err}`)
-                        } finally { ec.message.clearErrors(); ec.message.popErrors() }
-                    }
-                    room.record = records[key]
-                }
-                return room
-            })
-        ]]></script></actions>
-    </service>
-
-    <service verb="get" noun="ChatData">
-        <description>What the Chat screen and the tray's Chat tab start with: me {userId, username, name, partyId}, the
-            preferences (get#ChatPrefs), the user's rooms (org.moqui.impl.ChatServices.find#Rooms, pinned first, then by the
-            last event, decorate#Rooms) up to limit, and the unread and mention totals.</description>
-        <in-parameters><parameter name="limit" type="Integer" default="200"/></in-parameters>
-        <out-parameters>
-            <parameter name="me" type="Map"/>
-            <parameter name="prefs" type="Map"/>
-            <parameter name="roomList" type="List"/>
-            <parameter name="unreadTotal" type="Integer"/>
-            <parameter name="mentionTotal" type="Integer"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            const account = ec.user.userAccount || {}
-            me = {userId: ec.user.userId, username: ec.user.username, name: account.userFullName || ec.user.username, partyId: account.partyId || null}
-            prefs = ec.service.sync().name('ironstone.comms.ChatServices.get#ChatPrefs').call().prefs
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.find#Rooms').parameter('limit', Math.max(1, Math.min(limit || 200, 500))).call()
-            if (ec.message.hasError()) return
-            roomList = ec.service.sync().name('ironstone.comms.ChatServices.decorate#Rooms').parameter('roomList', out.roomList).call().roomList
-            unreadTotal = out.unreadTotal
-            mentionTotal = out.mentionTotal
-        ]]></script></actions>
-    </service>
-
-    <service verb="find" noun="ChatRooms">
-        <description>Rooms as find#Rooms finds them (filter, searchText, includeJoinable for Browse rooms), decorated as the rail
-            shows them.</description>
-        <in-parameters>
-            <parameter name="filter"/>
-            <parameter name="searchText"/>
-            <parameter name="includeJoinable" type="Boolean" default="false"/>
-            <parameter name="joinableOnly" type="Boolean" default="false"/>
-            <parameter name="limit" type="Integer" default="200"/>
-        </in-parameters>
-        <out-parameters><parameter name="roomList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.find#Rooms').parameters({filter: filter || null, searchText: searchText || null,
-                includeJoinable: includeJoinable || joinableOnly, limit: Math.max(1, Math.min(limit || 200, 500))}).call()
-            if (ec.message.hasError()) return
-            let list = Array.from(out.roomList || [])
-            if (joinableOnly) list = list.filter((room) => !room.isMember)
-            roomList = ec.service.sync().name('ironstone.comms.ChatServices.decorate#Rooms').parameter('roomList', list).call().roomList
-        ]]></script></actions>
-    </service>
-
-    <service verb="get" noun="RoomView">
-        <description>A room as the room view opens it: the room (org.moqui.impl.ChatServices.get#Room, which refuses a room the
-            user may not read) with displayName and its record (decorate#Rooms), the user's member row and access, the members,
-            and the first page of its timeline (get#TimelinePage: the latest events, or those around aroundSeq).</description>
-        <in-parameters>
-            <parameter name="chatRoomId" required="true"/>
-            <parameter name="aroundSeq" type="Integer"/>
-            <parameter name="limit" type="Integer" default="50"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="room" type="Map"/>
-            <parameter name="member" type="Map"/>
-            <parameter name="access" type="Map"/>
-            <parameter name="memberList" type="List"/>
-            <parameter name="timeline" type="Map"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.get#Room').parameter('chatRoomId', chatRoomId).call()
-            if (ec.message.hasError() || !out.room) return
-            member = out.member; access = out.access; memberList = out.memberList
-            const source = Object.assign({}, out.room)
-            const me = ec.user.userId
-            if (!source.roomName) {
-                const others = Array.from(memberList || []).filter((item) => item.userId !== me).map((item) => item.name)
-                source.displayName = others.length ? others.join(', ') : (Array.from(memberList || []).find((item) => item.userId === me) || {}).name || chatRoomId
-            } else source.displayName = source.roomName
-            const otherIds = Array.from(memberList || []).filter((item) => item.userId !== me).map((item) => item.userId)
-            source.otherUserIdList = source.roomTypeEnumId === 'CrtDirect' ? otherIds : []
-            source.otherUserId = source.roomTypeEnumId === 'CrtDirect' && otherIds.length === 1 ? otherIds[0] : null
-            room = ec.service.sync().name('ironstone.comms.ChatServices.decorate#Rooms').parameter('roomList', [source]).call().roomList[0]
-            timeline = ec.service.sync().name('ironstone.comms.ChatServices.get#TimelinePage').parameters({chatRoomId: chatRoomId, aroundSeq: aroundSeq ?? null,
-                limit: limit}).call().page
-        ]]></script></actions>
-    </service>
-
-    <service verb="get" noun="TimelinePage">
-        <description>A page of a room's timeline (org.moqui.impl.ChatServices.get#Timeline: beforeSeq, afterSeq, aroundSeq, a
-            thread by threadRootEventSeq, or pinnedOnly) with userNames, the names of the users its events name (senders,
-            reactions, the users of membership and system events, a thread's last replier, a forward's sender, a poll's
-            voters), so the client words those rows. eventSeq gives that one event.</description>
-        <in-parameters>
-            <parameter name="chatRoomId" required="true"/>
-            <parameter name="beforeSeq" type="Integer"/>
-            <parameter name="afterSeq" type="Integer"/>
-            <parameter name="aroundSeq" type="Integer"/>
-            <parameter name="threadRootEventSeq" type="Integer"/>
-            <parameter name="pinnedOnly" type="Boolean" default="false"/>
-            <parameter name="eventSeq" type="Integer"/>
-            <parameter name="limit" type="Integer" default="50"/>
-        </in-parameters>
-        <out-parameters><parameter name="page" type="Map"/></out-parameters>
-        <actions><script><![CDATA[
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.get#Timeline').parameters({chatRoomId: chatRoomId, beforeSeq: beforeSeq ?? null,
-                afterSeq: afterSeq ?? null, aroundSeq: aroundSeq ?? null, threadRootEventSeq: threadRootEventSeq ?? null, pinnedOnly: !!pinnedOnly,
-                eventSeq: eventSeq ?? null, limit: Math.max(1, Math.min(limit || 50, 200))}).call()
-            if (ec.message.hasError()) return
-            const events = Array.from(out.eventList || [])
-            const ids = new Set()
-            for (const event of events) {
-                if (event.senderUserId) ids.add(event.senderUserId)
-                const content = event.content || {}
-                for (const key of ['userId', 'byUserId']) if (content[key]) ids.add(String(content[key]))
-                for (const id of Array.from(content.userIds || [])) ids.add(String(id))
-                for (const reaction of Array.from(event.reactions || [])) for (const id of Array.from(reaction.userIds || [])) ids.add(String(id))
-                if (event.replyTo && event.replyTo.senderUserId) ids.add(event.replyTo.senderUserId)
-                if (event.threadLastUserId) ids.add(event.threadLastUserId)
-                if (event.forwardOf && event.forwardOf.senderUserId) ids.add(event.forwardOf.senderUserId)
-                if (event.poll) for (const option of Array.from(event.poll.options || [])) for (const id of Array.from(option.voterIds || [])) ids.add(String(id))
-            }
-            const userNames = {}
-            if (ids.size) for (const account of ec.entity.find('moqui.security.UserAccount').condition('userId', 'in', Array.from(ids))
-                    .selectField('userId').selectField('userFullName').selectField('username').disableAuthz().list())
-                userNames[account.userId] = account.userFullName || account.username || account.userId
-            page = {room: out.room, access: out.access, eventList: events, hasMoreBefore: !!out.hasMoreBefore, hasMoreAfter: !!out.hasMoreAfter,
-                lastReadEventSeq: out.lastReadEventSeq, memberList: out.memberList, userNames: userNames}
-        ]]></script></actions>
-    </service>
-
-    <service verb="find" noun="MentionUsers">
-        <description>The @ mention list of a room's composer: the room's members whose name has the term, and in a public room
-            (where anyone may be mentioned) the other users too (ironstone.shared.ChatterServices.search#Users), as [{id (the userId),
-            label}]; the user is left out. First @room (id @room: every member), for a moderator or owner, or anyone in a room
-            of 20 members or fewer, as the framework's send#Message takes it. A room the user may not read answers no one.</description>
-        <in-parameters>
-            <parameter name="chatRoomId" required="true"/>
-            <parameter name="term"/>
-            <parameter name="limit" type="Integer" default="10"/>
-        </in-parameters>
-        <out-parameters><parameter name="userList" type="List"/></out-parameters>
-        <actions><script><![CDATA[
-            userList = []
-            const me = ec.user.userId
-            const text = String(term || '').trim().toLowerCase()
-            const max = Math.max(1, Math.min(limit || 10, 25))
-            // get#RoomAccess adds no error for a room the user may not read (an error would mark the transaction rollback-only)
-            const access = ec.service.sync().name('org.moqui.impl.ChatServices.get#RoomAccess').parameter('chatRoomId', chatRoomId).call()
-            if (ec.message.hasError() || !access || !access.canRead) return
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.get#Room').parameter('chatRoomId', chatRoomId).call()
-            if (ec.message.hasError() || !out || !out.room) return
-            const everyone = Array.from(out.memberList || []).filter((member) => !member.isAgent)
-            if ((access.canModerate || access.isOwner || everyone.length <= 20) && (!text || 'room'.startsWith(text) || 'everyone'.startsWith(text)))
-                userList.push({id: '@room', label: 'room'})
-            for (const member of Array.from(out.memberList || [])) {
-                if (member.userId === me || member.isAgent) continue
-                if (text && !String(member.name || '').toLowerCase().includes(text)) continue
-                userList.push({id: member.userId, label: member.name})
-            }
-            if (out.room.visibilityEnumId === 'CrvUsers' && userList.length < max) {
-                const found = ec.service.sync().name('ironstone.shared.ChatterServices.search#Users').parameters({term: text, limit: max}).call()
-                for (const user of Array.from(found.userList || [])) {
-                    if (user.id === me || userList.some((item) => item.id === user.id)) continue
-                    userList.push({id: user.id, label: user.label})
-                }
-            }
-            userList = userList.slice(0, max)
-        ]]></script></actions>
-    </service>
-
-    <service verb="create" noun="ChatRoom">
-        <description>A new room (org.moqui.impl.ChatServices.create#Room) from the New room and New direct message dialogs:
-            roomTypeEnumId direct (one room per set of users: the existing one is answered), private or public (a name),
-            with the members of memberUserIdList or the comma list memberUserIds; each member starts at their own default
-            notification level (CHAT_NOTIFY_DEFAULT, which create#Room reads).</description>
-        <in-parameters>
-            <parameter name="roomTypeEnumId" required="true"/>
-            <parameter name="roomName"/>
-            <parameter name="topic"/>
-            <parameter name="memberUserIdList" type="List"/>
-            <parameter name="memberUserIds"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="chatRoomId"/>
-            <parameter name="created" type="Boolean"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            const TYPES = {direct: 'CrtDirect', private: 'CrtPrivate', public: 'CrtPublic'}
-            const type = TYPES[roomTypeEnumId] || roomTypeEnumId
-            if (!Object.values(TYPES).includes(type)) { ec.message.addError(ec.l10n.localize('A room is direct, private or public')); return }
-            const ids = Array.from(memberUserIdList || []).concat(memberUserIds ? String(memberUserIds).split(',') : [])
-                    .map((id) => String(id || '').trim()).filter((id) => id)
-            if (type === 'CrtDirect' && !ids.length) { ec.message.addError(ec.l10n.localize('Choose who to message')); return }
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.create#Room').parameters({roomTypeEnumId: type, roomName: roomName || null,
-                topic: topic || null, memberUserIdList: Array.from(new Set(ids))}).call()
-            if (ec.message.hasError()) return
-            chatRoomId = out.chatRoomId
-            created = !!out.created
-        ]]></script></actions>
-    </service>
-
-    <service verb="find" noun="RecordRoom">
-        <description>The room of a record, for Discuss on Chatter and a record's chat link: the record room the user may read
-            (org.moqui.impl.ChatServices.get#Room by the record), or a new one the user makes on first use
-            (create#Room of type record, named after the record, which needs the user to see the record: the theme's
-            STRT_RECORD_VISIBLE_SERVICE). A record the user may not see is "not found"; a room of the record kept for its
-            members is refused by create#Room. The record is named by its entity, short or full, and its id.</description>
-        <in-parameters>
-            <parameter name="recordEntityName" required="true"/>
-            <parameter name="recordId" required="true"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="chatRoomId"/>
-            <parameter name="created" type="Boolean"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            created = false
-            const info = ec.service.sync().name('ironstone.shared.ChatterServices.get#RecordInfo').parameters({recordEntityName: recordEntityName,
-                recordId: recordId}).call()
-            const entityName = info && info.visible ? info.info.recordEntityName : recordEntityName
-            const existing = ec.service.sync().name('org.moqui.impl.ChatServices.get#Room').parameters({recordEntityName: entityName, recordId: recordId}).call()
-            if (ec.message.hasError()) return
-            if (existing.room) { chatRoomId = existing.room.chatRoomId; return }
-            if (!info || !info.visible) { ec.message.addError(ec.resource.expand('Record ${entity} ${id} not found', '', {entity: recordEntityName, id: recordId})); return }
-            const made = ec.service.sync().name('org.moqui.impl.ChatServices.create#Room').parameters({roomTypeEnumId: 'CrtRecord',
-                recordEntityName: entityName, recordId: recordId, roomName: info.title || recordId}).call()
-            if (ec.message.hasError()) return
-            chatRoomId = made.chatRoomId
-            created = !!made.created
-        ]]></script></actions>
-    </service>
-
-    <service verb="join" noun="ChatRoom">
-        <description>Join a room the user may join (a public room, or a record room whose record the user sees:
-            org.moqui.impl.ChatServices.add#Member, which starts the membership at the user's default notification level).</description>
-        <in-parameters><parameter name="chatRoomId" required="true"/></in-parameters>
-        <actions><script><![CDATA[
-            ec.service.sync().name('org.moqui.impl.ChatServices.add#Member').parameter('chatRoomId', chatRoomId).call()
-        ]]></script></actions>
-    </service>
-
-    <!-- ========== Messages ========== -->
 
     <service verb="find" noun="MessageRecords" allow-remote="false">
         <description>Internal: the records a message links to, for its record cards: each /qapps link in its body whose query
@@ -575,77 +106,8 @@ along with this software (see the LICENSE.md file). If not, see
         ]]></script></actions>
     </service>
 
-    <service verb="send" noun="ChatMessage">
-        <description>Send a message from the composer (org.moqui.impl.ChatServices.send#Message, as the current user, a member
-            of the room): its body (the m-rich-text light HTML with @ mentions), files uploaded to the room (chatAttachmentIds,
-            comma separated, or chatAttachmentIdList), a reply or a thread, a forward (forwardOfChatRoomId and
-            forwardOfEventSeq: the server makes the quote), and as its records the records its /qapps links name
-            (find#MessageRecords). The mention notifications link to the room (roomUrl). clientRef: a send tried again (the
-            page's outbox) is answered with its first message, duplicate true.</description>
-        <in-parameters>
-            <parameter name="chatRoomId" required="true"/>
-            <parameter name="body" allow-html="safe"/>
-            <parameter name="replyToEventSeq" type="Integer"/>
-            <parameter name="threadRootEventSeq" type="Integer"/>
-            <parameter name="chatAttachmentIds"/>
-            <parameter name="chatAttachmentIdList" type="List"/>
-            <parameter name="clientRef"/>
-            <parameter name="forwardOfChatRoomId"/>
-            <parameter name="forwardOfEventSeq" type="Integer"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="eventSeq" type="Integer"/>
-            <parameter name="event" type="Map"/>
-            <parameter name="clientRef"/>
-            <parameter name="duplicate" type="Boolean"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            const ids = Array.from(chatAttachmentIdList || []).concat(chatAttachmentIds ? String(chatAttachmentIds).split(',') : [])
-                    .map((id) => String(id || '').trim()).filter((id) => id)
-            const records = ec.service.sync().name('ironstone.comms.ChatServices.find#MessageRecords').parameter('body', body || '').call().recordList
-            const out = ec.service.sync().name('org.moqui.impl.ChatServices.send#Message').parameters({chatRoomId: chatRoomId, body: body || null,
-                replyToEventSeq: replyToEventSeq ?? null, threadRootEventSeq: threadRootEventSeq ?? null, chatAttachmentIdList: ids,
-                recordList: records, roomUrl: '/qapps/Comms/Chat?chatRoomId=' + encodeURIComponent(chatRoomId), clientRef: clientRef || null,
-                forwardOfChatRoomId: forwardOfChatRoomId || null, forwardOfEventSeq: forwardOfEventSeq ?? null}).call()
-            if (ec.message.hasError()) return
-            eventSeq = out.eventSeq; event = out.event; clientRef = out.clientRef; duplicate = !!out.duplicate
-        ]]></script></actions>
-    </service>
-
-    <service verb="upload" noun="ChatFiles">
-        <description>Store files for a message about to be sent in a room (org.moqui.impl.ChatServices.upload#Attachment, each in
-            its own transaction): uploadList [{chatAttachmentId, fileName, contentType, fileSize}] and failedList [{fileName,
-            error}]. One file that fails is logged and the others are kept; when none is stored the first error stays.</description>
-        <in-parameters>
-            <parameter name="chatRoomId" required="true"/>
-            <parameter name="file" type="Object"/>
-        </in-parameters>
-        <out-parameters>
-            <parameter name="uploadList" type="List"/>
-            <parameter name="failedList" type="List"/>
-        </out-parameters>
-        <actions><script><![CDATA[
-            uploadList = []; failedList = []
-            const files = (Array.isArray(file) ? file : [file]).filter((item) => item != null && typeof item === 'object')
-            if (!files.length) { ec.message.addError(ec.l10n.localize('No file uploaded')); return }
-            for (const item of files) {
-                const name = String(item.name || item.fileName || 'file')
-                ec.message.pushErrors()
-                try {
-                    const out = ec.service.sync().name('org.moqui.impl.ChatServices.upload#Attachment').parameters({chatRoomId: chatRoomId, file: item})
-                            .requireNewTransaction(true).call()
-                    if (ec.message.hasError()) failedList.push({fileName: name, error: ec.message.errorsString})
-                    else uploadList.push({chatAttachmentId: out.chatAttachmentId, fileName: out.fileName, contentType: out.contentType, fileSize: out.fileSize})
-                } catch (err) {
-                    failedList.push({fileName: name, error: err && err.message ? err.message : String(err)})
-                } finally { ec.message.clearErrors(); ec.message.popErrors() }
-            }
-            for (const failed of failedList) ec.logger.warn(`Chat: file ${failed.fileName} not stored in room ${chatRoomId}: ${failed.error}`)
-            if (!uploadList.length && failedList.length) ec.message.addError(failedList[0].error)
-        ]]></script></actions>
-    </service>
-
     <service verb="create" noun="FromChat">
+        <implements service="org.moqui.comms.ProviderInterfaces.create#From"/>
         <description>A task, request or event made from a chat message (the message actions, design §13 MessageActions):
             mantle.party.CommunicationServices.create#RecordFromChatMessage names it from the message's first line, files the
             message on it as a communication event, and in a record room links it to that record; it checks that the user may
@@ -679,6 +141,7 @@ along with this software (see the LICENSE.md file). If not, see
     </service>
 
     <service verb="file" noun="OnRecord">
+        <implements service="org.moqui.comms.ProviderInterfaces.record#Link"/>
         <description>File a chat message on a record (the message actions' File on a record): the message as a communication
             event (mantle.party.CommunicationServices.findOrCreate#ChatCommunicationEvent, which checks that the user may read
             the room) linked to the record (link#CommunicationEventRecord, which checks that the user may see the record), so
@@ -707,47 +170,6 @@ along with this software (see the LICENSE.md file). If not, see
             if (ec.message.hasError()) return
             title = [info.typeLabel, info.title].filter((part) => part).join(' ')
             url = info.url || null
-        ]]></script></actions>
-    </service>
-
-    <!-- ========== The palette ========== -->
-
-    <service verb="search" noun="PaletteRooms">
-        <description>The palette's Chat rooms group (design §13, the # prefix is the room switcher): the user's rooms and the
-            public ones whose name or topic has the text (org.moqui.impl.ChatServices.find#Rooms), the latest first, or the
-            latest rooms for no text; each a row {title, subtitle, icon, url} to the room. moreUrl is the Chat screen.</description>
-        <in-parameters>
-            <parameter name="text"/>
-            <parameter name="limit" type="Integer" default="5"/>
-            <parameter name="docTypes" type="List"/>
-            <parameter name="idMatch" type="Boolean"/>
-        </in-parameters>
-        <out-parameters><parameter name="rows" type="List"/><parameter name="moreUrl"/></out-parameters>
-        <actions><script><![CDATA[
-            rows = []
-            moreUrl = '/qapps/Comms/Chat'
-            const L = (text) => ec.l10n.localize(text)
-            const term = String(text || '').replace(/^#/, '').trim()
-            const max = Math.max(1, Math.min(limit || 5, 20))
-            ec.message.pushErrors()
-            try {
-                const out = ec.service.sync().name('org.moqui.impl.ChatServices.find#Rooms').parameters({searchText: term || null, includeJoinable: true,
-                    limit: max}).call()
-                if (ec.message.hasError()) { ec.logger.warn(`Palette chat rooms for ${term} failed: ${ec.message.errorsString}`); return }
-                const kinds = {CrtDirect: ['sym_o_person', 'Direct message'], CrtPrivate: ['sym_o_lock', 'Private room'], CrtPublic: ['sym_o_tag', 'Public room'],
-                    CrtRecord: ['sym_o_description', 'Record room']}
-                for (const room of Array.from(out.roomList || [])) {
-                    const kind = kinds[room.roomTypeEnumId] || ['sym_o_chat', 'Room']
-                    const parts = [L(kind[1])]
-                    if (!room.isMember) parts.push(L('not joined'))
-                    if (room.unreadCount) parts.push(ec.resource.expand('${count} unread', '', {count: room.unreadCount}))
-                    if (room.topic) parts.push(room.topic)
-                    rows.push({title: room.displayName, subtitle: parts.join(' · '), icon: kind[0],
-                        url: '/qapps/Comms/Chat?chatRoomId=' + encodeURIComponent(room.chatRoomId)})
-                }
-            } catch (err) {
-                ec.logger.warn(`Palette chat rooms for ${term} failed: ${err && err.message ? err.message : err}`)
-            } finally { ec.message.clearErrors(); ec.message.popErrors() }
         ]]></script></actions>
     </service>
 </services>

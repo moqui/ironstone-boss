@@ -444,8 +444,8 @@ feature("the mention list is a room's members, and anyone in a public room; sear
             search: get("search", { searchText: "floor plan" }).json,
             inRoom: get("search", { searchText: "coffee", chatRoomId: ROOM.general }).json,
             // as the shell calls a palette source: for the user, without a service authorization of its own
-            palette: sys(() => call("ironstone.comms.ChatServices.search#PaletteRooms", { text: "Gen", limit: 5 })),
-            latest: sys(() => call("ironstone.comms.ChatServices.search#PaletteRooms", { text: "#", limit: 5 })),
+            palette: sys(() => call("org.moqui.comms.ChatScreenServices.search#PaletteRooms", { text: "Gen", limit: 5 })),
+            latest: sys(() => call("org.moqui.comms.ChatScreenServices.search#PaletteRooms", { text: "#", limit: 5 })),
         }
     },
     then(v) {
@@ -596,7 +596,7 @@ feature("the Chat screen answers its component in qvue, its one client mode (the
     then({ vue, qvt }) {
         vue.status == 200
         vue.output.includes("module.exports")
-        vue.output.includes("BossChatRoom")
+        vue.output.includes("ChatRoom")
         qvt.status != 200
     },
 })

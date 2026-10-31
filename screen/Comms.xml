@@ -30,6 +30,9 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="RecordFiles" location="component://mr-boss/screen/Shared/RecordFiles.xml" menu-include="false"/>
         <!-- the screens of the framework's BasicComms, mounted here and extended from screen-extend/basic-comms
             (plans/Comms-Framework.md §3.4) -->
+        <subscreens-item name="Chat" location="component://basic-comms/screen/BasicComms/Chat.xml" menu-title="Chat" menu-index="3"/>
+        <subscreens-item name="ChatTui" location="component://basic-comms/screen/BasicComms/ChatTui.xml" menu-include="false"/>
+        <subscreens-item name="Panel" location="component://basic-comms/screen/BasicComms/Panel.xml" menu-include="false"/>
         <subscreens-item name="Settings" location="component://basic-comms/screen/BasicComms/Settings.xml" menu-title="Settings" menu-index="6"/>
     </subscreens>
 
@@ -40,12 +43,16 @@ along with this software (see the LICENSE.md file). If not, see
         <quick-create kind="email" label="Email" icon="sym_o_mail" screen="Comms/Inbox/Compose" sequence="60"/>
         <quick-create kind="chatMessage" label="Chat message" icon="sym_o_chat" screen="Comms/Panel/Chat" sequence="70"/>
         <palette-source group="Messages" label="Messages and rooms" icon="sym_o_forum" service="ironstone.comms.InboxServices.search#Messages" sequence="30"/>
-        <palette-source group="Rooms" label="Chat rooms" icon="sym_o_chat" prefix="#" service="ironstone.comms.ChatServices.search#PaletteRooms" sequence="31"/>
+        <palette-source group="Rooms" label="Chat rooms" icon="sym_o_chat" prefix="#" service="org.moqui.comms.ChatScreenServices.search#PaletteRooms" sequence="31"/>
         <notification-topic topic="ChatMention"/>
         <notification-topic topic="NewMail"/>
         <keymap><key keys="g i" label="Inbox" screen="Comms/Inbox"/></keymap>
         <!-- the Internal account and mailboxes in the BasicComms screens (plans/Comms-Framework.md §3.3) -->
         <inbox-source name="boss.internal" service="ironstone.comms.InboxServices.get#InboxSource"/>
+        <!-- the records of chat rooms and messages: their cards, filing a message on a record, a task, request or event from it -->
+        <record-lookup name="boss.records" service="ironstone.comms.ChatServices.get#RecordLookup"/>
+        <record-link name="boss.records" service="ironstone.comms.ChatServices.file#OnRecord"/>
+        <create-from name="boss.records" service="ironstone.comms.ChatServices.create#FromChat"/>
     </shell-providers>
 
     <widgets><subscreens-panel id="comms-panel" type="popup"/></widgets>

@@ -1,1 +1,0 @@
-[{"t": "dynamicContainer", "id": "ChatPanelTui", "url": ${JSON.stringify(sri.buildUrl('../../ChatTui').addParameter('limit', '20').getUrlWithParams())}}]

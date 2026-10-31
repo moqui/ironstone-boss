@@ -70,12 +70,12 @@ feature("the page renders the preferences, the do not disturb hours and the stat
 
 feature("Save keeps the preferences, which get#ChatPrefs and the Chat screens read", {
     when() {
-        const before = sys(() => call("ironstone.comms.ChatServices.get#ChatPrefs", {})).prefs.notifyPreview
+        const before = sys(() => call("org.moqui.comms.ChatScreenServices.get#ChatPrefs", {})).prefs.notifyPreview
         const saved = post("savePreferences", { notifyDefault: "mentions", notifyPreview: "", sounds: "", enterSends: "N", readReceipts: "Y", typing: "", linkPreviews: "",
             autoAwayMinutes: "15" })
         const preview = pref("CHAT_NOTIFY_PREVIEW")
         const bad = post("savePreferences", { notifyDefault: "loud", autoAwayMinutes: "15" })
-        return { before, saved, preview, bad, prefs: sys(() => call("ironstone.comms.ChatServices.get#ChatPrefs", {})).prefs, away: pref("CHAT_AUTO_AWAY_MINUTES"),
+        return { before, saved, preview, bad, prefs: sys(() => call("org.moqui.comms.ChatScreenServices.get#ChatPrefs", {})).prefs, away: pref("CHAT_AUTO_AWAY_MINUTES"),
             presence: sys(() => call("org.moqui.impl.ChatServices.get#UserStatuses", { userIdList: ["EX_JOHN_DOE"] })).myStatus }
     },
     allowMessageErrors: true,
@@ -124,13 +124,13 @@ feature("the do not disturb hours: both or neither, not the same time; the job p
         const now = Number(ec.user.nowTimestamp)
         setPref(DND_USER, "CHAT_DND_FROM", utc(now - 3600000))
         setPref(DND_USER, "CHAT_DND_TO", utc(now + 3600000))
-        const inside = sys(() => call("ironstone.comms.ChatServices.apply#DndHours", {}))
+        const inside = sys(() => call("org.moqui.comms.ChatScreenServices.apply#DndHours", {}))
         const during = one("moqui.security.UserStatus", { userId: DND_USER })
         const auto = one("moqui.security.UserPreference", { userId: DND_USER, preferenceKey: "CHAT_DND_AUTO" })
-        const again = sys(() => call("ironstone.comms.ChatServices.apply#DndHours", {}))
+        const again = sys(() => call("org.moqui.comms.ChatScreenServices.apply#DndHours", {}))
         setPref(DND_USER, "CHAT_DND_FROM", utc(now + 2 * 3600000))
         setPref(DND_USER, "CHAT_DND_TO", utc(now + 3 * 3600000))
-        const outside = sys(() => call("ironstone.comms.ChatServices.apply#DndHours", {}))
+        const outside = sys(() => call("org.moqui.comms.ChatScreenServices.apply#DndHours", {}))
         const after = one("moqui.security.UserStatus", { userId: DND_USER })
         return { same, saved, kept, page, cleared, clearedPrefs, inside, during, auto, again, outside, after }
     },
@@ -156,7 +156,7 @@ feature("status presets: added, used for my status, removed", {
     when() {
         const added = post("addPreset", { emoji: "🎧", text: "Focus time", clearAfter: "60" })
         const empty = post("addPreset", { emoji: "", text: "" })
-        const presets = sys(() => call("ironstone.comms.ChatServices.get#ChatPrefs", {})).prefs.statusPresets
+        const presets = sys(() => call("org.moqui.comms.ChatScreenServices.get#ChatPrefs", {})).prefs.statusPresets
         const index = presets.findIndex((preset) => preset.text === "Focus time")
         const used = post("usePreset", { index })
         const status = one("moqui.security.UserStatus", { userId: "EX_JOHN_DOE" })
@@ -167,7 +167,7 @@ feature("status presets: added, used for my status, removed", {
         const removed = post("removePreset", { index })
         sys(() => call("org.moqui.impl.ChatServices.set#UserStatus", { clearStatus: true }))
         return { added, empty, presets, index, used, status, todayStatus, removed, kept,
-            after: sys(() => call("ironstone.comms.ChatServices.get#ChatPrefs", {})).prefs.statusPresets, now: Number(ec.user.nowTimestamp) }
+            after: sys(() => call("org.moqui.comms.ChatScreenServices.get#ChatPrefs", {})).prefs.statusPresets, now: Number(ec.user.nowTimestamp) }
     },
     allowMessageErrors: true,
     then(v) {

@@ -155,7 +155,7 @@ const demoRecords = {
     "Comms/Inbox": { text: "Inbox" },
     // M10: Chat and the tray's Chat tab (.qvue screens: their components, the room view in Chat's), and the chat settings
     "Comms/Chat": { text: "BossChatRoom" },
-    "Comms/Panel/Chat": { text: "BossChatPanel" },
+    "Comms/Panel/Chat": { text: "ChatPanel" },
     "Comms/Settings/Chat": { text: "Do not disturb hours" },
     "Comms/Inbox/MessageDetail": { parameters: { emailMessageId: "BOSS_DEMO_MAIL_INVOICE" }, text: "Invoice INV-1042 is due on the 30th" },
     // M5: Comms Home and the mail settings (the demo of load#MailSettingsDemo: the shared Support account whose sign-in failed,

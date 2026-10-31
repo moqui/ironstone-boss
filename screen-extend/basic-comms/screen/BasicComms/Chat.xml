@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- IronStone's message actions in the BasicComms Chat (plans/Comms-Framework.md §3.3): a task, a request or an event made from
+    a message, through Chat's createFrom transition and the create-from provider boss.records (Comms.xml), which files the
+    message on the new record. -->
+<screen-extend xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+    <ext-action name="boss.createTask" slot="chat-message-actions" sequence="10" label="Create a task" icon="sym_o_task_alt" transition="createFrom" hook="create-from">
+        <parameter name="chatRoomId"/><parameter name="eventSeq"/><parameter name="kind" value="task"/>
+    </ext-action>
+    <ext-action name="boss.createRequest" slot="chat-message-actions" sequence="20" label="Create a request" icon="sym_o_support" transition="createFrom" hook="create-from">
+        <parameter name="chatRoomId"/><parameter name="eventSeq"/><parameter name="kind" value="request"/>
+    </ext-action>
+    <ext-action name="boss.createEvent" slot="chat-message-actions" sequence="30" label="Create an event" icon="sym_o_event" transition="createFrom" hook="create-from">
+        <parameter name="chatRoomId"/><parameter name="eventSeq"/><parameter name="kind" value="event"/>
+    </ext-action>
+</screen-extend>

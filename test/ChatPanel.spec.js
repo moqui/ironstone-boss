@@ -45,9 +45,9 @@ feature("the shell names the tab and the + menu kind without an extension; the s
         trayChat == "/qapps/Comms/Panel/Chat"
         kind.url == "/qapps/Comms/Panel/Chat"
         comp.status == 200
-        comp.output.includes("BossChatPanel")
+        comp.output.includes("ChatPanel")
         // the room view is Comms/Chat's, loaded when a room opens
-        comp.output.includes("/Comms/Chat.qvue")
+        comp.output.includes("this.base + '.qvue'")
         !comp.output.includes("Placeholder:")
         // the tray's refresh keeps an open room: the component refreshes its rooms itself
         comp.output.includes("shellRefresh()")

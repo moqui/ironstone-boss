@@ -12,13 +12,9 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- IronStone's cards on the Comms settings index: Chat, Calls, and the reading defaults and keys in Commons Preferences. -->
+<!-- IronStone's cards on the Comms settings index: Calls, and the reading defaults and keys in Commons Preferences. -->
 <screen-extend xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <widgets-extend name="SettingsCards" where="append">
-        <row-col md="4" sm="6"><container-box><box-header title="Chat"/><box-body>
-            <label type="p" text="Notifications, sounds, Enter to send, message previews and when you show as away." style="m-muted"/>
-            <link url="../Chat" text="Chat settings" icon="sym_o_chat"/>
-        </box-body></container-box></row-col>
         <row-col md="4" sm="6"><container-box><box-header title="Calls"/><box-body>
             <label type="p" text="Camera, microphone and ringtone: coming with calls." style="m-muted"/>
             <link url="../Calls" text="Calls" icon="sym_o_call"/>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- InvoiceDetail's General ledger tab: the ledger transactions of the invoice, for ledger readers. It reads the invoice
+    when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="General ledger"
+        default-menu-index="7">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="invoiceId"/>
+    <actions>
+        <!-- InvoiceDetail's actions read the invoice when it renders with the tab -->
+        <if condition="receivable == null">
+            <service-call name="ironstone.accounting.ReceivableServices.get#InvoiceContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section name="InvoiceGeneralLedger" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="General ledger"/>
+                    <box-body>
+                        <form-list name="FinanceInvoiceLedger" list="receivable.ledger" skip-form="true" paginate="false">
+                            <field name="acctgTransId">
+                                <header-field title="Transaction"/>
+                                <conditional-field condition="accounting.capabilities.reportRead
+                                            || accounting.capabilities.glPost">
+                                    <link url="${sharedLinks['GeneralLedger/JournalEntryDetail']}"
+                                            text="${acctgTransId}"
+                                            parameter-map="{recordId:acctgTransId, organizationPartyId:organizationPartyId}"/>
+                                </conditional-field>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="transactionDate">
+                                <header-field title="Date"/>
+                                <default-field>
+                                    <display text="${transactionDateText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <header-field title="Description"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="isPosted">
+                                <header-field title="Posted"/>
+                                <default-field>
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="acctgTransId"/>
+                                    <field-ref name="description"/>
+                                </column>
+                                <column>
+                                    <field-ref name="transactionDate"/>
+                                    <field-ref name="isPosted"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="Ledger details require ledger read access."
+                                type="p"
+                                style="m-muted"
+                                condition="!accounting.capabilities.reportRead &amp;&amp; !accounting.capabilities.glPost"/>
+                        <label text="No ledger transaction is linked to this invoice."
+                                type="p"
+                                style="m-muted"
+                                condition="(accounting.capabilities.reportRead || accounting.capabilities.glPost)
+                                    &amp;&amp; !receivable.ledger.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

@@ -5,7 +5,7 @@
 // Run: ./moq test mr-boss --spec TuiRender
 const base = "component://mr-boss/screen"
 const webroot = "component://webroot/screen/webroot.xml"
-let screens
+let screens, accountingFixtures
 
 // [root screen location, path under it] of every screen file under the roots and in screen/Shared, as AppStructure finds them
 function findScreenFiles(appList) {
@@ -103,9 +103,14 @@ spec({
     setupSpec() {
         login("john.doe")
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Products", "Accounting"])
-        for (const [root,path] of screens) if(root.endsWith('/Accounting.xml')) demoParameters['Accounting/'+path]={organizationPartyId:'BOSS_ACCT_ORG'}
-        for (const [path,id] of Object.entries({"Receivables/InvoiceDetail":"BOSS_ACCT_INVOICE","Payables/BillDetail":"BOSS_ACCT_BILL","Payments/PaymentDetail":"BOSS_ACCT_PAYMENT","GeneralLedger/JournalEntryDetail":"BOSS_ACCT_ENTRY","GeneralLedger/AccountDetail":"111100000"}))
-            demoParameters["Accounting/"+path]={organizationPartyId:"BOSS_ACCT_ORG",recordId:id}
+        accountingFixtures = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js").routeFixtures()
+        for (const [root, path] of screens)
+            if (root.endsWith("/Accounting.xml")) demoParameters["Accounting/" + path] = {organizationPartyId: "BOSS_ACCT_ORG"}
+        for (const [path, fixture] of Object.entries(accountingFixtures)) {
+            demoParameters["Accounting/" + path] = fixture.parameters
+            if (path.startsWith("Receivables/Customer360")) screens.push([`${base}/Accounting.xml`, path])
+        }
+        demoParameters["Customer360"] = accountingFixtures["Receivables/Customer360"].parameters
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path])
@@ -141,6 +146,10 @@ feature("every Commons, Comms, Insights and Shared screen renders in tui as a mo
             if (got.status != 200 || got.errors) failures.push(`${key}: status ${got.status}, ${got.errors}`)
             else if (!got.doc || got.doc.v != 1) failures.push(`${key}: not a TUI document: ${got.output.substring(0, 160)}`)
             else if (got.nodeErrors.length) failures.push(`${key}: ${got.nodeErrors.join(" | ")}`)
+            const fixture = key.startsWith("Accounting/") ? accountingFixtures[key.substring("Accounting/".length)] : null
+            if (fixture && !got.output.includes(fixture.text)) failures.push(`${key}: no ${JSON.stringify(fixture.text)}`)
+            if (fixture && /(?:Invoice|Customer) (?:not available|is unavailable)/.test(got.output))
+                failures.push(`${key}: fixture record is unavailable`)
         }
         if (failures.length) log.warn(`TUI failures:\n${failures.join("\n")}`)
         return { failures }

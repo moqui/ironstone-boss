@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- The organization's gateway answers (style-guide §3.2 List): authorizations, captures, releases, refunds and checks
+    with the gateway, with their outcome, payment and refund payment, for treasury users
+    (ironstone.accounting.PaymentScreenServices.get#GatewayTransactionsContext). Their filters are in Find options. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Gateway transactions"
+        default-menu-index="2">
+    <parameter name="organizationPartyId"/>
+    <parameter name="paymentId"/>
+    <parameter name="partyId"/>
+    <parameter name="paymentGatewayConfigId"/>
+    <parameter name="action"/>
+    <parameter name="outcome"/>
+    <parameter name="fromDay"/>
+    <parameter name="throughDay"/>
+    <parameter name="text"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <actions>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#GatewayTransactionsContext"
+                in-map="context"
+                out-map="context"/>
+    </actions>
+    <widgets>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <label text="Choose an organization to see its gateway transactions." type="p" condition="!gatewayTransactions.ready"/>
+        <section name="GatewayTransactionsUnavailable"
+                condition="gatewayTransactions.ready &amp;&amp; !gatewayTransactions.available">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Gateway transactions not available"/>
+                    <box-body>
+                        <label text="Treasury access is required to see the gateway's answers." type="p"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="GatewayTransactionList" condition="gatewayTransactions.available">
+            <widgets>
+                <label text="Some provider names are not available; their identifiers are shown."
+                        type="p"
+                        style="text-warning"
+                        condition="gatewayTransactions.providerLabelsUnavailable"/>
+                <container-box>
+                    <box-header title="Gateway transactions"/>
+                    <box-body-nopad>
+                        <form-list name="GatewayTransactions"
+                                list="records"
+                                skip-form="true"
+                                paginate="true"
+                                header-dialog="true"
+                                select-columns="true">
+                            <field name="organizationPartyId">
+                                <header-field>
+                                    <hidden/>
+                                </header-field>
+                            </field>
+                            <field name="text">
+                                <header-field title="Search">
+                                    <text-line/>
+                                </header-field>
+                            </field>
+                            <field name="paymentId">
+                                <header-field title="Payment">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'payments', organizationPartyId:organizationPartyId,
+                                                    selected:paymentId}"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}/Gateway"
+                                            text="${paymentId}"
+                                            link-type="anchor"
+                                            parameter-map="paymentParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="partyId">
+                                <header-field title="Counterparty">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'paymentParties', organizationPartyId:organizationPartyId,
+                                                    selected:partyId}"/>
+                                    </drop-down>
+                                </header-field>
+                            </field>
+                            <field name="paymentGatewayConfigId">
+                                <header-field title="Provider">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'paymentGatewayProviders',
+                                                    organizationPartyId:organizationPartyId, selected:paymentGatewayConfigId}"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Provider">
+                                    <display text="${providerName || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="action">
+                                <header-field title="Action">
+                                    <drop-down allow-empty="true">
+                                        <option key="authorize" text="Authorize"/>
+                                        <option key="capture" text="Capture"/>
+                                        <option key="release" text="Release"/>
+                                        <option key="refund" text="Refund"/>
+                                        <option key="lookup" text="Check with the gateway"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Action">
+                                    <display text="${actionText || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="transactionDateText">
+                                <default-field title="Date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="fromDay">
+                                <header-field title="From">
+                                    <date-time type="date"/>
+                                </header-field>
+                            </field>
+                            <field name="throughDay">
+                                <header-field title="Through">
+                                    <date-time type="date"/>
+                                </header-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="outcome">
+                                <header-field title="Outcome">
+                                    <drop-down allow-empty="true">
+                                        <option key="accepted" text="Accepted"/>
+                                        <option key="declined" text="Declined"/>
+                                        <option key="failed" text="Failed"/>
+                                        <option key="pending" text="Pending"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Outcome">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                            outcomeColor}">${WebUtilities.encodeHtml(outcomeText || '')}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                            text: outcomeText || ""})}]]></text>
+                                        <text type="html">${outcomeText || ''}</text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <field name="refundPaymentId">
+                                <conditional-field condition="refundParameters" title="Refund payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${refundPaymentId}"
+                                            link-type="anchor"
+                                            parameter-map="refundParameters"/>
+                                </conditional-field>
+                                <default-field title="Refund payment">
+                                    <display text=""/>
+                                </default-field>
+                            </field>
+                            <field name="referenceNum">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="responseCode">
+                                <default-field title="Code">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reasonCode">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="action"/>
+                                    <field-ref name="transactionDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="outcome"/>
+                                    <field-ref name="refundPaymentId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No gateway transactions match these filters."
+                                type="p"
+                                style="m-muted q-pa-md"
+                                condition="!recordsCount"/>
+                    </box-body-nopad>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

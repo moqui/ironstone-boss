@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Currencies (design-accounting §15 Currencies; D17): the currency units and the dated exchange rates, entered one at a
     time or imported from CSV, where each row is stored or refused on its own and the result of each is kept
     (mantle.ledger.CurrencyServices). This is the only writer of either; nothing converts currency before P20. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Currencies" default-menu-index="5" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Currencies"
+        default-menu-index="5"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="importId"/>
     <parameter name="pageIndex"/>
@@ -44,9 +47,13 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId,pageIndex:pageIndex}" out-map="context"/>
+        <service-call name="mantle.ledger.SetupServices.get#Context"
+                in-map="{organizationPartyId:organizationPartyId, pageIndex:pageIndex}"
+                out-map="context"/>
         <if condition="importId">
-            <service-call name="mantle.ledger.CurrencyServices.get#ImportResult" in-map="{organizationPartyId:organizationPartyId,importId:importId}" out-map="rateImport"/>
+            <service-call name="mantle.ledger.CurrencyServices.get#ImportResult"
+                    in-map="{organizationPartyId:organizationPartyId, importId:importId}"
+                    out-map="rateImport"/>
         </if>
         <set field="importResults" from="rateImport?.results || []"/>
     </actions>
@@ -56,7 +63,11 @@ along with this software (see the LICENSE.md file). If not, see
         <section name="Currencies" condition="organizationPartyId">
             <widgets>
                 <container style="row q-gutter-sm q-mb-md">
-                    <container-dialog id="AddRateDialog" button-text="Add exchange rate" type="primary" icon="sym_o_add" title="Add a dated exchange rate">
+                    <container-dialog id="AddRateDialog"
+                            button-text="Add exchange rate"
+                            type="primary"
+                            icon="sym_o_add"
+                            title="Add a dated exchange rate">
                         <form-single name="ExchangeRate" transition="rate">
                             <field name="organizationPartyId" from="organizationPartyId">
                                 <default-field>
@@ -66,14 +77,22 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="uomId">
                                 <default-field title="From currency">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:uomId}"/>
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'currencies',
+                                                    organizationPartyId:organizationPartyId, selected:uomId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
                             <field name="toUomId">
                                 <default-field title="To currency">
                                     <drop-down allow-empty="true">
-                                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:toUomId}"/>
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'currencies',
+                                                    organizationPartyId:organizationPartyId, selected:toUomId}"/>
                                     </drop-down>
                                 </default-field>
                             </field>
@@ -143,7 +162,10 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
                         </form-single>
                     </container-dialog>
-                    <container-dialog id="ImportRatesDialog" button-text="Import rates" icon="sym_o_add" title="Import exchange rates from CSV">
+                    <container-dialog id="ImportRatesDialog"
+                            button-text="Import rates"
+                            icon="sym_o_add"
+                            title="Import exchange rates from CSV">
                         <form-single name="ImportRates" transition="import">
                             <field name="organizationPartyId" from="organizationPartyId">
                                 <default-field>
@@ -151,7 +173,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field>
                             </field>
                             <field name="csvText">
-                                <default-field title="CSV rows" tooltip="Columns: uomId, toUomId, fromDate, thruDate, conversionFactor, rateSource">
+                                <default-field title="CSV rows"
+                                        tooltip="Columns: uomId, toUomId, fromDate, thruDate, conversionFactor, rateSource">
                                     <text-area rows="8" cols="70"/>
                                 </default-field>
                             </field>
@@ -171,9 +194,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ImportResults" condition="importId">
                     <widgets>
                         <container-box>
-                            <box-header title="Rate import: ${importResults.filter(row =&gt; row.success).length} stored, ${importResults.filter(row =&gt; !row.success).length} refused"/>
+                            <box-header title="Rate import: ${importResults.filter(row =&gt;
+                                        row.success).length} stored, ${importResults.filter(row =&gt;
+                                        !row.success).length} refused"/>
                             <box-body>
-                                <form-list name="RateImportResults" list="importResults" skip-form="true" paginate="false" show-csv-button="true">
+                                <form-list name="RateImportResults"
+                                        list="importResults"
+                                        skip-form="true"
+                                        paginate="false"
+                                        show-csv-button="true">
                                     <field name="rowNumber">
                                         <default-field title="Row">
                                             <display/>
@@ -182,8 +211,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     <field name="success">
                                         <default-field title="Result">
                                             <render-mode>
-                                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${success ? 'positive' : 'negative'}">${success ? 'Stored' : 'Refused'}</q-chip>]]></text>
-                                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: success ? 'Stored' : 'Refused'})}]]></text>
+                                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                                    success ? 'positive' : 'negative'}">${success ? 'Stored'
+                                                    : 'Refused'}</q-chip>]]></text>
+                                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                                    text: success ? 'Stored' : 'Refused'})}]]></text>
                                             </render-mode>
                                         </default-field>
                                     </field>
@@ -208,7 +240,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
                 <label text="Exchange rates" type="h6"/>
                 <label text="No exchange rates yet. Add one, or import them from CSV." type="p" condition="!rates.length"/>
-                <form-list name="ExchangeRates" list="rates" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <form-list name="ExchangeRates"
+                        list="rates"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="uomId">
                         <default-field title="From">
                             <display/>
@@ -246,7 +284,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </columns>
                 </form-list>
                 <label text="Currency units" type="h6"/>
-                <form-list name="CurrencyList" list="currencies" skip-form="true" paginate="true" select-columns="true" show-csv-button="true">
+                <form-list name="CurrencyList"
+                        list="currencies"
+                        skip-form="true"
+                        paginate="true"
+                        select-columns="true"
+                        show-csv-button="true">
                     <field name="description">
                         <default-field title="Currency">
                             <display text="${description || uomId}"/>

@@ -23,7 +23,11 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="workRows" type="List"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Accounting.js').execute('summary', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Accounting.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('summary', context)"/>
+            <set field="summary" from="screenContext.summary"/>
+            <set field="findings" from="screenContext.findings"/>
+            <set field="workRows" from="screenContext.workRows"/>
         </actions>
     </service>
 </services>

@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Journal entries (design-accounting §8 JournalEntries): the organization's entries, drafts and posted (isPosted),
     and the bulk post of a selection: Review selected validates each entry, then the review posts the ready ones, each on
     its own, naming each failure (template/AccountingParts.xml BatchReview). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal entries" default-menu-index="2" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Journal entries"
+        default-menu-index="2"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="isPosted"/>
     <parameter name="text"/>
@@ -26,14 +29,19 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="postBatch" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="reviewSelection">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.validate#Batch" in-map="{organizationPartyId:organizationPartyId,acctgTransIds:acctgTransIds}" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.validate#Batch"
+                    in-map="{organizationPartyId:organizationPartyId, acctgTransIds:acctgTransIds}"
+                    out-map="result"/>
             <set field="previewId" from="result.previewId"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'journals',organizationPartyId:organizationPartyId,isPosted:isPosted,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'journals', organizationPartyId:organizationPartyId, isPosted:isPosted,
+                    text:text, pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
     </actions>
     <widgets>
         <container style="row items-center q-col-gutter-sm">
@@ -41,13 +49,28 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Journal entries" type="h5"/>
             </container>
             <container style="col-auto">
-                <link url="//Accounting/QuickCreate/NewEntry" text="New journal entry" link-type="anchor-button" btn-type="primary" icon="sym_o_add" condition="accounting.capabilities.glPost" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                <link url="//Accounting/QuickCreate/NewEntry"
+                        text="New journal entry"
+                        link-type="anchor-button"
+                        btn-type="primary"
+                        icon="sym_o_add"
+                        condition="accounting.capabilities.glPost"
+                        parameter-map="{organizationPartyId:organizationPartyId}"/>
             </container>
         </container>
         <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
         <section-include name="BatchReview" location="component://mr-boss/template/AccountingParts.xml"/>
-        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
-            <row-selection id-field="acctgTransId" parameter="acctgTransIds" list-mode="true" condition="accounting.capabilities.glPost">
+        <form-list name="Records"
+                list="records"
+                skip-form="true"
+                paginate="true"
+                select-columns="true"
+                show-csv-button="true"
+                show-xlsx-button="true">
+            <row-selection id-field="acctgTransId"
+                    parameter="acctgTransIds"
+                    list-mode="true"
+                    condition="accounting.capabilities.glPost">
                 <action>
                     <dialog button-text="Review selected" title="Review the selected journal entries"/>
                     <form-single name="ReviewSelection" transition="reviewSelection" map="context">
@@ -66,7 +89,10 @@ along with this software (see the LICENSE.md file). If not, see
             </row-selection>
             <field name="description">
                 <default-field title="Entry">
-                    <link url="//Accounting/GeneralLedger/JournalEntryDetail" text="${description || 'Journal entry ' + acctgTransId}" link-type="anchor" parameter-map="{recordId:acctgTransId,organizationPartyId:organizationPartyId}"/>
+                    <link url="//Accounting/GeneralLedger/JournalEntryDetail"
+                            text="${description || 'Journal entry ' + acctgTransId}"
+                            link-type="anchor"
+                            parameter-map="{recordId:acctgTransId, organizationPartyId:organizationPartyId}"/>
                 </default-field>
             </field>
             <field name="acctgTransId">
@@ -82,8 +108,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="isPosted">
                 <default-field title="State">
                     <render-mode>
-                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ? 'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Draft'}</q-chip>]]></text>
-                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted' : 'Draft'})}]]></text>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPosted == 'Y' ?
+                            'positive' : 'warning'}">${isPosted == 'Y' ? 'Posted' : 'Draft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPosted == 'Y' ? 'Posted'
+                            : 'Draft'})}]]></text>
                     </render-mode>
                 </default-field>
             </field>
@@ -97,6 +125,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </column>
             </columns>
         </form-list>
-        <label text="No journal entries match. Choose another organization or search, or create a new journal entry." type="p" condition="!records.length"/>
+        <label text="No journal entries match. Choose another organization or search, or create a new journal entry."
+                type="p"
+                condition="!records.length"/>
     </widgets>
 </screen>

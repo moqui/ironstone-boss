@@ -150,7 +150,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - demo data;
   - builds and commits.
 
-  Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2), as `PurchasingShots`.
+  The walks are BOSS `test/client` specs on Products' pattern (impl-products §2).
 - **Rules in Mantle, screens in BOSS** (§4). Purchasing's approvals, policies, supplier profile and check, sends,
   revisions, acknowledgements, requests, sourcing, agreements and scorecards are Mantle services in the package of their
   records (`mantle.order`, `mantle.request`, `mantle.party`). Each checks its Moqui permission (§4) and the organization
@@ -231,12 +231,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Purchasing in its non-placeholder
       list (F16);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px;
+    - the `test/client` walks passing;
     - the inventories' **Implemented in** columns;
   - the `PurchasingAccess` spec extended to the phase's services and mounts;
   - for P16: `./moq test mr-pass mr-mantle mr-boss` with the Supplier app's specs, the remote pair on PASS's
     RemoteFixtures pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, lint clean
-    for PASS, and the pages' screenshots light and dark at 390 and 1280 px;
+    for PASS;
   - the phase's walk in §8;
   - its row and **Built** note here.
 

@@ -79,8 +79,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - demo data;
   - builds and commits.
 
-  Screenshots come from a BOSS `test/client` spec on the pattern of example's `GalleryShots.spec.js`, run with
-  `moqui test-client mr-boss --serve` (F23).
+  The walks are BOSS `test/client` specs, run with `moqui test-client mr-boss --serve` (F23). No spec takes
+  screenshots; a check at phone width goes in `ProductsPhone.spec.js`'s pattern, for what changes there.
 - **Catalog rows through services.** No entity filter covers a product's prices, associations, parties, content or
   identifiers (F1). Products reads and writes them only through services: `ironstone.products.CatalogServices` checks
   the product's owner and the Products grant, then the Mantle store service runs (below).
@@ -122,7 +122,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Products in its non-placeholder
       list;
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px;
+    - the `test/client` walks passing;
     - the inventories' **Implemented in** columns;
   - the `ProductsAccess` spec extended to the phase's services and mounts;
   - the phase's walk in §8;

@@ -13,12 +13,18 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <!-- A new draft journal entry, from quick create or the journal list; its lines are added on the entry. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="New journal entry" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="New journal entry"
+        default-menu-index="1"
+        default-menu-include="false"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="create">
         <actions>
-            <service-call name="mantle.ledger.JournalServices.store#DraftEntry" in-map="{organizationPartyId:organizationPartyId,description:description,transactionDate:transactionDate}" out-map="result"/>
+            <service-call name="mantle.ledger.JournalServices.store#DraftEntry"
+                    in-map="{organizationPartyId:organizationPartyId, description:description, transactionDate:transactionDate}"
+                    out-map="result"/>
             <set field="recordId" from="result.recordId || result.acctgTransId"/>
         </actions>
         <default-response url="//Accounting/GeneralLedger/JournalEntryDetail">
@@ -34,7 +40,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="organizationPartyId">
                 <default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                        <dynamic-options transition="choices"
+                                server-search="true"
+                                min-length="0"
+                                parameter-map="{choice:'organizations',
+                                    organizationPartyId:organizationPartyId, selected:organizationPartyId}"/>
                     </drop-down>
                 </default-field>
             </field>

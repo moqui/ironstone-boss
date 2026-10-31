@@ -146,13 +146,13 @@ Each finding was verified in the code. Each resolution is now part of the design
     cover. A separate record stays only for a fact with an identity of its own, such as an approval decision, a posting
     or a count, and the plan says why.
   - Mantle's existing uses of both patterns are kept, not replaced.
-- **Demo data.** BOSS adds `data/BossDemoData.xml` (type demo) per milestone so specs and screenshots have content.
+- **Demo data.** BOSS adds `data/BossDemoData.xml` (type demo) per milestone so specs and walks have content.
 - **Done for a milestone:**
   - Tests: `cargo test` for the touched crates, with goldens reviewed; the new Mantle specs in `test/suite.js` passing
     under `./moq test mr-mantle`; `./moq test mr-boss` passing, with `test/AppStructure.spec.js` extended to
     every implemented Commons and Comms screen (not only the placeholders); `moqui lint --screens` clean for BOSS.
-  - Screens: screenshots of each new screen with `example/test/gallery-shots.mjs`, light and dark, at 390, 1280 and
-    1440 px.
+  - Screens: the `test/client` walks passing (`moqui test-client mr-boss --serve`, mr-moqui
+    `docs/dev/Client-Testing.md`).
   - Paperwork: the **Implemented in** columns of `ss-inventory.md` and `usl-inventory.md` filled, and
     `Remaining-Work.md` updated. The milestone's status in §5 updated.
 - **Builds and commits.** Debug incremental builds with one toolchain (the building skill); `rustfmt --edition 2021` on
@@ -694,7 +694,7 @@ with what the drawers and Commons gained for it.
   - **M4:** import a Google Contacts CSV.
   - **M5:** add a real mail account with an app password, then read, reply, file the thread on a record and move it.
   - **M7–M11:** the calendar, files, knowledge, chat and consent flows of their screens.
-- **Screenshots** with `example/test/gallery-shots.mjs` (`BASE_URL`, `USERNAME`, `PASSWORD`, `CHROME`), light and dark.
+- **Client walks** with `moqui test-client mr-boss --serve` (mr-moqui `docs/dev/Client-Testing.md`).
 - **Non-BOSS check:** with BOSS's theme values removed, MarbleERP and the tools screens still render with the hidden
   elements (R27).
 

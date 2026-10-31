@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Statement print"
+        default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="includeZeroBalance"/>
+    <actions>
+        <set field="statements" from="{}"/>
+        <if condition="organizationPartyId">
+            <service-call name="mantle.account.CollectionServices.get#Statements"
+                    out-map="statements"
+                    transaction="force-new"
+                    ignore-error="true"
+                    in-map="{organizationPartyId:organizationPartyId, customerPartyIdList:(customerPartyId ? [customerPartyId]
+                        : null), currencyUomId:currencyUomId || null, asOfDate:asOfDate
+                        || null, includeZeroBalance:includeZeroBalance == 'Y'}"/>
+        </if>
+        <set field="statementsAvailable" from="!!statements.previewHtml"/>
+    </actions>
+    <widgets>
+        <label text="Customer statement" type="h5"/>
+        <label text="No customer has an open balance for this selection." type="p" condition="!statementsAvailable"/>
+        <section name="PrintedStatements" condition="statementsAvailable">
+            <widgets>
+                <render-mode>
+                    <text type="html-print"><![CDATA[${statements.previewHtml}]]></text>
+                    <text type="html"><![CDATA[${statements.previewHtml}]]></text>
+                </render-mode>
+                <section-iterate name="StatementCurrencies" list="statements.statementRows" entry="statementRow">
+                    <widgets>
+                        <label type="h6" text="${statementRow.customerName} · ${statementRow.currencyUomId}"/>
+                        <label type="p" text="Balance due ${statementRow.closingBalanceText}"/>
+                    </widgets>
+                </section-iterate>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

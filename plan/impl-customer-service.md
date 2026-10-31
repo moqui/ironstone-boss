@@ -160,7 +160,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - demo data;
   - builds and commits.
 
-  Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2), as `CustomerServiceShots`.
+  The walks are BOSS `test/client` specs on Products' pattern (impl-products §2).
 - **Service rows through services.** Under the organization filters (impl-drawers-commons §4), Party, OrderPart, Shipment, ReturnHeader and Invoice
   are filtered, but not Request, RequestCategory, OrderHeader, OrderItem, CommunicationEvent or the Request joins (F2).
   Customer Service reads and writes them only through services: `ironstone.customerservice.AccessServices` checks the
@@ -267,13 +267,13 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure and TuiRender covering the new screens and Customer Service in
       their root lists (F20);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px;
+    - the `test/client` walks passing;
     - the inventories' **Implemented in** columns;
   - the `CustomerServiceAccess` spec extended to the phase's services and mounts, and ClientIsolation and ClientWrites
     passing with the new package (F17);
   - for a phase that touches the Support app (P13, P15): `./moq test mr-pass mr-mantle mr-boss` with its specs, the
     remote pair on RemoteFixtures' pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's
-    pattern, lint clean for PASS, and its pages' screenshots light and dark at 390 and 1280 px;
+    pattern, and lint clean for PASS;
   - the phase's walk in §8;
   - its row and **Built** note here.
 
@@ -891,7 +891,7 @@ FeedbackDeliveryPolicy; CS-FEEDBACK, CS-JOBS.
     shows the form and never submits, and PASS's throttling limits the posts;
   - the operations `getCaseFeedbackInvitation` and `submitCaseFeedback` in `Schema.js` and `Routes.js`, served by
     Mantle's PassApi for a remote frontend;
-  - the `SupportAccess` spec, local and remote, and the app's screenshots.
+  - the `SupportAccess` spec, local and remote.
   - A low score makes an assigned follow-up notification. Comments are private to service management and the
     customer-authorized follow-up, under the shared retention policy (§4); there is no agent leaderboard.
 - **Screens:** FeedbackForms (FeedbackFormList, NewFeedbackForm); FeedbackFormDetail (FeedbackFormHeader, FormAccess,

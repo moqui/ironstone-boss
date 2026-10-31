@@ -1,7 +1,8 @@
 # IronStone BOSS — Accounting implementation
 
-Oct 29, 2026 — P0, P1, P2a/P2b and P3 built and verified. Later phases remain planned.
-The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
+P0–P5 are built and reviewed (R for P0–P3, R2 for P4–P5, with its rework). Work is paused before P6. P6–P21
+remain planned. The delivery log is below; the contracts are in
+[AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -35,7 +36,7 @@ screens follow in their later phases.
 - Guides and rules: [design-doc-guide.md](design-doc-guide.md), [style-guide.md](style-guide.md) §8, and
   [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules).
 - [impl-products.md](impl-products.md): the pattern; its decisions on other apps' contracts and shared contexts;
-  the groups its P1 seeds (`BOSS_ACCOUNTING_GL`); and the BOSS client screenshot spec it adds (its F23).
+  the groups its P1 seeds (`BOSS_ACCOUNTING_GL`); and the BOSS client walks it adds (its F23).
 - [impl-projects.md](impl-projects.md): InvoiceDetail, OrderDetail and the billing services, and its findings
   that recur here (F91, F131).
 - Inventories: [ss-inventory.md](ss-inventory.md) and [usl-inventory.md](usl-inventory.md).
@@ -51,6 +52,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 ---
 
 ## 1. Scope and order
+
+**Current execution boundary (Oct 30, 2026):** P4–P5 reviewed and reworked on Mantle's services (R2), then a pause
+before P6. The later phase definitions remain the plan for a future continuation.
 
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
@@ -117,7 +121,14 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   - demo data;
   - builds and commits.
 
-  Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2).
+  The walks are BOSS `test/client` specs, as Products' are (impl-products §2). No spec takes screenshots; a walk
+  asserts what a page shows.
+- **Use Mantle first.** Before adding a service, entity or guard, find the Mantle service that already does it and use
+  it, or extend it with a parameter: payments through `create#`/`update#Payment` and `post#Payment`, so their SECAs
+  run; applications through the `apply#*` services; refunds through `create#RefundPayment`; gateway operations through
+  the `*#SinglePayment` services and their gateway interfaces; invoice print, email, statements and credit memos through
+  `get#InvoicePrintInfo`, an `EmailTemplate`, `get#ReceivableStatementInfo` and `create#InvoiceCreditMemo`. Add beside
+  Mantle only what it lacks (docs/dev/Practices-App-Dev.md §3; F115).
 - **Financial writes through Mantle services.** Every invoice, payment, settlement, stock-value and period
   mutation is a Mantle service that checks its permission, the organization, status, balance, lock date and
   operation key (design §1.1). An Accounting screen or mount calls it after `ironstone.accounting.AccessServices`
@@ -141,9 +152,9 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   rewrite (design §1.1, §19).
 - **Preview, then post.** A preview answers a version. The post takes that version and an operation key,
   re-reads under lock and refuses a stale preview; a retry with the same key answers the first result (design
-  §18.1; F8). Both are one Mantle service pair, keyed on the CX-POSTING record (§4; F47). One financial
-  transaction, application set, paired transfer or document-and-ledger posting is atomic; a bulk selection names
-  each failure and goes on.
+  §18.1; F8). Both are one Mantle service pair, keyed on the CX-POSTING record (§4; F47); a payment's review is a
+  `PaymentReview` row holding its operation key and result (R2). One financial transaction, application set,
+  transfer or document-and-ledger posting is atomic; a bulk selection names each failure and goes on.
 - **Restricted values stay on the server.** Bank and card numbers are masked and gateway secrets stay Admin's.
   An inaccessible account contributes no names or amounts, and a failed aggregate is unavailable, never zero
   (design §3).
@@ -174,9 +185,10 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record
   and service names, its Shared screen, and the permissions its Mantle services check. A change found while
   building it is written into the owner's design. The owner's own screens stay with the owner.
-- **Mantle rule changes keep Mantle's default.** Each CX-AUTOMATION change, and each new refusal in an existing
-  Mantle service, sits behind its own flag, off by default (§4), and ships with a test of its condition and of its
-  unchanged default (crosscut §7.1).
+- **A new control is the one behavior.** Each CX-AUTOMATION change, and each new refusal in an existing Mantle
+  service, is how Mantle behaves from then on, with a test of its condition (crosscut §7.1). Only a control that would
+  break Mantle's flow specs (F27) stays behind a flag, off by default, listed in §4 with the reason; today that is
+  `postingGuardEnabled` (R2).
 - **Existing callers stay compatible.**
   - Mantle's specs pass unchanged, including the flow specs' SECA invoices, return responses and posted
     amounts (F27).
@@ -191,12 +203,12 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Accounting in its
       non-placeholder list (F3);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px;
+    - the `test/client` walks passing;
     - the inventories' **Implemented in** columns;
   - the `AccountingAccess` spec extended to the phase's services and mounts;
   - for P18: `./moq test mr-pass mr-mantle mr-boss` with the apps' specs, the remote pair on PASS's RemoteFixtures
-    pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, lint clean for PASS, and the
-    apps' screenshots light and dark at 390 and 1280 px;
+    pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, with the phone-width
+    overflow checks at 390 px, and lint clean for PASS;
   - the phase's walk in §8;
   - its row and **Built** note here.
 
@@ -208,8 +220,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 | P1 Foundation | Mantle, BOSS | root/menu, Home, minimal invoice/bill/payment lists and read-only details, draft quick create | built Oct 29; see build record below |
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
-| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | — |
-| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | — |
+| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built Oct 29, reviewed and reworked Oct 30; see R2 |
+| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | built Oct 29–30, reviewed and reworked Oct 30; see R2 |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
 | P8 Payment runs | Mantle, BOSS | PayablesWorkbench, PaymentRuns, PaymentRunDetail | — |
@@ -290,8 +302,9 @@ closes. Completed checks (findings F48–F60; verification below):
 - **Home** (design §3): AccountingSummary and MoneyCards over `ironstone.accounting.HomeServices.get#Summary`,
   with the counts of later phases null, and MyFinanceWork with no sources yet.
 - **Accounting demo data.**
-  - `BossAccountingDemoData.xml` builds on Mantle's `ORG_ZIZI_CORP` accounting setup, which
-    `ORG_ZIZI_RETAIL` inherits (F7). Mantle seeds no accounting transactions, so a demo service runs the
+  - `BossZAccountingDemoData.xml` uses the demo's own organization, `BOSS_ACCT_ORG` (defined in
+    `BossAccountingUsersDemoData.xml` with Mantle's default accounting configuration), outside the Ziziwork rollup,
+    so its adopted controls do not reach Mantle's demo flows (F7). Mantle seeds no accounting transactions, so a demo service runs the
     invoices, payments and postings the phases need, as Projects' demo services do.
   - `BossUsersDemoData.xml` gains a user per group (AR, AP, treasury, GL, tax, reader, approver and admin), and a
     report reader with no other launcher.
@@ -377,8 +390,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
     `RECEIVABLE_EDIT` or `PAYABLE_EDIT` by side, and `INVOICE_APPROVE` for approval. Projects'
     `update#InvoiceStatus` calls it, so project invoices are refused too (F46).
   - `send#Invoice`, with or without a store: it renders the invoice as sent and its attachments, stores the PDF as the
-    invoice's content stamped with its time (impl-drawers-commons §4), sends through `send#EmailDraft` and records the
-    outcome per recipient (F21). Projects' `send#Invoice` calls it (F2). The InvoicePay link is added in P18.
+    invoice's content stamped with its time (impl-drawers-commons §4), sends through an `EmailTemplate` and records
+    the outcome as its EmailMessage rows (F21; R2). Projects' `send#Invoice` calls it (F2). The InvoicePay link is
+    added in P18.
   - `InvoiceFinalizedSendEmail` skips a version `send#Invoice` has sent (CX-AUTOMATION).
   - `process#InvoiceBatch`, and the duplicate-source guard. It and `send#Invoice` check `RECEIVABLE_EDIT`.
 - **Screens** (design §4):
@@ -411,7 +425,8 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - `PaymentServices.change#PaymentState`, the guarded payment status transition (validate, deliver, void;
     `PAYMENT_EDIT`), with the PaymentValidation topic.
 - **AC-20, transfers:** the `PtInternalTransfer` payment type (F31), its cash-in-transit `PaymentTypeGlAccount`,
-  and `PaymentServices.create#InternalTransfer` (`PAYMENT_EDIT`): two linked legs, atomic, with a fee line.
+  and `PaymentServices.create#InternalTransfer` (`PAYMENT_EDIT`): one payment from the organization to itself, whose
+  `post#Payment` posts both sides through transit, and a fee as its own payment, all or nothing (R2).
 - **Screens** (design §6 and §4):
   - Payments, with its tabs, NewPayment and InternalTransfer;
   - PaymentDetail: applications, gateway actions, refunds linked to the original, evidence, and the payment
@@ -740,6 +755,8 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   `mantle.product.InventoryReportServices.run#StockTransactions` and `run#InventoryValuation` (P13).
   `ironstone.accounting.ReportServices` keeps the Reports catalog, its quick options, and the print and export
   shapes.
+  Date filters and drill-downs preserve the source's captured `accountingDate` when present, including documents
+  created and approved in different time zones; later applications and forward reversals retain their own dates.
 - **Screens** (design §13): Reports, the catalog with its quick options; BalanceSheet, IncomeStatement,
   CashFlow, RetainedEarnings, FinancialRatios, PartnerLedger, AccountBalance, PostedSummary and SalesAnalysis.
 - **Home complete:** every card and MyFinanceWork source of design §3.
@@ -879,7 +896,7 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | The supplier bill link is Purchasing's PO link, which Accounting adds in P18 with BillUpload (F44); with the move below it is the Supplier app's page for the PO, not a `/po/<token>` route | The user's call (impl-purchasing §4, answer 14) |
 | Oct 28, 2026 | Public-facing applications are in mr-pass and internal ones in mr-boss. Accounting's customer and supplier pages are PASS apps: Billing with InvoicePay, and Supplier with BillUpload, which Purchasing P16 extends; not `screen/ServicePortal.xml` and `screen/SupplierPortal.xml` in BOSS. They follow PASS's foundation (§2): public accounts with no UserGroup, Mantle services through the facade for a local or remote authority, PASS invitations, media and request contract | The user's call, Oct 28, in the Customer Service plan review (impl-customer-service §4). It reverses crosscut D5's two BOSS roots; Customer Service's pages are its own PASS app, Support |
 | Oct 28, 2026 | The root: `BOSS_ACCOUNTING` as root user group and artifact group. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_ACCOUNTING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4). `AccessServices` checks every supplied organization and record. The records no filter covers (F5) are read only through services that check their parent's organization, and `GlAccount` stays global (F14) | The user's call (§5 review), for every BOSS root |
-| Oct 28, 2026 | Each Mantle rule change is adopted by its own flag, off by default, so plain Mantle and its flow specs keep their behavior (F27). A flag lives with its owner's settings: Accounting's (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards) are audit-logged fields of `PartyAcctgPreference`, inherited as its other fields are; another app's are fields of its effective-dated policy rows (WarehousePolicy's expiry gate, ProductionPolicy's approver rule, the buying policy's approval gate, Customer Service's ServicePolicy). The names are neutral, since Mantle stands without BOSS (the Q2 row below). BOSS's demo organization turns them on; the organizations Mantle's specs use leave them off | The user's call (§5 review). The alternatives were one adoption flag on PartyAcctgPreference, and one PartySetting type |
+| Oct 28, 2026 | Each Mantle rule change is adopted by its own flag, off by default, so plain Mantle and its flow specs keep their behavior (F27). A flag lives with its owner's settings: Accounting's (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards) are audit-logged fields of `PartyAcctgPreference`, inherited as its other fields are; another app's are fields of its effective-dated policy rows (WarehousePolicy's expiry gate, ProductionPolicy's approver rule, the buying policy's approval gate, Customer Service's ServicePolicy). The names are neutral, since Mantle stands without BOSS (the Q2 row below). BOSS's demo organization turns them on; the organizations Mantle's specs use leave them off | The user's call (§5 review). The alternatives were one adoption flag on PartyAcctgPreference, and one PartySetting type. Superseded Oct 30: a flag only where a control breaks Mantle's flow specs (below) |
 | Oct 28, 2026 | A posting-guard failure is split by source (F9, F10). A finance user's direct post (a manual entry, an invoice or payment post, a batch line) is refused with the reason. An automatic post from an operational event (a receipt, issue, shipment or production fact) goes to the error journal with the failed guard named; Accounting's MissingMappings and error-journal list and Today show it, and P11's close refuses a period that still holds one. An auto-poster that finds no account records a failure, not `AtrSuccess` | The user's call (§5 review). Design §15: a missing map blocks and is named, never a silent suspense. The alternatives were always refusing and always the error journal |
 | Oct 28, 2026 | CX-POSTING keeps one Mantle operation record, keyed by `operationKey`, with the operation type, organization, user, time, request hash, preview version, status and links to the records it made or posted (F8). Each posting service checks and writes it in the posting's transaction: a retry with the same hash returns the stored result, and a different request under the same key is refused. Products' `ProductCatalogOperation` stays as built, for its resumable batches | The user's call (§5 review); a fact with an identity of its own under the shared rule. The alternative was an `operationKey` field on each target record. Warehouse, Manufacturing, Purchasing and Customer Service use the same record |
 | Oct 28, 2026 | Lock scopes go by the transaction's source document. Sales: transactions whose invoice the organization issued (sales invoices, customer credits and returns, their adjustments). Purchases: those whose invoice it received. Tax: any transaction with an entry on a `GatTax` account, and `AttTaxDue` and `AttTaxInvoice`. All: every transaction, so payments, stock, depreciation and manual entries fall under it only. A hard lock takes no exception, and `TimePeriod.isClosed` still applies | The user's call (§5 review). Odoo's company lock dates, whose sale and purchase dates cover only those journals. The alternatives were an editable map of AcctgTrans types, and payments in the sales and purchase scopes |
@@ -896,6 +913,9 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | Two apps by owner and audience, Billing for customers and Supplier for suppliers, rather than one customer app with Customer Service's Support | The plan's choice: P18 comes before Customer Service, and PASS shares accounts and navigation across a site's apps (design-forum §13.1) |
 | Oct 28, 2026 | Mantle stands without BOSS, and business logic leans to Mantle. mr-mantle has no dependency on mr-boss: no Mantle service, SECA, EECA, script, data file or spec calls `ironstone.*`, reads a BOSS screen, entity or setting, or names a BOSS group; Mantle checks Moqui permissions, which BOSS grants its groups. Logic not specific to one screen goes in Mantle, in the package of its records, and an `ironstone.accounting` service keeps the capability check, a screen's reads, shapes and saved views, the settings forms and the call to Mantle (§2). So Accounting's services move: to `mantle.ledger` the close and locks, journals, setup, period runs, rates, the production cost close, and the asset books beside Products P9's revaluation; to `mantle.account` invoice states, sending, batches, intake, holds and terms (InvoiceServices), settlement, payment states, transfers, deposits and refunds (PaymentServices), statement import and reconciliation (ReconciliationServices), and the new InvoiceMatchServices, PaymentRunServices, CreditServices, CollectionServices and RecurringInvoiceServices; to `mantle.other` tax and budgets; to `mantle.order.ReturnServices` the return settlement; to `mantle.party.SupplierServices` the supplier profile; and the report runs to Mantle's ledger, inventory and sales report files. BOSS keeps AccessServices, HomeServices, DocumentServices, ReportServices' catalog and shapes, and the list reads (`find#BillExceptions`, `find#Runs`, `find#Work` and the like). P1 grants Accounting's groups the new `RECEIVABLE_EDIT`, `PAYABLE_EDIT`, `PAYABLE_IMPORT`, `INVOICE_HOLD`, `INVOICE_HOLD_RELEASE`, `INVOICE_MATCH`, `PAYMENT_EDIT`, `BANK_RECONCILE`, `PAYMENT_RUN_APPROVE`, `FISCAL_CLOSE`, `CREDIT_HOLD_RELEASE`, `CUSTOMER_CREDIT_VIEW`, `TAX_STATEMENT_EDIT`, `BUDGET_EDIT`, `BUDGET_OVERRIDE`, `RETURN_CREDIT_APPROVE`, `PRODUCTION_COST_POST`, `SUPPLIER_TERMS_EDIT` and `ACCOUNTING_ADMIN`, with Mantle's `INVOICE_APPROVE` and `FISCAL_REOPEN` and Products' `ACCOUNTING_VIEW`, `ACCOUNTING_GL_POST` and `PRODUCT_COST_VIEW`, and `RECEIVABLE_EDIT` to `BOSS_PROJECT_MANAGER` for Projects' Billing; none gets `GL_POST_CLOSED` | The user's call (plan review Q2): a hard rule for every app, in impl-drawers-commons §4. It replaces §2's guarded `ironstone.accounting` adapters. The owner designs' names follow in the design sweep |
 | Oct 28, 2026 | Revaluation changes forward cost (AC-07, built by Products P9; used in P13). `mantle.ledger.AssetBookServices.post#Revaluation`, a new Mantle service behind its own flag (`PartyAcctgPreference.inventoryRevaluationEnabled`), off by default and tested in both states, sets `Asset.acquireCost` on the on-hand assets from the effective date, without reposting history, splitting a partly issued asset. It posts one AcctgTrans for on-hand × delta, with asset links, against the seeded offset type `GatInventoryRevaluation`, which P3's PostingDefaults maps. It refuses negative on-hand, a date before the product's last posted movement and a future date, and never calls `update#ProductAcquireCost`. Later issues then post at the new cost, and P13's valuation and inventory account agree after a revaluation | The user's call (plan review Q7), as ERPNext and Odoo do. It replaces "value only", which stranded the amount in the inventory account; design-accounting's AC-07 follows in the design sweep |
+| Oct 30, 2026 | P4–P5 are rebased on Mantle's services, and what they built beside them is deleted: gateway actions through the `*#SinglePayment` services, refunds through `create#RefundPayment`, applications through the `apply#*` services, state changes through `update#Payment`, a transfer as one payment that `post#Payment` posts, and invoice print, email, statements and credit memos through Mantle's services and templates (R2; F115) | The user's call (R2). The alternative was correcting the copies in place |
+| Oct 30, 2026 | The adoption flags are retired: a new control is the one behavior (§2). Retired: `invoiceHoldGuardEnabled` (P6 builds the hold), `paymentGatewayWorkflowEnabled`, `settlementApplicationGuardEnabled` and `paymentAutoApplicationEnabled`. `postingGuardEnabled` stays, off by default, and BOSS's demo organization turns it on: it gates the posting guard and the invoice and payment `MAPPING_MISSING` refusal, because turning them on breaks Mantle's OrderToCash, ProcureToPay, ReturnToResponse, InvoicePaymentMisc and Payroll flow specs (their demo account assignments, and the error journal those flows post to). An invoice's book day and drafter, the settlement rules, and the invoice period and posted-state refusals hold whatever it says. P2's `requiredLedgerDimensionsEnabled` and `forwardIssuanceRepostEnabled` stay as P2 built them; R2 did not reexamine them. `singleCurrencyDocumentsOnly` (D18) and `invoiceApprovalRequired` are the organization's settings, not a switch between old and new code. D2's, D3's and D11's rule changes, which change what Mantle's flow specs assert (F27), get flags when built | The user's call (R2). It supersedes the Oct 28 flag row |
+| Oct 30, 2026 | No screenshot specs in any component; a walk asserts what a page shows. Service implementations are inline XML Actions, with JavaScript modules only for logic XML Actions do not express well (docs/dev/Practices-App-Dev.md) | The user's call (R2) |
 
 ## 5. Open questions
 
@@ -908,7 +928,9 @@ The design's other §20 items are `later` there and in §7.
 ## 6. Findings
 
 Design assumptions found wrong or unstated in the code, with the resolution. Where a resolution changes the
-design, it is written there too.
+design, it is written there too. R2 deleted much of what P4–P5 built: where a resolution of F78–F112 describes
+that code (the archive, Drive and source guards, the legacy fence, the gateway attempts and reservations, the
+adoption flags), F115–F126 and R2 say what stands.
 
 | # | Finding | Resolution |
 | --- | --- | --- |
@@ -985,6 +1007,59 @@ design, it is written there too.
 | F68 | Review: a widget that fails renders its error into the output, not `errorMessages`, so the status-only Accounting specs passed broken pages; negative access helpers counted any error, including validation errors, as a refusal; a "reader sees no New batch" check named a button that did not exist | Specs check rendered text and render errors, pair negative cases with positive ones, and check controls present for the users who have them |
 | F69 | Review: the screens copied a 12-parameter block and 7-parameter responses, faked one page with about 60 hand-set page fields, duplicated invoice/bill/payment screens and PostingDefaults' Add and Edit forms, and loaded `Accounting.js` to format dates | `template/AccountingParts.xml` and `AccountingDocuments.xml`; services page their lists and return display text (`AccountingPolicy.display`), party and status names |
 | F70 | Review: the BOSS Accounting scripts and specs used Prettier's defaults rather than the documented style, and the screens a different XML formatter and a one-line license header | Reformatted; `.prettierrc.json` at the mr-moqui root; full headers restored |
+| F71 | P4: the installed generic `ItemSales` mapping points to a non-postable summary account; using it in the finalized demo caused the whole demo data file to roll back | Demo and consulting walks use the valid `ItemTimeEntry` mapping. P19 readiness must identify non-postable mappings explicitly; no global chart remapping is assumed |
+| F72 | P4: legacy customer credits reverse the parties, which made them appear payable and selected purchase-side expense accounts | Native guarded credits retain their financial side and original source account allocations; common lists, links and posting lock scopes use that side |
+| F73 | P4: an invoice timestamp near midnight displayed as different days to its creator and approver, changing the typed lock day | New invoices capture an audited SQL DATE `accountingDate` from the creator's chosen day. Adopted original postings persist that day; locks, summaries, rebuilds, unpost/repost, trial balance, ledger and issued output agree. A later effective reversal uses its own day. Existing posted legacy rows remain undated and retain their original timestamp semantics |
+| F74 | P4: QVT prepares form metadata even when a record's section is hidden; a null invoice context still dereferenced its currency | Detail and shared contexts normalize safe empty maps after computing record availability; unavailable records are covered in QVT and TUI |
+| F75 | P4 review: the design names invoice budget links, but this Mantle checkout has no InvoiceItemBudget entity or invoice-line budget keys; PaymentBudgetAllocation links payments only | Invoice Budget details reports unavailable evidence. P15 supplies the invoice commitment model; no fictitious link or financial writer is introduced in P4 |
+| F76 | P4 visual review: EntityAuditLog stores new SQL DATE accountingDate changes as epoch text, which the generic invoice History values display without formatting | P21 output finishing formats typed audit date values and status/user labels; source audit evidence remains unchanged |
+| F77 | P4 visual review: an unusually long invoice ID makes the 390px HTML print slightly wider than its viewport, and its Description heading can wrap mid-word | P21 output finishing refines narrow-screen print wrapping; the exported PDF and actual monetary values remain correct |
+| F78 | P4 review: generic Files removal and resource-only version replacement could mutate an issued archive even when its InvoiceContent row was guarded | Durable PDFs/supporting copies live outside mutable record folders. Native content invariants protect identity/removal and equivalent DbResource aliases before writes; generic Files respects immutable rows and native per-side edit authority |
+| F79 | P4 final visual review: Quasar Files list captions and neutral controls inherited light-mode colors in dark mode; a nested conditional spec branch also had bare expressions that did not assert | Shared RecordFiles passes the active theme to its list/item hosts. Actual issued rows pass unchanged text/control contrast thresholds after theme transitions finish. Client isolation branches now explicitly assert their permission and omission checks |
+| F80 | P4 repeated walk: legacy sole-store fallback advances an invoice from Finalized to Sent asynchronously after its Send form reads the timestamp | Send submits the already-supported exact financial source fingerprint and selected attachment versions, without its redundant timestamp. Native eligibility, organization and revision checks remain strict; header/item/state writes retain timestamps. Regressions prove status-only advancement succeeds and changed financial fields refuse before durable output or mail |
+| F81 | P5a: actor-formatted legacy document dates could allow October settlement against an undated source or target actually posted in November UTC | `AccountingPolicy.postingDay` uses persisted SQL days, otherwise the unchanged UTC ledger timestamp day. Preview evidence and locked confirmation include every original source/target posting day, including adjustment-only targets; earlier settlement refuses. Undated reversals cannot borrow an invoice's earlier SQL day |
+| F82 | P5a: legacy/raw application writers can race a reviewed settlement or skip period checks when no extra application GL is needed | Separately adopted `settlementApplicationGuardEnabled` serializes organization/documents/applications/original postings before all application writers, checks balances and dates, and captures currency/day on new adopted rows. Existing history is not backfilled; default-off fields and audit behavior are covered independently |
+| F83 | P5a: restoring only part of a receipt already posted directly to its invoice changes open items without a matching GL movement; overstated imported payment amounts can also exceed their actual backing | Direct restoration requires the entire available balance to its actual original invoice with consistent history. Shared signed control proof checks actual original cash against its document; genuinely unapplied cash still permits partial applications. Native and generic writers share the history/control rules |
+| F84 | P5a: unpost/reverse/move and raw header/entry writes could invalidate already consumed source backing; a raw delete could disguise a positive stored application with an unsaved zero | Applied sources retain their original postings until unapplied. Raw reversal construction is guarded too. Application identity/dates are immutable, zero reactivation refuses, and deletion locks/rechecks the actual stored row, ignoring unpersisted financial changes |
+| F85 | P5a: cached invoice totals and an arbitrary first-200 cutoff lose eligible open items; PostgreSQL does not accept a numeric currency scale in `ROUND` | SQL views aggregate rounded invoice lines and both application sides before filtering/counting/paging. The currency scale is an integer. Four typed lists page independently; selected revisions stay available outside a search page, without silently refreshing reviewed versions |
+| F86 | P5a full gates: its original fixture prefix collided with P4; legacy ClientBilling cleanup encountered the newly inherited adoption flag and left Projects data behind; a nested role helper reset callers to system administration | P5 fixture identities are distinct. The legacy projection spec explicitly selects default-off behavior and restores the exact inherited flag in cleanup's `finally`. Nested role helpers restore their calling identity; Treasury's valid negative and AR positive use the same payload |
+| F87 | P5a full gate exposed an existing variant-policy timing race: its default effective time was compared against a second, later clock read | `CatalogSettings.storeVariantSettings` captures the clock once and keeps default revisions strictly ordered, matching the catalog-policy writer. Explicit backdated input still refuses without changing policy history |
+| F88 | P5a browser correction: saved error parameters for a failed preview form overrode its current computed draft after an adjustment account was corrected; the row and URL were current while both form field sets were stale | The computed-only preview action uses the existing hidden-form POST link with current `workbench.editParameters`. The browser regression inspects the actual submitted hidden draft before review and application; no global editable-form watcher, forced Vue state or reload bypass is used |
+| F89 | P5a browser navigation: Back to selection inherited the current preview ID from the destination's declared parameters and rendered the old review again | Selection links explicitly clear retained preview/operation IDs, and Clear selection also clears its draft. Original selected revisions, amounts, account/reason, filters and fixed dates remain retained |
+| F90 | P5b1: joined payment views do not retain the authoritative Payment stamp, and cached totals can miss actual applications | Native revisions use the base Payment and authoritative application/posting/method evidence; filtered reads use narrow scoped projections |
+| F91 | P5b1: a direct legacy application can share its header invoice with unrelated receipts; reviewed cash corrections still meet the manual-posting gate | Cash-source dependencies retain their own applications. Only exact reviewed state/unapply controllers join the existing PostingGuard validation; an identical Treasury actor's unreviewed Ledger reversal still refuses |
+| F92 | P5b1: content metadata alone cannot make issued bytes immutable | Native guards protect DbResource identity, files/history, blob metadata/chunks and immutable output/content links; ordinary supporting files remain mutable |
+| F93 | P5b1: drive/search/public tokens and another record's content pointer could expose a private issued archive | Native URI access guards and canonical cross-record filtering protect each path; generic resource search gains optional subtree exclusions before search limits, preserving callers that omit them |
+| F94 | P5b1: first archive references and deduplicated blobs can be uncommitted when a raw resource writer checks them | Issuance and existing ancestor/blob/chunk mutation share stable mantle/content locks and fresh reference reads. New unpublished upload identities avoid the suspended-parent ForceNew deadlock. Real races pass; removing the blob lock alone reproduces byte/metadata corruption |
+| F95 | P5b1: a commit worker has no interactive actor context, and late publication could reopen a decided validation request | Durable event-bound publication retains the actor, checks each recipient independently, uses stable delivery identities and retires obsolete/decided requests under lock |
+| F96 | P5b1: demo-data loading can issue payment documents before normal host PDF installation | The host installs the renderer during factory data loading and drains workers before its guard ends. Host lint/build pass; two host test failures reproduce with the two-line change removed |
+| F97 | P5b1 browser: self-dependent dropdowns clear their selected party/method/evidence/application value | Remove all 20 self-dependencies, retain 16 real external dependencies and pass form-scoped initial selections. Browser checks inspect actual selected revision tokens before submission |
+| F98 | P5b1 rendered-output proof: an isolated app root cannot resolve mounted shared links; Treasury correctly omits ledger IDs | Real admin/Treasury-owned operations render through the actual mount at the correct standalone level in QVT/TUI/HTML, asserting enabled file identities and separately authorized ledger presence/omission |
+| F99 | P5b1 screenshot review: full-page Chromium capture can hide a 15px scrollbar after choosing its clip width and crop the light document's right edge | Final-theme outer/inner/root bounds and viewport companion captures prove actual check fit. Generic full-page capture correction remains tooling work; no further product-layout change is inferred from the cropped artifact |
+| F100 | P5b1 browser: a successful draft edit from 21 to 22 left a previous failed delivery form's sourceVersion in session restoration; a new form instance received that old initial value | After successful native store only, the app consumes the prior saved failed-submit values through the existing errorParameters getter. Same-revision reference/reason/evidence remains retained, failed saves stay untouched, own-edit review receives its new revision, and external stale confirmation still refuses |
+| F101 | P5b2 legacy provider entry could race first native adoption, including a manual instrument with an explicit configured provider; an outer rollback could otherwise erase the only evidence of old I/O | Durable per-payment admission fences commit before old provider I/O and serialize first adoption. Shipped and configured legacy leaves, wrappers, refund links, order/invoice loops and polling reload stored identity and exclude managed records. Real competing calls, native adoption and caller rollback are covered |
+| F102 | P5b2 interstage reads could retain a caller's repeatable-read snapshot, and interrupted lookup replay omitted its claimed attempt version | Orchestrator-only fresh attempt reads join separate committed stages; lookup claim results retain the exact version and summary. Actual outer rollback and concurrent pre-finish lookup replay prove durable result identities |
+| F103 | P5b2 credential preparation could validate an ordinary old PaymentMethod read while projecting newer locked bank/card data | Private preparation projects only freshly locked method/subtype rows, compares the hash of those same values to the retained revision, and commits before adapter I/O. Safe adapters explicitly guarantee consumption of this by-value snapshot; lookup retains original identity independently of rotated credentials |
+| F104 | P5b2 source checks could miss target-only payments, accept a real APP id with altered links/currency, or inspect only a candidate's replacement source | Common guards inspect stored and candidate payment identities under stable locks, validate all APP links/currency, and preserve positive application identity with flags off. Exact negative proofs include a real initially unmanaged AP-header/adoption race. The held manual-source reparent proof is required before P5b2b enables cash holds |
+| F105 | P5b2 full-suite verification exposed legacy fixture cleanup/corruption using raw financial EntityValue/deleteAll writes without a transaction; guarded source locks refused and ClientBilling cleanup left later Projects fixtures behind | Financial fixture mutations use the existing transactional generic services, retaining their original assertions and default-off business behavior. Full BOSS rerun passes 1,161/0/5; standalone Mantle passes 1,139 with only the same four reproduced baseline failures and 17 skips |
+| F106 | P5b2 visual review found the phone gateway table scrolling 560 px inside a 359 px container, with the actual provider amount beyond the visible right edge | Mobile identity links wrap, the two columns retain actual amount/currency and separate compact provider/local outcomes, and full reference/code details remain on the exact selected authorized attempt. Per-row geometry checks include amounts and chip content, beyond document-width checks. Gateway reviews also omit the empty generic state-effects grid; real B1 effects still render |
+| F107 | P5b2 browser retries exposed data-dependent clicks on wrapped inline attempt IDs: the locator's union-rectangle center can fall between actual text fragments and hit the surrounding form-group | Attempt links have a rectangular block target at every width; tests verify the actual single rectangle and center hit before the unchanged normal click. Generic locator hit-point selection remains test-tooling work; no forced clicks or native financial identity changes are used |
+| F108–F112 | P5b2b: legacy refunds without a native backing record, banking rows read apart from the locked ones, the legacy fence's admission for first adoption, the refund's retained posting policy, refund draft claims | Resolved in P5's own code, which R2 deleted; they no longer apply |
+| F113 | P5b3: the transit account 258300000 had no default organization assignment; the fee account 550000000 is cost of sales | The assignment is installed with the PtInternalTransfer mappings, and the demo adds only what is missing. A transfer fee needs an expense account (`find#InternalTransferFeeAccounts`) |
+| F114 | P5b3: transfers showed as unapplied trade cash | `find#Payments`' Unapplied queue and the trade settlement scope leave out PtInternalTransfer, before counting and paging |
+
+| F115 | R2: P4–P5 rebuilt beside Mantle what Mantle had, ported from Moqui Java and used in production: the gateway path (`*#SinglePayment` and the gateway interfaces, with an adapter interface only a test double implemented), refunds (`create#RefundPayment`), the `apply#*` services, `post#Payment`, which posts both sides of a payment from the organization to itself, `get#InvoicePrintInfo`, `EmailTemplate`, `get#ReceivableStatementInfo`, `create#InvoiceCreditMemo`, the stored invoice totals and NotificationMessage | §2 "Use Mantle first". P4–P5 rebased on those services and the copies deleted (§4, R2) |
+| F116 | R2: payment state changes wrote `statusId` directly, so the Payment SECAs did not run: `PaymentGlPost`, the cancelled-payment cleanup, `clear#PaymentTrans` and the FinancialAccountTrans SECAs | State changes go through `update#Payment` along `StatusFlowTransition`, and unapplication through `unapply#PaymentApplication`, whose SECA reverses the posting |
+| F117 | R2: authorization from caller names (`getStackNameString()`, 19 sites in 13 modules), held together by EECAs and SECAs on hot paths: every Payment, PaymentApplication, AcctgTrans, AcctgTransEntry, DbResource and ContentBlob write, and a pre-service SECA on every service (`service=".*"`) | `PostingGuard` decides an automatic posting from the transaction's source fields and asks `ACCOUNTING_GL_POST` of a manual or reversal posting unless its caller passes `reviewed`; the rules the EECAs enforced are in `post#AcctgTrans` and the apply and unapply services. The guard EECAs and SECAs are gone; `IssuedInvoiceContentImmutable` remains |
+| F118 | R2: test entities, services and SECAs were loaded in production; one SECA hooked every `post#AcctgTrans` and ran a script from `test/` | Deleted. The test gateway is in `PaymentTestServices.xml` (`alwaysPending#*`, `alwaysDecline#PaymentRelease`, `alwaysDecline#PaymentRefund`); a spec makes its own gateway configuration and faults |
+| F119 | R2: adoption flags defaulting to N gave each rule two code paths, and most specs ran the old one | Retired, but `postingGuardEnabled` (§4) |
+| F120 | R2: nearly every service was a one-line `<script>` into a module of 1,000 to 1,600 lines; helpers were copied (`same` six times, `json` four, line totals five, lock checks four), and one copy of `partyNames` showed parties another user keeps private; parameter interfaces were copied unions | Services are inline XML Actions, with modules for involved logic. `EntityLib.js` in Mantle and `AccountingLib.js` in BOSS hold the shared helpers; `partyNames` leaves out private parties; each service declares its own parameters |
+| F121 | R2: transfer method dates compared as ISO strings; a posting or application without a calendar day took its timestamp's UTC day while its invoice took the user's day, so an evening application in the Americas was refused as before its own invoice | `EntityLib.bookDay`: the calendar day, else the timestamp's day in the user's zone, for posting and application days, the fiscal period lookup, `check#NextFiscalTimePeriods` and the summary recalculation (replaces F81's UTC day). The transfer module that compared ISO strings is gone |
+| F122 | R2: settlement adjustments were `ItemTimeEntry` items; the workbench carried its draft, up to 256 KB, in each URL; Mantle accepted HTML built by the screen as the issued invoice; a payment was read twice per page | Adjustments are discount or write-off credit memos (`create#InvoiceCreditMemo`), applied to their invoice; the draft is kept behind an id (`store#`/`get#SettlementDraft`); Mantle renders the issued invoice from its template (`printHtml` removed) |
+| F123 | R2: unapplying a payment posted straight to its invoice failed when it had several applications; `store#Account` called `set#GlAccountFlags` with the wrong parameter | Both fixed (mr-mantle `90573cb0`, `c820c444`) |
+| F124 | R2: the screenshot specs saved images nothing compared, and their checks repeated the qvt and tui render specs; P4–P5 added about 17,000 lines of Mantle specs in 57 files, with busy-waiting test doubles | Screenshot specs removed in every component; each walk keeps what needs the live client; Mantle's Accounting specs went from 19,100 to 7,681 lines |
+| F125 | R2: PaymentDetail was 2,733 lines (four screens in one, five copies of one dialog); 789 lines of P4–P5 XML and 357 of P0–P3 ran over 130 characters; tabs wrapped a shared template; the choices transition had four copies; labels said "reviewed" | Receivables tabs own their content, one choices transition, P0–P3 and receivables XML wrapped at 130 (mr-boss `f0cca60`). PaymentDetail a header screen with tabs that own their content, reviews as their own screens, one draft form, state dialog and gateway dialog (mr-boss `5225cc7`) |
+| F126 | R2: a payment's version was a fingerprint built with copied exclude blocks, and Payment carried copies of what other records hold (`financeOrganizationPartyId`, `financeDirection`, `accountingDate`, `settlementAccountingDate`, `lifecycleManaged`) | A payment's version is its `lastUpdatedStamp`; the organization comes from its OrgInternal party and the book day is `effectiveDate` (mr-mantle `304ab31e`) |
 
 ## 7. Later
 
@@ -1032,7 +1107,7 @@ Designed, not in this build:
 | Batch/activation | P8 (supplier payment), P9 (statement row), P10 (notice recipient), P12 (asset depreciation), P19 (activation) |
 | Access | `AccountingAccess` in every phase; P18 (customer token); P21 (the full walk) |
 
-- **Screenshots** through the BOSS client spec of §2, light and dark.
+- **Walks** through the BOSS client specs of §2, asserting what each page shows.
 
 ### P0 verification — Oct 29, 2026
 
@@ -1097,3 +1172,165 @@ runtime excludes BOSS demo adoption settings; BOSS explicitly opts ORG_ZIZI_CORP
 No ADMIN exemption, closed-period permission or unrestricted rewrite authorization was added. Full standalone
 Mantle retains four pre-existing failures reproduced against archived commit b48e696c: InboxThreads, MantleSearch,
 WorkTimeEntries and WorkTimesheets. They are unrelated to the new finance controls.
+
+### Remaining-phase baseline
+
+Before P4 changes, the clean component heads were frozen and checked with the existing develop binary and Chromium
+on disposable databases. BOSS at `25478b4` reproduced 1,065 passed, zero failed and five skipped. Standalone Mantle at
+`f23f8de6` reproduced 844 passed, 17 skipped and exactly the four failures above. The standalone runtime excludes
+BOSS data and adoption settings. Subsequent phase results are compared to these baselines.
+
+### P4 build — Oct 29, 2026
+
+Built:
+- `mantle.account.InvoiceServices.change#InvoiceState`, the one invoice state guard over Mantle's status flow: status,
+  period, posting, approval and the single-currency refusal (D18), by side permission. Draft edits through
+  `store#InvoiceDraft`, `store#InvoiceDraftItem` and `delete#InvoiceDraftItem`; `reverse#DraftInvoice`. Projects'
+  `update#InvoiceStatus` calls it.
+- `send#Invoice` for any invoice, with or without a store, which freezes the PDF as the invoice's content and records
+  the outcome per recipient; `InvoiceFinalizedSendEmail` skips a version it sent. `process#InvoiceBatch`.
+- Linked credit memos applied to their original; approved-time billing for customers and workers; statements;
+  Customer360's Accounting context with masked finance details (`CustomerFinanceServices`).
+- Screens: Invoices, InvoiceDetail (the shared screen with the receivables context and its tabs), BillingQueue,
+  InvoiceBatch, Statements and Customer360.
+
+For later phases:
+- An invoice records its book day (`Invoice.accountingDate`) and its postings use it (F73; R2 for the user's zone).
+- Invoice budget evidence is unavailable until P15 adds commitments (F75).
+- The generic `ItemSales` mapping points to a non-postable account; P19's readiness names such mappings (F71).
+
+Verified then: `./moq test mr-boss` 1,110 passed, 5 skipped; standalone `./moq test mr-mantle` 903 passed, with the
+four baseline failures and 17 skipped.
+
+Commits: mr-mantle `876732f6`, `93e8fed3`; mr-boss `b933118`, `907a816`, `5b1b900`. R2 replaced its delivery,
+recipient and statement snapshot entities, its script-built HTML and its own credit memo service.
+
+### P5 build — Oct 29–30, 2026
+
+Built in slices:
+- P5a, settlement: `find#OpenItems`, `preview#Settlement` and `apply#Settlement`, one application set per party and
+  currency under an operation key; automatic application (`preview#PaymentAutoApplication`, `autoApply#Payment`);
+  ReceivablesWorkbench.
+- P5b1, payments: `find#Payments`, `get#PaymentFinanceDetail`, drafts, reviewed state changes (validate, deliver,
+  confirm, cancel, void) and unapplication, issued receipts, details and checks, PaymentValidation notices; Payments,
+  PaymentDetail with seven tabs, and PaymentPrint.
+- P5b2, gateway actions (authorize, capture, release, lookup), manual refunds and gateway refunds; GatewayTransactions.
+- P5b3, internal transfers with a fee.
+
+For later phases:
+- A settlement is dated on or after the postings of its sources and targets. A discount or write-off goes to an
+  explicit account (F23).
+- A retry with the same operation key (at most 40 characters) answers the first result; another request under the key
+  is refused.
+- A transfer posts through the transit account 258300000, and its fee needs an expense account (F113). Transfers are
+  not trade cash (F114).
+- Due schedules and term discounts are P8's, historical Aging P10's.
+
+Verified then: the last full runs were at P5b2a, `./moq test mr-boss` 1,162 passed, 5 skipped, and standalone
+`./moq test mr-mantle` 1,139 passed with the four baseline failures and 17 skipped. At the user's request the refund
+and transfer slices ran only their own specs.
+
+Commits: mr-mantle `a79012de`, `8f8c06ad` (F87), `ea31a0aa`, `5c24c2fa`, `501769d0`, `cb9cc35d`, `128f6ca0`,
+`9a13f26c`; mr-boss `737c439`, `acc99ca`, `59a4060`, `a8f8a38`, `4b92e2c`, `64f4585`, `bb8a421`, `d24147c`, `848ff21`,
+`cadf060`, `49f3001`, `67ded21`. P5 built its gateway path, refunds, transfers, settlement guards and payment outputs
+beside Mantle's services, with their own entities, guards and adoption flags; R2 rebuilt them on Mantle's services.
+
+### R2 — Review of P4–P5 — Oct 30, 2026
+
+A review of P4–P5 against docs/dev/Practices-App-Dev.md found that they rebuilt beside Mantle much of what Mantle
+already had, and held the copies together with caller-name checks and guards on hot paths. With the user, P4–P5 were
+rebased on Mantle's services and the copies deleted. The practices document gained "Use Mantle before adding to it",
+XML Actions first and no screenshot specs.
+
+**Findings** (F115–F126 in §6):
+- Parallel stacks beside Mantle: a second gateway path (attempt, instruction, reservation and preview entities, and an
+  adapter interface only a test double implemented) behind a "legacy fence" with a pre-service SECA on every service;
+  transfers as two raw Payments and hand-built AcctgTrans; refunds beside `create#RefundPayment`; settlement writes
+  beside the `apply#*` services; issued outputs, archive and Drive guards with EECAs on DbResource and ContentBlob;
+  a notification outbox beside NotificationMessage; invoice print, email and statements as HTML built by string
+  concatenation; a linked credit memo beside `create#InvoiceCreditMemo`; totals recomputed beside the stored ones.
+- Payment state changes as raw `statusId` writes, which skipped the Payment SECAs.
+- Authorization from caller names (`getStackNameString()`, 19 sites in 13 modules), and EECAs and SECAs on hot paths.
+- Test entities, services and SECAs loaded in production; one hooked every `post#AcctgTrans`.
+- One-line `<script>` services into modules of 1,000 to 1,600 lines; copied helpers, one of which showed private
+  parties' names; copied-union parameter interfaces; adoption flags giving each rule two code paths.
+- Bugs: settlement adjustments as `ItemTimeEntry` items; transfer method dates compared as ISO strings; references
+  cut silently; screen-built HTML accepted as the issued invoice; `isInGroup` in a service; settlement drafts of up to
+  256 KB in URLs; two payment reads per page.
+- Screens: PaymentDetail at 2,733 lines; 789 lines of P4–P5 XML and 357 of P0–P3 over 130 characters; tabs that
+  wrapped a template; four copies of the choices transition; "reviewed" in labels.
+- Tests: screenshot specs that nothing compared; about 17,000 lines of P4–P5 Mantle specs in 57 files; busy-waiting
+  test doubles.
+
+**Decisions** (§4):
+1. Rebase P4–P5 on Mantle's services and delete the parallel stacks.
+2. Retire the adoption flags. `postingGuardEnabled` stays, because Mantle's flow specs need the guard off.
+3. Remove the screenshot specs in every component. Service implementations are inline XML Actions; JavaScript only
+   for involved logic.
+
+mr-moqui: `ab8e4cf4` (`disable-authz` on the XML Actions entity find and write actions, a Parity-Diffs row),
+`95e13d1f` (Practices-App-Dev), `ad6658ea` (screenshot specs removed, with mr-boss `8b7c7e2`, mr-pass `b069c42` and
+mr-marble `b65b343`; GallerySmoke, ProductsPhone and ProductsPricePrint keep their real checks).
+
+**Rework by area:**
+
+| Area | What changed | mr-mantle | mr-boss |
+| --- | --- | --- | --- |
+| Walks | AccountingShots and AccountingGatewayShots removed; each Accounting walk keeps one live-client pass (67 s of feature time, from 369 s) | — | `8cf8198`, `8b7c7e2` |
+| Pass-throughs | The four AssetBook pass-throughs and the unused `validate#Template` removed; InventoryValuation calls Mantle | — | `b245769` |
+| Ledger P1–P3 | Journal attachments in XML Actions; seven ledger modules formatted (2,160 to 1,762 lines); LedgerConfiguration and CloseControls deleted and the simple operations of the others inline XML Actions (AccountingRecords 233 to 117 lines, AccountingSetup 734 to 474, Journals 849 to 746, Currencies 198 to 94); each service declares its own parameters | `301f37ad`, `c820c444` | — |
+| Payment lifecycle | State changes through `update#Payment` along StatusFlowTransition and unapplication through `unapply#PaymentApplication`, so the Payment SECAs run; `revert#PaymentPost` and `revert#PaymentApplicationPost` take a `reversalDate`; issued documents are PaymentContent from a template; validation notices are NotificationMessages; ten guard and EECA files deleted | `95d61343` | `320bbb2` |
+| Receivables | Print and statement templates over `get#InvoicePrintInfo` and `get#ReceivableStatementInfo`; `send#Invoice` through an EmailTemplate with the PDF as InvoiceContent, and a caller's `printLocation`; `create#InvoiceCreditMemo` links its credit; stored totals; customer finance on existing services; InvoiceDelivery.js, Statements.js and BillingWorkflow.js deleted; tabs own their content and one choices transition; P0–P3 and receivables XML wrapped at 130 | `216fbe99`, `5e32be39` | `de517d6`, `f0cca60` |
+| Settlement and transfers | The `apply#*` services take `appliedDate` and `accountingDate` and check every caller; adjustments are discount or write-off credit memos; PaymentApplicationGuard, SourcePostingGuard and their EECAs folded into PostingGuard; the workbench draft behind an id; a transfer is one PtInternalTransfer payment and a fee disbursement; the transfer modules, entities and test SECA deleted | `90573cb0` | `a43b8c1`, `9dfe2f8` |
+| Gateway and refunds | `operationKey` on the `*#SinglePayment` services; refunds through `create#RefundPayment` and `refund#SinglePayment`; the test gateway in PaymentTestServices; eleven modules, the legacy fence and 27 spec files (6,824 lines) deleted for two specs | `9355c3ae` | `794d7f3` |
+| Consolidation | One PaymentReview entity for every review and the settlement draft; Payment's copied fields removed; EntityLib.js; AccountingPolicy refuses with reason codes; PostingGuard decides from source fields; `get#RecordContentPolicy`; AccountingLib.js and declared screen services in BOSS | `304ab31e` | `52ce9bf` |
+| Book days | `EntityLib.bookDay` in the user's zone for postings, applications and periods; `create#Invoice` always records its book day and drafter | `55b87818` | — |
+| Payment screens | PaymentDetail a header screen (2,262 to 193 lines) whose tabs own their content; reviews as their own screens (PaymentDetail/Review, Payments/TransferReview, Receivables/SettlementReview) with one confirm and no "I reviewed" checkbox; one draft form, state dialog and gateway dialog in `template/AccountingPayments.xml`; Payments one list (722 to 237 lines), the workbench without its review mode (1,308 to 600); the walks on the new screens, the client suite's server running only fixture specs | `c1821532` | `5225cc7`, `2e66ac4` |
+
+R's first item left for later is done: `AccountingPolicy.js` refuses with reason codes.
+
+**Behavior changes and cuts:**
+- Statements show today's open items with aging as of the statement date; there is no opening balance and no stored
+  snapshot.
+- Unapplying no longer clears `Invoice.paidDate`; Mantle's `unapply#PaymentApplication` does not.
+- `apply#InvoicePayment`, `apply#PaymentToPayment` and `apply#InvoiceToInvoice` refuse for every caller: a date before
+  a document's posting, an amount finer than the currency, an internal transfer, a gateway authorization or held
+  gateway cash, and the application that funds a refund.
+- Gateway: no partial capture; a prepared refund cannot be edited and reopened; no evidence files on gateway or refund
+  reviews; no ledger preview on refund reviews.
+- Transfers: the fee is paid to an outside party, by default the from bank's party; the demo's cash method has none, so
+  the form names who is paid. The fee payment points at its transfer (`Payment.feeForPaymentId`).
+- Settlement adjustment accounts are found by date over the organization chain, not by the nearest assignment.
+- Retired flags: `invoiceHoldGuardEnabled`, `paymentGatewayWorkflowEnabled`, `settlementApplicationGuardEnabled` and
+  `paymentAutoApplicationEnabled`. `postingGuardEnabled` now gates only the posting guard and the invoice and payment
+  `MAPPING_MISSING` refusal (§4).
+
+**Lines** in the Accounting files: before P4 (mr-mantle `876732f6^`, mr-boss `b933118^`), at the end of P5 (the merges
+`de6e6f2d` and `0283176`) and now (HEAD):
+
+| Repository | Files | Before P4 | End of P5 | Now |
+| --- | --- | --- | --- | --- |
+| mr-mantle | JavaScript, `service/mantle/{account,ledger}/*.js` | 4,814 | 20,064 | 8,216 |
+| mr-mantle | Service XML, those directories and the Accounting, Payment and Invoice SECA files | 16,212 | 18,911 | 22,389 |
+| mr-mantle | Entity and EECA XML, the Accounting, Payment, Invoice, Settlement and AssetBook files | 4,174 | 5,594 | 4,569 |
+| mr-mantle | Specs and fixtures, `test/Accounting*.js` | 1,882 | 19,100 | 7,681 |
+| mr-boss | JavaScript, `service/ironstone/accounting/*.js` and Projects' BillingWorkflow.js | 622 | 4,429 | 3,708 |
+| mr-boss | Service XML, `service/ironstone/accounting/*.xml` | 249 | 667 | 1,145 |
+| mr-boss | Screen XML, `screen/Accounting*`, Shared Customer360 and InvoiceDetail, `template/Accounting*.xml` | 5,577 | 15,777 | 14,920 |
+| mr-boss | Specs, `test/Accounting*.js` and `test/client/Accounting*.js` | 1,445 | 8,992 | 5,329 |
+
+The change from the end of P5 to now includes the P1–P3 rework (mr-mantle `301f37ad` and `c820c444`: JavaScript
+−1,340, service XML +1,391, specs +316) and the screenshot specs (mr-boss `8cf8198`: specs −2,178). Service XML grew
+because services moved from script modules into XML Actions.
+
+**Verification.** Before the rework, with a Chromium for PDF: `./moq test mr-boss` 1,187 passed, 0 failed, 5 skipped;
+standalone `./moq test mr-mantle` 1,195 passed and 9 failed, all in guard and archive specs since deleted. Without a
+Chromium for PDF (`pdf_chromium_path`; docs/Run-Deploy.md, docs/dev/Client-Testing.md), every PDF spec fails.
+
+Verification after the rework, Oct 30, 2026, with a Chromium for PDF: `./moq test mr-boss` 1,161 passed, 0 failed, 5
+skipped; standalone `./moq test mr-mantle` 991 passed, 1 failed, 1 skipped. The failure is InboxThreads' search
+operators, one of the four failures recorded before this work, which fails only while the UTC date is ahead of the local
+one. `./moq test-client mr-boss --serve` 39 of 40, the failure ProductsFinish's xlsx download, which this host does not
+build; `example` (GallerySmoke) 22 of 22 and mr-marble 41 of 41. `moqui lint --screens`: 125 flagged sites as before,
+none in Accounting. Mail capture (`mail_capture_sends`) is for the client walks only: with it on, InboxThreads and
+BankOutputFiles fail in the server specs.

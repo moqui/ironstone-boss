@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A customer of the organization (style-guide §3.4 360), mounted in Accounting at Receivables/Customer360: the header with
+    the customer's name, Customer statement and the More menu, its key numbers in each currency (open receivable, overdue,
+    billed this year, last payment), each linking to the invoices, and the tabs, each of which reads the customer itself
+    when the client loads it alone (ironstone.accounting.ReceivableServices.get#CustomerContext). A customer the user may not
+    see is "not available". -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Customer"
+        default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="appRoot"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <subscreens default-item="Contact" always-use-full-path="true"/>
+    <actions>
+        <if condition="organizationPartyId">
+            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+        <set field="invoicesPath" from="sharedLinks['Receivables/Invoices']"/>
+        <set field="invoicesQuery"
+                from="'customerPartyId=' + encodeURIComponent(customerPartyId || '') + '&amp;organizationPartyId='
+                    + encodeURIComponent(organizationPartyId || '')"/>
+    </actions>
+    <widgets>
+        <section name="CustomerOrganizationPrompt" condition="!organizationPartyId">
+            <widgets>
+                <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+                <label text="Choose an organization to see this customer." type="p"/>
+            </widgets>
+        </section>
+        <section name="CustomerMissing" condition="organizationPartyId &amp;&amp; !customerFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Customer not available"/>
+                    <box-body>
+                        <label type="p" text="The customer does not exist, or you may not see it."/>
+                        <link url="${sharedLinks['Receivables/Invoices']}"
+                                text="Back to invoices"
+                                link-type="anchor"
+                                parameter-map="{organizationPartyId:organizationPartyId}"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="CustomerRecord" condition="customerFound">
+            <widgets>
+                <context record-entity="mantle.party.Party"
+                        record-id="${customerPartyId}"
+                        title="${customerDetail.customerName}"/>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <label text="${customerDetail.customerName}" type="h5"/>
+                            <label text="Customer" type="p" style="text-caption m-muted"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-sm m-record-actions">
+                            <link url="${sharedLinks['Receivables/Statements']}"
+                                    text="Customer statement"
+                                    link-type="anchor-button"
+                                    btn-type="primary"
+                                    parameter-map="customerLinkParameters"
+                                    condition="accounting.capabilities.arEdit"/>
+                            <button-menu text="More" icon="more_horiz">
+                                <link url="//Commons/Contacts/ContactDetail"
+                                        text="Maintain contact"
+                                        parameter-map="{partyId:customerPartyId}"
+                                        condition="customerDetail.capabilities.partyEdit"/>
+                                <link url="${sharedLinks['Receivables/Invoices']}"
+                                        text="Customer invoices"
+                                        parameter-map="customerLinkParameters"/>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <label type="p"
+                        style="text-warning"
+                        condition="customerDetail.incomplete"
+                        text="The key numbers are not complete. Open the customer's invoices to narrow the selection."/>
+                <section-iterate name="CustomerKeyNumbers" list="customerDetail.summaryRows" entry="summaryRow">
+                    <widgets>
+                        <dashboard min-width="180">
+                            <number-card title="Open receivable"
+                                    value="${summaryRow.openReceivableText}"
+                                    size="sm"
+                                    link="${invoicesPath}?queue=unpaid&amp;${invoicesQuery}"/>
+                            <number-card title="Overdue"
+                                    value="${summaryRow.overdueText}"
+                                    size="sm"
+                                    link="${invoicesPath}?queue=overdue&amp;${invoicesQuery}"/>
+                            <number-card title="Billed this year"
+                                    value="${summaryRow.billedThisYearText}"
+                                    size="sm"
+                                    link="${invoicesPath}?${invoicesQuery}"/>
+                            <number-card title="Last payment${summaryRow.lastPaymentDateText ? ' · '
+                                        + summaryRow.lastPaymentDateText : ''}"
+                                    value="${summaryRow.lastPaymentText}"
+                                    size="sm"/>
+                        </dashboard>
+                    </widgets>
+                </section-iterate>
+                <subscreens-panel id="AccountingCustomerTabs" type="tab"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

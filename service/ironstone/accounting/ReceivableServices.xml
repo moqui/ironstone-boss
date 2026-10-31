@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="InvoiceContext" allow-remote="false">
+        <description>A receivable for InvoiceDetail (mantle.account.InvoiceServices.get#InvoiceFinanceDetail) with the
+            screen's labels, links, status color and send form values: what may be done, the files that may be attached and
+            the emails sent. Every part is there: an invoice that does not exist or is not visible to the user has
+            recordFound false and empty lists. Refuses a user without the invoice view permission and an organization
+            the user may not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="receivable" type="Map"/>
+            <parameter name="recordFound" type="Boolean"/>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="invoiceHeaderValue" type="Map"/>
+            <parameter name="invoiceSendValue" type="Map"/>
+            <parameter name="invoiceOperationKey" type="String"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('invoiceContext', context)"/>
+            <set field="receivable" from="screenContext.receivable"/>
+            <set field="recordFound" from="screenContext.recordFound"/>
+            <set field="invoiceId" from="screenContext.invoiceId"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="invoiceHeaderValue" from="screenContext.invoiceHeaderValue"/>
+            <set field="invoiceSendValue" from="screenContext.invoiceSendValue"/>
+            <set field="invoiceOperationKey" from="screenContext.invoiceOperationKey"/>
+        </actions>
+    </service>
+    <service verb="find" noun="Invoices" allow-remote="false">
+        <description>A page of the receivables queue (find#Receivables) with the queue tabs, each row with its status color
+            and due day, and with summary the totals of all of them (get#ReceivableSummary).</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="summary" type="String">
+                <description>table or chart: the summary of all the invoices found,
+                by customer and status.</description>
+            </parameter>
+            <parameter name="queue" type="String"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="invoiceTypeEnumId" type="String"/>
+            <parameter name="fromDate" type="Timestamp"/>
+            <parameter name="thruDate" type="Timestamp"/>
+            <parameter name="dueFromDate" type="Timestamp"/>
+            <parameter name="dueThruDate" type="Timestamp"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="summaryGroups" type="List"/>
+            <parameter name="summaryErrors" type="List"/>
+            <parameter name="summaryComplete" type="Boolean"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="queue" type="String"/>
+            <parameter name="queueTabs" type="List"/>
+            <parameter name="invoiceListCapabilities" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('invoices', context)"/>
+            <set field="summaryGroups" from="screenContext.summaryGroups"/>
+            <set field="summaryErrors" from="screenContext.summaryErrors"/>
+            <set field="summaryComplete" from="screenContext.summaryComplete"/>
+            <set field="records" from="screenContext.records"/>
+            <set field="recordsCount" from="screenContext.recordsCount"/>
+            <set field="recordsPageSize" from="screenContext.recordsPageSize"/>
+            <set field="recordsPageIndex" from="screenContext.recordsPageIndex"/>
+            <set field="recordsPageMaxIndex" from="screenContext.recordsPageMaxIndex"/>
+            <set field="recordsPageRangeLow" from="screenContext.recordsPageRangeLow"/>
+            <set field="recordsPageRangeHigh" from="screenContext.recordsPageRangeHigh"/>
+            <set field="queue" from="screenContext.queue"/>
+            <set field="queueTabs" from="screenContext.queueTabs"/>
+            <set field="invoiceListCapabilities" from="screenContext.invoiceListCapabilities"/>
+        </actions>
+    </service>
+    <service verb="get" noun="BillingQueue" allow-remote="false">
+        <description>The approved unbilled project time to bill (find#ApprovedTimeBilling), for customer invoices or
+            worker bills as the user may read them.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="direction" type="String"/>
+            <parameter name="workEffortId" type="String"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="throughDate" type="Timestamp"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="direction" type="String"/>
+            <parameter name="billingCanCreate" type="Boolean"/>
+            <parameter name="billingDirectionOptions" type="List"/>
+            <parameter name="billingRows" type="List"/>
+            <parameter name="billingRowsCount" type="Integer"/>
+            <parameter name="billingRowsPageSize" type="Integer"/>
+            <parameter name="billingRowsPageIndex" type="Integer"/>
+            <parameter name="billingRowsPageMaxIndex" type="Integer"/>
+            <parameter name="billingRowsPageRangeLow" type="Integer"/>
+            <parameter name="billingRowsPageRangeHigh" type="Integer"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="billingCapabilities" type="Map"/>
+            <parameter name="billingOperationKey" type="String"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('billingQueue', context)"/>
+            <set field="direction" from="screenContext.direction"/>
+            <set field="billingCanCreate" from="screenContext.billingCanCreate"/>
+            <set field="billingDirectionOptions" from="screenContext.billingDirectionOptions"/>
+            <set field="billingRows" from="screenContext.billingRows"/>
+            <set field="billingRowsCount" from="screenContext.billingRowsCount"/>
+            <set field="billingRowsPageSize" from="screenContext.billingRowsPageSize"/>
+            <set field="billingRowsPageIndex" from="screenContext.billingRowsPageIndex"/>
+            <set field="billingRowsPageMaxIndex" from="screenContext.billingRowsPageMaxIndex"/>
+            <set field="billingRowsPageRangeLow" from="screenContext.billingRowsPageRangeLow"/>
+            <set field="billingRowsPageRangeHigh" from="screenContext.billingRowsPageRangeHigh"/>
+            <set field="recordsCount" from="screenContext.recordsCount"/>
+            <set field="recordsPageSize" from="screenContext.recordsPageSize"/>
+            <set field="recordsPageIndex" from="screenContext.recordsPageIndex"/>
+            <set field="recordsPageMaxIndex" from="screenContext.recordsPageMaxIndex"/>
+            <set field="recordsPageRangeLow" from="screenContext.recordsPageRangeLow"/>
+            <set field="recordsPageRangeHigh" from="screenContext.recordsPageRangeHigh"/>
+            <set field="billingCapabilities" from="screenContext.billingCapabilities"/>
+            <set field="billingOperationKey" from="screenContext.billingOperationKey"/>
+        </actions>
+    </service>
+    <service verb="get" noun="CustomerContext" allow-remote="false">
+        <description>A customer of the organization for Customer360 (get#CustomerFinance, which leaves out the finance
+            details the user may not read), with the screen's labels and key numbers. A customer that does not exist or
+            is not visible has customerFound false and empty lists. Refuses a user without receivables view and an
+            organization the user may not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="customerPartyId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="customerDetail" type="Map"/>
+            <parameter name="customerFound" type="Boolean"/>
+            <parameter name="customerPartyId" type="String"/>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="customerLinkParameters" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('customerContext', context)"/>
+            <set field="customerDetail" from="screenContext.customerDetail"/>
+            <set field="customerFound" from="screenContext.customerFound"/>
+            <set field="customerPartyId" from="screenContext.customerPartyId"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="customerLinkParameters" from="screenContext.customerLinkParameters"/>
+        </actions>
+    </service>
+    <service verb="get" noun="InvoiceBatchContext" allow-remote="false">
+        <description>The selected invoices to review before a batch, each available or named as not, with the results of
+            the batch run under operationKey (get#InvoiceBatchResult) and a CSV of the review.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="sourceVersions" type="Object"/>
+            <parameter name="invoiceIdList" type="Object"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="batchRows" type="List"/>
+            <parameter name="batchResults" type="List"/>
+            <parameter name="batchCsv" type="String"/>
+            <parameter name="sourceVersions" type="Map"/>
+            <parameter name="invoiceIdList" type="List"/>
+            <parameter name="batchOperationKey" type="String"/>
+            <parameter name="batchCount" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('batchContext', context)"/>
+            <set field="batchRows" from="screenContext.batchRows"/>
+            <set field="batchResults" from="screenContext.batchResults"/>
+            <set field="batchCsv" from="screenContext.batchCsv"/>
+            <set field="sourceVersions" from="screenContext.sourceVersions"/>
+            <set field="invoiceIdList" from="screenContext.invoiceIdList"/>
+            <set field="batchOperationKey" from="screenContext.batchOperationKey"/>
+            <set field="batchCount" from="screenContext.batchCount"/>
+        </actions>
+    </service>
+    <service verb="get" noun="InvoiceBatchOutput" allow-remote="false">
+        <description>The PDF the user's print batch (operationKey) made for an invoice.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="invoiceId" type="String"/>
+            <parameter name="operationKey" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="fileLocation" type="String"/>
+            <parameter name="fileName" type="String"/>
+        </out-parameters>
+        <actions>
+            <set field="screen" value="component://mr-boss/service/ironstone/accounting/Receivables.js"/>
+            <set field="screenContext" from="ec.resource.script(screen).execute('batchOutput', context)"/>
+            <set field="fileLocation" from="screenContext.fileLocation"/>
+            <set field="fileName" from="screenContext.fileName"/>
+        </actions>
+    </service>
+</services>

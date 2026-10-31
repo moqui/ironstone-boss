@@ -12,23 +12,226 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- The payments of the organization (template/AccountingDocuments.xml DocumentList). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payments" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<!-- The payment list (style-guide §3.2 List): the organization's payments by queue (incoming, outgoing, to validate,
+    unapplied, refunds, transfers, all), their filters in Find options, New payment (the shared draft form,
+    template/AccountingPayments.xml) and Transfer funds, which opens its review in Payments/TransferReview. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Payments"
+        default-menu-index="1">
     <parameter name="organizationPartyId"/>
+    <parameter name="queue"/>
+    <parameter name="partyId"/>
+    <parameter name="paymentInstrumentEnumId"/>
+    <parameter name="statusId"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="fromDay"/>
+    <parameter name="throughDay"/>
     <parameter name="text"/>
     <parameter name="pageIndex"/>
     <parameter name="pageSize"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="savePaymentDraft" location="component://mr-boss/template/AccountingPayments.xml"/>
+    <transition-include name="previewInternalTransfer" location="component://mr-boss/template/AccountingPayments.xml"/>
     <actions>
-        <set field="documentKind" value="payments"/>
-        <set field="documentLabel" value="payment"/>
-        <set field="listTitle" value="Payments"/>
-        <set field="detailPath" value="Payments/PaymentDetail"/>
-        <set field="newPath" value="QuickCreate/NewPayment"/>
-        <set field="canCreate" from="!!accounting.capabilities.paymentEdit"/>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:documentKind,organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentListContext"
+                in-map="context"
+                out-map="context"/>
     </actions>
     <widgets>
-        <section-include name="DocumentList" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <label text="Choose an organization to see its payments." type="p" condition="!paymentList.ready"/>
+        <section name="PaymentList" condition="paymentList.ready">
+            <widgets>
+                <container style="row items-center q-col-gutter-sm q-mb-sm">
+                    <container style="col-12 col-sm">
+                        <label text="Payments" type="h5" style="q-my-none"/>
+                        <label text="Receipts, disbursements, authorizations and their current state." type="p" style="m-muted"/>
+                    </container>
+                    <container style="col-12 col-sm-auto row items-center q-gutter-sm">
+                        <container-dialog id="AccountingNewPaymentDialog"
+                                button-text="New payment"
+                                title="New payment"
+                                width="760"
+                                type="primary"
+                                condition="paymentList.canCreate">
+                            <section-include name="PaymentDraftForm"
+                                    location="component://mr-boss/template/AccountingPayments.xml"/>
+                        </container-dialog>
+                        <container-dialog id="AccountingInternalTransferDialog"
+                                button-text="Transfer funds"
+                                title="Transfer funds"
+                                width="760"
+                                type="default"
+                                condition="paymentList.canTransfer">
+                            <section-include name="InternalTransferForm"
+                                    location="component://mr-boss/template/AccountingPayments.xml"/>
+                        </container-dialog>
+                    </container>
+                </container>
+                <container style="row items-center q-gutter-xs q-mb-md">
+                    <section-iterate name="PaymentQueues" list="paymentList.queues" entry="paymentQueue">
+                        <widgets>
+                            <link url="."
+                                    text="${paymentQueue.title}"
+                                    link-type="anchor-button"
+                                    btn-type="default"
+                                    style="${paymentQueue.active ? 'm-tonal text-primary' : ''}"
+                                    parameter-map="paymentQueue.parameters"/>
+                        </widgets>
+                    </section-iterate>
+                </container>
+                <section name="PaymentListIncomplete" condition="!paymentList.available || paymentList.incomplete">
+                    <widgets>
+                        <container-box type="warning">
+                            <box-body>
+                                <label text="Some payments are not available now. Narrow the filters or try again." type="p"/>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container-box>
+                    <box-header title="${paymentList.queueTitle}"/>
+                    <box-body-nopad>
+                        <form-list name="Payments"
+                                list="records"
+                                skip-form="true"
+                                paginate="true"
+                                header-dialog="true"
+                                select-columns="true">
+                            <field name="organizationPartyId">
+                                <header-field>
+                                    <hidden/>
+                                </header-field>
+                            </field>
+                            <field name="queue">
+                                <header-field>
+                                    <hidden/>
+                                </header-field>
+                            </field>
+                            <field name="text">
+                                <header-field title="Search">
+                                    <text-line/>
+                                </header-field>
+                            </field>
+                            <field name="paymentId">
+                                <default-field title="Payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${paymentId}"
+                                            link-type="anchor"
+                                            parameter-map="detailParameters"/>
+                                </default-field>
+                            </field>
+                            <field name="partyId">
+                                <header-field title="Counterparty">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'paymentParties', organizationPartyId:organizationPartyId,
+                                                    selected:partyId}"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Counterparty">
+                                    <display text="${partyName || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="directionText">
+                                <default-field title="Direction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="fromDay">
+                                <header-field title="From">
+                                    <date-time type="date"/>
+                                </header-field>
+                            </field>
+                            <field name="throughDay">
+                                <header-field title="Through">
+                                    <date-time type="date"/>
+                                </header-field>
+                            </field>
+                            <field name="paymentInstrumentEnumId">
+                                <header-field title="Instrument">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'paymentInstruments',
+                                                    organizationPartyId:organizationPartyId, selected:paymentInstrumentEnumId}"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Instrument">
+                                    <display text="${paymentInstrumentDescription || ''}"/>
+                                </default-field>
+                            </field>
+                            <field name="currencyUomId">
+                                <header-field title="Currency">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'currencies', organizationPartyId:organizationPartyId,
+                                                    selected:currencyUomId}"/>
+                                    </drop-down>
+                                </header-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unappliedTotal" align="right">
+                                <default-field title="Unapplied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="statusId">
+                                <header-field title="Status">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'paymentStatuses', organizationPartyId:organizationPartyId,
+                                                    selected:statusId}"/>
+                                    </drop-down>
+                                </header-field>
+                                <default-field title="Status">
+                                    <render-mode>
+                                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                            statusColor}">${WebUtilities.encodeHtml(statusDescription || '')}</q-chip>]]></text>
+                                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                            text: statusDescription || ""})}]]></text>
+                                        <text type="html">${statusDescription || ''}</text>
+                                    </render-mode>
+                                </default-field>
+                            </field>
+                            <field name="referenceNumber">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="paymentId"/>
+                                    <field-ref name="partyId"/>
+                                    <field-ref name="accountingDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="statusId"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
+            </widgets>
+        </section>
     </widgets>
 </screen>

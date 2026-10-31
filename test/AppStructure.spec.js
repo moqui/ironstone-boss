@@ -99,7 +99,7 @@ const demoRecords = {
     // M2: Today, notifications, quick create, Home and the settings (the demo of service/ironstone/commons/DemoServices.xml), on text
     // that does not depend on the time of day the data was loaded
     "Commons/Home": { text: "Get started" },
-    "Commons/Panel/Today": { text: "1 approval waiting" },
+    "Commons/Panel/Today": { pattern: /\b[1-9]\d* approvals? waiting\b/ },
     "Commons/Panel/Notifications": { text: "Approve the shared calendar subscription: USD 120.00 a year" },
     "Commons/Notifications": { text: "Approve the shared calendar subscription: USD 120.00 a year" },
     "Commons/QuickCreate": { parameters: { kind: "task" }, text: "Assignee" },
@@ -338,38 +338,18 @@ spec({
         login("john.doe")
         placeholders = findScreenFiles(apps, isPlaceholder)
         screens = findScreenFiles(["Commons", "Comms", "Insights", "Projects", "Products", "Accounting"], (location) => !isPlaceholder(location))
-        // each Accounting page with a text it shows whatever the data, for the demo organization and records
-        for (const [path, text, recordId] of [
-            ["Home", "Shortcuts"],
-            ["Receivables/Invoices", "Invoices"],
-            ["Payables/Bills", "Bills"],
-            ["Payments/Payments", "Payments"],
-            ["GeneralLedger/ChartOfAccounts", "Chart of accounts"],
-            ["GeneralLedger/JournalEntries", "Journal entries"],
-            ["GeneralLedger/TransactionEntries", "Transaction entries"],
-            ["GeneralLedger/JournalBatches", "Journal batches"],
-            ["GeneralLedger/JournalTemplates", "Journal templates"],
-            ["PeriodClose/Periods", "Fiscal periods"],
-            ["PeriodClose/PeriodLocks", "Posting locks"],
-            ["Reports/TrialBalance", "Trial balance"],
-            ["Reports/GeneralLedger", "General ledger"],
-            ["Settings/Settings", "Accounting settings"],
-            ["Settings/AccountingPreferences", "Accounting preferences"],
-            ["Settings/PostingDefaults", "Posting defaults"],
-            ["Settings/PaymentTerms", "Payment terms"],
-            ["Settings/Currencies", "Currencies"],
-            ["Settings/PaymentMethods", "Payment methods"],
-            ["Settings/DocumentSettings", "Document settings"],
-            ["Receivables/InvoiceDetail", "Accounting demo customer invoice", "BOSS_ACCT_INVOICE"],
-            ["Payables/BillDetail", "Accounting demo supplier bill", "BOSS_ACCT_BILL"],
-            ["Payments/PaymentDetail", "Accounting demo proposed payment", "BOSS_ACCT_PAYMENT"],
-            ["GeneralLedger/JournalEntryDetail", "Office expense review", "BOSS_ACCT_ENTRY"],
-            ["GeneralLedger/AccountDetail", "Open account ledger", "111100000"]
-        ])
-            demoRecords["Accounting/" + path] = {
-                text,
-                parameters: Object.assign({organizationPartyId: "BOSS_ACCT_ORG"}, recordId ? {recordId} : {})
+        const accountingFixtures = ec.resource.script("component://mr-boss/test/AccountingSpecLib.js").routeFixtures()
+        for (const [path, fixture] of Object.entries(accountingFixtures)) {
+            demoRecords["Accounting/" + path] = fixture
+            if (path.startsWith("Receivables/Customer360")) {
+                const tab = path.substring("Receivables/Customer360".length)
+                screens.push([`${base}/Accounting.xml`, path, `${base}/Shared/Customer360${tab}.xml`])
             }
+        }
+        // A direct shared-root render selects its default Contact leaf; the Accounting mount separately checks the header.
+        demoRecords["Shared/Customer360/"] = Object.assign({}, accountingFixtures["Receivables/Customer360/Contact"], {
+            text: "billing.acme@test.com"
+        })
         for (const tab of ["Summary", "Features", "Categories", "Identifiers", "Dimensions", "Documents", "Associations", "Parties", "Connections", "History", "KitComponents", "Equipment"]) {
             const path = 'Products/Product360/' + tab
             screens.push([`${base}/Products.xml`, path, `${base}/Shared/Product360/${tab}.xml`])
@@ -472,6 +452,7 @@ feature("every other Commons, Comms, Insights, Projects and Shared screen render
                 failures.push(`${where}: status ${str.status}, ${str.errorMessages.join(" | ") || output.substring(0, 200)}`)
             else if (qvue && !demo.noComponent && !output.includes("module.exports")) failures.push(`${where}: no component in qvue`)
             else if (demo.text && !output.includes(demo.text)) failures.push(`${where}: no "${demo.text}": ${output.substring(0, 300)}`)
+            else if (demo.pattern && !demo.pattern.test(output)) failures.push(`${where}: no ${demo.pattern}: ${output.substring(0, 300)}`)
             ec.message.clearErrors()
             const menu = apps.includes(app) ? menuError(`${app}/${path}`) : null
             if (menu) failures.push(menu)

@@ -79,7 +79,6 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
         )
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser scheduled successor"))
         page.text().includes("Browser corrected offer")
-        page.screenshot("Prices-correction-and-successor-history", {fullPage: true})
         page.goto("/qapps/Products/Products/BulkPrice?productPriceIds=BOSS_PRICE_SALES&organizationPartyId=ORG_ZIZI_SERVICES")
         page.fill("input[name=fixedPrice]", "17")
         page.fill("input[name=effectiveDate]", next + " 14:00")
@@ -87,7 +86,6 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
         page.locator("#BulkPriceSetup").getByRole("button", {name: "Preview price changes", exact: true}).click()
         page.waitForURL(/operationKey=/)
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("ready"))
-        page.screenshot("Prices-reviewed-bulk-preview", {fullPage: true})
         page.getByRole("checkbox", {name: "I reviewed these rows and their proposed amounts", exact: true}).click()
         page.getByRole("button", {name: "Apply reviewed changes", exact: true}).click()
         page.waitFor(
@@ -95,7 +93,6 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
                 document.querySelector(".q-page")?.innerText.includes("Successor row") &&
                 document.querySelector(".q-page").innerText.includes("created")
         )
-        page.screenshot("Prices-reviewed-bulk-results", {fullPage: true})
         page.goto("/qapps/Products/Prices?productId=BOSS_PRD_OWN")
         page.evaluate(() => {
             window.confirm = () => true
@@ -112,7 +109,6 @@ feature("a price editor creates, corrects, schedules, reviews bulk changes and e
                 "&organizationPartyId=ORG_ZIZI_SERVICES"
         )
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser ended interval"))
-        page.screenshot("Prices-ended-interval-audit", {fullPage: true})
     }
 })
 feature("a price editor selects products on the Products list and opens their price change review", {
@@ -161,7 +157,6 @@ feature("a price editor selects products on the Products list and opens their pr
                 location.pathname.endsWith("/BulkPrice") &&
                 document.querySelector(".q-page")?.innerText.includes("Selected products")
         )
-        page.screenshot("Prices-bulk-from-selection", {fullPage: true})
         // the selection is a read-only field of the setup form
         page.evaluate(() => document.querySelector("#BulkPriceSetup").innerHTML.includes("BOSS_PRD_OWN")) == true
     }

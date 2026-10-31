@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- PaymentDetail's History tab: each recorded change of the payment, its status before and after, who made it and why.
+    It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="History"
+        default-menu-index="7">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentHistory" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Payment history"/>
+                    <box-body>
+                        <form-list name="PaymentHistory" list="financePayment.historyRows" skip-form="true" paginate="false">
+                            <field name="createdDateText">
+                                <default-field title="Time">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="action">
+                                <default-field title="Change">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="beforeStatusId">
+                                <default-field title="Before">
+                                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                                </default-field>
+                            </field>
+                            <field name="afterStatusId">
+                                <default-field title="After">
+                                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                                </default-field>
+                            </field>
+                            <field name="userId">
+                                <default-field title="User">
+                                    <display-entity entity-name="moqui.security.UserAccount" text="${userFullName || username}"/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="createdDateText"/>
+                                    <field-ref name="action"/>
+                                    <field-ref name="userId"/>
+                                </column>
+                                <column>
+                                    <field-ref name="afterStatusId"/>
+                                    <field-ref name="reason"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No changes of this payment are recorded yet."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.historyRows.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

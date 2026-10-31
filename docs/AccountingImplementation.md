@@ -1,15 +1,18 @@
-# Accounting P0–P3
+# Accounting implementation
 
-The Accounting app uses permission-derived native services in mr-mantle. BOSS owns its access context, routes,
-choices, Home and forms. It adds no financial pass-through service. Later workflow sections are hidden until their
-implemented destinations exist. The full invoice/bill/payment workflows remain P4–P5; close execution is P11,
-activation P19, and foreign-currency posting/provider refresh P20.
+The Accounting app calls Mantle's services, which check permissions and organization scope themselves. BOSS owns
+its access context, routes, choices, Home and forms, and adds no financial pass-through service. Later workflow
+sections are hidden until their destinations exist. P0–P5 are built; P4–P5 were reviewed and rebuilt on Mantle's
+services (R2 in [impl-accounting](../plan/impl-accounting.md)). Payable intake is P6, close execution P11, activation
+P19, and foreign-currency posting and rate refresh P20.
 
 ## Routes and users
 
 | Area | Implemented destinations |
 | --- | --- |
 | Foundation | Home; Receivables/Invoices and InvoiceDetail; Payables/Bills and BillDetail; Payments/Payments and PaymentDetail; QuickCreate/NewInvoice, NewBill, NewPayment and NewEntry |
+| Receivables | Invoices, one list with list and calendar views; shared InvoiceDetail with ten tabs; BillingQueue; InvoiceBatch; Statements and StatementPrint; InvoicePrint; shared Customer360 Contact, Orders, Money, Agreements, FinanceDetails and Files |
+| Settlement and payments | ReceivablesWorkbench; Payments with new payment and internal transfer; PaymentDetail Overview, Applications, Gateway, Refunds, GeneralLedger, Files and History; GatewayTransactions; PaymentPrint for the receipt, detail and check (a transfer's detail only) |
 | Ledger | GeneralLedger/ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches and JournalTemplates |
 | Periods | PeriodClose/Periods and PeriodLocks |
 | Reports | Reports/Reports, TrialBalance and GeneralLedger |
@@ -51,6 +54,10 @@ BOSS_INVENTORY_REVALUATION.
 | SetupServices | Readiness, posted-basis protection, mapping validation/repair, clone conflict preview/concurrency, due terms and masked method metadata |
 | CurrencyServices | Explicit dated manual rates and independent CSV rows with persisted source/import results |
 | JournalContentServices | Authorized journal evidence upload and RecordFiles ownership |
+| InvoiceServices / InvoiceWorkflow | `change#InvoiceState`, draft edits, approved-time billing, linked credits (`create#InvoiceCreditMemo`, `apply#InvoiceCredit`), the receivables list and summary, print (`get#InvoiceOutput` over `get#InvoicePrintInfo`), `send#Invoice` through an EmailTemplate, batches |
+| CollectionServices | `get#Statements` and `send#Statements` over `get#ReceivableStatementInfo` |
+| CustomerFinanceServices | The customer's finance context through the existing contact, order and receivable services; masked methods for treasury |
+| PaymentServices | Open items and settlement through the `apply#*` services; payment lists, detail, drafts, state changes through `update#Payment` and unapplication; issued documents; gateway actions through the `*#SinglePayment` services; refunds through `create#RefundPayment`; internal transfers. Each confirmed review is a `PaymentReview` row |
 
 New financial services check permissions and organization scope even when artifact authorization is disabled.
 Journal previews expire after ten minutes; their fingerprints include authoritative source headers, transaction and
@@ -88,41 +95,71 @@ PaymentGatewayOrganization records are provisioned outside finance forms in Admi
 bindings are offered for a new method binding. Finance sees gateway IDs/descriptions and masked identifiers, never
 credentials or executable service names. The demo organization permits TEST_APPROVE and TEST_DECLINE. Approved
 standard document layouts have representative long previews; the shared HTML viewer retains its script sandbox.
-PASS runtime changes and a durable pending-provider fixture remain P18, as documented in mr-pass/design-forum.
+Mantle's test gateway (`PaymentTestServices.xml`) answers pending and declined, and the demo's gateway uses it. PASS
+runtime changes remain P18, as documented in mr-pass/design-forum.
+
+## Receivables and payments
+
+Screens call Mantle's receivables and payment services after `ironstone.accounting.AccessServices` has checked the
+capability and the organization ([mr-mantle AccountingImplementation](../../mr-mantle/docs/AccountingImplementation.md)
+has the contracts). Mantle decides every financial question; BOSS shapes its answers for a screen.
+
+- **Screen services.** `ReceivableServices.xml` (with `Receivables.js`) serves the receivables screens, and
+  `PaymentScreenServices.xml` and `SettlementScreenServices.xml` (with `Payments.js` and `Settlements.js`) the payment
+  and settlement screens: their options, names, capabilities and review rows. The payment and settlement transitions
+  call these declared services, not module functions. `AccountingLib.js` holds what the modules share: the access check and app root,
+  reviewed `id~version` tokens, paging names, record links and parameters, operation keys and the before and after rows
+  of a review.
+- **Receivables.** Each InvoiceDetail tab holds its own section and includes only the transitions its forms post to.
+  The header follows ProjectDetail: a status chip with its tui twin, print and PDF through `sharedLinks`, one send
+  dialog. Invoices is one list with list and calendar views. Statements show `get#Statements`. DocumentSettings'
+  preview renders Mantle's invoice print template over a sample. Customer360's finance transitions are in its
+  FinanceDetails tab only.
+- **Projects.** Billing's invoice services are inline XML Actions over Mantle's; its `send#Invoice` passes its
+  time-detail print to Mantle's `send#Invoice` (`printLocation`), so the emailed PDF keeps the time detail.
+- **Settlement.** ReceivablesWorkbench keeps its selection in Mantle behind a `draftId` (`store#`/`get#SettlementDraft`)
+  and confirms a review by its id, fingerprint and the operation key Mantle's preview returned.
+- **Payments.** The detail's dialogs review and confirm through Mantle's preview and confirm services: state changes,
+  unapplication, gateway actions, manual refunds and transfers. GatewayTransactions lists PaymentGatewayResponse rows.
+  Payment files are read and locked through Mantle (`get#PaymentAccess`), and the shared Files screens ask
+  `get#RecordContentPolicy` what a record's files allow. The transfer form names who is paid the fee.
+- **Settings and demo.** AccountingPreferences shows the posting guard (`postingGuardEnabled`), required dimensions
+  and forward issuance adjustment. The demo service turns them on for BOSS_ACCT_ORG only, with the single-currency
+  refusal (`singleCurrencyDocumentsOnly`), and its gateway uses Mantle's test gateway services.
 
 ## Verification
 
-Tests run through Moqui's JavaScript runners, without Node as a test dependency. The development binary was rebuilt
-before browser verification. Full suite results and baseline comparison are recorded here after the final run:
+Tests run through Moqui's JavaScript runners; Node is not a test dependency.
 
-- Full BOSS: 1,070 features — 1,065 passed, zero failed, five skipped.
-- Full standalone Mantle: 865 features — 844 passed, four unchanged baseline failures, 17 skipped.
-- The full BOSS suite includes Accounting access (with paired positive and negative cases), roles, isolation,
-  AppStructure, every screen in qvt and tui, and rendered-content checks of the ledger, document, report and settings
-  screens.
-- Accounting browser walks and viewport/theme captures: 230/230 (three users, 31 destinations × six width/theme
-  combinations, plus posting/reversal and setup repair).
-- XML: 46 Accounting screens (including the app root) validate. Screen lint (to a report file) has zero parse failures and the existing 125 flagged sites; no new Accounting hazard. Screen sources are never lint output targets.
-
-The BOSS demo adopts the controls only on its own organization, BOSS_ACCT_ORG, so Mantle's legacy low-level posting
-specs run in the same runtime as Accounting's and test Mantle's policy, not the adopted one. No ADMIN posting
-exemption was introduced.
-The PDF specs need Chromium ([Testing](../../../../docs/Testing.md)).
+- Server specs: AccountingAccess, AccountingIsolation and AccountingShell (roles, scope and the palette, with paired
+  positive and negative cases), AccountingScreens, AccountingReceivables, AccountingSettlement, AccountingPayments,
+  AccountingPaymentFiles, AccountingIssuedFiles, AccountingPaymentGateway, AccountingPaymentRefunds and
+  AccountingPaymentTransfers; Projects' Billing and ClientBilling. AppStructure and TuiRender render every Accounting
+  screen in qvt and tui.
+- Browser walks, one live-client pass each: ledger, settings, receivables, settlement, payments and gateway.
+- Screen lint writes to a report file; a screen source is never its output.
 
 ```sh
 ./moq test --nobuild mr-mantle
 ./moq test --nobuild mr-boss
-./moq test-client --nobuild mr-boss --serve --spec AccountingLedgerWalk,AccountingSettingsWalk
-# AccountingShots is slow (over 30 seconds): --slow runs it, only when its screenshots are needed
-./moq test-client --nobuild mr-boss --serve --spec AccountingShots --slow --out <screenshot-dir>
+./moq test --nobuild mr-boss --spec AccountingReceivables,AccountingSettlement,AccountingPayments,AccountingPaymentGateway,AccountingPaymentRefunds,AccountingPaymentTransfers
+./moq test-client --nobuild mr-boss --serve --spec AccountingLedgerWalk,AccountingSettingsWalk,AccountingReceivablesWalk,AccountingSettlementWalk,AccountingPaymentsWalk,AccountingPaymentGatewayWalk
 target/develop/moqui lint --screens <report-file>
 ```
 
-The screenshot spec covers 31 destinations at 390, 1280 and 1440 pixels in light/dark. Browser walks post/reverse a
-balanced journal, assign an existing expense account, repair an invoice item default, create a due term, import
-valid/invalid rate rows, and save numbering preferences. Keep deterministic fixtures declared in the data file:
-the client runner's snapshot key includes entity/data files and the binary, rather than service implementation text.
+The PDF specs need a Chromium for PDF (`pdf_chromium_path`; see [Run-Deploy](../../../../docs/Run-Deploy.md) and
+[Client-Testing](../../../../docs/dev/Client-Testing.md)); without one every PDF spec fails. The BOSS demo adopts the
+controls only on BOSS_ACCT_ORG, so Mantle's low-level posting specs run in the same runtime as Accounting's and test
+Mantle's defaults. Results are recorded in [impl-accounting](../plan/impl-accounting.md).
 
-The existing remote-choice widget also retains selected values when parent forms rerender and a later search
-page omits the selected row. Dependency changes still clear the choice. QvtKeys has a real-browser regression
-for that contract (3/3 features passed); no new widget was introduced.
+Each walk checks only what needs the live client: that its dialogs and forms post to their transitions, that a review
+survives a reload, and that a saved result is checked again without a second write. The ledger and settings walks
+post a balanced journal, assign an existing expense account, repair an invoice item default, create a due term,
+import valid and invalid rate rows, and save numbering preferences; the others create, finalize and send an invoice,
+apply a receipt and credit, deliver a manual payment, and authorize then capture through the gateway. The financial
+rules, permissions and refusals are tested in the server specs here and in mr-mantle. Keep deterministic fixtures
+declared in the data file: the client runner's snapshot key includes entity and data files and the binary, not
+service implementation text.
+
+The remote-choice widget keeps a selected value when its parent form rerenders and a later search page leaves the
+selected row out; a dependency change still clears it. QvtKeys has a browser regression for it.

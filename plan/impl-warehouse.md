@@ -170,7 +170,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Warehouse in its non-placeholder
       list;
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px, and the handheld mounts at 390;
+    - the `test/client` walks passing, with the handheld mounts at 390;
     - the inventories' **Implemented in** columns;
   - the `WarehouseAccess` spec extended to the phase's services and mounts;
   - the phase's walk in §8;

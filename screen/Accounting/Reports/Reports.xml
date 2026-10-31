@@ -13,7 +13,10 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <!-- The Accounting reports (design-accounting §13): the built reports, each with what it answers. P16 adds the rest. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Overview" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Overview"
+        default-menu-index="1"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <widgets>
         <label text="Accounting reports" type="h5"/>
         <container-row>
@@ -21,7 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-box>
                     <box-header title="Trial balance"/>
                     <box-body>
-                        <label text="Each account's beginning balance, debits, credits and ending balance for a period." type="p"/>
+                        <label text="Each account's beginning balance, debits, credits and ending balance for a period."
+                                type="p"/>
                         <link url="../TrialBalance" text="Open trial balance" link-type="anchor-button" btn-type="primary"/>
                     </box-body>
                 </container-box>

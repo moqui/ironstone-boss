@@ -11,7 +11,6 @@ feature("an editor schedules a successor pack size and scans its base quantity",
         p.fill("#PackagingScan input[name=scanId]", "BOSS_PACK_12")
         p.locator("#PackagingScan").getByRole("button", {name: "Resolve scan", exact: true}).click()
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("contained 24 OTH_ea"))
-        p.screenshot("Tools-pack-successor-scan", {fullPage: true})
     }
 })
 feature("a reader prepares existing pack codes, renders a PDF and opens the exact print layout", {
@@ -28,7 +27,6 @@ feature("a reader prepares existing pack codes, renders a PDF and opens the exac
         p.text().includes("BOSS_SAMPLE")
         p.locator("#RenderLabels").getByRole("button", {name: "Render PDF", exact: true}).click()
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Download rendered PDF"))
-        p.screenshot("Tools-rendered-labels", {fullPage: true})
         const href = p.getByRole("link", {name: "Open print layout", exact: true}).attribute("href")
         href.includes("/apps/Products/Units/Labels/printable")
         p.goto(href).status == 200
@@ -65,6 +63,5 @@ feature("a system administrator maintains non-currency unit metadata from Produc
         p.fill("#UnitMetadata input[name=changeReason]", "Browser global unit fixture")
         p.locator("#UnitMetadata").getByRole("button", {name: "Save unit", exact: true}).click()
         p.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser measurement unit"))
-        p.screenshot("Tools-system-unit-saved", {fullPage: true})
     }
 })

@@ -163,7 +163,7 @@ feature("Refuse without a reason is refused, as the demo topic requires one", {
 feature("Approve in the tab calls the demo topic's approve service, which notes it on the request", {
     when() {
         const approved = post("Panel/Notifications/approve", { notificationMessageId: "BOSS_DEMO_NM_APPROVAL" })
-        return { approved, approval: viewedOf("BOSS_DEMO_NM_APPROVAL"), notes: notes(), panel: render("Panel/Notifications") }
+        return { approved, approval: viewedOf("BOSS_DEMO_NM_APPROVAL"), notes: notes(), panel: render("Panel/Notifications", { appName: "Commons" }) }
     },
     then({ approved, approval, notes, panel }) {
         approved.errors == ""

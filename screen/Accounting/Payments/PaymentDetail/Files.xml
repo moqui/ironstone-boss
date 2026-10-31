@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- PaymentDetail's Files tab: the payment's files and issued documents, and the shared record files to add more for a
+    user who may. It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Files"
+        default-menu-index="6">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentFiles" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Payment files and issued documents"/>
+                    <box-body>
+                        <form-list name="PaymentFiles" list="financePayment.contentRows" skip-form="true" paginate="false">
+                            <field name="fileName">
+                                <default-field title="File">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="description">
+                                <default-field title="Description">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="contentTypeEnumId">
+                                <default-field title="Type">
+                                    <display-entity entity-name="moqui.basic.Enumeration"/>
+                                </default-field>
+                            </field>
+                            <field name="contentDateText">
+                                <default-field title="Added">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="fileName"/>
+                                    <field-ref name="description"/>
+                                </column>
+                                <column>
+                                    <field-ref name="contentTypeEnumId"/>
+                                    <field-ref name="contentDateText"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="This payment has no files yet."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.contentRows.length"/>
+                    </box-body>
+                </container-box>
+                <record-files id="AccountingPaymentFiles"
+                        record-entity="mantle.account.payment.Payment"
+                        record-id="${paymentId}"
+                        condition="financePayment.canReadFiles"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

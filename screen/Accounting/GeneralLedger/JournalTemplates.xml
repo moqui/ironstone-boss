@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Journal templates (design-accounting §8 JournalTemplates; AC-13): versioned recurring entries. A draft template's
     lines are edited, then it is validated and published; a published version is immutable, and a change is a new
     version from a date. A published template makes a draft journal entry, with the amounts of its amount parameters. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Journal templates" default-menu-index="5" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Journal templates"
+        default-menu-index="5"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="acctgTransTemplateId"/>
     <parameter name="text"/>
@@ -34,7 +37,9 @@ along with this software (see the LICENSE.md file). If not, see
         <actions>
             <!-- the amount form-list posts parameterName_N and parameterValue_N for each amount parameter -->
             <set field="rowKeys" from="Object.keys(ec.web.parameters).filter(key =&gt; /^parameterName_\d+$/.test(key))"/>
-            <set field="amounts" from="Object.fromEntries(rowKeys.map(key =&gt; [ec.web.parameters[key], ec.web.parameters[key.replace('Name', 'Value')]]))"/>
+            <set field="amounts"
+                    from="Object.fromEntries(rowKeys.map(key =&gt; [ec.web.parameters[key],
+                        ec.web.parameters[key.replace('Name', 'Value')]]))"/>
             <service-call name="mantle.ledger.JournalServices.create#FromTemplate" in-map="context" out-map="result"/>
             <set field="recordId" from="result.acctgTransId"/>
         </actions>
@@ -66,16 +71,25 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'templates',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'templates', organizationPartyId:organizationPartyId, text:text,
+                    pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
         <if condition="acctgTransTemplateId">
-            <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'templates',recordId:acctgTransTemplateId,organizationPartyId:organizationPartyId}" out-map="selectedTemplate" transaction="force-new" ignore-error="true"/>
+            <service-call name="mantle.ledger.AccountingServices.get#Record"
+                    in-map="{kind:'templates', recordId:acctgTransTemplateId, organizationPartyId:organizationPartyId}"
+                    out-map="selectedTemplate"
+                    transaction="force-new"
+                    ignore-error="true"/>
         </if>
         <set field="template" from="selectedTemplate?.record || null"/>
         <set field="templateLines" from="selectedTemplate?.lines || []"/>
         <set field="isPublished" from="template?.isPublished === 'Y'"/>
         <set field="canPost" from="!!accounting.capabilities.glPost"/>
         <set field="selectedName" from="template ? (template.templateName || template.acctgTransTemplateId) : ''"/>
-        <set field="templateAmountParameters" from="[...new Set(templateLines.map(line =&gt; line.amountParameter).filter(Boolean))].map(parameterName =&gt; ({parameterName}))"/>
+        <set field="templateAmountParameters"
+                from="[...new Set(templateLines.map(line =&gt; line.amountParameter).filter(Boolean))].map(parameterName =&gt;
+                    ({parameterName}))"/>
     </actions>
     <widgets>
         <container style="row items-center q-col-gutter-sm">
@@ -83,12 +97,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Journal templates" type="h5"/>
             </container>
             <container style="col-auto">
-                <container-dialog id="NewTemplateDialog" button-text="New journal template" type="primary" icon="sym_o_add" title="New journal template" condition="canPost">
+                <container-dialog id="NewTemplateDialog"
+                        button-text="New journal template"
+                        type="primary"
+                        icon="sym_o_add"
+                        title="New journal template"
+                        condition="canPost">
                     <form-single name="TemplateHeader" transition="saveTemplate">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="Organization">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'organizations',
+                                                organizationPartyId:organizationPartyId, selected:organizationPartyId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -100,14 +123,22 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="amountUomId">
                             <default-field title="Currency">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'currencies',organizationPartyId:organizationPartyId,selected:amountUomId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'currencies',
+                                                organizationPartyId:organizationPartyId, selected:amountUomId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="acctgTransTypeEnumId">
                             <default-field title="Type">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:AcctgTransType',organizationPartyId:organizationPartyId,selected:acctgTransTypeEnumId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'enum:AcctgTransType',
+                                                organizationPartyId:organizationPartyId, selected:acctgTransTypeEnumId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -131,10 +162,19 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
         </container>
         <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
-        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+        <form-list name="Records"
+                list="records"
+                skip-form="true"
+                paginate="true"
+                select-columns="true"
+                show-csv-button="true"
+                show-xlsx-button="true">
             <field name="templateName">
                 <default-field title="Template">
-                    <link url="." text="${templateName || acctgTransTemplateId}" link-type="anchor" parameter-map="{acctgTransTemplateId:acctgTransTemplateId,organizationPartyId:organizationPartyId}"/>
+                    <link url="."
+                            text="${templateName || acctgTransTemplateId}"
+                            link-type="anchor"
+                            parameter-map="{acctgTransTemplateId:acctgTransTemplateId, organizationPartyId:organizationPartyId}"/>
                 </default-field>
             </field>
             <field name="acctgTransTemplateId">
@@ -150,8 +190,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="isPublished">
                 <default-field title="State">
                     <render-mode>
-                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished == 'Y' ? 'positive' : 'warning'}">${isPublished == 'Y' ? 'Published' : 'Draft'}</q-chip>]]></text>
-                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished == 'Y' ? 'Published' : 'Draft'})}]]></text>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished == 'Y' ?
+                            'positive' : 'warning'}">${isPublished == 'Y' ? 'Published' : 'Draft'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished == 'Y' ?
+                            'Published' : 'Draft'})}]]></text>
                     </render-mode>
                 </default-field>
             </field>
@@ -165,13 +207,16 @@ along with this software (see the LICENSE.md file). If not, see
                 </column>
             </columns>
         </form-list>
-        <label text="No journal templates match. Choose another organization or search, or create a new journal template." type="p" condition="!records.length"/>
+        <label text="No journal templates match. Choose another organization or search, or create a new journal template."
+                type="p"
+                condition="!records.length"/>
         <section name="TemplateNotFound" condition="acctgTransTemplateId &amp;&amp; !template">
             <widgets>
                 <container-box type="warning">
                     <box-header title="Not available"/>
                     <box-body>
-                        <label text="Journal template ${acctgTransTemplateId} is not available: it does not exist, or it belongs to an organization you do not work in." type="p"/>
+                        <label type="p"
+                                text="Template ${acctgTransTemplateId} does not exist, or you do not work in its organization."/>
                     </box-body>
                 </container-box>
             </widgets>
@@ -183,26 +228,45 @@ along with this software (see the LICENSE.md file). If not, see
                         <container style="col-12 col-md m-record-title">
                             <container style="row items-center no-wrap">
                                 <render-mode>
-                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(acctgTransTemplateId)}</q-chip>]]></text>
-                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: acctgTransTemplateId})}]]></text>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${
+                                        WebUtilities.encodeHtml(acctgTransTemplateId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                        text: acctgTransTemplateId})}]]></text>
                                 </render-mode>
                                 <label text="${selectedName}" type="h5"/>
                             </container>
-                            <label text="Effective from ${template.fromDateText || '—'}${template.thruDateText ? ' through ' + template.thruDateText : ''}" type="p" style="text-caption m-muted q-mb-none"/>
+                            <label text="Effective from ${template.fromDateText || '—'}${template.thruDateText ? ' through '
+                                        + template.thruDateText : ''}"
+                                    type="p"
+                                    style="text-caption m-muted q-mb-none"/>
                         </container>
                         <container style="col-12 col-md-auto m-record-status">
                             <render-mode>
-                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished ? 'positive' : 'warning'}">${isPublished ? 'Published' : 'Draft'}</q-chip>]]></text>
-                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished ? 'Published' : 'Draft'})}]]></text>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isPublished ?
+                                    'positive' : 'warning'}">${isPublished ? 'Published' : 'Draft'}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isPublished ?
+                                    'Published' : 'Draft'})}]]></text>
                             </render-mode>
                         </container>
                     </container>
                     <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
                         <container style="col-12 col-md"/>
                         <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
-                            <link url="publish" link-type="hidden-form" text="Validate and publish" btn-type="primary" icon="sym_o_publish" condition="!isPublished &amp;&amp; canPost" confirmation="Publish ${selectedName}? A published version cannot be changed." parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,lastUpdatedStamp:template.lastUpdatedStamp}"/>
+                            <link url="publish"
+                                    link-type="hidden-form"
+                                    text="Validate and publish"
+                                    btn-type="primary"
+                                    icon="sym_o_publish"
+                                    condition="!isPublished &amp;&amp; canPost"
+                                    confirmation="Publish ${selectedName}? A published version cannot be changed."
+                                    parameter-map="{organizationPartyId:organizationPartyId,
+                                        acctgTransTemplateId:acctgTransTemplateId, lastUpdatedStamp:template.lastUpdatedStamp}"/>
                             <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="canPost">
-                                <container-dialog id="AddTemplateLineDialog" button-text="Add line" icon="sym_o_add" title="Add a line to ${selectedName}" condition="!isPublished">
+                                <container-dialog id="AddTemplateLineDialog"
+                                        button-text="Add line"
+                                        icon="sym_o_add"
+                                        title="Add a line to ${selectedName}"
+                                        condition="!isPublished">
                                     <form-single name="AddTemplateLine" transition="line">
                                         <field name="organizationPartyId" from="organizationPartyId">
                                             <default-field>
@@ -217,7 +281,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="glAccountId">
                                             <default-field title="Account">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accounts',organizationPartyId:organizationPartyId,selected:glAccountId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'accounts',
+                                                                organizationPartyId:organizationPartyId, selected:glAccountId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -230,26 +298,36 @@ along with this software (see the LICENSE.md file). If not, see
                                             </default-field>
                                         </field>
                                         <field name="amount">
-                                            <default-field title="Fixed amount" tooltip="Leave empty when an amount parameter gives the amount">
+                                            <default-field title="Fixed amount"
+                                                    tooltip="Leave empty when an amount parameter gives the amount">
                                                 <text-line size="12"/>
                                             </default-field>
                                         </field>
                                         <field name="amountParameter">
-                                            <default-field title="Amount parameter" tooltip="A name asked for when a draft is made from the template">
+                                            <default-field title="Amount parameter"
+                                                    tooltip="A name asked for when a draft is made from the template">
                                                 <text-line size="20"/>
                                             </default-field>
                                         </field>
                                         <field name="facilityId">
                                             <default-field title="Facility">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'facilities',organizationPartyId:organizationPartyId,selected:facilityId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'facilities',
+                                                                organizationPartyId:organizationPartyId, selected:facilityId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
                                         <field name="costCenterId">
                                             <default-field title="Cost centre">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'costCenters',organizationPartyId:organizationPartyId,selected:costCenterId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'costCenters',
+                                                                organizationPartyId:organizationPartyId, selected:costCenterId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -260,7 +338,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="NewTemplateVersionDialog" button-text="New version" icon="sym_o_difference" title="A new version of ${selectedName}" condition="isPublished">
+                                <container-dialog id="NewTemplateVersionDialog"
+                                        button-text="New version"
+                                        icon="sym_o_difference"
+                                        title="A new version of ${selectedName}"
+                                        condition="isPublished">
                                     <form-single name="NewTemplateVersion" transition="saveTemplate" map="template">
                                         <field name="organizationPartyId" from="organizationPartyId">
                                             <default-field>
@@ -298,7 +380,9 @@ along with this software (see the LICENSE.md file). If not, see
                         </container>
                     </container>
                 </container>
-                <label text="This template has no lines yet. Add them from More, Add line." type="p" condition="!templateLines.length"/>
+                <label text="This template has no lines yet. Add them from More, Add line."
+                        type="p"
+                        condition="!templateLines.length"/>
                 <form-list name="TemplateLines" list="templateLines" skip-form="true" paginate="false">
                     <field name="glAccountId">
                         <default-field title="Account">
@@ -322,7 +406,11 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="lineActions">
                         <default-field title="">
-                            <container-dialog id="EditTemplateLine_${entrySeqId}" button-text="Edit" icon="sym_o_edit" title="Edit line ${entrySeqId} of ${selectedName}" condition="!isPublished &amp;&amp; canPost">
+                            <container-dialog id="EditTemplateLine_${entrySeqId}"
+                                    button-text="Edit"
+                                    icon="sym_o_edit"
+                                    title="Edit line ${entrySeqId} of ${selectedName}"
+                                    condition="!isPublished &amp;&amp; canPost">
                                 <form-single name="EditTemplateLine" transition="line" extends="AddTemplateLine">
                                     <field name="entrySeqId" from="entrySeqId">
                                         <default-field>
@@ -341,7 +429,17 @@ along with this software (see the LICENSE.md file). If not, see
                                     </field>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeTemplateLine" link-type="hidden-form-link" text="Remove" icon="sym_o_delete" btn-type="danger" condition="!isPublished &amp;&amp; canPost" confirmation="Remove line ${entrySeqId} (${debitCreditFlag == 'D' ? 'debit' : 'credit'}) from ${selectedName}?" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId,entrySeqId:entrySeqId,lastUpdatedStamp:lastUpdatedStamp}"/>
+                            <link url="removeTemplateLine"
+                                    link-type="hidden-form-link"
+                                    text="Remove"
+                                    icon="sym_o_delete"
+                                    btn-type="danger"
+                                    condition="!isPublished &amp;&amp; canPost"
+                                    confirmation="Remove line ${entrySeqId} (${debitCreditFlag == 'D' ? 'debit'
+                                        : 'credit'}) from ${selectedName}?"
+                                    parameter-map="{organizationPartyId:organizationPartyId,
+                                        acctgTransTemplateId:acctgTransTemplateId,
+                                        entrySeqId:entrySeqId, lastUpdatedStamp:lastUpdatedStamp}"/>
                         </default-field>
                     </field>
                     <columns type="mobile">
@@ -361,8 +459,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="Make a draft entry" type="h6"/>
                         <section name="CreateWithAmounts" condition="templateAmountParameters.length">
                             <widgets>
-                                <form-list name="TemplateAmounts" list="templateAmountParameters" transition="fromTemplate" multi="true">
-                                    <hidden-parameters parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId}"/>
+                                <form-list name="TemplateAmounts"
+                                        list="templateAmountParameters"
+                                        transition="fromTemplate"
+                                        multi="true">
+                                    <hidden-parameters parameter-map="{organizationPartyId:organizationPartyId,
+                                                acctgTransTemplateId:acctgTransTemplateId}"/>
                                     <field name="parameterLabel" from="parameterName">
                                         <default-field title="Amount parameter">
                                             <display/>
@@ -394,7 +496,13 @@ along with this software (see the LICENSE.md file). If not, see
                                 </form-list>
                             </widgets>
                             <fail-widgets>
-                                <link url="fromTemplate" link-type="hidden-form" text="Create draft entry" btn-type="primary" icon="sym_o_note_add" parameter-map="{organizationPartyId:organizationPartyId,acctgTransTemplateId:acctgTransTemplateId}"/>
+                                <link url="fromTemplate"
+                                        link-type="hidden-form"
+                                        text="Create draft entry"
+                                        btn-type="primary"
+                                        icon="sym_o_note_add"
+                                        parameter-map="{organizationPartyId:organizationPartyId,
+                                            acctgTransTemplateId:acctgTransTemplateId}"/>
                             </fail-widgets>
                         </section>
                     </widgets>

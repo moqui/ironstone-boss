@@ -39,6 +39,5 @@ feature("a catalog editor creates and activates a draft, then assigns an identif
         page.text().includes(id + "-CUSTOMER")
         page.goto("/qapps/Products/Products?partyItemId=" + id + "-CUSTOMER")
         page.text().includes("Browser catalog product")
-        page.screenshot("Products-editor-completed", {fullPage: true})
     }
 })

@@ -19,7 +19,44 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="complete" type="Boolean"/>
         </out-parameters>
         <actions>
-            <script>ec.context.putAll(ec.resource.script('component://mr-boss/service/ironstone/accounting/Demo.js').execute('load', context))</script>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Demo.js"/>
+            <set field="demoResult" from="ec.resource.script(module).execute('load', context)"/>
+            <set field="complete" from="demoResult.complete"/>
+        </actions>
+    </service>
+    <service verb="load" noun="AccountingGatewayDemo" transaction="ignore" authenticate="anonymous-all" allow-remote="false">
+        <description>After the primary demonstration commits, provision its reviewed gateway drafts with independent named row results.</description>
+        <out-parameters>
+            <parameter name="complete" type="Boolean"/>
+            <parameter name="errors" type="List"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Demo.js"/>
+            <set field="demoResult" from="ec.resource.script(module).execute('loadGateway', context)"/>
+            <set field="complete" from="demoResult.complete"/>
+            <set field="errors" from="demoResult.errors"/>
+        </actions>
+    </service>
+    <service verb="load" noun="AccountingGatewaySetup" transaction="force-new" allow-remote="false">
+        <description>Commit the administrator-only gateway demonstration configuration and methods before independent draft creation.</description>
+        <out-parameters><parameter name="complete" type="Boolean"/></out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Demo.js"/>
+            <set field="demoResult" from="ec.resource.script(module).execute('loadGatewaySetup', context)"/>
+            <set field="complete" from="demoResult.complete"/>
+        </actions>
+    </service>
+    <service verb="load" noun="AccountingGatewayDraft" transaction="force-new" allow-remote="false">
+        <description>Administrator-only atomic fixed-ID demonstration draft, adopted through native payment services after its shared methods commit.</description>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="currencyUomId" required="true"/>
+        </in-parameters>
+        <out-parameters><parameter name="complete" type="Boolean"/></out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Demo.js"/>
+            <set field="demoResult" from="ec.resource.script(module).execute('loadGatewayDraft', context)"/>
+            <set field="complete" from="demoResult.complete"/>
         </actions>
     </service>
 </services>

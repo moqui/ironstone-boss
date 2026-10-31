@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- PaymentDetail's Gateway tab: the payment's gateway, each answer it gave, and Check with the gateway, which settles a
+    pending answer (mantle.account.PaymentServices.lookup#PaymentGatewayDetails). The gateway actions are in the payment
+    header. It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Gateway"
+        default-menu-index="3">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <transition name="lookupGatewayDetails">
+        <actions>
+            <service-call name="mantle.account.PaymentServices.lookup#PaymentGatewayDetails"
+                    in-map="{organizationPartyId:organizationPartyId, paymentId:paymentId}"
+                    out-map="lookupResult"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentGateway" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Gateway answers"/>
+                    <box-toolbar>
+                        <link url="lookupGatewayDetails"
+                                text="Check with the gateway"
+                                link-type="hidden-form"
+                                icon="sym_o_sync"
+                                condition="financePayment.canGatewayLookup"
+                                parameter-map="{organizationPartyId:organizationPartyId, paymentId:paymentId}"/>
+                        <link url="${sharedLinks['Payments/GatewayTransactions']}"
+                                text="Gateway transactions"
+                                link-type="anchor"
+                                condition="financePayment.canReadGateway"
+                                parameter-map="{organizationPartyId:organizationPartyId, paymentId:paymentId}"/>
+                    </box-toolbar>
+                    <box-body>
+                        <label text="Gateway: ${financePayment.gatewayDescription}"
+                                type="p"
+                                condition="financePayment.gatewayDescription"/>
+                        <section-iterate name="GatewayReasons" list="financePayment.gatewayReasonRows" entry="gatewayReason">
+                            <widgets>
+                                <label text="${gatewayReason.message}" type="p" style="m-muted"/>
+                            </widgets>
+                        </section-iterate>
+                        <section name="GatewayAnswers" condition="financePayment.canReadGateway">
+                            <widgets>
+                                <form-list name="PaymentGatewayAnswers"
+                                        list="financePayment.gatewayRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="paymentGatewayResponseId">
+                                        <default-field title="Answer">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentOperationEnumId">
+                                        <default-field title="Operation">
+                                            <display-entity entity-name="moqui.basic.Enumeration"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="transactionDateText">
+                                        <default-field title="Time">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="outcomeText">
+                                        <default-field title="Outcome">
+                                            <render-mode>
+                                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                                    outcomeColor}">${
+                                                    WebUtilities.encodeHtml(outcomeText || '')}</q-chip>]]></text>
+                                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                                    text: outcomeText || ""})}]]></text>
+                                                <text type="html">${outcomeText || ''}</text>
+                                            </render-mode>
+                                        </default-field>
+                                    </field>
+                                    <field name="referenceNum">
+                                        <default-field title="Reference">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="responseCode">
+                                        <default-field title="Code">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="reasonCode">
+                                        <default-field title="Reason">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="paymentOperationEnumId"/>
+                                            <field-ref name="transactionDateText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                            <field-ref name="outcomeText"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <label text="The gateway has not answered for this payment yet."
+                                        type="p"
+                                        style="m-muted"
+                                        condition="!financePayment.gatewayRows.length"/>
+                            </widgets>
+                        </section>
+                        <label text="Gateway answers require treasury access."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.canReadGateway"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

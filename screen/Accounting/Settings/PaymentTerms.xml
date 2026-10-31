@@ -14,7 +14,10 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <!-- Payment terms (design-accounting §15 PaymentTerms): the due terms invoices and bills take, each a time after the
     document date. Installment and discount lines are P8's. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payment terms" default-menu-index="4" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Payment terms"
+        default-menu-index="4"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
@@ -26,7 +29,9 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.SetupServices.get#Context" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <service-call name="mantle.ledger.SetupServices.get#Context"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="context"/>
     </actions>
     <widgets>
         <container style="row items-center q-col-gutter-sm">
@@ -34,7 +39,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Payment terms" type="h5"/>
             </container>
             <container style="col-auto">
-                <container-dialog id="NewTermDialog" button-text="New due term" type="primary" icon="sym_o_add" title="New due term" condition="organizationPartyId">
+                <container-dialog id="NewTermDialog"
+                        button-text="New due term"
+                        type="primary"
+                        icon="sym_o_add"
+                        title="New due term"
+                        condition="organizationPartyId">
                     <form-single name="DueTerm" transition="save">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field>
@@ -54,7 +64,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="termValueUomId">
                             <default-field title="Time unit">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'timeUnits',organizationPartyId:organizationPartyId,selected:termValueUomId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'timeUnits',
+                                                organizationPartyId:organizationPartyId, selected:termValueUomId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
@@ -84,7 +98,13 @@ along with this software (see the LICENSE.md file). If not, see
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
         <section name="Terms" condition="organizationPartyId">
             <widgets>
-                <form-list name="SettlementTerms" list="terms" skip-form="true" paginate="false" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+                <form-list name="SettlementTerms"
+                        list="terms"
+                        skip-form="true"
+                        paginate="false"
+                        select-columns="true"
+                        show-csv-button="true"
+                        show-xlsx-button="true">
                     <field name="description">
                         <default-field title="Term">
                             <display text="${description || settlementTermId}"/>

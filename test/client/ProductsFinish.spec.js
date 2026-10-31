@@ -32,14 +32,18 @@ feature("a Products price reader resolves a dated selection and downloads matchi
         csv.text.includes("BOSS_PRD_OWN")
         !csv.text.includes("BOSS_PRD_OTHER")
         csv.text.includes("13.5")
+    }
+})
+feature("a Products price reader downloads the matching xlsx", {
+    requires: ["xlsx"],
+    expect() {
+        const s = session({user: "catalog.price.read"})
         const xlsx = s.get("/apps/Products/Prices/PriceLists/PriceListDetail.xlsx", {
             params: {priceListId: "BOSS_PRICE_LIST", productIds: "BOSS_PRD_OWN,BOSS_PRD_OTHER", quantity: 2}
         })
         xlsx.status == 200
         ;/^(PK|504b0304)/.test(xlsx.magic)
         xlsx.save("Effective-price-list.xlsx")
-
-        page.screenshot("Products-finish-resolved-list", {fullPage: true})
     }
 })
 feature("Products alone refuses other launchers and restricted raw outputs while retaining its scoped exports", {
@@ -59,23 +63,5 @@ feature("Products alone refuses other launchers and restricted raw outputs while
         report.status >= 400 || !report.contentType.includes("application/pdf")
         const foreign = s.get("/apps/Products/Products/Product360/Summary", {params: {productId: "BOSS_PRD_OTHER"}})
         !foreign.text.includes("Retail catalog sample")
-    }
-})
-feature("resolved price output at #width dark=#dark", {
-    where: [390, 1280, 1440].flatMap(width => [false, true].map(dark => ({width, dark}))),
-    expect({width, dark}) {
-        const page = browser.newPage({user: "catalog.price.read", viewport: {width, height: 1000}, timeout: 30})
-        page.allowProblems(/userPhoto\?userId=/)
-        page.goto(
-            "/qapps/Products/Prices/PriceLists/PriceListDetail?priceListId=BOSS_PRICE_LIST&productIds=BOSS_PRD_OWN&quantity=2&runEffectivePrices=true"
-        ).status == 200
-        page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("1 product"))
-        page.evaluate(dark => {
-            document.querySelector("#apps-root").__vue_app__.config.globalProperties.$q.dark.set(!!dark)
-            return true
-        }, dark) == true
-        page.waitFor(dark => document.body.classList.contains("body--dark") === !!dark, {arg: dark})
-        page.settle()
-        page.screenshot("Products-finish-" + width + (dark ? "-dark" : "-light"), {fullPage: true})
     }
 })

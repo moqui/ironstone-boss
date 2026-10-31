@@ -82,7 +82,6 @@ feature("a finance administrator saves due terms, dated rates and document prefe
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser review"))
         page.text().includes("1 stored, 1 refused")
         assert.ok(/\d{4}-\d{2}-\d{2}/.test(page.text()))
-        page.screenshot("Accounting-settings-rates", {fullPage: true})
         go("DocumentSettings").status == 200
         page.fill("input[name=invoiceIdPrefix]", "BROWSER-")
         page.fill("input[name=changeReason]", "Browser numbering preferences")
@@ -91,6 +90,5 @@ feature("a finance administrator saves due terms, dated rates and document prefe
             exact: true
         }).click()
         page.waitFor(() => document.querySelector("input[name=invoiceIdPrefix]")?.value === "BROWSER-")
-        page.screenshot("Accounting-settings-documents", {fullPage: true})
     }
 })

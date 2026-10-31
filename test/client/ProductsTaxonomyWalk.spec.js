@@ -62,7 +62,6 @@ feature("an editor moves one category edge, retains the other parent and manages
         page.evaluate(
             () => window.taxonomyConfirmation.includes("Industries") && window.taxonomyConfirmation.includes("Services catalog")
         ) == true
-        page.screenshot("Taxonomy-multi-parent-after-move", {fullPage: true})
         const featureId = "P3_BROWSER_F_" + stamp
         page.goto("/qapps/Products/Features/NewFeature")
         page.fill("input[name=productFeatureId]", featureId)
@@ -83,6 +82,5 @@ feature("an editor moves one category edge, retains the other parent and manages
         groupDialog.getByRole("button", {name: "Save", exact: true}).click()
         page.waitFor(() => !document.querySelector("[role=dialog]"))
         page.text().includes(featureId)
-        page.screenshot("Taxonomy-feature-group-completed", {fullPage: true})
     }
 })

@@ -19,7 +19,6 @@ feature("a supplier editor maintains an offer and reads the same supply facts fr
         dialog.getByRole("button", {name: "Create offer", exact: true}).click()
         page.waitFor(() => !document.querySelector("[role=dialog]"))
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("BROWSER-OFFER-125"))
-        page.screenshot("Supplier-offer-created", {fullPage: true})
         page.goto("/qapps/Products/Products/Product360/Suppliers?productId=BOSS_PRD_OWN&organizationPartyId=ORG_ZIZI_SERVICES")
             .status == 200
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("BROWSER-OFFER-125"))
@@ -32,7 +31,6 @@ feature("a supplier editor maintains an offer and reads the same supply facts fr
             "/qapps/Products/SupplierPrices/Supplier360/Prices?vendorPartyId=BOSS_PRD_SUPPLIER&organizationPartyId=ORG_ZIZI_SERVICES"
         ).status == 200
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("BROWSER-OFFER-125"))
-        page.screenshot("Supplier-offers-embed", {fullPage: true})
     }
 })
 feature("creating an offer in the second buyer context keeps that internal buyer in the submitted form", {
@@ -53,6 +51,5 @@ feature("creating an offer in the second buyer context keeps that internal buyer
         page.waitFor(() => !document.querySelector("[role=dialog]"))
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("BROWSER-RETAIL-250"))
         page.evaluate(() => new URL(window.location.href).searchParams.get("organizationPartyId")) === "ORG_ZIZI_RETAIL"
-        page.screenshot("Supplier-second-buyer-created", {fullPage: true})
     }
 })

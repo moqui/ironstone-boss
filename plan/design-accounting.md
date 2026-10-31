@@ -196,13 +196,14 @@ These Mantle SECAs and ServiceJobs already run on paths this file designs (D1). 
 whether the design keeps it, runs it only under a condition, or replaces it. Crosscut §1.3 holds
 the suite register.
 
-Each Mantle rule change below, and each new refusal in a Mantle service, sits behind its own
-flag, off by default, so plain Mantle and its flow specs keep their behavior (impl-accounting §4,
-F27). Accounting's flags are audit-logged fields of `PartyAcctgPreference`, inherited as its other
-fields are: D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency
-refusal, the hold guards and project cost posting (§15 PostingDefaults). Their names are
-neutral, since Mantle never names BOSS. BOSS's demo organization turns them on; the
-organizations Mantle's specs use leave them off.
+Each Mantle rule change below, and each new refusal in a Mantle service, is how Mantle behaves
+from then on. Only a change that would break Mantle's flow specs stays behind its own flag, off by
+default, listed with its reason in impl-accounting §4 (F27): today `postingGuardEnabled`, the
+posting guard; D2's receipt billing, D3's pack invoice and D11's return settlement change what
+those specs assert and get flags when built. A flag is an audit-logged field of
+`PartyAcctgPreference`, inherited as its other fields are, with a neutral name, since Mantle never
+names BOSS. BOSS's demo organization turns the flags on; the organizations Mantle's specs use
+leave them off.
 
 | SECA or job | Runs on | This design | Where |
 | --- | --- | --- | --- |
@@ -266,7 +267,7 @@ proposed; framework currency units are `moqui.basic.Uom` and `moqui.basic.UomCon
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Payments | `Accounting/Payments/Payments` | list | xml | Find receipts, disbursements, refunds and pending validation. | `Payment` | own | AR; AP; treasury | parity | Payment rows; find parameters |
 | PaymentDetail | `Accounting/Payments/PaymentDetail` | detail | xml | Control a payment and its allocations. | `Payment paymentId` | own | treasury | parity | Payment paymentId |
-| GatewayTransactions | `Accounting/Payments/GatewayTransactions` | list | xml | Investigate gateway attempts and uncertain outcomes. | `PaymentGatewayResponse` | own | treasury | parity | PaymentGatewayResponse rows; find parameters |
+| GatewayTransactions | `Accounting/Payments/GatewayTransactions` | list | xml | Investigate gateway responses and pending outcomes. | `PaymentGatewayResponse` | own | treasury | parity | PaymentGatewayResponse rows; find parameters |
 
 ### Banking
 
@@ -526,10 +527,10 @@ Every state change (approve, finalize, resume, cancel) goes through proposed `ir
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
 | StatementOptions | wizard step | Choose period and recipients | organization, customers, as-of date, from date, currency, include zero balance | — | mantle.account.InvoiceServices.get#ReceivableStatementInfo | Accounting/Invoice/FindInvoice CustomerStatementForm; ReportList CustomerStatementForm |
-| StatementPreview | display | Review totals and documents | customer, opening, invoices, payments, closing, currency | — | mantle.account.InvoiceServices.get#ReceivableStatementInfo | Accounting/Invoice/ReceivableStatement; ERPNext process_statement_of_accounts |
-| StatementDelivery | wizard step | Print/download or send the reviewed set | template, recipient, attachment, batch result | — | proposed `ironstone.accounting.CollectionServices.send#Statements` | ERPNext Process Statement of Accounts |
+| StatementPreview | display | Review totals and documents | customer, open invoices, receipts, aging, currency | — | mantle.account.InvoiceServices.get#ReceivableStatementInfo | Accounting/Invoice/ReceivableStatement; ERPNext process_statement_of_accounts |
+| StatementDelivery | wizard step | Print/download or send the reviewed set | template, recipient, attachment, batch result | — | mantle.account.CollectionServices.send#Statements | ERPNext Process Statement of Accounts |
 
-**Actions:** Preview is mandatory before a send. Print/download uses the same as-of snapshot; sent statements retain recipient and snapshot reference. Batch failures are per recipient.
+**Actions:** Preview is mandatory before a send. A statement is the customer's open items today, aged as of the chosen date (`mantle.account.CollectionServices.get#Statements`); there is no opening balance and no stored snapshot. A send goes through an EmailTemplate, and its EmailMessage rows are the record. Batch failures are per recipient.
 
 **Navigation:** The receivables entry and Home queues link here; source identifiers open their Accounting detail mount or an authorized shared record. Back preserves find filters.
 
@@ -860,17 +861,18 @@ Internal AP users separately open the resulting incoming bill from their own aut
 | --- | --- | --- | --- | --- | --- | --- |
 | PaymentFind | find | Choose direction and state | organization, party, instrument, date, status, unapplied, currency | — | — | Accounting/Payment/FindPayment |
 | PaymentList | list | Show cash and application state | payment, direction, party, amount, applied, unapplied, status, reference | — | entity | Accounting/Payment/FindPayment PaymentList |
-| NewPayment | dialog | Enter a receipt or disbursement | direction, party, organization, date, amount, currency, payment method, reference | — | mantle.account.PaymentServices.create#Payment | Accounting/Payment/FindPayment NewInPaymentForm; NewOutPaymentForm |
-| InternalTransfer | dialog | Move money between two of the organization's bank or cash accounts | from payment method, to payment method, amount, currency, date, fee, reference | — | proposed `ironstone.accounting.BankServices.create#InternalTransfer` | Akaunting Banking Transfers; ERPNext Payment Entry "Internal Transfer"; Dolibarr bank transfer |
+| NewPayment | dialog | Enter a receipt or disbursement | direction, party, organization, date, amount, currency, payment method, reference | — | mantle.account.PaymentServices.create#PaymentDraft; preview#PaymentState; change#PaymentState | Accounting/Payment/FindPayment NewInPaymentForm; NewOutPaymentForm |
+| InternalTransfer | dialog | Move money between two of the organization's bank or cash accounts | reviewed from/to methods, principal, currency, date, fee, explicit expense account, reference/reason | — | mantle.account.PaymentServices.preview#InternalTransfer; get#InternalTransferPreview; create#InternalTransfer | Akaunting Banking Transfers; ERPNext Payment Entry "Internal Transfer"; Dolibarr bank transfer |
 
 **Actions:** Tabs Incoming, Outgoing, To validate, Unapplied, Refunds, Transfers, All. New opens PaymentDetail. Validate requires treasury capability; no list edit can set a settled state without payment evidence. An outgoing payment applied to a bill with an open hold is refused ([Bills](#bills)).
 
-Transfer between accounts (R-ACC-17) is offered here and on BankAccountDetail. It creates two
-linked Payment records of the proposed payment type `PtInternalTransfer`: an outgoing leg on the
-from account and an incoming leg on the to account, linked through `Payment.toPaymentMethodId`.
-Both legs post through a cash-in-transit account that a `PaymentTypeGlAccount` row maps. Each leg
-reconciles on its own bank statement. The pair commits atomically, and a fee is a separate line
-to the bank-fee account.
+Transfer between accounts (R-ACC-17) is offered here and on BankAccountDetail. It creates one delivered
+`PtInternalTransfer` Payment from the organization to itself, `paymentMethodId` the source method and
+`toPaymentMethodId` the destination, through `create#Payment`. Its `post#Payment` posts the outgoing and the incoming
+transaction through the transit account of `PaymentTypeGlAccount`, each against its own method's cash account, so
+each side reconciles on its own statement. A fee is its own `PtDisbursement` payment to an outside party, posted to
+the chosen expense account (`overrideTypeGlAccountId`) and pointing at its transfer (`feeForPaymentId`). All of it
+commits or none does.
 
 **Navigation:** The payments entry and Home queues link here; source identifiers open their Accounting detail mount or an authorized shared record. Back preserves find filters.
 
@@ -888,8 +890,8 @@ to the bank-fee account.
 | --- | --- | --- | --- | --- | --- | --- |
 | PaymentHeader | single | Edit a proposed payment | party, amount, currency, date, instrument, reference, status | — | mantle.account.PaymentServices.get#PaymentDisplayInfo; mantle.account.PaymentServices.update#Payment | Accounting/Payment/EditPayment EditPayment |
 | PaymentApplications | list, editable rows | Apply against invoices/payments and view remaining balance | invoice/payment, due, total, remaining, application amount, discount/write-off/FX | — | mantle.account.PaymentServices.apply#InvoicePayment; mantle.account.PaymentServices.apply#PaymentToPayment; mantle.account.PaymentServices.apply#InvoiceToInvoice; mantle.account.PaymentServices.autoApply#Payment; mantle.account.PaymentServices.unapply#PaymentApplication | Accounting/Payment/EditPayment PaymentApplicationList; UnpaidInvoiceList; UnappliedPaymentList |
-| GatewayActions | dialog | Authorize, capture, release or refund | payment, requested amount, reason, operation identity | — | mantle.account.PaymentServices.authorize#Payment; mantle.account.PaymentServices.capture#Payment; mantle.account.PaymentServices.release#Payment; mantle.account.PaymentServices.refund#Payment | Accounting/Payment/EditPayment GatewayAuthorizeForm; GatewayCaptureForm; GatewayRefundForm |
-| RefundLink | dialog | Create and tie a refund to original payment | original payment, refundable amount, method, date, reason | — | mantle.account.PaymentServices.create#RefundPayment; mantle.account.PaymentServices.set#PaymentRefundFor | Accounting/Payment/EditPayment RefundPaymentForm; SetRefundForForm; GatewayRefundForForm |
+| GatewayActions | dialog | Authorize, capture, release or refund | payment, requested amount, reason, operation identity | — | mantle.account.PaymentServices.preview#PaymentGatewayAction; execute#PaymentGatewayAction, over authorize#, capture#, release# and refund#SinglePayment with an operationKey | Accounting/Payment/EditPayment GatewayAuthorizeForm; GatewayCaptureForm; GatewayRefundForm |
+| RefundLink | dialog | Create and tie a refund to original payment | original payment, refundable amount, method, date, reason | — | mantle.account.PaymentServices.preview#PaymentRefund; refund#ReviewedPayment, over create#RefundPayment | Accounting/Payment/EditPayment RefundPaymentForm; SetRefundForForm; GatewayRefundForForm |
 | PaymentEvidence | list, read | Inspect files, gateway results, ledger and audit | source payment, refunds, gateway reference, ledger, event time | — | mantle.account.PaymentServices.get#PaymentGatewayDetails; mantle.account.PaymentServices.create#PaymentContent; mantle.account.PaymentServices.update#PaymentContent | Accounting/Payment/EditPayment RefundPaymentList; GatewayResponseList; PaymentTxList; InvoiceGlaList; AuditLogList; NewContentForm; UpdateContentForm |
 
 **Actions:** Confirm delivered/cleared evidence through guarded transition adapter, post via mantle.ledger.PaymentAutoPostServices.post#Payment, reverse through mantle.ledger.PaymentAutoPostServices.revert#PaymentPost, void via mantle.account.PaymentServices.void#Payment. Posted corrections preserve original links. Refund check locks original refundable balance; partial refunds cumulative. Payment-date changes call mantle.account.PaymentServices.set#PaymentDate under lock/period controls. For a payable, `apply#InvoicePayment` runs inside the hold guard and refuses a bill with an open InvoiceHold (D4). A refund that an order change between pack and ship needs is created by proposed `SettlementServices.refund#OrderPayment` (D3) and shows here linked to the original payment.
@@ -910,10 +912,10 @@ to the bank-fee account.
 
 | Form | Kind | Purpose | Highlighted fields | Widgets of note | Services | Derived from |
 | --- | --- | --- | --- | --- | --- | --- |
-| GatewayResponses | list, read | Show response and original payment | payment, operation, request reference, response code, time, pending state | — | mantle.account.PaymentServices.get#PaymentGatewayDetails; mantle.account.PaymentServices.poll#PaymentGatewayDetails | Accounting/Payment/EditPayment GatewayResponseList |
-| GatewayReconcile | dialog | Refresh a pending provider result | payment, request reference, last attempt | — | mantle.account.PaymentServices.poll#PaymentGatewayDetails | Odoo payment transaction provider actions |
+| GatewayResponses | list, read | Show response and original payment | payment, operation, request reference, response code, time, pending state | — | mantle.account.PaymentServices.find#PaymentGatewayTransactions (PaymentGatewayResponse rows); mantle.account.PaymentServices.lookup#PaymentGatewayDetails | Accounting/Payment/EditPayment GatewayResponseList |
+| GatewayReconcile | dialog | Refresh a pending provider result | payment, request reference, last response | — | mantle.account.PaymentServices.lookup#PaymentGatewayDetails (get#SinglePaymentGatewayDetails) | Odoo payment transaction provider actions |
 
-**Actions:** Inspect/poll is primary. Capture/refund goes to PaymentDetail with the same operation identity. Redact credentials and full card/bank values; avoid free-text raw response leakage.
+**Actions:** Inspect and look up are primary. Capture/refund goes to PaymentDetail with the same operation identity. Redact credentials and full card/bank values; avoid free-text raw response leakage.
 
 **Navigation:** The payments entry and Home queues link here; source identifiers open their Accounting detail mount or an authorized shared record. Back preserves find filters.
 
@@ -2787,7 +2789,7 @@ batches. The shared crosscut roll-up deduplicates these needs with other apps.
 | AC-17 Advanced finance models | data model | Proposed `AccountingLease`, `RevenueSchedule`, `IntercompanyBatch` and versioned schedule/entry children; `LeaseServices`, `RecognitionServices`, `IntercompanyServices` | Later leases, recognition and intercompany | Lease terms/rate/policy and liability/amortization schedule; obligation-based recognition allocations; paired organization entries with both permissions/periods. Shared AccountingPeriodRun stores posted results. Consolidation/report adjustments leave local books intact. |
 | AC-18 Providers, output and import review | shell item, service type | Accounting palette/quick-create/Today/approval providers; `DocumentServices` and import adapters using existing render/delivery primitives | All named shell sources and outputs | Names/record context from §1.3; localized print templates; approved scheduled sends; batch status and row error downloads. Inspect current framework upload/print capabilities before adding widgets. No new general protocol client belongs in BOSS. Approval topics `BillApproval`, `BillHoldRelease`, `PaymentRunApproval`, `CreditHoldRelease`, `BudgetOverride` and `PaymentValidation`, and the notification `ProductionCostReview` (§14 Approvals); Accounting's Approvals mount passes them to `get#UserNotifications` as its topic list. Folds into crosscut CX-SHELL (R-XC-18). |
 | AC-19 Base-currency posting and realized FX | data model, service type | Extend `mantle.ledger.InvoiceAutoPostServices`, `mantle.ledger.PaymentAutoPostServices` and `post#AcctgTrans`; proposed applied-rate fields on Invoice and Payment | All postings; ReceivablesWorkbench; PayablesWorkbench; Currencies; AdvancedPeriodRun; Setup | Posting converts each document amount to `PartyAcctgPreference.baseCurrencyUomId`. It stores the applied decimal rate, rate date and source on the transaction, fills the existing `AcctgTrans.originalCurrencyUomId` and `AcctgTransEntry.originalCurrencyAmount`, and keeps the same rate on the Invoice or Payment. `post#PaymentApplication` books the realized difference to `GatForExGain` or `GatForExLoss`. Until this ships, the posting guard refuses, behind D18's flag (§1.4), to finalize or post a document whose currency differs from base, and Setup readiness shows "single currency until AC-19" (D18; R-ACC-01, which names it AC-16a). FX revaluation (AC-16) depends on it. |
-| AC-20 Internal transfers, deposits and payment references | seed data, data model, service type | Proposed payment type `PtInternalTransfer` with a cash-in-transit `PaymentTypeGlAccount`; proposed `mantle.account.payment.PaymentDeposit` and `Payment.paymentDepositId`; later proposed `Invoice.paymentReference`; `ironstone.accounting.BankServices.create#InternalTransfer`, `create#DepositSlip` | Payments; BankAccountDetail; BankRules; invoice print (later) | A transfer is two linked Payments, an outgoing and an incoming leg through the transit account, committed atomically and each reconciled on its own statement (R-ACC-17). A deposit groups receipts of one bank account and currency, so the deposit's bank line reconciles once (R-ACC-33). The structured payment reference and the QR block on the invoice print are later; BankRules can match on the reference (R-ACC-34). |
+| AC-20 Internal transfers, deposits and payment references | seed data, data model, service type | Implemented `PtInternalTransfer` with its transit `PaymentTypeGlAccount`, `Payment.overrideTypeGlAccountId` and `feeForPaymentId`; `mantle.account.PaymentServices.preview#InternalTransfer` / `create#InternalTransfer`, with the review a `PaymentReview` row; later proposed `PaymentDeposit`, `Payment.paymentDepositId`, `Invoice.paymentReference` and `create#DepositSlip` | Payments; BankAccountDetail; BankRules; invoice print (later) | A transfer is one Payment from the organization to itself, whose `post#Payment` posts an outgoing and an incoming transaction through the transit account, committed atomically, each side reconciled on its own statement; a fee is its own payment (R-ACC-17). A deposit groups receipts of one bank account and currency, so the deposit's bank line reconciles once (R-ACC-33). The structured payment reference and the QR block on the invoice print are later; BankRules can match on the reference (R-ACC-34). |
 | AC-21 Journal entry attachments | data model | Proposed `mantle.ledger.transaction.AcctgTransContent`, registered in `mantle.party.CommunicationServices.get#RecordLinkInfo`; folds into crosscut CX-RECORD-HOSTS | JournalEntryDetail | AcctgTrans has a single-field key, so it hosts RecordFiles once it has its own content entity (D25; R-ACC-31). |
 | AC-22 Ledger dimensions | data model, service type | Proposed `AcctgTransEntry.facilityId` and `costCenterId` (an internal organization Party); a proposed required-dimension setting on `GlAccountOrganization`; proposed `OrderItem.costCenterId` and `InvoiceItem.costCenterId` | AccountDetail, JournalEntryDetail, ExpensePosting, PostingMappings; Purchasing requests and orders; Projects and People postings | Posting refuses an entry missing a dimension its account requires; the invoice and payment auto-post services copy facility and cost centre from the source line; reports filter and group by both. Percentage distribution is `later` (R-ACC-11; decided Oct 28, 2026). |
 
@@ -2891,7 +2893,7 @@ COGS method; the standard cost in this design is the frozen basis of a productio
 | Scope labels | Home is `parity`, because it replaces OrgInternalSummary. Reconcile, unreconcile and no-reconcile stay as BankAccountDetail row actions, so manual reconciliation keeps parity while ReconciliationDetail is `new` (R-ACC-25). |
 | Cash forecast | A cash forecast is left to Insights; Accounting shows cash by bank on Home and adds no forecast screen in the first release. |
 | Root and organization filters | `BOSS_ACCOUNTING` is the root user group and artifact group. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`; `BOSS_ACCOUNTING_ADMIN` has all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT`. `AccessServices` checks every supplied organization and record; unfiltered child records are read only through services that check their parent's organization, and `GlAccount` stays global (§1; impl-accounting §4; impl-drawers-commons §4). |
-| Mantle rule flags | Each Mantle rule change (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards, project cost posting) is adopted by its own flag, off by default, an audit-logged `PartyAcctgPreference` field with a neutral name, so plain Mantle and its flow specs keep their behavior; BOSS's demo organization turns them on (§1.4; impl-accounting §4, F27). |
+| Mantle rule flags | A Mantle rule change is the one behavior, unless it would break Mantle's flow specs; then it is adopted by its own flag, off by default, an audit-logged `PartyAcctgPreference` field with a neutral name, listed with its reason in impl-accounting §4, and BOSS's demo organization turns it on. Today that is `postingGuardEnabled`; D2's receipt billing, D3's pack invoice and D11's return settlement get theirs when built (§1.4; impl-accounting §4, F27). |
 | Operation record | CX-POSTING keeps one Mantle operation record keyed by `operationKey`, checked and written by each posting service in the posting's transaction (§18.1; impl-accounting §4). |
 | Ledger reports and GL summaries | Reports read closed periods' GL summary rows, which close computes and stores, and sum open periods from posted entries at read time; `realTimeGlSummary` stays as each organization has it, and no report depends on it (§13; impl-accounting §4). |
 | Self-approval | One audit-logged `PartyAcctgPreference` field, off by default, set only by `BOSS_ACCOUNTING_ADMIN`, covering every Accounting approval; a decision whose approver drafted the record is stamped self-approved (§1.1; impl-accounting §4). |
@@ -2964,4 +2966,18 @@ methods return masked identifiers. Active PaymentGatewayOrganization records are
 forms may select those bindings but cannot write gateway credentials or executable service configuration.
 DocumentSettings retains Mantle numbering fields and issued identities and previews the approved standard layout.
 PASS Billing/Supplier runtime remains P18; its mount, target, invitation, media, canonical URL and gateway CSP
-contracts are documented in mr-pass/plan/design-forum.md. A durable pending-provider fixture is still required by P18.
+contracts are documented in mr-pass/plan/design-forum.md. The test gateway in Mantle's `PaymentTestServices.xml`
+answers pending and declined (P5, R2); P18 adds the portal-specific capability, gateway and remote-frontend integration coverage.
+
+## P4–P5 implemented contracts
+
+P4–P5 are built on Mantle's own services, after the review R2 in [impl-accounting](impl-accounting.md) removed what
+they first built beside them; those services supersede the older writer, poller and BOSS service names in the tables
+above. Invoices change state through `change#InvoiceState`, print and send through Mantle's templates, an
+EmailTemplate and `send#Invoice`, and credit through `create#InvoiceCreditMemo`. Statements are today's open items,
+aged as of a date. Settlement applies through `apply#InvoicePayment`, `apply#PaymentToPayment` and
+`apply#InvoiceToInvoice`; payment state changes through `update#Payment`; gateway actions through the
+`*#SinglePayment` services with an operation key; refunds through `create#RefundPayment`; a transfer is one payment.
+Each review a user confirms is a `PaymentReview` row. Credentials and executable gateway configuration never reach the
+app. The contracts are in [AccountingImplementation](../docs/AccountingImplementation.md). Deposits, bank sessions,
+payable holds, later reports and the rest of P6–P21 remain planned.

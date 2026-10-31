@@ -686,37 +686,35 @@ along with this software (see the LICENSE.md file). If not, see
     </service>
 
     <service verb="update" noun="InvoiceStatus">
-        <description>InvoiceDetail's moves on a client invoice of a project (get#InvoiceAccess): approve (In-Process to Finalized: posted
-            to the ledger when the organization keeps one), resume (Finalized back to In-Process), cancel (In-Process or Finalized: its time
-            is unbilled again, mantle.account.InvoiceServices.cancel#Invoice through its rule). In one transaction.</description>
+        <description>InvoiceDetail's moves on a client invoice of a project (get#InvoiceAccess), through Mantle's
+            change#InvoiceState with its period, posting and application checks: approve (finalized: posted to the ledger
+            when the organization keeps one), resume (back to In-Process, with a reason) and cancel (its time is unbilled
+            again, mantle.account.InvoiceServices.cancel#Invoice through its rule).</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="action" required="true"/>
         </in-parameters>
         <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client') { ec.message.addError(L('Only a client invoice is changed here')); return }
-            const status = access.invoice.statusId
-            const moves = {approve: [['InvoiceInProcess'], 'InvoiceFinalized', 'Invoice approved'], resume: [['InvoiceFinalized'], 'InvoiceInProcess', 'Invoice open to changes again'],
-                cancel: [['InvoiceInProcess', 'InvoiceFinalized'], 'InvoiceCancelled', 'Invoice cancelled; its time is unbilled again']}
-            const move = moves[action]
-            if (!move) { ec.message.addError(L('Unknown action')); return }
-            if (!move[0].includes(status)) { ec.message.addError(ec.resource.expand('Invoice ${invoiceId} cannot be changed that way now', '', {invoiceId})); return }
-            if (action === 'approve' && !ec.entity.find('mantle.account.invoice.InvoiceItem').condition('invoiceId', invoiceId).disableAuthz().count()) {
-                ec.message.addError(L('The invoice has no lines')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try { ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: move[1]}).call() }
-            finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L(move[2])
-        ]]></script></actions>
+        <actions>
+            <service-call name="ironstone.projects.BillingServices.get#InvoiceAccess" out-map="access"
+                    in-map="{invoiceId:invoiceId, need:'change'}"/>
+            <if condition="access.kind != 'client'"><return error="true" message="Only a client invoice is changed here"/></if>
+            <set field="messages" from="{approve:'Invoice approved', resume:'Invoice open to changes again',
+                cancel:'Invoice cancelled; its time is unbilled again'}"/>
+            <if condition="!messages[action]"><return error="true" message="Unknown action"/></if>
+            <!-- Projects calls finalizing Approve; it is not the finance approval (INVOICE_APPROVE) -->
+            <service-call name="mantle.account.InvoiceServices.change#InvoiceState"
+                    in-map="{invoiceId:invoiceId, organizationPartyId:access.invoice.fromPartyId,
+                        action:(action == 'approve' ? 'finalize' : action), lastUpdatedStamp:access.invoice.lastUpdatedStamp,
+                        changeReason:'Project invoice ' + action}"/>
+            <set field="message" from="ec.l10n.localize(messages[action])"/>
+        </actions>
     </service>
 
     <service verb="update" noun="InvoiceHeader">
-        <description>InvoiceDetail's Edit on a draft client invoice: the invoice date, payment terms (the due date follows), reference,
-            description and the message to the client (mantle.account.InvoiceServices.update#Invoice).</description>
+        <description>InvoiceDetail's Edit on a draft client invoice, through Mantle's store#InvoiceDraft: the invoice date
+            (yyyy-MM-dd), payment terms (the due date follows), reference, description and the message to the client; an empty
+            one is cleared.</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="invoiceDate"/>
@@ -726,105 +724,83 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="invoiceMessage"/>
         </in-parameters>
         <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client' || access.invoice.statusId !== 'InvoiceInProcess') { ec.message.addError(L('Only a draft client invoice is edited')); return }
-            let date = null
-            if (invoiceDate) {
-                date = ec.l10n.parseTimestamp(String(invoiceDate).substring(0, 10) + ' 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS')
-                if (date == null) { ec.message.addError(L('The invoice date is yyyy-MM-dd')); return }
-            }
-            if (settlementTermId && !ec.entity.find('mantle.account.invoice.SettlementTerm').condition('settlementTermId', settlementTermId).useCache(true).one()) {
-                ec.message.addError(L('Not a payment term')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try {
-                const fields = {invoiceId: invoiceId, settlementTermId: settlementTermId || null, referenceNumber: referenceNumber || null, description: description || null,
-                    invoiceMessage: invoiceMessage || null}
-                if (date != null) fields.invoiceDate = date
-                ec.service.sync().name('mantle.account.InvoiceServices.update#Invoice').parameters(fields).call()
-                // the due date follows the terms and the date (Mantle's InvoiceSetDueDate keeps one already set)
-                if (!ec.message.hasError()) ec.service.sync().name('mantle.account.InvoiceServices.checkSet#InvoiceDueDate').parameters({invoiceId: invoiceId, overrideExisting: true}).call()
-            } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L('Invoice saved')
-        ]]></script></actions>
+        <actions>
+            <service-call name="ironstone.projects.BillingServices.get#InvoiceAccess" out-map="access"
+                    in-map="{invoiceId:invoiceId, need:'change'}"/>
+            <if condition="access.kind != 'client' || access.invoice.statusId != 'InvoiceInProcess'">
+                <return error="true" message="Only a draft client invoice is edited"/></if>
+            <set field="header" from="{invoiceId:invoiceId, organizationPartyId:access.invoice.fromPartyId,
+                lastUpdatedStamp:access.invoice.lastUpdatedStamp, settlementTermId:settlementTermId || null,
+                referenceNumber:referenceNumber || null, description:description || null, invoiceMessage:invoiceMessage || null}"/>
+            <if condition="invoiceDate">
+                <set field="header.invoiceDate" from="ec.l10n.parseTimestamp(String(invoiceDate).substring(0, 10) + ' 00:00:00.000',
+                    'yyyy-MM-dd HH:mm:ss.SSS')"/>
+                <if condition="header.invoiceDate == null"><return error="true" message="The invoice date is yyyy-MM-dd"/></if>
+            </if>
+            <service-call name="mantle.account.InvoiceServices.store#InvoiceDraft" in-map="header"/>
+            <set field="message" from="ec.l10n.localize('Invoice saved')"/>
+        </actions>
     </service>
 
     <service verb="remove" noun="InvoiceLine">
-        <description>InvoiceDetail's Remove on a line of a draft client invoice (mantle.account.InvoiceServices.delete#InvoiceItem): its time
-            is unbilled again.</description>
+        <description>InvoiceDetail's Remove on a line of a draft client invoice, through Mantle's delete#InvoiceDraftItem: its
+            time or milestone share is unbilled again.</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="invoiceItemSeqId" required="true"/>
         </in-parameters>
         <out-parameters><parameter name="message"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client' || access.invoice.statusId !== 'InvoiceInProcess') { ec.message.addError(L('Only a draft client invoice is changed')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try { ec.service.sync().name('mantle.account.InvoiceServices.delete#InvoiceItem').parameters({invoiceId: invoiceId, invoiceItemSeqId: invoiceItemSeqId}).call() }
-            finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-            if (!ec.message.hasError()) message = L('Line removed; its time or milestone share is unbilled again')
-        ]]></script></actions>
+        <actions>
+            <service-call name="ironstone.projects.BillingServices.get#InvoiceAccess" out-map="access"
+                    in-map="{invoiceId:invoiceId, need:'change'}"/>
+            <if condition="access.kind != 'client' || access.invoice.statusId != 'InvoiceInProcess'">
+                <return error="true" message="Only a draft client invoice is changed"/></if>
+            <entity-find-one entity-name="mantle.account.invoice.InvoiceItem" value-field="line" disable-authz="true"/>
+            <if condition="line == null"><return error="true" message="Invoice line is not available"/></if>
+            <service-call name="mantle.account.InvoiceServices.delete#InvoiceDraftItem"
+                    in-map="{invoiceId:invoiceId, organizationPartyId:access.invoice.fromPartyId,
+                        invoiceItemSeqId:invoiceItemSeqId, lastUpdatedStamp:line.lastUpdatedStamp}"/>
+            <set field="message" from="ec.l10n.localize('Line removed; its time or milestone share is unbilled again')"/>
+        </actions>
     </service>
 
     <service verb="send" noun="Invoice">
-        <description>InvoiceDetail's Send (design-projects.md §10, §14): a client invoice by email to toAddresses (the client's billing
-            address by default) from the vendor's billing address, with the printed invoice and its time detail as a PDF (the PDF is left
-            out, logged, when the server cannot make one) and the lines in the message; a draft is approved first, and an approved invoice
-            becomes Sent. The approval and the status change are one transaction; the email itself waits in the Outbox when the mail
-            server does not take it, which is said.</description>
+        <description>InvoiceDetail's Send (design-projects.md §10, §14): a client invoice by email to toAddresses, through
+            Mantle's send#Invoice with the BOSS_PROJECT_INVOICE template from the vendor's billing address: a draft is
+            approved (finalized) first, its print with the time detail (Billing/InvoicePrint.xml) is frozen as a PDF and
+            attached, and it becomes Sent. An address that is not one is named and the others are sent; an email the mail
+            server does not take waits in the Outbox, which is said. Sending the same again answers the first
+            result.</description>
         <in-parameters>
             <parameter name="invoiceId" required="true"/>
             <parameter name="toAddresses" required="true"/>
             <parameter name="note"/>
+            <parameter name="attachmentContentIdList" type="List"/>
+            <parameter name="attachmentVersions" type="Map"/>
         </in-parameters>
         <out-parameters><parameter name="message"/><parameter name="emailMessageId"/></out-parameters>
-        <actions><script><![CDATA[
-            const L = (text) => ec.l10n.localize(text)
-            const access = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoiceAccess').parameters({invoiceId: invoiceId, need: 'change'}).call() || {}
-            if (ec.message.hasError()) return
-            if (access.kind !== 'client') { ec.message.addError(L('Only a client invoice is sent here')); return }
-            const addresses = String(toAddresses || '').split(/[,;]/).map((address) => address.trim()).filter((address) => address)
-            if (!addresses.length) { ec.message.addError(L('Give the address to send to')); return }
-            const bad = addresses.filter((address) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address))
-            if (bad.length) { ec.message.addError(ec.resource.expand('Not an email address: ${addresses}', '', {addresses: bad.join(', ')})); return }
-            const status = access.invoice.statusId
-            if (!['InvoiceInProcess', 'InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked'].includes(status)) { ec.message.addError(L('This invoice is not sent now')); return }
-            const wasDisabled = ec.artifactExecution.disableAuthz()
-            try {
-                if (!ec.entity.find('mantle.account.invoice.InvoiceItem').condition('invoiceId', invoiceId).count()) { ec.message.addError(L('The invoice has no lines')); return }
-                if (status === 'InvoiceInProcess') {
-                    ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: 'InvoiceFinalized'}).call()
-                    if (ec.message.hasError()) return
-                }
-                const inv = ec.entity.find('mantle.account.invoice.Invoice').condition('invoiceId', invoiceId).one()
-                const print = ec.service.sync().name('ironstone.projects.BillingServices.get#InvoicePrint').parameters({invoiceId: invoiceId, forEmail: true}).call() || {}
-                const fromName = print.fromName || ''
-                const fromAddress = Array.from(ec.entity.find('mantle.party.contact.PartyContactMechInfo').condition('partyId', inv.fromPartyId)
-                        .condition('contactMechPurposeId', 'EmailBilling').conditionDate('fromDate', 'thruDate', null).list())[0]?.infoString || ''
-                const enc = (text) => String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-                const subject = ec.resource.expand('Invoice ${invoiceId} from ${fromName}', '', {invoiceId: invoiceId, fromName: fromName})
-                const body = '<html><body>' + (note ? '<p>' + enc(note).replace(/\n/g, '<br>') + '</p>' : '') + (print.printHtml || '') + '</body></html>'
-                const bodyText = [note || '', subject, print.summaryText || ''].filter((part) => part).join('\n\n')
-                const sent = ec.service.sync().name('org.moqui.impl.EmailServices.send#EmailTemplate').parameters({emailTemplateId: 'BOSS_PROJECT_INVOICE',
-                    toAddresses: addresses.join(','), bodyParameters: {subject: subject, fromAddress: fromAddress, fromName: fromName, invoiceId: invoiceId},
-                    body: body, bodyText: bodyText,
-                    attachments: [{fileName: 'Invoice-' + invoiceId + '.pdf', screenRenderMode: 'xsl-fo',
-                        attachmentLocation: 'component://mr-boss/screen/Projects/Billing/InvoicePrint.xml'}]}).call() || {}
-                if (ec.message.hasError()) return
-                emailMessageId = sent.emailMessageId || null
-                if (['InvoiceFinalized'].includes(inv.statusId)) ec.service.sync().name('update#mantle.account.invoice.Invoice').parameters({invoiceId: invoiceId, statusId: 'InvoiceSent'}).call()
-                if (ec.message.hasError()) return
-                const email = emailMessageId ? ec.entity.find('moqui.basic.email.EmailMessage').condition('emailMessageId', emailMessageId).one() : null
-                message = email && email.statusId !== 'ES_SENT' && email.statusId !== 'ES_READY'
-                    ? ec.resource.expand('Invoice ${invoiceId} sent to ${to}; the email waits in the Outbox', '', {invoiceId: invoiceId, to: addresses.join(', ')})
-                    : ec.resource.expand('Invoice ${invoiceId} sent to ${to}', '', {invoiceId: invoiceId, to: addresses.join(', ')})
-            } finally { if (!wasDisabled) ec.artifactExecution.enableAuthz() }
-        ]]></script></actions>
+        <actions>
+            <service-call name="ironstone.projects.BillingServices.get#InvoiceAccess" out-map="access"
+                    in-map="{invoiceId:invoiceId, need:'change'}"/>
+            <if condition="access.kind != 'client'"><return error="true" message="Only a client invoice is sent here"/></if>
+            <set field="request" from="[invoiceId, String(access.invoice.lastUpdatedStamp), toAddresses, note || null,
+                attachmentContentIdList ?? [], attachmentVersions ?? {}]"/>
+            <service-call name="mantle.account.InvoiceServices.send#Invoice" out-map="sent"
+                    in-map="{invoiceId:invoiceId, organizationPartyId:access.invoice.fromPartyId,
+                        lastUpdatedStamp:access.invoice.lastUpdatedStamp, emailTemplateId:'BOSS_PROJECT_INVOICE',
+                        operationKey:'project-invoice-' + ec.user.singleUseCodeHash(JSON.stringify(request)).replace(/[^A-Za-z0-9]/g, '').slice(0, 24),
+                        toAddresses:toAddresses, note:note, attachmentContentIdList:attachmentContentIdList ?? [],
+                        attachmentVersions:attachmentVersions ?? {},
+                        printLocation:'component://mr-boss/screen/Projects/Billing/InvoicePrint.xml'}"/>
+            <set field="recipients" from="Array.from(sent.recipientResults ?? [])"/>
+            <set field="emailMessageId" from="recipients.find((row) => row.emailMessageId)?.emailMessageId ?? null"/>
+            <set field="failed" from="recipients.filter((row) => row.status == 'failed')"/>
+            <set field="message" from="failed.length ? ec.resource.expand('Invoice ${invoiceId}: not sent to ${to}', '',
+                    {invoiceId:invoiceId, to:failed.map((row) => row.recipient).join(', ')}) :
+                ec.resource.expand(recipients.some((row) => row.status == 'queued') ?
+                    'Invoice ${invoiceId} sent to ${to}; the email waits in the Outbox' : 'Invoice ${invoiceId} sent to ${to}', '',
+                    {invoiceId:invoiceId, to:recipients.map((row) => row.recipient).join(', ')})"/>
+        </actions>
     </service>
 
     <service verb="get" noun="InvoicePrint">

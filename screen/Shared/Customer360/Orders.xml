@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Orders"
+        default-menu-index="2">
+    <parameter name="organizationPartyId"/>
+    <parameter name="customerPartyId"/>
+    <parameter name="appRoot"/>
+    <actions>
+        <!-- Customer360's actions read the customer when it renders with the tab -->
+        <if condition="customerDetail == null &amp;&amp; organizationPartyId">
+            <service-call name="ironstone.accounting.ReceivableServices.get#CustomerContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section name="CustomerTabOrders" condition="customerFound">
+            <widgets>
+                <label text="Orders" type="h6"/>
+                <form-list name="CustomerOrders" list="customerDetail.orders" skip-form="true" paginate="false">
+                    <field name="orderId">
+                        <header-field title="Order"/>
+                        <default-field>
+                            <display text="${orderId}"/>
+                        </default-field>
+                    </field>
+                    <field name="orderDate">
+                        <header-field title="Date"/>
+                        <default-field>
+                            <display text="${orderDateText || ''}"/>
+                        </default-field>
+                    </field>
+                    <field name="statusId">
+                        <header-field title="Status"/>
+                        <default-field>
+                            <display-entity entity-name="moqui.basic.StatusItem"/>
+                        </default-field>
+                    </field>
+                    <field name="grandTotal" align="right">
+                        <header-field title="Total"/>
+                        <default-field>
+                            <display currency-unit-field="currencyUomId"/>
+                        </default-field>
+                    </field>
+                    <columns type="mobile">
+                        <column>
+                            <field-ref name="orderId"/>
+                            <field-ref name="orderDate"/>
+                        </column>
+                        <column>
+                            <field-ref name="grandTotal"/>
+                            <field-ref name="statusId"/>
+                        </column>
+                    </columns>
+                </form-list>
+                <label text="No orders are linked to this customer and organization."
+                        type="p"
+                        style="m-muted"
+                        condition="!customerDetail.orders.length"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="WorkbenchContext" allow-remote="false">
+        <description>Read a customer's open receivable items and the user's settlement draft kept by Mantle behind draftId,
+            shaped for the workbench. Refuses a user without receivable read authority and an organization the user may
+            not work in. Changes nothing.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+            <parameter name="filterSubmit" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="direction" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="asOfDate" type="String"/>
+            <parameter name="effectiveDate" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="dueBucket" type="String"/>
+            <parameter name="invoiceRowsPageIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageSize" type="Integer"/>
+            <parameter name="creditRowsPageIndex" type="Integer"/>
+            <parameter name="creditRowsPageSize" type="Integer"/>
+            <parameter name="paymentRowsPageIndex" type="Integer"/>
+            <parameter name="paymentRowsPageSize" type="Integer"/>
+            <parameter name="paymentTargetRowsPageIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageSize" type="Integer"/>
+            <parameter name="draftId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="direction" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="asOfDate" type="String"/>
+            <parameter name="effectiveDate" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="dueBucket" type="String"/>
+            <parameter name="draftId" type="String"/>
+            <parameter name="workbench" type="Map"/>
+            <parameter name="draftAllocations" type="List"/>
+            <parameter name="draftAdjustments" type="List"/>
+            <parameter name="invoiceRows" type="List"/>
+            <parameter name="creditRows" type="List"/>
+            <parameter name="paymentRows" type="List"/>
+            <parameter name="paymentTargetRows" type="List"/>
+            <parameter name="invoiceRowsCount" type="Integer"/>
+            <parameter name="invoiceRowsPageIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageSize" type="Integer"/>
+            <parameter name="invoiceRowsPageMaxIndex" type="Integer"/>
+            <parameter name="invoiceRowsPageRangeLow" type="Integer"/>
+            <parameter name="invoiceRowsPageRangeHigh" type="Integer"/>
+            <parameter name="creditRowsCount" type="Integer"/>
+            <parameter name="creditRowsPageIndex" type="Integer"/>
+            <parameter name="creditRowsPageSize" type="Integer"/>
+            <parameter name="creditRowsPageMaxIndex" type="Integer"/>
+            <parameter name="creditRowsPageRangeLow" type="Integer"/>
+            <parameter name="creditRowsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentRowsCount" type="Integer"/>
+            <parameter name="paymentRowsPageIndex" type="Integer"/>
+            <parameter name="paymentRowsPageSize" type="Integer"/>
+            <parameter name="paymentRowsPageMaxIndex" type="Integer"/>
+            <parameter name="paymentRowsPageRangeLow" type="Integer"/>
+            <parameter name="paymentRowsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentTargetRowsCount" type="Integer"/>
+            <parameter name="paymentTargetRowsPageIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageSize" type="Integer"/>
+            <parameter name="paymentTargetRowsPageMaxIndex" type="Integer"/>
+            <parameter name="paymentTargetRowsPageRangeLow" type="Integer"/>
+            <parameter name="paymentTargetRowsPageRangeHigh" type="Integer"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="screenContext" from="ec.resource.script(settlements).execute('workbench', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="partyId" from="screenContext.partyId"/>
+            <set field="direction" from="screenContext.direction"/>
+            <set field="currencyUomId" from="screenContext.currencyUomId"/>
+            <set field="asOfDate" from="screenContext.asOfDate"/>
+            <set field="effectiveDate" from="screenContext.effectiveDate"/>
+            <set field="text" from="screenContext.text"/>
+            <set field="dueBucket" from="screenContext.dueBucket"/>
+            <set field="draftId" from="screenContext.draftId"/>
+            <set field="workbench" from="screenContext.workbench"/>
+            <set field="draftAllocations" from="screenContext.draftAllocations"/>
+            <set field="draftAdjustments" from="screenContext.draftAdjustments"/>
+            <set field="invoiceRows" from="screenContext.invoiceRows"/>
+            <set field="creditRows" from="screenContext.creditRows"/>
+            <set field="paymentRows" from="screenContext.paymentRows"/>
+            <set field="paymentTargetRows" from="screenContext.paymentTargetRows"/>
+            <set field="invoiceRowsCount" from="screenContext.invoiceRowsCount"/>
+            <set field="invoiceRowsPageIndex" from="screenContext.invoiceRowsPageIndex"/>
+            <set field="invoiceRowsPageSize" from="screenContext.invoiceRowsPageSize"/>
+            <set field="invoiceRowsPageMaxIndex" from="screenContext.invoiceRowsPageMaxIndex"/>
+            <set field="invoiceRowsPageRangeLow" from="screenContext.invoiceRowsPageRangeLow"/>
+            <set field="invoiceRowsPageRangeHigh" from="screenContext.invoiceRowsPageRangeHigh"/>
+            <set field="creditRowsCount" from="screenContext.creditRowsCount"/>
+            <set field="creditRowsPageIndex" from="screenContext.creditRowsPageIndex"/>
+            <set field="creditRowsPageSize" from="screenContext.creditRowsPageSize"/>
+            <set field="creditRowsPageMaxIndex" from="screenContext.creditRowsPageMaxIndex"/>
+            <set field="creditRowsPageRangeLow" from="screenContext.creditRowsPageRangeLow"/>
+            <set field="creditRowsPageRangeHigh" from="screenContext.creditRowsPageRangeHigh"/>
+            <set field="paymentRowsCount" from="screenContext.paymentRowsCount"/>
+            <set field="paymentRowsPageIndex" from="screenContext.paymentRowsPageIndex"/>
+            <set field="paymentRowsPageSize" from="screenContext.paymentRowsPageSize"/>
+            <set field="paymentRowsPageMaxIndex" from="screenContext.paymentRowsPageMaxIndex"/>
+            <set field="paymentRowsPageRangeLow" from="screenContext.paymentRowsPageRangeLow"/>
+            <set field="paymentRowsPageRangeHigh" from="screenContext.paymentRowsPageRangeHigh"/>
+            <set field="paymentTargetRowsCount" from="screenContext.paymentTargetRowsCount"/>
+            <set field="paymentTargetRowsPageIndex" from="screenContext.paymentTargetRowsPageIndex"/>
+            <set field="paymentTargetRowsPageSize" from="screenContext.paymentTargetRowsPageSize"/>
+            <set field="paymentTargetRowsPageMaxIndex" from="screenContext.paymentTargetRowsPageMaxIndex"/>
+            <set field="paymentTargetRowsPageRangeLow" from="screenContext.paymentTargetRowsPageRangeLow"/>
+            <set field="paymentTargetRowsPageRangeHigh" from="screenContext.paymentTargetRowsPageRangeHigh"/>
+        </actions>
+    </service>
+    <service verb="get" noun="SettlementReviewContext" allow-remote="false">
+        <description>A retained settlement review for Receivables/SettlementReview
+            (mantle.account.PaymentServices.get#SettlementPreview): its allocations, adjustments, balances before and after
+            and postings, its results once confirmed, and the parameters of the way back to the selection with the user's
+            draft (draftId). Every part is there: a review that does not exist, expired or is another user's has
+            reviewFound false. Refuses a payable review, a user without receivable read authority and an organization the
+            user may not work in. Changes nothing.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="previewId" type="String"/>
+            <parameter name="draftId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId" type="String"/>
+            <parameter name="draftId" type="String"/>
+            <parameter name="reviewFound" type="Boolean"/>
+            <parameter name="settlementReview" type="Map"/>
+            <parameter name="selectionParameters" type="Map"/>
+            <parameter name="newSelectionParameters" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="screenContext" from="ec.resource.script(settlements).execute('settlementReview', context)"/>
+            <set field="previewId" from="screenContext.previewId"/>
+            <set field="draftId" from="screenContext.draftId"/>
+            <set field="reviewFound" from="screenContext.reviewFound"/>
+            <set field="settlementReview" from="screenContext.settlementReview"/>
+            <set field="selectionParameters" from="screenContext.selectionParameters"/>
+            <set field="newSelectionParameters" from="screenContext.newSelectionParameters"/>
+        </actions>
+    </service>
+    <service verb="edit" noun="SettlementDraft" allow-remote="false">
+        <description>Add, change or remove an allocation or adjustment of the user's settlement draft, kept by Mantle
+            (store#SettlementDraft) behind draftId, for one customer, currency and date selection. Open items come as
+            reviewed kind:id~version tokens; refuses a source that is not a receipt or credit, a target that is not an
+            invoice or payment, an adjustment of anything but an invoice, a draft of another selection and more than 200
+            allocations or 50 adjustments. Needs receivable edit authority.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="partyId"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="asOfDate"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="draftId"/>
+            <parameter name="draftAction" required="true"><description>addAllocation, updateAllocation, removeAllocation,
+                addAdjustment, updateAdjustment or removeAdjustment</description></parameter>
+            <parameter name="rowId"/>
+            <parameter name="sourceToken"/>
+            <parameter name="targetToken"/>
+            <parameter name="amount"/>
+            <parameter name="itemTypeEnumId"/>
+            <parameter name="glAccountId"/>
+            <parameter name="reason"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="draftId"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <set field="draftId" from="ec.resource.script(settlements).execute('editDraft', context).draftId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="Settlement" allow-remote="false">
+        <description>Review the user's settlement draft (draftId) through mantle.account.PaymentServices.preview#Settlement
+            with the versions of its open items as the user chose them. Refuses a draft of another selection. Needs
+            receivable edit authority.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="partyId"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="asOfDate"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="draftId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="settlements" value="component://mr-boss/service/ironstone/accounting/Settlements.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#Settlement" out-map="reviewedSettlement"
+                    in-map="ec.resource.script(settlements).execute('previewRequest', context)"/>
+            <set field="previewId" from="reviewedSettlement.previewId"/>
+        </actions>
+    </service>
+</services>

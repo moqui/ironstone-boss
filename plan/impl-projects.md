@@ -45,7 +45,7 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
   Commons keeps its paths and its specs keep passing.
 - **Done for a phase:** impl-drawers-commons §4 "Done" (cargo tests for touched crates with goldens reviewed, the new
   Mantle specs under `./moq test mr-mantle`, `./moq test mr-boss` with AppStructure covering the new screens,
-  `moqui lint --screens` clean for BOSS, screenshots light and dark at 390, 1280 and 1440 px, the inventories'
+  `moqui lint --screens` clean for BOSS, the `test/client` walks passing, the inventories'
   **Implemented in** columns), the phase's walk in §8, and its row and **Built** note here.
 
 ## 3. Phases
@@ -831,7 +831,7 @@ Designed, not in this build:
 - **Per phase,** the "Done" rule of §2 and the phase's "usable when".
 - **End to end,** `./moq run`, signed in as `john.doe` (and the demo client user from P10), walking each built phase's
   "usable when" in order.
-- **Screenshots** with `example/test/gallery-shots.mjs`, light and dark.
+- **Client walks** with `moqui test-client mr-boss --serve` (mr-moqui `docs/dev/Client-Testing.md`).
 
 ## 9. Addendum: the client portal in mr-pass
 
@@ -890,7 +890,7 @@ F41–F43, for the PASS pattern.
 - **Done for a phase:** §2's Done for the Mantle and BOSS parts; `./moq test mr-pass mr-mantle mr-boss` with the app's
   specs, among them `ClientPortalAccess`, which carries ClientIsolation's cases over to the operations; the remote
   pair on PASS's RemoteFixtures pattern; `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern;
-  lint clean for PASS; screenshots light and dark at 390 and 1280 px; WorkProjectClients and the BOSS Client specs
+  lint clean for PASS; WorkProjectClients and the BOSS Client specs
   passing until C7 changes them; the phase's walk, and its row and **Built** note here.
 
 ### 9.3 Phases

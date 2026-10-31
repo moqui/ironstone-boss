@@ -23,7 +23,6 @@ feature("a stock planner opens the Stock tab and saves stock levels and a dated 
         tracking.getByRole("button", {name: "Save dated tracking policy", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser lot exception"))
         page.text().includes("Effective sources at this facility")
-        page.screenshot("Inventory-planner-policy-history", {fullPage: true})
     }
 })
 feature("a catalog editor reads stock policy without its write actions", {
@@ -35,6 +34,5 @@ feature("a catalog editor reads stock policy without its write actions", {
         !page.text().includes("Save stock policy")
         !page.text().includes("Save dated tracking policy")
         page.text().includes("Browser lot exception")
-        page.screenshot("Inventory-catalog-editor-readonly", {fullPage: true})
     }
 })

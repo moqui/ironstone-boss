@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A retained review of the payment (ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext), under the
+    payment's header: a state change, a release of applications, a gateway action or a refund (previewKind), with its
+    facts, the changes and postings it plans, and Confirm, which confirms it through the Mantle service of its kind
+    (confirm#PaymentReview). Once confirmed it shows the results: the posted transactions, issued files and a refund
+    payment. A review that expired, was confirmed or is another user's is "not available". -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Review"
+        default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <parameter name="previewId"/>
+    <parameter name="previewKind"/>
+    <transition name="confirmReview">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.confirm#PaymentReview" in-map="context"
+                    out-map="confirmed"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the review -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentReviewContext"
+                in-map="{organizationPartyId:organizationPartyId, paymentId:paymentId, previewId:previewId,
+                    previewKind:previewKind, financeDirection:financePayment?.financeDirection}"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
+        <set field="review" from="paymentReview"/>
+        <set field="paymentLinkParameters" from="{organizationPartyId:organizationPartyId, recordId:paymentId}"/>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="ReviewNotAvailable" condition="recordFound &amp;&amp; !reviewFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Review not available"/>
+                    <box-body>
+                        <label text="This review expired, was already confirmed, or is not yours. Start again from the payment."
+                                type="p"/>
+                        <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                text="Back to payment"
+                                link-type="anchor"
+                                parameter-map="paymentLinkParameters"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="PaymentReview" condition="recordFound &amp;&amp; reviewFound">
+            <widgets>
+                <container-box>
+                    <box-header title="${review.title}"/>
+                    <box-toolbar>
+                        <link url="${sharedLinks['Payments/PaymentDetail']}/${review.returnTab}"
+                                text="Back to payment"
+                                link-type="anchor"
+                                icon="arrow_back"
+                                parameter-map="paymentLinkParameters"/>
+                    </box-toolbar>
+                    <box-body>
+                        <section-include name="ReviewFacts" location="component://mr-boss/template/AccountingPayments.xml"/>
+                        <label text="The payment's amount is not available. Start again from the payment."
+                                type="p"
+                                style="text-warning"
+                                condition="review.summaryUnavailable"/>
+                        <section-iterate name="ReviewBlockers" list="review.blockers" entry="blocker">
+                            <widgets>
+                                <label text="${blocker.message || blocker.reasonCode || blocker}" type="p" style="text-warning"/>
+                            </widgets>
+                        </section-iterate>
+                        <section name="ConfirmPaymentReview" condition="review.canConfirm">
+                            <widgets>
+                                <label text="Confirm by ${review.expiresDateText}; the review expires then."
+                                        type="p"
+                                        style="text-caption m-muted"/>
+                                <form-single name="ConfirmReview" transition="confirmReview" map="review.confirmParameters">
+                                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                    <field name="paymentId"><default-field><hidden/></default-field></field>
+                                    <field name="previewId"><default-field><hidden/></default-field></field>
+                                    <field name="previewKind"><default-field><hidden/></default-field></field>
+                                    <field name="inputFingerprint"><default-field><hidden/></default-field></field>
+                                    <field name="operationKey"><default-field><hidden/></default-field></field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="${review.title}"
+                                                    type="${review.danger ? 'danger' : 'primary'}"
+                                                    confirmation="${review.confirmation}"/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <label text="This review can no longer be confirmed. Start again from the payment."
+                                type="p"
+                                style="m-muted"
+                                condition="!review.canConfirm &amp;&amp; !review.hasResults"/>
+                    </box-body>
+                </container-box>
+                <section name="ReviewChanges" condition="review.effectRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Changes"/>
+                            <box-body>
+                                <form-list name="ReviewEffects" list="review.effectRows" skip-form="true" paginate="false">
+                                    <field name="label">
+                                        <default-field title="Of">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="beforeText">
+                                        <default-field title="Before">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="afterText">
+                                        <default-field title="After">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="label"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="beforeText"/>
+                                            <field-ref name="afterText"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="ReviewRefundAmounts" condition="review.fundingRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Refund amounts"/>
+                            <box-body>
+                                <form-list name="ReviewRefundAmounts" list="review.fundingRows" skip-form="true" paginate="false">
+                                    <field name="label">
+                                        <default-field title="Amount of">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="beforeAmount" align="right">
+                                        <default-field title="Before">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="afterAmount" align="right">
+                                        <default-field title="After">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="label"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="beforeAmount"/>
+                                            <field-ref name="afterAmount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="ReviewFiles" condition="review.evidenceRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Supporting files"/>
+                            <box-body>
+                                <form-list name="ReviewFiles" list="review.evidenceRows" skip-form="true" paginate="false">
+                                    <field name="fileName">
+                                        <default-field title="File">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="fileName"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="description"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="ReviewApplications" condition="review.applicationEffects.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Applications"/>
+                            <box-body>
+                                <form-list name="ReviewApplications"
+                                        list="review.applicationEffects"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="fromPaymentId">
+                                        <default-field title="From payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="invoiceId">
+                                        <default-field title="Invoice">
+                                            <display text="${invoiceId || toInvoiceId || ''}"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="targetPaymentId">
+                                        <default-field title="To payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="originalDateText">
+                                        <default-field title="Original date">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amountOriginallyApplied" align="right">
+                                        <default-field title="Applied before">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="afterAmountApplied" align="right">
+                                        <default-field title="Applied after">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="invoiceId"/>
+                                            <field-ref name="targetPaymentId"/>
+                                            <field-ref name="originalDateText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amountOriginallyApplied"/>
+                                            <field-ref name="afterAmountApplied"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="ReviewBalances" condition="review.balanceRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Balances"/>
+                            <box-body>
+                                <form-list name="ReviewBalances" list="review.balanceRows" skip-form="true" paginate="false">
+                                    <field name="sourceId">
+                                        <conditional-field condition="recordPath" title="Document">
+                                            <link url="${sharedLinks[recordPath]}"
+                                                    text="${sourceId}"
+                                                    link-type="anchor"
+                                                    parameter-map="recordParameters"/>
+                                        </conditional-field>
+                                        <default-field title="Document">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="original" align="right">
+                                        <default-field title="Original">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="beforeRemaining" align="right">
+                                        <default-field title="Open before">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="afterRemaining" align="right">
+                                        <default-field title="Open after">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceId"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="beforeRemaining"/>
+                                            <field-ref name="afterRemaining"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section-include name="ReviewLedgerPreview" location="component://mr-boss/template/AccountingPayments.xml"/>
+                <section name="ReviewResults" condition="review.hasResults">
+                    <widgets>
+                        <container-box>
+                            <box-header title="${review.resultsTitle}"/>
+                            <box-toolbar>
+                                <link url="confirmReview"
+                                        text="Check saved result"
+                                        link-type="hidden-form"
+                                        parameter-map="review.confirmParameters"/>
+                                <link url="${sharedLinks['Payments/GatewayTransactions']}"
+                                        text="Gateway transactions"
+                                        link-type="anchor"
+                                        condition="review.previewKind == 'gateway'"
+                                        parameter-map="{organizationPartyId:organizationPartyId, paymentId:paymentId}"/>
+                            </box-toolbar>
+                            <box-body>
+                                <form-list name="ReviewResultFacts"
+                                        list="review.resultRows"
+                                        skip-form="true"
+                                        skip-header="true"
+                                        paginate="false">
+                                    <field name="label">
+                                        <default-field title="">
+                                            <display style="m-muted"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="value">
+                                        <default-field title="">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="label"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="value"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <section name="ResultPayments" condition="review.resultPaymentRows.length">
+                                    <widgets>
+                                        <form-list name="ReviewResultPayments"
+                                                list="review.resultPaymentRows"
+                                                skip-form="true"
+                                                paginate="false">
+                                            <field name="paymentId">
+                                                <default-field title="Payment">
+                                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                                            text="${paymentId}"
+                                                            link-type="anchor"
+                                                            parameter-map="recordParameters"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="label">
+                                                <default-field title="What">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="amountText" align="right">
+                                                <default-field title="Amount">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <columns type="mobile">
+                                                <column>
+                                                    <field-ref name="paymentId"/>
+                                                    <field-ref name="label"/>
+                                                </column>
+                                                <column>
+                                                    <field-ref name="amountText"/>
+                                                </column>
+                                            </columns>
+                                        </form-list>
+                                    </widgets>
+                                </section>
+                                <section name="ResultApplications" condition="review.applicationResultRows.length">
+                                    <widgets>
+                                        <form-list name="ReviewResultApplications"
+                                                list="review.applicationResultRows"
+                                                skip-form="true"
+                                                paginate="false">
+                                            <field name="paymentApplicationId">
+                                                <default-field title="Application">
+                                                    <display/>
+                                                </default-field>
+                                            </field>
+                                            <field name="amountOriginallyApplied" align="right">
+                                                <default-field title="Applied before">
+                                                    <display currency-unit-field="currencyUomId"/>
+                                                </default-field>
+                                            </field>
+                                            <field name="amountApplied" align="right">
+                                                <default-field title="Applied after">
+                                                    <display currency-unit-field="currencyUomId"/>
+                                                </default-field>
+                                            </field>
+                                            <columns type="mobile">
+                                                <column>
+                                                    <field-ref name="paymentApplicationId"/>
+                                                </column>
+                                                <column>
+                                                    <field-ref name="amountOriginallyApplied"/>
+                                                    <field-ref name="amountApplied"/>
+                                                </column>
+                                            </columns>
+                                        </form-list>
+                                    </widgets>
+                                </section>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section-include name="ReviewPostingResults" location="component://mr-boss/template/AccountingPayments.xml"/>
+                <section-include name="ReviewOutputResults" location="component://mr-boss/template/AccountingPayments.xml"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

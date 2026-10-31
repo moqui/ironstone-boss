@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- The receivables workbench: a customer's open receipts and credits and the invoices and payments they may settle, a
+    page of each, and the user's draft of allocations and adjustments, which Mantle keeps behind draftId
+    (ironstone.accounting.SettlementScreenServices.get#WorkbenchContext). Preview settlement reviews the draft in
+    Receivables/SettlementReview, where it is confirmed. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Receivables workbench"
+        default-menu-index="3">
+    <parameter name="organizationPartyId"/>
+    <parameter name="filterSubmit"/>
+    <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
+    <parameter name="partyId"/>
+    <parameter name="currencyUomId"/>
+    <parameter name="asOfDate"/>
+    <parameter name="effectiveDate"/>
+    <parameter name="text"/>
+    <parameter name="dueBucket"/>
+    <parameter name="invoiceRowsPageIndex"/>
+    <parameter name="invoiceRowsPageSize"/>
+    <parameter name="creditRowsPageIndex"/>
+    <parameter name="creditRowsPageSize"/>
+    <parameter name="paymentRowsPageIndex"/>
+    <parameter name="paymentRowsPageSize"/>
+    <parameter name="paymentTargetRowsPageIndex"/>
+    <parameter name="paymentTargetRowsPageSize"/>
+    <parameter name="draftId"/>
+    <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <transition name="editDraft">
+        <actions>
+            <service-call name="ironstone.accounting.SettlementScreenServices.edit#SettlementDraft" in-map="context"
+                    out-map="editedDraft"/>
+            <set field="draftId" from="editedDraft.draftId"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition name="previewSettlement">
+        <actions>
+            <service-call name="ironstone.accounting.SettlementScreenServices.preview#Settlement" in-map="context"
+                    out-map="reviewedSettlement"/>
+            <set field="previewId" from="reviewedSettlement.previewId"/>
+        </actions>
+        <default-response url="../SettlementReview"/>
+        <error-response url="."/>
+    </transition>
+    <actions>
+        <service-call name="ironstone.accounting.SettlementScreenServices.get#WorkbenchContext"
+                in-map="context"
+                out-map="context"/>
+        <!-- the choices of the drop-downs: the customer, currency and dates of the selection -->
+        <set field="openItemChoice"
+                from="{organizationPartyId:organizationPartyId, partyId:partyId, direction:'receivable',
+                    currencyUomId:currencyUomId, asOfDate:asOfDate, effectiveDate:effectiveDate}"/>
+    </actions>
+    <widgets>
+        <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
+        <label text="Choose an organization to allocate receipts and credits." type="p" condition="!organizationPartyId"/>
+        <section name="SettlementWorkbench" condition="organizationPartyId">
+            <widgets>
+                <container style="row items-center q-col-gutter-sm q-mb-sm">
+                    <container style="col-12 col-sm">
+                        <label text="Allocate receipts and credits" type="h5" style="q-my-none"/>
+                        <label text="Choose a customer and currency. Balances are current; the dates limit the documents listed."
+                                type="p"
+                                style="m-muted"/>
+                    </container>
+                    <container style="col-12 col-sm-auto row items-center q-gutter-sm">
+                        <link url="previewSettlement"
+                                text="Preview settlement"
+                                link-type="hidden-form"
+                                btn-type="primary"
+                                condition="workbench.canEdit &amp;&amp; workbench.hasDraft &amp;&amp; workbench.complete"
+                                parameter-map="workbench.editParameters"/>
+                        <link url="."
+                                text="Clear selection"
+                                link-type="anchor-button"
+                                btn-type="default"
+                                condition="workbench.hasDraft"
+                                parameter-map="workbench.scopeParameters"/>
+                    </container>
+                </container>
+                <container-box>
+                    <box-header title="Customer and dates"/>
+                    <box-body>
+                        <form-single name="SettlementOpenItemFind" transition="." map="context">
+                            <field name="filterSubmit" from="'Y'"><default-field><hidden/></default-field></field>
+                            <field name="draftId"><default-field><hidden/></default-field></field>
+                            <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                            <field name="partyId">
+                                <default-field title="Customer">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'parties', organizationPartyId:organizationPartyId,
+                                                    selected:partyId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="currencyUomId">
+                                <default-field title="Currency">
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="choices"
+                                                server-search="true"
+                                                min-length="0"
+                                                parameter-map="{choice:'currencies', organizationPartyId:organizationPartyId,
+                                                    selected:currencyUomId}"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="asOfDate">
+                                <default-field title="Documents through">
+                                    <date-time type="date"/>
+                                </default-field>
+                            </field>
+                            <field name="effectiveDate">
+                                <default-field title="Settlement date">
+                                    <date-time type="date"/>
+                                </default-field>
+                            </field>
+                            <field name="text">
+                                <default-field title="Search">
+                                    <text-line/>
+                                </default-field>
+                            </field>
+                            <field name="dueBucket">
+                                <default-field title="Due">
+                                    <drop-down>
+                                        <option key="" text="All due dates"/>
+                                        <option key="current" text="Not overdue"/>
+                                        <option key="overdue" text="Overdue"/>
+                                    </drop-down>
+                                </default-field>
+                            </field>
+                            <field name="submit">
+                                <default-field title="">
+                                    <submit text="Find open items"/>
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-ref name="filterSubmit"/>
+                                <field-ref name="draftId"/>
+                                <field-ref name="organizationPartyId"/>
+                                <field-row>
+                                    <field-ref name="partyId"/>
+                                    <field-ref name="currencyUomId"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="asOfDate"/>
+                                    <field-ref name="effectiveDate"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="text"/>
+                                    <field-ref name="dueBucket"/>
+                                </field-row>
+                                <field-ref name="submit"/>
+                            </field-layout>
+                        </form-single>
+                        <label text="Changing the customer, currency or dates starts a new selection."
+                                type="p"
+                                style="text-caption m-muted"
+                                condition="workbench.hasDraft"/>
+                        <label text="The selection was cleared for the new customer, currency or dates."
+                                type="p"
+                                style="text-caption m-muted"
+                                condition="workbench.selectionReset"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="SettlementProblems"
+                condition="organizationPartyId &amp;&amp; workbench.ready &amp;&amp; (!workbench.complete
+                    || workbench.unavailable || workbench.errors.length)">
+            <widgets>
+                <container-box type="warning">
+                    <box-body>
+                        <section-iterate name="OpenItemErrors" list="workbench.errors" entry="openItemError">
+                            <widgets>
+                                <label text="${openItemError.message || openItemError}" type="p"/>
+                            </widgets>
+                        </section-iterate>
+                        <label text="These balances are incomplete. Narrow the selection before previewing a settlement."
+                                type="p"
+                                condition="!workbench.complete &amp;&amp; !workbench.unavailable"/>
+                        <label text="Open item balances are not available now. Refresh the selection before going on."
+                                type="p"
+                                condition="workbench.unavailable"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="SettlementOpenItems"
+                condition="organizationPartyId &amp;&amp; workbench.ready &amp;&amp; workbench.hasOpenItemResult">
+            <widgets>
+                <container-box>
+                    <box-header title="Open items through ${workbench.selectionThroughDate}"/>
+                    <box-body>
+                        <container style="row q-col-gutter-md">
+                            <container style="col-12 col-md-6">
+                                <label text="Available receipts and credits" type="h6"/>
+                                <label text="Receipts" type="p" style="text-subtitle1"/>
+                                <form-list name="SettlementPayment"
+                                        list="paymentRows"
+                                        skip-form="true"
+                                        paginate="true"
+                                        select-columns="true">
+                                    <field name="sourceId">
+                                        <default-field title="Document">
+                                            <link url="${sharedLinks[detailUrl]}"
+                                                    text="${sourceId}"
+                                                    link-type="anchor"
+                                                    parameter-map="routeParameters"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="dateText">
+                                        <default-field title="Date">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="dueDateText">
+                                        <default-field title="Due">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="statusDescription">
+                                        <default-field title="Status">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="original" align="right">
+                                        <default-field title="Original">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="remaining" align="right">
+                                        <default-field title="Remaining">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceId"/>
+                                            <field-ref name="dueDateText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="remaining"/>
+                                            <field-ref name="statusDescription"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <label text="Credits" type="p" style="text-subtitle1"/>
+                                <form-list name="SettlementCredit" list="creditRows" extends="SettlementPayment"/>
+                            </container>
+                            <container style="col-12 col-md-6">
+                                <label text="Outstanding items" type="h6"/>
+                                <label text="Invoices" type="p" style="text-subtitle1"/>
+                                <form-list name="SettlementInvoice" list="invoiceRows" extends="SettlementPayment"/>
+                                <label text="Payments" type="p" style="text-subtitle1"/>
+                                <form-list name="SettlementPaymentTarget" list="paymentTargetRows" extends="SettlementPayment"/>
+                            </container>
+                        </container>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="SettlementDraft" condition="organizationPartyId &amp;&amp; workbench.ready">
+            <widgets>
+                <container-box>
+                    <box-header title="Proposed allocations"/>
+                    <box-toolbar>
+                        <container-dialog id="AddSettlementAllocation"
+                                button-text="Add allocation"
+                                title="Allocate a receipt or credit"
+                                width="720"
+                                type="${workbench.hasDraft ? 'default' : 'primary'}"
+                                condition="workbench.canEdit">
+                            <form-single name="AddSettlementAllocation"
+                                    transition="editDraft"
+                                    map="workbench.addAllocationParameters">
+                                <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="currencyUomId"><default-field><hidden/></default-field></field>
+                                <field name="asOfDate"><default-field><hidden/></default-field></field>
+                                <field name="effectiveDate"><default-field><hidden/></default-field></field>
+                                <field name="text"><default-field><hidden/></default-field></field>
+                                <field name="dueBucket"><default-field><hidden/></default-field></field>
+                                <field name="draftId"><default-field><hidden/></default-field></field>
+                                <field name="draftAction"><default-field><hidden/></default-field></field>
+                                <field name="rowId"><default-field><hidden/></default-field></field>
+                                <field name="sourceToken">
+                                    <default-field title="Receipt or credit">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="Object.assign({choice:'settlementSources'}, openItemChoice)"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="targetToken">
+                                    <default-field title="Invoice or payment">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="Object.assign({choice:'settlementTargets'}, openItemChoice)"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="amount">
+                                    <default-field title="Apply amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Add allocation"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="SettlementAllocations" list="draftAllocations" skip-form="true" paginate="false">
+                            <field name="sourceLabel">
+                                <default-field title="Receipt or credit">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="targetLabel">
+                                <default-field title="Invoice or payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Apply amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="sourceRemaining" align="right">
+                                <default-field title="Source remaining">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="targetRemaining" align="right">
+                                <default-field title="Target remaining">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="reviewNote">
+                                <default-field title="Note">
+                                    <display style="text-warning"/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <default-field title="">
+                                    <container-dialog id="EditSettlementAllocation_${rowId}"
+                                            button-text="Edit"
+                                            title="Edit allocation"
+                                            width="720"
+                                            type="default"
+                                            condition="workbench.canEdit">
+                                        <form-single name="EditSettlementAllocation"
+                                                transition="editDraft"
+                                                map="workbench.editParameters"
+                                                extends="AddSettlementAllocation">
+                                            <field name="sourceToken">
+                                                <default-field title="Receipt or credit">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="Object.assign({choice:'settlementSources',
+                                                                    selected:sourceToken}, openItemChoice)"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="targetToken">
+                                                <default-field title="Invoice or payment">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="Object.assign({choice:'settlementTargets',
+                                                                    selected:targetToken}, openItemChoice)"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save allocation"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                    <link url="editDraft"
+                                            text="Remove"
+                                            link-type="hidden-form"
+                                            condition="workbench.canEdit"
+                                            parameter-map="Object.assign({}, workbench.editParameters,
+                                                {draftAction:'removeAllocation', rowId:rowId})"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="sourceLabel"/>
+                                    <field-ref name="targetLabel"/>
+                                    <field-ref name="reviewNote"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No allocations yet." type="p" style="m-muted" condition="!draftAllocations.length"/>
+                    </box-body>
+                </container-box>
+                <container-box>
+                    <box-header title="Proposed adjustments"/>
+                    <box-toolbar>
+                        <container-dialog id="AddSettlementAdjustment"
+                                button-text="Add discount or write-off"
+                                title="Add an invoice adjustment"
+                                width="720"
+                                type="default"
+                                condition="workbench.canEdit">
+                            <form-single name="AddSettlementAdjustment"
+                                    transition="editDraft"
+                                    map="workbench.addAdjustmentParameters">
+                                <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="currencyUomId"><default-field><hidden/></default-field></field>
+                                <field name="asOfDate"><default-field><hidden/></default-field></field>
+                                <field name="effectiveDate"><default-field><hidden/></default-field></field>
+                                <field name="text"><default-field><hidden/></default-field></field>
+                                <field name="dueBucket"><default-field><hidden/></default-field></field>
+                                <field name="draftId"><default-field><hidden/></default-field></field>
+                                <field name="draftAction"><default-field><hidden/></default-field></field>
+                                <field name="rowId"><default-field><hidden/></default-field></field>
+                                <field name="targetToken">
+                                    <default-field title="Invoice">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="Object.assign({choice:'settlementAdjustmentInvoices'},
+                                                        openItemChoice)"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="itemTypeEnumId">
+                                    <default-field title="Adjustment">
+                                        <drop-down>
+                                            <option key="ItemWriteOff" text="Write-off"/>
+                                            <option key="ItemPromptDiscount" text="Discount"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="amount">
+                                    <default-field title="Adjustment amount">
+                                        <text-line/>
+                                    </default-field>
+                                </field>
+                                <field name="glAccountId">
+                                    <default-field title="Posting account">
+                                        <drop-down allow-empty="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    parameter-map="Object.assign({choice:'settlementAdjustmentAccounts'},
+                                                        openItemChoice)"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="reason">
+                                    <default-field title="Reason">
+                                        <text-area rows="2"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Add adjustment"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="SettlementAdjustments" list="draftAdjustments" skip-form="true" paginate="false">
+                            <field name="targetLabel">
+                                <default-field title="Invoice">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="kindLabel">
+                                <default-field title="Adjustment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount" align="right">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="accountLabel">
+                                <default-field title="Posting account">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="reason">
+                                <default-field title="Reason">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="actions">
+                                <default-field title="">
+                                    <container-dialog id="EditSettlementAdjustment_${rowId}"
+                                            button-text="Edit"
+                                            title="Edit adjustment"
+                                            width="720"
+                                            type="default"
+                                            condition="workbench.canEdit">
+                                        <form-single name="EditSettlementAdjustment"
+                                                transition="editDraft"
+                                                map="workbench.editParameters"
+                                                extends="AddSettlementAdjustment">
+                                            <field name="targetToken">
+                                                <default-field title="Invoice">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="Object.assign(
+                                                                    {choice:'settlementAdjustmentInvoices', selected:targetToken},
+                                                                    openItemChoice)"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="glAccountId">
+                                                <default-field title="Posting account">
+                                                    <drop-down allow-empty="true">
+                                                        <dynamic-options transition="choices"
+                                                                server-search="true"
+                                                                min-length="0"
+                                                                parameter-map="Object.assign(
+                                                                    {choice:'settlementAdjustmentAccounts', selected:glAccountId},
+                                                                    openItemChoice)"/>
+                                                    </drop-down>
+                                                </default-field>
+                                            </field>
+                                            <field name="submit">
+                                                <default-field title="">
+                                                    <submit text="Save adjustment"/>
+                                                </default-field>
+                                            </field>
+                                        </form-single>
+                                    </container-dialog>
+                                    <link url="editDraft"
+                                            text="Remove"
+                                            link-type="hidden-form"
+                                            condition="workbench.canEdit"
+                                            parameter-map="Object.assign({}, workbench.editParameters,
+                                                {draftAction:'removeAdjustment', rowId:rowId})"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="targetLabel"/>
+                                    <field-ref name="kindLabel"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amount"/>
+                                    <field-ref name="actions"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="No adjustments yet." type="p" style="m-muted" condition="!draftAdjustments.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

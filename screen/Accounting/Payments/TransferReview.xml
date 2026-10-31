@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- A retained internal transfer review (ironstone.accounting.PaymentScreenServices.get#TransferReviewContext): what moves
+    from which cash method to which, the fee, the payments and postings it plans, Confirm transfer
+    (mantle.account.PaymentServices.create#InternalTransfer) and Change transfer, which reviews it again. Once confirmed it
+    shows the transfer and fee payments, the posted transactions and the issued detail. A review that expired or is another
+    user's is "not available". -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Transfer review"
+        default-menu-include="false">
+    <parameter name="organizationPartyId"/>
+    <parameter name="previewId"/>
+    <transition name="confirmTransfer">
+        <actions>
+            <service-call name="mantle.account.PaymentServices.create#InternalTransfer"
+                    in-map="{previewId:previewId, inputFingerprint:inputFingerprint, operationKey:operationKey}"
+                    out-map="createdTransfer"/>
+        </actions>
+        <default-response url="."/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="previewInternalTransfer" location="component://mr-boss/template/AccountingPayments.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <actions>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#TransferReviewContext"
+                in-map="context"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
+        <set field="review" from="transferReview"/>
+        <set field="transfersParameters" from="{organizationPartyId:organizationPartyId, queue:'transfers'}"/>
+    </actions>
+    <widgets>
+        <link url="${sharedLinks['Payments/Payments']}"
+                text="Payments"
+                link-type="anchor"
+                icon="arrow_back"
+                parameter-map="transfersParameters"/>
+        <section name="TransferReviewNotAvailable" condition="!reviewFound">
+            <widgets>
+                <container-box type="warning">
+                    <box-header title="Transfer review not available"/>
+                    <box-body>
+                        <label text="This review expired or is not yours. Start the transfer again from the payments." type="p"/>
+                        <link url="${sharedLinks['Payments/Payments']}"
+                                text="Back to payments"
+                                link-type="anchor"
+                                parameter-map="transfersParameters"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="TransferReview" condition="reviewFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Internal transfer of ${review.totalText}"/>
+                    <box-toolbar>
+                        <container-dialog id="TransferChangeDialog"
+                                button-text="Change transfer"
+                                title="Change transfer"
+                                width="760"
+                                type="default"
+                                condition="!review.hasResults">
+                            <section-include name="InternalTransferForm"
+                                    location="component://mr-boss/template/AccountingPayments.xml"/>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <section-include name="ReviewFacts" location="component://mr-boss/template/AccountingPayments.xml"/>
+                        <label text="This transfer's amounts are not available. Start the transfer again."
+                                type="p"
+                                style="text-warning"
+                                condition="!review.summaryAvailable"/>
+                        <section-iterate name="TransferBlockers" list="review.blockers" entry="blocker">
+                            <widgets>
+                                <label text="${blocker.message || blocker.reasonCode || blocker}" type="p" style="text-warning"/>
+                            </widgets>
+                        </section-iterate>
+                        <section name="ConfirmTransferReview" condition="review.canConfirm">
+                            <widgets>
+                                <label text="Confirm by ${review.expiresDateText}; the review expires then."
+                                        type="p"
+                                        style="text-caption m-muted"/>
+                                <form-single name="ConfirmTransfer" transition="confirmTransfer" map="review.confirmParameters">
+                                    <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                    <field name="previewId"><default-field><hidden/></default-field></field>
+                                    <field name="inputFingerprint"><default-field><hidden/></default-field></field>
+                                    <field name="operationKey"><default-field><hidden/></default-field></field>
+                                    <field name="submit">
+                                        <default-field title="">
+                                            <submit text="Confirm transfer" type="primary" confirmation="${review.confirmation}"/>
+                                        </default-field>
+                                    </field>
+                                </form-single>
+                            </widgets>
+                        </section>
+                        <label text="This review can no longer be confirmed. Change the transfer to review it again."
+                                type="p"
+                                style="m-muted"
+                                condition="!review.canConfirm &amp;&amp; !review.hasResults"/>
+                    </box-body>
+                </container-box>
+                <section name="TransferPlannedPayments" condition="!review.hasResults &amp;&amp; review.plannedLegRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Planned payments"/>
+                            <box-body>
+                                <form-list name="TransferPlannedPayments"
+                                        list="review.plannedLegRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="legText">
+                                        <default-field title="Payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="maskedMethodLabel">
+                                        <default-field title="Cash method">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="legText"/>
+                                            <field-ref name="maskedMethodLabel"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section-include name="ReviewLedgerPreview" location="component://mr-boss/template/AccountingPayments.xml"/>
+                <section name="TransferResults" condition="review.hasResults">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Internal transfer completed"/>
+                            <box-toolbar>
+                                <link url="confirmTransfer"
+                                        text="Check saved result"
+                                        link-type="hidden-form"
+                                        parameter-map="review.confirmParameters"/>
+                            </box-toolbar>
+                            <box-body>
+                                <form-list name="TransferPayments" list="review.actualLegRows" skip-form="true" paginate="false">
+                                    <field name="paymentId">
+                                        <conditional-field condition="canOpen" title="Payment">
+                                            <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                                    text="${paymentId}"
+                                                    link-type="anchor"
+                                                    parameter-map="recordParameters"/>
+                                        </conditional-field>
+                                        <default-field title="Payment">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="legText">
+                                        <default-field title="What">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="maskedMethodLabel">
+                                        <default-field title="Cash method">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="legText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section-include name="ReviewPostingResults" location="component://mr-boss/template/AccountingPayments.xml"/>
+                <section-include name="ReviewOutputResults" location="component://mr-boss/template/AccountingPayments.xml"/>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

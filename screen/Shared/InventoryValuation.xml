@@ -29,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     </always-actions>
     <transition name="preview">
         <actions>
-            <service-call name="ironstone.accounting.AssetBookServices.preview#Revaluation" in-map="context" out-map="result"/>
+            <service-call name="mantle.ledger.AssetBookServices.preview#Revaluation" in-map="context" out-map="result"/>
             <set field="previewId" from="result.previewId"/>
         </actions>
         <default-response url=".">
@@ -41,7 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="post">
         <actions>
-            <service-call name="ironstone.accounting.AssetBookServices.post#Revaluation" in-map="context" out-map="result"/>
+            <service-call name="mantle.ledger.AssetBookServices.post#Revaluation" in-map="context" out-map="result"/>
         </actions>
         <default-response url=".">
             <parameter name="productStandardCostId"/>
@@ -51,7 +51,7 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="ironstone.accounting.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context"/>
+        <service-call name="mantle.ledger.AssetBookServices.get#RevaluationContext" in-map="context" out-map="context"/>
     </actions>
     <widgets>
         <label text="Inventory revaluation" type="h5"/>

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- PaymentDetail's Overview tab: the payment's facts, the two payments of an internal transfer and its fee payment, its
+    methods (masked) and the records it came from. It reads the payment when the client loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Overview"
+        default-menu-index="1">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentOverview" condition="recordFound">
+            <widgets>
+                <section name="PaymentTransfer" condition="financePayment.transferSummary.paymentId">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Internal transfer of ${financePayment.transferAmountText}"/>
+                            <box-body>
+                                <form-list name="PaymentTransferLegs"
+                                        list="financePayment.transferLegRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="paymentId">
+                                        <default-field title="Payment">
+                                            <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                                    text="${paymentId}"
+                                                    link-type="anchor"
+                                                    parameter-map="recordParameters"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="legText">
+                                        <default-field title="Leg">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="maskedMethodLabel">
+                                        <default-field title="Cash method">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="amount" align="right">
+                                        <default-field title="Amount">
+                                            <display currency-unit-field="currencyUomId"/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="paymentId"/>
+                                            <field-ref name="legText"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="amount"/>
+                                            <field-ref name="maskedMethodLabel"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                                <section name="PaymentTransferFee" condition="financePayment.feeParameters">
+                                    <widgets>
+                                        <label text="${financePayment.feeText}" type="p"/>
+                                        <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                                text="Fee payment ${financePayment.transferSummary.feePaymentId}"
+                                                link-type="anchor"
+                                                parameter-map="financePayment.feeParameters"/>
+                                    </widgets>
+                                </section>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container-box>
+                    <box-header title="Payment overview"/>
+                    <box-body>
+                        <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                text="Refund of payment ${financePayment.refundForPaymentId}"
+                                link-type="anchor"
+                                condition="financePayment.originalParameters"
+                                parameter-map="financePayment.originalParameters"/>
+                        <form-single name="PaymentSummary" map="financePayment">
+                            <field name="partyName">
+                                <default-field title="Counterparty">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="directionText">
+                                <default-field title="Direction">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="sideText">
+                                <default-field title="Side">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amount">
+                                <default-field title="Amount">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="accountingDateText">
+                                <default-field title="Payment date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="settlementDateText">
+                                <default-field title="Settlement date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="paymentInstrumentDescription">
+                                <default-field title="Instrument">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="referenceNumber">
+                                <default-field title="Reference">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="appliedTotal">
+                                <conditional-field condition="financePayment.isTransfer">
+                                    <ignored/>
+                                </conditional-field>
+                                <default-field title="Applied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="unappliedTotal">
+                                <conditional-field condition="financePayment.isTransfer">
+                                    <ignored/>
+                                </conditional-field>
+                                <default-field title="Unapplied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <field name="comments">
+                                <default-field title="Comments">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field-layout>
+                                <field-row>
+                                    <field-ref name="partyName"/>
+                                    <field-ref name="directionText"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="sideText"/>
+                                    <field-ref name="amount"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="accountingDateText"/>
+                                    <field-ref name="settlementDateText"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="paymentInstrumentDescription"/>
+                                    <field-ref name="referenceNumber"/>
+                                </field-row>
+                                <field-row>
+                                    <field-ref name="appliedTotal"/>
+                                    <field-ref name="unappliedTotal"/>
+                                </field-row>
+                                <field-ref name="comments"/>
+                            </field-layout>
+                        </form-single>
+                    </box-body>
+                </container-box>
+                <section name="PaymentMethods" condition="financePayment.maskedMethodRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Payment methods"/>
+                            <box-body>
+                                <form-list name="PaymentMethods"
+                                        list="financePayment.maskedMethodRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="description">
+                                        <default-field title="Method">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="typeDescription">
+                                        <default-field title="Type">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="maskedNumber">
+                                        <default-field title="Number">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="description"/>
+                                            <field-ref name="typeDescription"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="maskedNumber"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <section name="PaymentSources" condition="financePayment.sourceRows.length">
+                    <widgets>
+                        <container-box>
+                            <box-header title="Sources"/>
+                            <box-body>
+                                <form-list name="PaymentSources"
+                                        list="financePayment.sourceRows"
+                                        skip-form="true"
+                                        paginate="false">
+                                    <field name="sourceKind">
+                                        <default-field title="Source">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="sourceId">
+                                        <default-field title="Record">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <field name="description">
+                                        <default-field title="Description">
+                                            <display/>
+                                        </default-field>
+                                    </field>
+                                    <columns type="mobile">
+                                        <column>
+                                            <field-ref name="sourceId"/>
+                                            <field-ref name="sourceKind"/>
+                                        </column>
+                                        <column>
+                                            <field-ref name="description"/>
+                                        </column>
+                                    </columns>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

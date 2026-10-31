@@ -1,1 +1,41 @@
-suite(["AccountingShots", "AccountingLedgerWalk", "AccountingSettingsWalk", "ProductsShots", "ProductsWalk", "ProductsTaxonomyWalk", "ProductsVariantWalk", "ProductsPriceWalk", "ProductsPriceListWalk", "ProductsCatalogSettings", "ProductsSupplierWalk", "ProductsInventoryWalk", "ProductsMethodWalk", "ProductsCostWalk", "ProductsDocumentWalk", "ProductsToolsWalk", "ProductsChecks", "ProductsImportWalk", "ProductsFinish"], {server: {components: ["mr-boss"], specs: ["AccountingAccess", "AccountingShell", "AccountingScreens", "ProductsAccess", "ProductsShell", "ProductsPriceFixtures", "ProductsInventoryFixtures", "ProductsMethodFixtures", "ProductsCostFixtures", "ProductsToolsFixtures", "ProductsImportFixtures"], conf: "conf/MoquiDevConf.xml"}})
+suite(
+    [
+        "AccountingLedgerWalk",
+        "AccountingSettingsWalk",
+        "AccountingReceivablesWalk",
+        "AccountingSettlementWalk",
+        "AccountingPaymentsWalk",
+        "AccountingPaymentGatewayWalk",
+        "ProductsPhone",
+        "ProductsWalk",
+        "ProductsTaxonomyWalk",
+        "ProductsVariantWalk",
+        "ProductsPriceWalk",
+        "ProductsPriceListWalk",
+        "ProductsCatalogSettings",
+        "ProductsSupplierWalk",
+        "ProductsInventoryWalk",
+        "ProductsMethodWalk",
+        "ProductsCostWalk",
+        "ProductsDocumentWalk",
+        "ProductsToolsWalk",
+        "ProductsChecks",
+        "ProductsImportWalk",
+        "ProductsFinish"
+    ],
+    {
+        server: {
+            components: ["mr-boss"],
+            specs: [
+                "AccountingClientFixtures",
+                "ProductsPriceFixtures",
+                "ProductsInventoryFixtures",
+                "ProductsMethodFixtures",
+                "ProductsCostFixtures",
+                "ProductsToolsFixtures",
+                "ProductsImportFixtures"
+            ],
+            conf: "conf/MoquiDevConf.xml"
+        }
+    }
+)

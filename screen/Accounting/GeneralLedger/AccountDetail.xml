@@ -16,7 +16,11 @@ along with this software (see the LICENSE.md file). If not, see
     and for a GL user the account editor, the dimensions its postings require (AC-22) and, for a finance admin, its
     categories and report groups. Opened from a report (reportReturn), it links back with the report's options;
     glAccountId is the report's account filter, not this account (recordId). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Account" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Account"
+        default-menu-index="1"
+        default-menu-include="false"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
     <parameter name="reportReturn"/>
@@ -32,33 +36,48 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="save">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Account" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.AccountServices.store#Account"
+                    in-map="Object.assign({}, context, {glAccountId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="assignment">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Assignment" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.AccountServices.store#Assignment"
+                    in-map="Object.assign({}, context, {glAccountId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <transition name="classification">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.store#Classification" in-map="Object.assign({},context,{glAccountId:recordId})" out-map="result"/>
+            <service-call name="mantle.ledger.AccountServices.store#Classification"
+                    in-map="Object.assign({}, context, {glAccountId:recordId})"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.get#Record" in-map="{kind:'accounts',recordId:recordId,organizationPartyId:organizationPartyId}" out-map="context" transaction="force-new" ignore-error="true"/>
+        <service-call name="mantle.ledger.AccountingServices.get#Record"
+                in-map="{kind:'accounts', recordId:recordId, organizationPartyId:organizationPartyId}"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
         <set field="recordFound" from="!!record"/>
-        <set field="ledgerOptions" from="{organizationPartyId, glAccountId: recordId, timePeriodId, fromDate, thruDate, amountUomId, facilityId, costCenterId, compareFromDate, compareThruDate}"/>
+        <set field="ledgerOptions"
+                from="{organizationPartyId, glAccountId: recordId, timePeriodId, fromDate, thruDate, amountUomId,
+                    facilityId, costCenterId, compareFromDate, compareThruDate}"/>
         <set field="canPost" from="!!accounting.capabilities.glPost"/>
-        <set field="accountName" from="recordFound ? (record.accountCode || record.glAccountId) + ' ' + (record.accountName || '') : ''"/>
+        <set field="accountName"
+                from="recordFound ? (record.accountCode || record.glAccountId) + ' ' + (record.accountName || '') : ''"/>
         <if condition="recordFound">
-            <service-call name="mantle.ledger.AccountServices.get#Classifications" in-map="{glAccountId:recordId,organizationPartyId:organizationPartyId}" out-map="accountClasses"/>
+            <service-call name="mantle.ledger.AccountServices.get#Classifications"
+                    in-map="{glAccountId:recordId, organizationPartyId:organizationPartyId}"
+                    out-map="accountClasses"/>
         </if>
         <set field="categoryRows" from="accountClasses?.categoryRows || []"/>
         <set field="groupRows" from="accountClasses?.groupRows || []"/>
@@ -69,8 +88,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-box type="warning">
                     <box-header title="Not available"/>
                     <box-body>
-                        <label text="Account ${recordId || ''} is not available: it does not exist, or it is not in the chart of an organization you work in." type="p"/>
-                        <link url="//Accounting/GeneralLedger/ChartOfAccounts" text="Back to the chart of accounts" link-type="anchor"/>
+                        <label type="p"
+                                text="Account ${recordId || ''} does not exist, or is not in a chart you work in."/>
+                        <link url="//Accounting/GeneralLedger/ChartOfAccounts"
+                                text="Back to the chart of accounts"
+                                link-type="anchor"/>
                     </box-body>
                 </container-box>
             </widgets>
@@ -83,25 +105,37 @@ along with this software (see the LICENSE.md file). If not, see
                         <container style="col-12 col-md m-record-title">
                             <container style="row items-center no-wrap">
                                 <render-mode>
-                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${WebUtilities.encodeHtml(record.accountCode || recordId)}</q-chip>]]></text>
-                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: record.accountCode || recordId})}]]></text>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${
+                                        WebUtilities.encodeHtml(record.accountCode || recordId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                        text: record.accountCode || recordId})}]]></text>
                                 </render-mode>
                                 <label text="${record.accountName || recordId}" type="h5"/>
                             </container>
                         </container>
                         <container style="col-12 col-md-auto m-record-status">
                             <render-mode>
-                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${record.disallowPosting == 'Y' ? 'grey-8' : 'positive'}">${record.disallowPosting == 'Y' ? 'No posting' : 'Posting allowed'}</q-chip>]]></text>
-                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: record.disallowPosting == 'Y' ? 'No posting' : 'Posting allowed'})}]]></text>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                    record.disallowPosting == 'Y' ? 'grey-8' : 'positive'}">${record.disallowPosting == 'Y' ?
+                                    'No posting' : 'Posting allowed'}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong",
+                                    text: record.disallowPosting == 'Y' ? 'No posting' : 'Posting allowed'})}]]></text>
                             </render-mode>
                         </container>
                     </container>
                     <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
                         <container style="col-12 col-md"/>
                         <container style="col-12 col-md-auto row items-center q-gutter-y-xs m-record-actions">
-                            <link url="//Accounting/Reports/GeneralLedger" text="Open account ledger" btn-type="primary" icon="sym_o_receipt_long" parameter-map="ledgerOptions"/>
+                            <link url="//Accounting/Reports/GeneralLedger"
+                                    text="Open account ledger"
+                                    btn-type="primary"
+                                    icon="sym_o_receipt_long"
+                                    parameter-map="ledgerOptions"/>
                             <button-menu text="More" icon="more_horiz" style="q-ml-xs" condition="canPost">
-                                <container-dialog id="EditAccountDialog" button-text="Edit account" icon="sym_o_edit" title="Edit ${accountName}">
+                                <container-dialog id="EditAccountDialog"
+                                        button-text="Edit account"
+                                        icon="sym_o_edit"
+                                        title="Edit ${accountName}">
                                     <form-single name="AccountHeader" transition="save" map="record">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -131,21 +165,36 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="parentGlAccountId">
                                             <default-field title="Parent account">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountParents',organizationPartyId:organizationPartyId,selected:parentGlAccountId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'accountParents',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:parentGlAccountId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
                                         <field name="glAccountClassEnumId">
                                             <default-field title="Class">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountClass',organizationPartyId:organizationPartyId,selected:glAccountClassEnumId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'enum:GlAccountClass',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:glAccountClassEnumId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
                                         <field name="glAccountTypeEnumId">
                                             <default-field title="Type">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'enum:GlAccountType',organizationPartyId:organizationPartyId,selected:glAccountTypeEnumId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'enum:GlAccountType',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:glAccountTypeEnumId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -169,7 +218,10 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="RequiredDimensionsDialog" button-text="Assignment and dimensions" icon="sym_o_tune" title="${accountName} in this organization">
+                                <container-dialog id="RequiredDimensionsDialog"
+                                        button-text="Assignment and dimensions"
+                                        icon="sym_o_tune"
+                                        title="${accountName} in this organization">
                                     <form-single name="RequiredDimensions" transition="assignment" map="record">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -224,7 +276,11 @@ along with this software (see the LICENSE.md file). If not, see
                                         </field>
                                     </form-single>
                                 </container-dialog>
-                                <container-dialog id="ClassificationDialog" button-text="Add category or report group" icon="sym_o_category" title="Classify ${accountName}" condition="accounting.capabilities.admin">
+                                <container-dialog id="ClassificationDialog"
+                                        button-text="Add category or report group"
+                                        icon="sym_o_category"
+                                        title="Classify ${accountName}"
+                                        condition="accounting.capabilities.admin">
                                     <form-single name="AccountClassification" transition="classification">
                                         <field name="recordId" from="recordId">
                                             <default-field>
@@ -239,14 +295,24 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field name="glAccountCategoryId">
                                             <default-field title="Category">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountCategories',organizationPartyId:organizationPartyId,selected:glAccountCategoryId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'accountCategories',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:glAccountCategoryId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
                                         <field name="glAccountGroupId">
                                             <default-field title="Report group">
                                                 <drop-down allow-empty="true">
-                                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'accountGroups',organizationPartyId:organizationPartyId,selected:glAccountGroupId}"/>
+                                                    <dynamic-options transition="choices"
+                                                            server-search="true"
+                                                            min-length="0"
+                                                            parameter-map="{choice:'accountGroups',
+                                                                organizationPartyId:organizationPartyId,
+                                                                selected:glAccountGroupId}"/>
                                                 </drop-down>
                                             </default-field>
                                         </field>
@@ -274,7 +340,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="AccountFacts" map="record">
                     <field name="parentGlAccountId">
                         <default-field title="Parent account">
-                            <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} ${accountName}" default-text="None"/>
+                            <display-entity entity-name="mantle.ledger.account.GlAccount"
+                                    text="${accountCode} ${accountName}"
+                                    default-text="None"/>
                         </default-field>
                     </field>
                     <field name="glAccountClassEnumId">

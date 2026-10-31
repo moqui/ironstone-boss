@@ -15,7 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <!-- Fiscal periods (design-accounting §12 Periods): the organization's years, quarters and months, open or closed, and
     the generation of the periods of a year from the organization's fiscal-year start (impl-accounting F13). Closing is
     P11's. -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Fiscal periods" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Fiscal periods"
+        default-menu-index="1"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <parameter name="text"/>
     <parameter name="pageIndex"/>
@@ -23,13 +26,18 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition name="generate">
         <actions>
-            <service-call name="mantle.ledger.AccountServices.ensure#Periods" in-map="{organizationPartyId:organizationPartyId,basisDate:basisDate}" out-map="result"/>
+            <service-call name="mantle.ledger.AccountServices.ensure#Periods"
+                    in-map="{organizationPartyId:organizationPartyId, basisDate:basisDate}"
+                    out-map="result"/>
         </actions>
         <default-response url="."/>
         <error-response url="."/>
     </transition>
     <actions>
-        <service-call name="mantle.ledger.AccountingServices.find#Records" in-map="{kind:'periods',organizationPartyId:organizationPartyId,text:text,pageIndex:pageIndex,pageSize:pageSize}" out-map="context"/>
+        <service-call name="mantle.ledger.AccountingServices.find#Records"
+                in-map="{kind:'periods', organizationPartyId:organizationPartyId, text:text,
+                    pageIndex:pageIndex, pageSize:pageSize}"
+                out-map="context"/>
     </actions>
     <widgets>
         <container style="row items-center q-col-gutter-sm">
@@ -37,17 +45,27 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Fiscal periods" type="h5"/>
             </container>
             <container style="col-auto">
-                <container-dialog id="GeneratePeriodsDialog" button-text="Generate periods" type="primary" icon="sym_o_event_repeat" title="Generate fiscal periods" condition="accounting.capabilities.glPost">
+                <container-dialog id="GeneratePeriodsDialog"
+                        button-text="Generate periods"
+                        type="primary"
+                        icon="sym_o_event_repeat"
+                        title="Generate fiscal periods"
+                        condition="accounting.capabilities.glPost">
                     <form-single name="GeneratePeriods" transition="generate">
                         <field name="organizationPartyId" from="organizationPartyId">
                             <default-field title="Organization">
                                 <drop-down allow-empty="true">
-                                    <dynamic-options transition="choices" server-search="true" min-length="0" parameter-map="{choice:'organizations',organizationPartyId:organizationPartyId,selected:organizationPartyId}"/>
+                                    <dynamic-options transition="choices"
+                                            server-search="true"
+                                            min-length="0"
+                                            parameter-map="{choice:'organizations',
+                                                organizationPartyId:organizationPartyId, selected:organizationPartyId}"/>
                                 </drop-down>
                             </default-field>
                         </field>
                         <field name="basisDate">
-                            <default-field title="A day in the fiscal year" tooltip="The year, quarters and months around this day are made where they are missing">
+                            <default-field title="A day in the fiscal year"
+                                    tooltip="The year, quarters and months around this day are made where they are missing">
                                 <date-time type="date"/>
                             </default-field>
                         </field>
@@ -61,7 +79,13 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
         </container>
         <section-include name="FindRecords" location="component://mr-boss/template/AccountingParts.xml"/>
-        <form-list name="Records" list="records" skip-form="true" paginate="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+        <form-list name="Records"
+                list="records"
+                skip-form="true"
+                paginate="true"
+                select-columns="true"
+                show-csv-button="true"
+                show-xlsx-button="true">
             <field name="periodName">
                 <default-field title="Period">
                     <display text="${periodName || timePeriodId}"/>
@@ -85,8 +109,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="isClosed">
                 <default-field title="State">
                     <render-mode>
-                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isClosed == 'Y' ? 'grey-8' : 'positive'}">${isClosed == 'Y' ? 'Closed' : 'Open'}</q-chip>]]></text>
-                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isClosed == 'Y' ? 'Closed' : 'Open'})}]]></text>
+                        <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${isClosed == 'Y' ? 'grey-8'
+                            : 'positive'}">${isClosed == 'Y' ? 'Closed' : 'Open'}</q-chip>]]></text>
+                        <text type="tui"><![CDATA[${JSON.stringify({t: "text", style: "strong", text: isClosed == 'Y' ? 'Closed'
+                            : 'Open'})}]]></text>
                     </render-mode>
                 </default-field>
             </field>
@@ -100,6 +126,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </column>
             </columns>
         </form-list>
-        <label text="No fiscal periods match. Choose another organization, or generate the periods of a year." type="p" condition="!records.length"/>
+        <label text="No fiscal periods match. Choose another organization, or generate the periods of a year."
+                type="p"
+                condition="!records.length"/>
     </widgets>
 </screen>

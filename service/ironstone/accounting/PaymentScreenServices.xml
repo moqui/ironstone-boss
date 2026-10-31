@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="get" noun="PaymentListContext" allow-remote="false">
+        <description>The organization's payments the user may read, a page at a time, with their queue and filters, and the
+            values of the New payment and Transfer funds forms. Changes nothing.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="queue" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentInstrumentEnumId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="queue" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentInstrumentEnumId" type="String"/>
+            <parameter name="statusId" type="String"/>
+            <parameter name="currencyUomId" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="paymentList" type="Map"/>
+            <parameter name="paymentDraftValue" type="Map"/>
+            <parameter name="transferValue" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('list', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="queue" from="screenContext.queue"/>
+            <set field="partyId" from="screenContext.partyId"/>
+            <set field="paymentInstrumentEnumId" from="screenContext.paymentInstrumentEnumId"/>
+            <set field="statusId" from="screenContext.statusId"/>
+            <set field="currencyUomId" from="screenContext.currencyUomId"/>
+            <set field="fromDay" from="screenContext.fromDay"/>
+            <set field="throughDay" from="screenContext.throughDay"/>
+            <set field="text" from="screenContext.text"/>
+            <set field="records" from="screenContext.records"/>
+            <set field="recordsCount" from="screenContext.recordsCount"/>
+            <set field="recordsPageIndex" from="screenContext.recordsPageIndex"/>
+            <set field="recordsPageSize" from="screenContext.recordsPageSize"/>
+            <set field="recordsPageMaxIndex" from="screenContext.recordsPageMaxIndex"/>
+            <set field="recordsPageRangeLow" from="screenContext.recordsPageRangeLow"/>
+            <set field="recordsPageRangeHigh" from="screenContext.recordsPageRangeHigh"/>
+            <set field="paymentList" from="screenContext.paymentList"/>
+            <set field="paymentDraftValue" from="screenContext.paymentDraftValue"/>
+            <set field="transferValue" from="screenContext.transferValue"/>
+        </actions>
+    </service>
+    <service verb="get" noun="PaymentContext" allow-remote="false">
+        <description>A payment for PaymentDetail and its tabs (mantle.account.PaymentServices.get#PaymentFinanceDetail) with
+            the screen's labels, links, status color, actions and form values. Every part is there: a payment that does
+            not exist or is not visible to the user has recordFound false and empty lists. Restricted values stay left
+            out. Refuses a user without payment read authority and an organization the user may not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="findJson" type="String"><description>The payment list's filters, for the way back</description>
+            </parameter>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="recordFound" type="Boolean"/>
+            <parameter name="findJson" type="String"/>
+            <parameter name="financePayment" type="Map"/>
+            <parameter name="paymentDraftValue" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('detail', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="paymentId" from="screenContext.paymentId"/>
+            <set field="recordId" from="screenContext.recordId"/>
+            <set field="recordFound" from="screenContext.recordFound"/>
+            <set field="findJson" from="screenContext.findJson"/>
+            <set field="financePayment" from="screenContext.financePayment"/>
+            <set field="paymentDraftValue" from="screenContext.paymentDraftValue"/>
+        </actions>
+    </service>
+    <service verb="get" noun="PaymentReviewContext" allow-remote="false">
+        <description>A retained review of a payment for PaymentDetail/Review: a state change, application release, gateway
+            action or refund (previewKind), with its facts, planned effects and postings, and its results once confirmed.
+            Every part is there: a review that does not exist, expired or is another user's has reviewFound false. Refuses
+            a review of another payment (PAYMENT_REVIEW_MISMATCH), an unknown kind, a user without payment read authority
+            and an organization the user may not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="recordId" type="String"/>
+            <parameter name="previewId" type="String"/>
+            <parameter name="previewKind" type="String" default-value="state"><description>state, unapply, gateway or
+                refund</description></parameter>
+            <parameter name="financeDirection" type="String"><description>The payment's side, receivable or payable, for
+                the links to its invoices or bills</description></parameter>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="previewId" type="String"/>
+            <parameter name="previewKind" type="String"/>
+            <parameter name="reviewFound" type="Boolean"/>
+            <parameter name="paymentReview" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('review', context)"/>
+            <set field="paymentId" from="screenContext.paymentId"/>
+            <set field="previewId" from="screenContext.previewId"/>
+            <set field="previewKind" from="screenContext.previewKind"/>
+            <set field="reviewFound" from="screenContext.reviewFound"/>
+            <set field="paymentReview" from="screenContext.paymentReview"/>
+        </actions>
+    </service>
+    <service verb="confirm" noun="PaymentReview" allow-remote="false">
+        <description>Confirm a retained payment review through the Mantle service of its kind: change#PaymentState for a
+            state change, unapply#ReviewedPayment for an application release, execute#PaymentGatewayAction for a gateway
+            action and refund#ReviewedPayment for a refund. Each refuses an expired, used or changed review; a retry with
+            the operation key answers the first result. Refuses an unknown kind.</description>
+        <in-parameters>
+            <parameter name="previewKind" required="true"/>
+            <parameter name="previewId" required="true"/>
+            <parameter name="inputFingerprint" required="true"/>
+            <parameter name="operationKey" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="paymentId"/>
+        </out-parameters>
+        <actions>
+            <set field="confirmation" from="{previewId:previewId, inputFingerprint:inputFingerprint, operationKey:operationKey}"/>
+            <if condition="previewKind == 'state'">
+                <then>
+                    <service-call name="mantle.account.PaymentServices.change#PaymentState" in-map="confirmation"
+                            out-map="confirmed"/>
+                </then>
+                <else-if condition="previewKind == 'unapply'">
+                    <service-call name="mantle.account.PaymentServices.unapply#ReviewedPayment" in-map="confirmation"
+                            out-map="confirmed"/>
+                </else-if>
+                <else-if condition="previewKind == 'gateway'">
+                    <service-call name="mantle.account.PaymentServices.execute#PaymentGatewayAction" in-map="confirmation"
+                            out-map="confirmed"/>
+                </else-if>
+                <else-if condition="previewKind == 'refund'">
+                    <service-call name="mantle.account.PaymentServices.refund#ReviewedPayment" in-map="confirmation"
+                            out-map="confirmed"/>
+                </else-if>
+                <else>
+                    <return error="true" message="Choose a payment review to confirm"/>
+                </else>
+            </if>
+            <set field="paymentId" from="confirmed?.paymentId"/>
+        </actions>
+    </service>
+    <service verb="get" noun="TransferReviewContext" allow-remote="false">
+        <description>A retained internal transfer review for Payments/TransferReview
+            (mantle.account.PaymentServices.get#InternalTransferPreview): its facts, planned payments and postings, its
+            results once confirmed, and the values to change it. Every part is there: a review that does not exist,
+            expired or is another user's has reviewFound false. Refuses a user without transfer authority and an
+            organization the user may not work in.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="previewId" type="String"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId" type="String"/>
+            <parameter name="reviewFound" type="Boolean"/>
+            <parameter name="transferReview" type="Map"/>
+            <parameter name="transferValue" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('transferReview', context)"/>
+            <set field="previewId" from="screenContext.previewId"/>
+            <set field="reviewFound" from="screenContext.reviewFound"/>
+            <set field="transferReview" from="screenContext.transferReview"/>
+            <set field="transferValue" from="screenContext.transferValue"/>
+        </actions>
+    </service>
+    <service verb="get" noun="GatewayTransactionsContext" allow-remote="false">
+        <description>Page the organization's gateway responses (find#PaymentGatewayTransactions) with gateway labels and links
+            to their payments and refund payments. Every part is there: without treasury access gatewayTransactions
+            .available is false and the list empty.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentGatewayConfigId" type="String"/>
+            <parameter name="action" type="String"/>
+            <parameter name="outcome" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="pageIndex" type="Integer"/>
+            <parameter name="pageSize" type="Integer"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="organizationPartyId" type="String"/>
+            <parameter name="paymentId" type="String"/>
+            <parameter name="partyId" type="String"/>
+            <parameter name="paymentGatewayConfigId" type="String"/>
+            <parameter name="action" type="String"/>
+            <parameter name="outcome" type="String"/>
+            <parameter name="fromDay" type="String"/>
+            <parameter name="throughDay" type="String"/>
+            <parameter name="text" type="String"/>
+            <parameter name="records" type="List"/>
+            <parameter name="recordsCount" type="Integer"/>
+            <parameter name="recordsPageIndex" type="Integer"/>
+            <parameter name="recordsPageSize" type="Integer"/>
+            <parameter name="recordsPageMaxIndex" type="Integer"/>
+            <parameter name="recordsPageRangeLow" type="Integer"/>
+            <parameter name="recordsPageRangeHigh" type="Integer"/>
+            <parameter name="gatewayTransactions" type="Map"/>
+        </out-parameters>
+        <actions>
+            <set field="module" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="screenContext" from="ec.resource.script(module).execute('gatewayTransactions', context)"/>
+            <set field="organizationPartyId" from="screenContext.organizationPartyId"/>
+            <set field="paymentId" from="screenContext.paymentId"/>
+            <set field="partyId" from="screenContext.partyId"/>
+            <set field="paymentGatewayConfigId" from="screenContext.paymentGatewayConfigId"/>
+            <set field="action" from="screenContext.action"/>
+            <set field="outcome" from="screenContext.outcome"/>
+            <set field="fromDay" from="screenContext.fromDay"/>
+            <set field="throughDay" from="screenContext.throughDay"/>
+            <set field="text" from="screenContext.text"/>
+            <set field="records" from="screenContext.records"/>
+            <set field="recordsCount" from="screenContext.recordsCount"/>
+            <set field="recordsPageIndex" from="screenContext.recordsPageIndex"/>
+            <set field="recordsPageSize" from="screenContext.recordsPageSize"/>
+            <set field="recordsPageMaxIndex" from="screenContext.recordsPageMaxIndex"/>
+            <set field="recordsPageRangeLow" from="screenContext.recordsPageRangeLow"/>
+            <set field="recordsPageRangeHigh" from="screenContext.recordsPageRangeHigh"/>
+            <set field="gatewayTransactions" from="screenContext.gatewayTransactions"/>
+        </actions>
+    </service>
+    <service verb="save" noun="PaymentDraft" allow-remote="false">
+        <description>Create a payment draft from the payment form (mantle.account.PaymentServices.create#PaymentDraft), or
+            change the draft paymentId at its sourceVersion (store#PaymentDraft). The chosen methods come as reviewed
+            id~version tokens, so Mantle refuses a method changed since the user chose it. Passes nothing else of the
+            form.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId"/>
+            <parameter name="sourceVersion"/>
+            <parameter name="cashDirection"/>
+            <parameter name="partyId"/>
+            <parameter name="amount"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="paymentInstrumentEnumId"/>
+            <parameter name="organizationMethodToken"/>
+            <parameter name="counterpartyMethodToken"/>
+            <parameter name="referenceNumber"/>
+            <parameter name="comments"/>
+            <parameter name="operationKey"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="paymentId"/>
+            <parameter name="sourceVersion"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <set field="draftInput" from="ec.resource.script(payments).execute('draftInput', context)"/>
+            <if condition="paymentId &amp;&amp; sourceVersion">
+                <then>
+                    <service-call name="mantle.account.PaymentServices.store#PaymentDraft" in-map="draftInput"
+                            out-map="savedPayment"/>
+                </then>
+                <else>
+                    <service-call name="mantle.account.PaymentServices.create#PaymentDraft" in-map="draftInput"
+                            out-map="savedPayment"/>
+                </else>
+            </if>
+            <set field="paymentId" from="savedPayment.paymentId"/>
+            <set field="sourceVersion" from="savedPayment.sourceVersion"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="PaymentState" allow-remote="false">
+        <description>Review a payment state change (mantle.account.PaymentServices.preview#PaymentState) with the evidence
+            files chosen as reviewed id~version tokens.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="sourceVersion"/>
+            <parameter name="action"/>
+            <parameter name="settlementDate"/>
+            <parameter name="referenceNumber"/>
+            <parameter name="reason"/>
+            <parameter name="evidenceTokenList" type="Object"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentState" out-map="statePreview"
+                    in-map="ec.resource.script(payments).execute('stateInput', context)"/>
+            <set field="previewId" from="statePreview.previewId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="PaymentUnapply" allow-remote="false">
+        <description>Review removing applications of a payment (mantle.account.PaymentServices.preview#PaymentUnapply),
+            chosen as reviewed id~version tokens.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="sourceVersion"/>
+            <parameter name="applicationTokenList" type="Object"/>
+            <parameter name="reason"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentUnapply" out-map="unapplyPreview"
+                    in-map="ec.resource.script(payments).execute('unapplyInput', context)"/>
+            <set field="previewId" from="unapplyPreview.previewId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="PaymentRefund" allow-remote="false">
+        <description>Review a manual refund of a payment (mantle.account.PaymentServices.preview#PaymentRefund) with the
+            methods chosen as reviewed id~version tokens.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="amount"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="reason"/>
+            <parameter name="referenceNumber"/>
+            <parameter name="paymentInstrumentEnumId"/>
+            <parameter name="organizationMethodToken"/>
+            <parameter name="counterpartyMethodToken"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentRefund" out-map="refundPreview"
+                    in-map="ec.resource.script(payments).execute('refundInput', context)"/>
+            <set field="previewId" from="refundPreview.previewId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="PaymentGatewayAction" allow-remote="false">
+        <description>Review a gateway authorize, capture, release or refund of a payment
+            (mantle.account.PaymentServices.preview#PaymentGatewayAction); refuses any other action. The amount is passed
+            only for a refund.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="paymentId" required="true"/>
+            <parameter name="action" required="true"/>
+            <parameter name="amount"/>
+            <parameter name="reason"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#PaymentGatewayAction" out-map="gatewayPreview"
+                    in-map="ec.resource.script(payments).execute('gatewayActionInput', context)"/>
+            <set field="previewId" from="gatewayPreview.previewId"/>
+        </actions>
+    </service>
+    <service verb="preview" noun="InternalTransfer" allow-remote="false">
+        <description>Review an internal transfer (mantle.account.PaymentServices.preview#InternalTransfer) between the two
+            methods chosen as reviewed id~version tokens, with its fee, fee account and the party paid the fee.</description>
+        <implements service="ironstone.accounting.AccessServices.define#Parameters"/>
+        <in-parameters>
+            <parameter name="fromMethodToken"/>
+            <parameter name="toMethodToken"/>
+            <parameter name="amount"/>
+            <parameter name="currencyUomId"/>
+            <parameter name="effectiveDate"/>
+            <parameter name="feeAmount"/>
+            <parameter name="feeGlAccountId"/>
+            <parameter name="feePartyId"/>
+            <parameter name="referenceNumber"/>
+            <parameter name="reason"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="previewId"/>
+        </out-parameters>
+        <actions>
+            <set field="payments" value="component://mr-boss/service/ironstone/accounting/Payments.js"/>
+            <service-call name="mantle.account.PaymentServices.preview#InternalTransfer" out-map="transferPreview"
+                    in-map="ec.resource.script(payments).execute('transferInput', context)"/>
+            <set field="previewId" from="transferPreview.previewId"/>
+        </actions>
+    </service>
+</services>

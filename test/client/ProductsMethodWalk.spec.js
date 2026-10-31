@@ -86,7 +86,6 @@ feature("a method engineer imports legacy material, releases a routing and metho
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("Browser first method approval"))
         page.getByRole("tab", {name: "Explosion", exact: true}).click()
         page.waitFor(() => document.querySelector(".q-page")?.innerText.includes("DEMO_RM_1"))
-        page.screenshot("Method-browser-explosion", {fullPage: true})
         page.getByRole("tab", {name: "Method", exact: true}).click()
         // the link reloads with the line selected and opens its component dialog
         page.getByRole("link", {name: "Stage change", exact: true}).first().click()
@@ -102,6 +101,5 @@ feature("a method engineer imports legacy material, releases a routing and metho
         page.getByRole("tab", {name: "Compare dates", exact: true}).click()
         page.text().includes("Compare method dates")
         page.text().includes("Changed")
-        page.screenshot("Method-browser-compare", {fullPage: true})
     }
 })

@@ -186,9 +186,22 @@ feature("InvoiceDetail shows the lines and the time behind them; john.doe approv
         const email = sys(() => Array.from(ec.entity.find("moqui.basic.email.EmailMessage").condition("emailTemplateId", "BOSS_PROJECT_INVOICE").orderBy("-sentDate").list())[0])
         const print = render("apps/Projects/Billing/InvoicePrint", { invoiceId: made.invoiceId }, "html-print")
         const sentList = render("apps/Projects/Billing/Invoices", { list: "sent", rootWorkEffortId: PROJECT })
-        return { detail, approved, afterApprove, sent, afterSend, email, print, sentList }
+        // the issued PDF is the Projects print with the time detail, which send#Invoice renders from its location: the key
+        // of the issued file is the hash of that print, not of Mantle's plain one
+        const issueKey = (html) => ec.user.singleUseCodeHash(html).replace(/[^A-Za-z0-9]/g, "").slice(0, 24)
+        const vendorPartyId = one("mantle.account.invoice.Invoice", { invoiceId: made.invoiceId }).fromPartyId
+        const projectsPrint = sys(() => ec.screen.render({ rootScreen: "component://mr-boss/screen/Projects/Billing/InvoicePrint.xml",
+            renderMode: "html-print", parameters: { invoiceId: made.invoiceId, organizationPartyId: vendorPartyId } }).text)
+        const plainPrint = sys(() => ec.service.sync().name("mantle.account.InvoiceServices.get#InvoiceOutput")
+            .parameters({ invoiceId: made.invoiceId, organizationPartyId: vendorPartyId }).call().printHtml)
+        const issuedLocations = sys(() => Array.from(ec.entity.find("mantle.account.invoice.InvoiceContent")
+            .condition("invoiceId", made.invoiceId).condition("contentTypeEnumId", "IctInvoiceDocument").list())
+            .map((row) => String(row.contentLocation)))
+        const issued = { projectsKey: issueKey(projectsPrint), plainKey: issueKey(plainPrint), locations: issuedLocations,
+            timeDetail: projectsPrint.includes("Time detail") }
+        return { detail, approved, afterApprove, sent, afterSend, email, print, sentList, issued }
     },
-    then({ detail, approved, afterApprove, sent, afterSend, email, print, sentList }) {
+    then({ detail, approved, afterApprove, sent, afterSend, email, print, sentList, issued }) {
         detail.status == 200 && !detail.broken
         detail.output.includes("Client invoice")
         detail.output.includes("Password reset")
@@ -206,6 +219,10 @@ feature("InvoiceDetail shows the lines and the time behind them; john.doe approv
         print.output.includes("Login screen")
         print.output.includes("$2,475.00")
         sentList.output.includes(made.invoiceId)
+        issued.timeDetail
+        issued.locations.length == 1
+        issued.locations[0].includes("/" + issued.projectsKey + "/")
+        !issued.locations[0].includes("/" + issued.plainKey + "/")
     },
 })
 

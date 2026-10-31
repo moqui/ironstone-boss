@@ -144,7 +144,7 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | PaymentServices | cancel#PaymentAndInvoices |  |  |
 | PaymentServices | void#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | unapply#PaymentApplication | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payables/PayablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
-| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail |  |
+| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail | Mantle, confirming a settlement review (no screen calls it) |
 | PaymentServices | authorize#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | capture#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | release#Payment | Accounting/Payments/PaymentDetail |  |
@@ -189,6 +189,82 @@ Added in the Projects build (Oct 21–22, 2026; impl-projects.md P1–P10), call
 | --- | --- | --- | --- |
 | InvoiceServices | create#MilestoneInvoiceItems |  | Projects/Billing/Unbilled; Projects/Billing/Unbilled/CreateInvoice; Projects/Projects/MilestoneDetail |
 | InvoiceServices | get#InvoiceTimeDetail | Shared/InvoiceDetail | Projects/Billing/InvoiceDetail; Projects/Billing/InvoicePrint |
+
+Added in Accounting P4, called by built screens (financial authority remains native). Older design writer names are superseded by these contracts; internal native-to-native primitives are not counted as new screen calls.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| InvoiceServices | change#InvoiceState |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | store#InvoiceDraft |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | store#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items |
+| InvoiceServices | delete#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items; Projects/Billing/InvoiceDetail |
+| InvoiceServices | get#InvoiceFinanceDetail |  | Accounting/Receivables/InvoiceDetail; Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | reverse#DraftInvoice |  | Accounting/Receivables/InvoiceDetail |
+| InvoiceServices | apply#InvoiceCredit |  | Accounting/Receivables/InvoiceDetail/Payments |
+| InvoiceServices | find#Receivables |  | Accounting/Receivables/Invoices |
+| InvoiceServices | get#ReceivableSummary |  | Accounting/Receivables/Invoices |
+| InvoiceServices | create#Receivable |  | Accounting/Receivables/Invoices |
+| InvoiceServices | get#InvoiceOutput |  | Accounting/Receivables/InvoicePrint |
+| InvoiceServices | get#InvoiceDeliveryAttachments |  | Accounting/Receivables/InvoiceDetail (explicit supporting-file choices) |
+| InvoiceServices | send#Invoice |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
+| InvoiceServices | process#InvoiceBatch |  | Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | get#InvoiceBatchResult |  | Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | find#ApprovedTimeBilling |  | Accounting/Receivables/BillingQueue |
+| InvoiceServices | create#InvoiceFromApprovedTime |  | Accounting/Receivables/BillingQueue |
+| CustomerFinanceServices | get#CustomerFinance |  | Accounting/Receivables/Customer360 |
+| CustomerFinanceServices | store#CustomerIdentification |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CustomerFinanceServices | store#CustomerBankAccount |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CustomerFinanceServices | store#CustomerTaxRegistration |  | Accounting/Receivables/Customer360/FinanceDetails |
+| CollectionServices | get#Statements |  | Accounting/Receivables/Statements; Accounting/Receivables/StatementPrint |
+| CollectionServices | send#Statements |  | Accounting/Receivables/Statements |
+
+Added in Accounting P5 for gateway actions, called by built screens. They review and confirm Mantle's
+`authorize#`, `capture#`, `release#` and `refund#SinglePayment` and `get#SinglePaymentGatewayDetails` (R2), which
+replace the older gateway writer and poller design references.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| PaymentServices | find#PaymentGatewayProviders |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | find#PaymentGatewayTransactions |  | Accounting/Payments/GatewayTransactions |
+| PaymentServices | preview#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | get#PaymentGatewayActionPreview |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | execute#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | lookup#PaymentGatewayDetails |  | Accounting/Payments/PaymentDetail/Gateway |
+
+Added in Accounting P5, called by built screens; reworked on Mantle's services in R2. Gateway refunds are the gateway
+rows above; the test gateway services are left out.
+
+| Service XML | Service | Designed in | Implemented in |
+| --- | --- | --- | --- |
+| PaymentServices | find#OpenItems | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | find#SettlementAdjustmentAccounts | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench (explicit account choices) |
+| PaymentServices | preview#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | get#SettlementPreview | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | store#SettlementDraft |  | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | get#SettlementDraft |  | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | apply#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | preview#PaymentAutoApplication | Accounting/Payments/PaymentDetail | Mantle (no screen calls it yet) |
+| PaymentServices | find#Payments | Accounting/Payments/Payments | Accounting/Payments/Payments |
+| PaymentServices | get#PaymentFinanceDetail | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail and its seven tabs |
+| PaymentServices | find#PaymentMethods | Accounting/Payments | Accounting/Payments/Payments; Accounting/Payments/PaymentDetail (reviewed choices) |
+| PaymentServices | create#PaymentDraft | Accounting/Payments | Accounting/Payments/Payments; Accounting/QuickCreate/NewPayment |
+| PaymentServices | store#PaymentDraft | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | preview#PaymentState | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | get#PaymentStatePreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | change#PaymentState | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | preview#PaymentUnapply | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Applications |
+| PaymentServices | get#PaymentUnapplyPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | unapply#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Applications |
+| PaymentServices | get#PaymentOutput | Accounting/Payments/PaymentPrint | Accounting/Payments/PaymentPrint |
+| PaymentServices | get#PaymentRefundSummary | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Refunds (through get#PaymentFinanceDetail) |
+| PaymentServices | preview#PaymentRefund | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewManualRefund |
+| PaymentServices | get#PaymentRefundPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
+| PaymentServices | refund#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ConfirmManualRefund |
+| PaymentServices | find#InternalTransferMethods | Accounting/Payments/Payments | Accounting/Payments/Payments (reviewed methods) |
+| PaymentServices | find#InternalTransferFeeAccounts | Accounting/Payments/Payments | Accounting/Payments/Payments (explicit expense account) |
+| PaymentServices | preview#InternalTransfer | Accounting/Payments/Payments | Accounting/Payments/Payments#ReviewInternalTransfer |
+| PaymentServices | get#InternalTransferPreview | Accounting/Payments/Payments | Accounting/Payments/Payments |
+| PaymentServices | create#InternalTransfer | Accounting/Payments/Payments | Accounting/Payments/Payments#ConfirmInternalTransfer |
 
 ## Facility (15 services)
 

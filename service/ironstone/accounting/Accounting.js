@@ -1,5 +1,6 @@
 // App routing and shell shapes. Native services remain the finance authority.
-const policy = ec.resource.script("component://mr-mantle/service/mantle/ledger/AccountingPolicy.js")
+const lib = ec.resource.script("component://mr-boss/service/ironstone/accounting/AccountingLib.js")
+const policy = lib.policy
 
 // The list and detail screen of each record kind, under the app root.
 const listPaths = {
@@ -37,15 +38,24 @@ function recordLink(kind, recordId) {
 }
 
 function access(parameters) {
-    if (parameters.appRoot && parameters.appRoot !== "Accounting") throw new Error("Unknown accounting mount")
+    const scope = lib.access(parameters)
     const linkPaths = [
         ...Object.values(listPaths),
         ...Object.values(detailPaths),
         "Home",
+        "Receivables/Customer360",
+        "Receivables/BillingQueue",
+        "Receivables/Statements",
+        "Receivables/StatementPrint",
+        "Receivables/InvoiceBatch",
+        "Receivables/InvoicePrint",
+        "Receivables/ReceivablesWorkbench",
+        "Payments/GatewayTransactions",
+        "Payments/PaymentPrint",
         "Reports/TrialBalance",
         "Reports/GeneralLedger"
     ]
-    return Object.assign(policy.scope(parameters), {
+    return Object.assign(scope, {
         appRoot: "Accounting",
         linkBase: "//Accounting",
         webBase: "/qapps/Accounting",
@@ -54,17 +64,7 @@ function access(parameters) {
 }
 
 // A count or health read that fails is named as unavailable; the others still show.
-function probe(name, parameters) {
-    ec.message.pushErrors()
-    try {
-        const out = ec.service.sync().name(name).parameters(parameters).disableAuthz().requireNewTransaction(true).call()
-        if (ec.message.hasError()) throw new Error(ec.message.getErrorsString())
-        return out
-    } finally {
-        ec.message.clearErrors()
-        ec.message.popErrors()
-    }
-}
+const probe = policy.probe
 
 function summary(parameters) {
     const scope = access(parameters)
@@ -161,17 +161,22 @@ function ownedBy(chain) {
         return query.condition("ownerPartyId", "in", owners)
     }
 }
-function recordSource(kind, conditions = {}) {
+function recordSource(kind, conditions = {}, statusIds = null) {
     const idField = policy.kinds[kind][1]
+    const query = (parameters, term, recordId = null) => {
+        let found = policy
+            .query({kind, organizationPartyId: parameters.organizationPartyId, text: term, recordId})
+            .q.condition(conditions)
+        if (statusIds) found = found.condition("statusId", "in", statusIds)
+        return found
+    }
     return {
         // The search text goes through the policy's query, which matches each kind's own names.
-        find: (parameters, term) =>
-            policy.query({kind, organizationPartyId: parameters.organizationPartyId, text: term}).q.condition(conditions),
+        find: (parameters, term) => query(parameters, term),
         searchedByPolicy: true,
         value: row => row[idField],
         label: row => recordLabel(row, idField),
-        selected: (parameters, id) =>
-            policy.query({kind, organizationPartyId: parameters.organizationPartyId, recordId: id}).q.condition(conditions).one()
+        selected: (parameters, id) => query(parameters, null, id).one()
     }
 }
 function uomSource(uomTypeEnumId) {
@@ -275,7 +280,9 @@ const enumTypes = [
     "AssetClass",
     "GlAccountGroupType",
     "FinancialAccountTransReason",
-    "InventoryVarianceReason"
+    "InventoryVarianceReason",
+    "PartyIdType",
+    "BankAccountType"
 ]
 const accountRow = {value: row => row.glAccountId, label: accountLabel, searchedByPolicy: true}
 const choiceSources = {
@@ -306,12 +313,17 @@ const choiceSources = {
         }
     },
     drafts: recordSource("journals", {isPosted: "N"}),
+    invoices: recordSource("invoices", {statusId: "InvoiceInProcess"}),
+    bills: recordSource("bills", {}, ["InvoiceIncoming", "InvoiceReceived"]),
     journals: recordSource("journals"),
     batches: recordSource("batches"),
     templates: recordSource("templates"),
     locks: recordSource("locks"),
     periods: recordSource("periods"),
     products: entitySource("mantle.product.Product", "productId", "productName", ownedBy(true)),
+    projects: entitySource("mantle.work.effort.WorkEffort", "workEffortId", "workEffortName", (query, parameters) =>
+        ownedBy(false)(query.condition("workEffortTypeEnumId", "WetProject"), parameters)
+    ),
     categories: entitySource("mantle.product.category.ProductCategory", "productCategoryId", "categoryName", ownedBy(true)),
     assets: entitySource("mantle.product.asset.Asset", "assetId", "assetName", ownedBy(false)),
     financialTypes: entitySource("mantle.account.financial.FinancialAccountType", "finAccountTypeId", "description"),
@@ -336,6 +348,7 @@ const choiceSources = {
         value: row => row.settlementTermId,
         label: row => row.description || row.settlementTermId
     },
+    taxAuthorities: entitySource("mantle.other.tax.TaxAuthority", "taxAuthorityId", "description"),
     timeUnits: uomSource("UT_TIME_FREQ_MEASURE"),
     currencies: uomSource("UT_CURRENCY_MEASURE"),
     users: {
@@ -367,9 +380,380 @@ for (const enumTypeId of enumTypes) {
         label: row => row.description || row.enumId
     }
 }
+choiceSources.invoiceTypes = choiceSources["enum:InvoiceType"]
+// The statuses of Mantle's receivable invoice status flow.
+choiceSources.invoiceStatuses = {
+    find: () =>
+        policy
+            .find("moqui.basic.StatusItem", {statusTypeId: "Invoice"})
+            .condition(
+                "statusId",
+                "in",
+                policy.rows("moqui.basic.StatusFlowItem", {statusFlowId: "InvoiceReceivable"}).map(row => row.statusId)
+            )
+            .orderBy("sequenceNum,description"),
+    fields: ["statusId", "description"],
+    value: row => row.statusId,
+    label: row => row.description || row.statusId
+}
+choiceSources.invoiceItemTypes = choiceSources["enum:ItemType"]
+choiceSources.identificationTypes = choiceSources["enum:PartyIdType"]
+choiceSources.bankAccountTypes = choiceSources["enum:BankAccountType"]
+choiceSources.paymentParties = choiceSources.parties
+choiceSources.paymentInstruments = choiceSources["enum:PaymentInstrument"]
+choiceSources.paymentDraftInstruments = Object.assign({}, choiceSources.paymentInstruments, {
+    find: () => choiceSources.paymentInstruments.find().condition("enumId", "not-in", ["PiWriteOff", "PiDiscount"])
+})
+choiceSources.paymentStatuses = {
+    find: () => policy.find("moqui.basic.StatusItem", {statusTypeId: "Payment"}).orderBy("sequenceNum,description"),
+    fields: ["statusId", "description"],
+    value: row => row.statusId,
+    label: row => row.description || row.statusId
+}
 
+function selectedValues(value) {
+    if (value == null || value === "") return []
+    const parsed = Array.isArray(value)
+        ? value
+        : String(value).startsWith("[")
+          ? JSON.parse(String(value))
+          : String(value).split(",")
+    if (!Array.isArray(parsed) || parsed.length > 200) throw new Error("Choose at most 200 records")
+    return [...new Set(parsed.filter(value => value != null && value !== "").map(String))]
+}
+function paymentChoices(parameters, scope) {
+    const chosen = selectedValues(parameters.selected),
+        native = "mantle.account.PaymentServices.",
+        request = {organizationPartyId: scope.organizationPartyId}
+    if (parameters.choice === "internalTransferFeeAccounts") {
+        const result = policy.call(
+                native + "find#InternalTransferFeeAccounts",
+                Object.assign({}, request, {
+                    effectiveDate: parameters.effectiveDate,
+                    text: parameters.term || null,
+                    selectedIdList: chosen,
+                    pageIndex: 0,
+                    pageSize: choiceLimit
+                })
+            ),
+            options = []
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.glAccountId))
+                options.push({value: row.glAccountId, label: accountLabel(row)})
+        if (result.complete === false || result.incomplete)
+            options.push({
+                value: "unavailable:internalTransferFeeAccounts",
+                label: "Some transfer fee accounts are unavailable",
+                disable: true
+            })
+        return {options}
+    }
+    if (parameters.choice === "payments") {
+        const result = policy.call(
+            native + "find#Payments",
+            Object.assign({}, request, {
+                queue: "all",
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedPaymentIdList: chosen
+            })
+        )
+        const options = [],
+            label = row =>
+                [row.paymentId, row.partyName, ec.l10n.formatCurrency(row.amount, row.currencyUomId)].filter(Boolean).join(" · ")
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.paymentId)) options.push({value: row.paymentId, label: label(row)})
+        if (result.incomplete || result.complete === false)
+            options.push({value: "unavailable:payments", label: "Some payment choices are unavailable", disable: true})
+        return {options}
+    }
+    if (parameters.choice === "paymentGatewayProviders") {
+        const result = policy.call(
+            native + "find#PaymentGatewayProviders",
+            Object.assign({}, request, {
+                text: parameters.term || null,
+                selectedIdList: chosen,
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        const options = []
+        for (const row of [...Array.from(result.rows || []), ...Array.from(result.selectedRows || [])])
+            if (!options.some(option => option.value === row.paymentGatewayConfigId))
+                options.push({value: row.paymentGatewayConfigId, label: row.description || row.paymentGatewayConfigId})
+        if (result.complete === false)
+            options.push({
+                value: "unavailable:paymentGatewayProviders",
+                label: "Some provider choices are unavailable",
+                disable: true
+            })
+        return {options}
+    }
+    const selections = chosen.map(token => ({token, ...lib.token(token, "reviewed item")}))
+    let rows,
+        selectedRows,
+        idField,
+        label,
+        incomplete = false
+    if (parameters.choice === "internalTransferMethods") {
+        const result = policy.call(
+            native + "find#InternalTransferMethods",
+            Object.assign({}, request, {
+                currencyUomId: parameters.currencyUomId,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                selectedIdList: selections.map(item => item.id),
+                pageIndex: 0,
+                pageSize: choiceLimit
+            })
+        )
+        rows = Array.from(result.rows || [])
+        selectedRows = Array.from(result.selectedRows || [])
+        idField = "paymentMethodId"
+        label = row => row.label || row.paymentMethodId
+        incomplete = result.incomplete || result.complete === false
+    } else if (["reviewedOrganizationPaymentMethods", "reviewedCounterpartyPaymentMethods"].includes(parameters.choice)) {
+        const result = policy.call(
+            native + "find#PaymentMethods",
+            Object.assign({}, request, {
+                cashDirection: parameters.cashDirection,
+                methodRole: parameters.choice === "reviewedOrganizationPaymentMethods" ? "organization" : "counterparty",
+                partyId: parameters.partyId,
+                currencyUomId: parameters.currencyUomId,
+                effectiveDate: parameters.effectiveDate,
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedPaymentMethodIdList: selections.map(item => item.id)
+            })
+        )
+        rows = Array.from(result.rows || [])
+        selectedRows = Array.from(result.selectedRows || [])
+        idField = "paymentMethodId"
+        label = row => row.label || row.description || row.typeDescription || row.paymentMethodId
+        incomplete = result.incomplete || result.complete === false
+    } else {
+        const detail = policy.call(
+            native + "get#PaymentFinanceDetail",
+            Object.assign({}, request, {paymentId: parameters.paymentId})
+        )
+        const evidence = parameters.choice === "reviewedPaymentEvidence"
+        rows = Array.from(evidence ? detail.evidenceRows || [] : detail.applicationRows || [])
+        if (!evidence) rows = rows.filter(row => toDecimal(row.amountApplied || 0).compare(0) > 0)
+        selectedRows = rows
+        idField = evidence ? "paymentContentId" : "paymentApplicationId"
+        label = evidence
+            ? row =>
+                  [row.description, row.fileName, ec.l10n.format(row.contentSize, "#,##0") + " bytes"].filter(Boolean).join(" · ")
+            : row =>
+                  [
+                      row.paymentApplicationId,
+                      row.invoiceId || row.toInvoiceId || row.toPaymentId,
+                      ec.l10n.formatCurrency(row.amountApplied, row.currencyUomId)
+                  ]
+                      .filter(Boolean)
+                      .join(" · ")
+        incomplete = detail.incomplete || detail.complete === false || (evidence && detail.evidenceIncomplete)
+        const term = String(parameters.term || "")
+            .trim()
+            .toLocaleLowerCase()
+        rows = rows.filter(
+            row =>
+                !term ||
+                [row[idField], label(row)].some(value =>
+                    String(value || "")
+                        .toLocaleLowerCase()
+                        .includes(term)
+                )
+        )
+    }
+    const options = rows.slice(0, choiceLimit).map(row => ({value: row[idField] + "~" + row.version, label: label(row)}))
+    for (const item of selections) {
+        const row = selectedRows.find(row => row[idField] === item.id)
+        if (row && !options.some(option => option.value === item.token))
+            options.push({
+                value: item.token,
+                label: label(row) + (row.version !== item.version ? " · Changed since selection" : "")
+            })
+    }
+    if (incomplete)
+        options.push({
+            value: "unavailable:" + parameters.choice,
+            label: "Some choices are unavailable; review the payment details",
+            disable: true
+        })
+    return {options}
+}
+function settlementChoices(parameters, scope) {
+    const chosen = selectedValues(parameters.selected)
+    if (parameters.choice === "settlementAdjustmentAccounts") {
+        const result = policy.call("mantle.account.PaymentServices.find#SettlementAdjustmentAccounts", {
+            organizationPartyId: scope.organizationPartyId,
+            direction: parameters.direction || "receivable",
+            effectiveDate: parameters.effectiveDate,
+            text: parameters.term || null,
+            selectedIdList: chosen,
+            pageIndex: 0,
+            pageSize: choiceLimit
+        })
+        const options = Array.from(result.rows || []).map(row => ({value: row.glAccountId, label: accountLabel(row)}))
+        for (const row of Array.from(result.selectedRows || []))
+            if (!options.some(option => option.value === row.glAccountId))
+                options.push({value: row.glAccountId, label: accountLabel(row)})
+        return {options}
+    }
+    const selections = chosen.map(token => ({token, ...lib.settlementToken(token)}))
+    const kinds = {
+        settlementSources: ["payment", "credit"],
+        settlementTargets: ["invoice", "paymentTarget"],
+        settlementAdjustmentInvoices: ["invoice"]
+    }[parameters.choice]
+    if (!kinds) throw new Error("Unknown settlement choice " + parameters.choice)
+    const lists = [],
+        selected = [],
+        unavailable = []
+    const labels = {payment: "Receipt", credit: "Credit", invoice: "Invoice", paymentTarget: "Payment"}
+    const label = row =>
+        labels[row.sourceKind] +
+        " " +
+        row.sourceId +
+        " · " +
+        (row.counterpartyName || "") +
+        " · " +
+        ec.l10n.formatCurrency(row.remaining, row.currencyUomId) +
+        (row.dueDateText ? " · Due " + row.dueDateText : "")
+    for (const sourceKind of kinds) {
+        try {
+            const result = probe("mantle.account.PaymentServices.find#OpenItems", {
+                organizationPartyId: scope.organizationPartyId,
+                partyId: parameters.partyId,
+                direction: parameters.direction || "receivable",
+                currencyUomId: parameters.currencyUomId,
+                asOfDate: parameters.asOfDate || null,
+                sourceKind,
+                text: parameters.term || null,
+                pageIndex: 0,
+                pageSize: choiceLimit,
+                selectedKeyList: selections.filter(item => item.kind === sourceKind).map(item => item.key)
+            })
+            if (result.incomplete || result.complete === false) throw new Error("Authoritative balances are unavailable")
+            lists.push(Array.from(result.rows || []).map(row => ({value: row.sourceKey + "~" + row.version, label: label(row)})))
+            selected.push(...Array.from(result.selectedRows || []))
+        } catch (error) {
+            ec.logger.error("Accounting " + sourceKind + " choices: " + error.message)
+            unavailable.push({
+                value: "unavailable:" + sourceKind,
+                label: labels[sourceKind] + " choices are unavailable",
+                disable: true
+            })
+        }
+    }
+    // Offer both kinds on the first page; each native query searches before its own limit.
+    const options = []
+    for (let index = 0; index < choiceLimit && options.length < choiceLimit; index++)
+        for (const list of lists) if (list[index] && options.length < choiceLimit) options.push(list[index])
+    for (const item of selections) {
+        const row = selected.find(row => row.sourceKey === item.key)
+        if (row && !options.some(option => option.value === item.token))
+            options.push({
+                value: item.token,
+                label: label(row) + (item.version !== row.version ? " · Changed since selection" : "")
+            })
+    }
+    options.push(...unavailable)
+    return {options}
+}
 function choices(parameters) {
     const scope = access(parameters)
+    if (
+        [
+            "payments",
+            "reviewedOrganizationPaymentMethods",
+            "reviewedCounterpartyPaymentMethods",
+            "internalTransferMethods",
+            "internalTransferFeeAccounts",
+            "paymentGatewayProviders",
+            "reviewedPaymentEvidence",
+            "reviewedPaymentApplications"
+        ].includes(parameters.choice)
+    )
+        return paymentChoices(parameters, scope)
+    if (
+        ["settlementSources", "settlementTargets", "settlementAdjustmentInvoices", "settlementAdjustmentAccounts"].includes(
+            parameters.choice
+        )
+    )
+        return settlementChoices(parameters, scope)
+    if (parameters.choice === "receivableCredits") {
+        // The credits Mantle allows applying to the invoice: its linked credits, issued, with a balance.
+        const detail = policy.call("mantle.account.InvoiceServices.get#InvoiceFinanceDetail", {
+            invoiceId: parameters.invoiceId,
+            organizationPartyId: scope.organizationPartyId
+        })
+        const term = String(parameters.term || "").toLocaleLowerCase()
+        const options = Array.from(detail.creditRows || [])
+            .filter(
+                row =>
+                    !term ||
+                    row.invoiceId === parameters.selected ||
+                    [row.invoiceId, row.description, row.referenceNumber].some(text =>
+                        String(text || "")
+                            .toLocaleLowerCase()
+                            .includes(term)
+                    )
+            )
+            .map(row => ({value: row.invoiceId, label: row.invoiceId + (row.description ? " — " + row.description : "")}))
+        return {options}
+    }
+    if (["invoiceAttachments", "reviewedInvoiceAttachments"].includes(parameters.choice)) {
+        let selected = parameters.selected || []
+        if (!Array.isArray(selected)) {
+            const text = String(selected)
+            selected = text.startsWith("[") ? JSON.parse(text) : text.split(",").filter(Boolean)
+        }
+        selected = selected.map(String)
+        const reviewed = parameters.choice === "reviewedInvoiceAttachments"
+        const selectedId = value => (reviewed ? value.split("~")[0] : value)
+        const request = {invoiceId: parameters.invoiceId, organizationPartyId: scope.organizationPartyId}
+        const result = policy.call("mantle.account.InvoiceServices.get#InvoiceDeliveryAttachments", request)
+        const rows = Array.from(result.attachmentRows || [])
+        const missing = [...new Set(selected.map(selectedId).filter(id => !rows.some(row => row.invoiceContentId === id)))]
+        if (missing.length) {
+            const explicit = policy.call(
+                "mantle.account.InvoiceServices.get#InvoiceDeliveryAttachments",
+                Object.assign({}, request, {attachmentContentIdList: missing})
+            )
+            rows.push(...Array.from(explicit.attachmentRows || []))
+        }
+        const label = row =>
+            (row.description ? row.description + " · " : "") +
+            row.fileName +
+            " (" +
+            ec.l10n.format(row.contentSize, "#,##0") +
+            " bytes)"
+        const value = row => (reviewed ? row.invoiceContentId + "~" + row.attachmentVersion : row.invoiceContentId)
+        const term = String(parameters.term || "")
+            .trim()
+            .toLocaleLowerCase()
+        const matches = rows.filter(
+            row =>
+                !term ||
+                [row.invoiceContentId, row.fileName, row.description].some(text =>
+                    String(text || "")
+                        .toLocaleLowerCase()
+                        .includes(term)
+                )
+        )
+        const options = matches.slice(0, choiceLimit).map(row => ({value: value(row), label: label(row)}))
+        for (const chosen of selected) {
+            const row = rows.find(row => row.invoiceContentId === selectedId(chosen))
+            // Retain the reviewed version. A changed live file must fail the native stale check when sent.
+            const retained = reviewed && chosen.includes("~") ? chosen : row && value(row)
+            if (row && !options.some(option => option.value === retained)) options.push({value: retained, label: label(row)})
+        }
+        return {options}
+    }
     const source = choiceSources[parameters.choice]
     if (!source) throw new Error("Unknown accounting choice " + parameters.choice)
     const term = String(parameters.term || "").trim()

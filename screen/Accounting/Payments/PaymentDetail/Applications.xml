@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<!-- PaymentDetail's Applications tab: the invoices and payments the payment is applied to, Release applications (reviewed in
+    PaymentDetail/Review) and, for a receivable, the way to the allocation workbench. It reads the payment when the client
+    loads the tab alone. -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Applications"
+        default-menu-index="2">
+    <parameter name="organizationPartyId"/>
+    <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <transition name="previewPaymentUnapply">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentUnapply" in-map="context"
+                    out-map="unapplyPreview"/>
+            <set field="previewId" from="unapplyPreview.previewId"/>
+            <set field="previewKind" value="unapply"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Review"/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <actions>
+        <!-- PaymentDetail's actions read the payment when it renders with the tab -->
+        <if condition="financePayment == null">
+            <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                    in-map="context"
+                    out-map="context"
+                    transaction="force-new"
+                    ignore-error="true"/>
+        </if>
+        <set field="unapplyChoice"
+                from="ec.web.errorParameters?.moquiFormName == 'PaymentUnapply' ? ec.web.errorParameters : {}"/>
+    </actions>
+    <widgets>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentApplications" condition="recordFound">
+            <widgets>
+                <container-box>
+                    <box-header title="Applications and open items"/>
+                    <box-toolbar>
+                        <container-dialog id="PaymentUnapplyDialog"
+                                button-text="Release applications"
+                                title="Release applications of payment ${paymentId}"
+                                width="760"
+                                type="default"
+                                condition="financePayment.canUnapply">
+                            <form-single name="PaymentUnapply" transition="previewPaymentUnapply" map="financePayment">
+                                <field name="organizationPartyId"><default-field><hidden/></default-field></field>
+                                <field name="paymentId"><default-field><hidden/></default-field></field>
+                                <field name="sourceVersion"><default-field><hidden/></default-field></field>
+                                <field name="applicationTokenList">
+                                    <default-field title="Applications to release"
+                                            tooltip="Their postings are reversed on their original dates">
+                                        <drop-down allow-empty="true" allow-multiple="true">
+                                            <dynamic-options transition="choices"
+                                                    server-search="true"
+                                                    min-length="0"
+                                                    depends-optional="true"
+                                                    parameter-map="{choice:'reviewedPaymentApplications',
+                                                        organizationPartyId:organizationPartyId, paymentId:paymentId,
+                                                        selected:unapplyChoice.applicationTokenList || null}"/>
+                                        </drop-down>
+                                    </default-field>
+                                </field>
+                                <field name="reason">
+                                    <default-field title="Reason">
+                                        <text-area rows="3"/>
+                                    </default-field>
+                                </field>
+                                <field name="submit">
+                                    <default-field title="">
+                                        <submit text="Review release"/>
+                                    </default-field>
+                                </field>
+                            </form-single>
+                        </container-dialog>
+                        <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                                text="Allocate in the workbench"
+                                link-type="anchor"
+                                condition="financePayment.canSettle"
+                                parameter-map="financePayment.settlementParameters"/>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="PaymentApplications"
+                                list="financePayment.applicationRows"
+                                skip-form="true"
+                                paginate="false">
+                            <field name="paymentApplicationId">
+                                <default-field title="Application">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="invoiceId">
+                                <conditional-field condition="invoiceParameters" title="Invoice">
+                                    <link url="${sharedLinks[invoicePath]}"
+                                            text="${invoiceId}"
+                                            link-type="anchor"
+                                            parameter-map="invoiceParameters"/>
+                                </conditional-field>
+                                <default-field title="Invoice">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="relatedPaymentId">
+                                <conditional-field condition="relatedParameters" title="Payment">
+                                    <link url="${sharedLinks['Payments/PaymentDetail']}"
+                                            text="${relatedPaymentId}"
+                                            link-type="anchor"
+                                            parameter-map="relatedParameters"/>
+                                </conditional-field>
+                                <default-field title="Payment">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="appliedDateText">
+                                <default-field title="Application date">
+                                    <display/>
+                                </default-field>
+                            </field>
+                            <field name="amountApplied" align="right">
+                                <default-field title="Applied">
+                                    <display currency-unit-field="currencyUomId"/>
+                                </default-field>
+                            </field>
+                            <columns type="mobile">
+                                <column>
+                                    <field-ref name="invoiceId"/>
+                                    <field-ref name="relatedPaymentId"/>
+                                    <field-ref name="appliedDateText"/>
+                                </column>
+                                <column>
+                                    <field-ref name="amountApplied"/>
+                                </column>
+                            </columns>
+                        </form-list>
+                        <label text="This payment is not applied to anything yet."
+                                type="p"
+                                style="m-muted"
+                                condition="!financePayment.applicationRows.length"/>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+    </widgets>
+</screen>

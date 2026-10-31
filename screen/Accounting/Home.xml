@@ -16,25 +16,47 @@ along with this software (see the LICENSE.md file). If not, see
     each a link to its list (ironstone.accounting.HomeServices.get#Summary; a count that fails is named as unavailable,
     never shown as zero), the setup findings, and shortcuts to what the user may create. The receivables, payables and
     banking cards come with their phases (P4 to P9). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Home" menu-image="sym_o_dashboard" menu-image-type="icon" default-menu-index="1" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        default-menu-title="Home"
+        menu-image="sym_o_dashboard"
+        menu-image-type="icon"
+        default-menu-index="1"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
     <parameter name="organizationPartyId"/>
     <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
     <transition-include name="selectOrganization" location="component://mr-boss/template/AccountingParts.xml"/>
     <actions>
-        <service-call name="ironstone.accounting.HomeServices.get#Summary" in-map="{organizationPartyId:organizationPartyId}" out-map="context"/>
+        <service-call name="ironstone.accounting.HomeServices.get#Summary"
+                in-map="{organizationPartyId:organizationPartyId}"
+                out-map="context"/>
         <set field="capabilities" from="accounting.capabilities"/>
         <set field="ledgerReader" from="capabilities.reportRead || capabilities.glPost"/>
-        <set field="organizationQuery" from="organizationPartyId ? '&amp;organizationPartyId=' + encodeURIComponent(organizationPartyId) : ''"/>
-        <set field="counts" from="Object.fromEntries(['unposted', 'posted', 'accounts', 'periods'].map(name =&gt; [name, summary[name] == null ? 'Unavailable' : String(summary[name])]))"/>
+        <set field="organizationQuery"
+                from="organizationPartyId ? '&amp;organizationPartyId=' + encodeURIComponent(organizationPartyId) : ''"/>
+        <set field="counts"
+                from="Object.fromEntries(['unposted', 'posted', 'accounts', 'periods'].map(name =&gt; [name,
+                    summary[name] == null ? 'Unavailable' : String(summary[name])]))"/>
     </actions>
     <widgets>
         <label text="Accounting" type="h5"/>
         <section-include name="OrganizationPicker" location="component://mr-boss/template/AccountingParts.xml"/>
         <dashboard min-width="150">
-            <number-card title="Draft entries" value="${counts.unposted}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=N${organizationQuery}" condition="ledgerReader"/>
-            <number-card title="Posted entries" value="${counts.posted}" link="//Accounting/GeneralLedger/JournalEntries?isPosted=Y${organizationQuery}" condition="ledgerReader"/>
-            <number-card title="Chart accounts" value="${counts.accounts}" link="//Accounting/GeneralLedger/ChartOfAccounts?${organizationQuery.slice(1)}" condition="ledgerReader"/>
-            <number-card title="Fiscal periods" value="${counts.periods}" link="//Accounting/PeriodClose/Periods?${organizationQuery.slice(1)}" condition="capabilities.glPost || capabilities.fiscalClose"/>
+            <number-card title="Draft entries"
+                    value="${counts.unposted}"
+                    link="//Accounting/GeneralLedger/JournalEntries?isPosted=N${organizationQuery}"
+                    condition="ledgerReader"/>
+            <number-card title="Posted entries"
+                    value="${counts.posted}"
+                    link="//Accounting/GeneralLedger/JournalEntries?isPosted=Y${organizationQuery}"
+                    condition="ledgerReader"/>
+            <number-card title="Chart accounts"
+                    value="${counts.accounts}"
+                    link="//Accounting/GeneralLedger/ChartOfAccounts?${organizationQuery.slice(1)}"
+                    condition="ledgerReader"/>
+            <number-card title="Fiscal periods"
+                    value="${counts.periods}"
+                    link="//Accounting/PeriodClose/Periods?${organizationQuery.slice(1)}"
+                    condition="capabilities.glPost || capabilities.fiscalClose"/>
         </dashboard>
         <label text="As of ${summary.asOf}" type="p" style="text-caption m-muted"/>
         <section name="SetupFindings" condition="findings.length">
@@ -47,18 +69,54 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="${finding}" type="p" style="q-mb-xs"/>
                             </widgets>
                         </section-iterate>
-                        <link url="//Accounting/Settings/Settings" text="Review accounting setup" link-type="anchor-button" btn-type="primary" condition="capabilities.admin" parameter-map="{organizationPartyId:organizationPartyId}"/>
+                        <link url="//Accounting/Settings/Settings"
+                                text="Review accounting setup"
+                                link-type="anchor-button"
+                                btn-type="primary"
+                                condition="capabilities.admin"
+                                parameter-map="{organizationPartyId:organizationPartyId}"/>
                     </box-body>
                 </container-box>
             </widgets>
         </section>
         <label text="Shortcuts" type="h6"/>
         <container style="row q-gutter-sm">
-            <link url="//Accounting/QuickCreate/NewInvoice" text="New invoice" link-type="anchor-button" icon="sym_o_request_quote" condition="capabilities.arEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
-            <link url="//Accounting/QuickCreate/NewBill" text="New bill" link-type="anchor-button" icon="sym_o_receipt" condition="capabilities.apEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
-            <link url="//Accounting/QuickCreate/NewPayment" text="New payment" link-type="anchor-button" icon="sym_o_payments" condition="capabilities.paymentEdit" parameter-map="{organizationPartyId:organizationPartyId}"/>
-            <link url="//Accounting/QuickCreate/NewEntry" text="New journal entry" link-type="anchor-button" icon="sym_o_edit_note" condition="capabilities.glPost" parameter-map="{organizationPartyId:organizationPartyId}"/>
-            <link url="//Accounting/Reports/TrialBalance" text="Trial balance" link-type="anchor-button" icon="sym_o_table_chart" condition="ledgerReader" parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewInvoice"
+                    text="New invoice"
+                    link-type="anchor-button"
+                    icon="sym_o_request_quote"
+                    condition="capabilities.arEdit"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewBill"
+                    text="New bill"
+                    link-type="anchor-button"
+                    icon="sym_o_receipt"
+                    condition="capabilities.apEdit"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="${sharedLinks['Receivables/ReceivablesWorkbench']}"
+                    text="Allocate receipts"
+                    link-type="anchor-button"
+                    icon="sym_o_payments"
+                    condition="capabilities.arRead || capabilities.paymentRead || capabilities.reportRead || capabilities.admin"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewPayment"
+                    text="New payment"
+                    link-type="anchor-button"
+                    icon="sym_o_payments"
+                    condition="capabilities.paymentEdit"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/QuickCreate/NewEntry"
+                    text="New journal entry"
+                    link-type="anchor-button"
+                    icon="sym_o_edit_note"
+                    condition="capabilities.glPost"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
+            <link url="//Accounting/Reports/TrialBalance"
+                    text="Trial balance"
+                    link-type="anchor-button"
+                    icon="sym_o_table_chart"
+                    condition="ledgerReader"
+                    parameter-map="{organizationPartyId:organizationPartyId}"/>
         </container>
     </widgets>
 </screen>

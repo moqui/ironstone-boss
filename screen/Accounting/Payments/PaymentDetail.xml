@@ -12,17 +12,182 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<!-- A payment, read only until its workflow (template/AccountingDocuments.xml DocumentDetail). -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" default-menu-title="Payment" default-menu-index="1" default-menu-include="false" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd">
+<!-- A payment (style-guide §3.3 Detail): the header with the payment, its counterparty, amount, date and status chip, the
+    one action its status calls for (Authorize or Capture through its gateway, else Validate, Record delivery or Confirm
+    settlement), the More menu (Edit draft, the other state and gateway actions, Cancel, Void and Release as ends, the
+    issued documents), its amounts, and the tabs, each of which reads the payment itself when the client loads it alone
+    (ironstone.accounting.PaymentScreenServices.get#PaymentContext). A state or gateway action opens its review in the
+    Review subscreen. A payment the user may not see is "not available". -->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        default-menu-title="Payment"
+        default-menu-include="false">
     <parameter name="organizationPartyId"/>
     <parameter name="recordId"/>
+    <parameter name="paymentId"/>
+    <parameter name="findJson"/>
+    <transition name="previewPaymentState">
+        <actions>
+            <service-call name="ironstone.accounting.PaymentScreenServices.preview#PaymentState" in-map="context"
+                    out-map="statePreview"/>
+            <set field="previewId" from="statePreview.previewId"/>
+            <set field="previewKind" value="state"/>
+        </actions>
+        <default-response url="${sharedLinks['Payments/PaymentDetail']}/Review"/>
+        <error-response url="."/>
+    </transition>
+    <transition-include name="previewGatewayAction" location="component://mr-boss/template/AccountingPayments.xml"/>
+    <transition-include name="savePaymentDraft" location="component://mr-boss/template/AccountingPayments.xml"/>
+    <transition-include name="choices" location="component://mr-boss/template/AccountingParts.xml"/>
+    <subscreens default-item="Overview" always-use-full-path="true"/>
     <actions>
-        <set field="documentKind" value="payments"/>
-        <set field="documentLabel" value="payment"/>
-        <set field="listPath" value="Payments/Payments"/>
-        <set field="listTitle" value="Payments"/>
+        <service-call name="ironstone.accounting.PaymentScreenServices.get#PaymentContext"
+                in-map="context"
+                out-map="context"
+                transaction="force-new"
+                ignore-error="true"/>
+        <!-- under a review (the Review subscreen) the header offers no other change of the payment -->
+        <set field="reviewOpen" from="!!ec.web?.parameters?.previewId"/>
+        <set field="moreShown" from="reviewOpen ? financePayment?.printRows?.length &gt; 0 : financePayment?.hasMoreActions"/>
     </actions>
     <widgets>
-        <section-include name="DocumentDetail" location="component://mr-boss/template/AccountingDocuments.xml"/>
+        <section-include name="PaymentNotAvailable" location="component://mr-boss/template/AccountingPayments.xml"/>
+        <section name="PaymentFound" condition="recordFound">
+            <widgets>
+                <context record-entity="mantle.account.payment.Payment" record-id="${paymentId}" title="${financePayment.title}"/>
+                <link url="${sharedLinks['Payments/Payments']}"
+                        text="Payments"
+                        link-type="anchor"
+                        icon="arrow_back"
+                        parameter-map="financePayment.returnParameters"/>
+                <section name="PaymentIncomplete" condition="!financePayment.complete">
+                    <widgets>
+                        <container-box type="warning">
+                            <box-body>
+                                <label text="Some details of this payment are not available now; the others are shown." type="p"/>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+                <container style="m-record-header">
+                    <container style="row items-start q-col-gutter-x-md q-col-gutter-y-sm">
+                        <container style="col-12 col-md m-record-title">
+                            <container style="row items-center no-wrap">
+                                <render-mode>
+                                    <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none q-mr-sm text-mono">${
+                                        WebUtilities.encodeHtml(paymentId)}</q-chip>]]></text>
+                                    <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "PaymentKey", style: "strong",
+                                        text: paymentId})}]]></text>
+                                </render-mode>
+                                <label text="${financePayment.title}" type="h5"/>
+                            </container>
+                        </container>
+                        <container style="col-12 col-md-auto m-record-status">
+                            <render-mode>
+                                <text type="qvt"><![CDATA[<q-chip dense square class="q-ma-none m-tonal text-${
+                                    financePayment.statusColor}">${
+                                    WebUtilities.encodeHtml(financePayment.statusDescription)}</q-chip>]]></text>
+                                <text type="tui"><![CDATA[${JSON.stringify({t: "text", id: "PaymentStatus", style: "strong",
+                                    text: financePayment.statusDescription})}]]></text>
+                                <text type="html">${financePayment.statusDescription}</text>
+                                <text type="html-print">${financePayment.statusDescription}</text>
+                            </render-mode>
+                        </container>
+                    </container>
+                    <container style="row items-center q-col-gutter-x-md q-col-gutter-y-sm m-record-foot">
+                        <container style="col-12 col-md">
+                            <label text="${financePayment.captionText}" type="p" style="q-mb-none"/>
+                            <label text="Reference ${financePayment.referenceNumber}"
+                                    type="p"
+                                    style="text-caption m-muted"
+                                    condition="financePayment.referenceNumber"/>
+                        </container>
+                        <container style="col-12 col-md-auto row items-center q-gutter-sm m-record-actions">
+                            <!-- each place iterates over all the actions, so a dialog's index is its own on the page -->
+                            <section-iterate name="PrimaryStateAction"
+                                    list="financePayment.stateActionRows"
+                                    entry="stateAction"
+                                    condition="!reviewOpen">
+                                <widgets>
+                                    <section name="PrimaryStateDialog" condition="stateAction.placement == 'primary'">
+                                        <widgets>
+                                            <section-include name="PaymentStateDialog"
+                                                    location="component://mr-boss/template/AccountingPayments.xml"/>
+                                        </widgets>
+                                    </section>
+                                </widgets>
+                            </section-iterate>
+                            <section-iterate name="PrimaryGatewayAction"
+                                    list="financePayment.gatewayActionRows"
+                                    entry="gatewayAction"
+                                    condition="!reviewOpen">
+                                <widgets>
+                                    <section name="PrimaryGatewayDialog" condition="gatewayAction.placement == 'primary'">
+                                        <widgets>
+                                            <section-include name="PaymentGatewayDialog"
+                                                    location="component://mr-boss/template/AccountingPayments.xml"/>
+                                        </widgets>
+                                    </section>
+                                </widgets>
+                            </section-iterate>
+                            <button-menu text="More" icon="more_horiz" condition="moreShown">
+                                <container-dialog id="PaymentEditDraft"
+                                        button-text="Edit draft"
+                                        title="Edit payment ${paymentId}"
+                                        width="760"
+                                        type="default"
+                                        condition="financePayment.canEdit &amp;&amp; !reviewOpen">
+                                    <section-include name="PaymentDraftForm"
+                                            location="component://mr-boss/template/AccountingPayments.xml"/>
+                                </container-dialog>
+                                <section-iterate name="MoreStateActions"
+                                        list="financePayment.stateActionRows"
+                                        entry="stateAction"
+                                        condition="!reviewOpen">
+                                    <widgets>
+                                        <section name="MoreStateDialog" condition="stateAction.placement == 'more'">
+                                            <widgets>
+                                                <section-include name="PaymentStateDialog"
+                                                        location="component://mr-boss/template/AccountingPayments.xml"/>
+                                            </widgets>
+                                        </section>
+                                    </widgets>
+                                </section-iterate>
+                                <section-iterate name="MoreGatewayActions"
+                                        list="financePayment.gatewayActionRows"
+                                        entry="gatewayAction"
+                                        condition="!reviewOpen">
+                                    <widgets>
+                                        <section name="MoreGatewayDialog" condition="gatewayAction.placement == 'more'">
+                                            <widgets>
+                                                <section-include name="PaymentGatewayDialog"
+                                                        location="component://mr-boss/template/AccountingPayments.xml"/>
+                                            </widgets>
+                                        </section>
+                                    </widgets>
+                                </section-iterate>
+                                <section-iterate name="PaymentPrints" list="financePayment.printRows" entry="printRow">
+                                    <widgets>
+                                        <link url="${sharedLinks['Payments/PaymentPrint']}"
+                                                text="${printRow.text}"
+                                                icon="sym_o_print"
+                                                link-type="anchor"
+                                                parameter-map="printRow.parameters"/>
+                                    </widgets>
+                                </section-iterate>
+                            </button-menu>
+                        </container>
+                    </container>
+                </container>
+                <dashboard min-width="180">
+                    <number-card title="Amount" value="${financePayment.amountText}"/>
+                    <number-card title="Applied" value="${financePayment.appliedText}" condition="!financePayment.isTransfer"/>
+                    <number-card title="Unapplied"
+                            value="${financePayment.unappliedText}"
+                            condition="!financePayment.isTransfer"/>
+                </dashboard>
+                <subscreens-panel id="PaymentDetailTabs" type="tab"/>
+            </widgets>
+        </section>
     </widgets>
 </screen>

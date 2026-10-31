@@ -65,8 +65,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </m-form>
             </files-done>
 
-            <q-list v-if="files.length" dense separator>
-                <q-item v-for="file in files" :key="file.contentKey" class="q-px-xs">
+            <q-list v-if="files.length" :dark="dark" dense separator>
+                <q-item v-for="file in files" :key="file.contentKey" :dark="dark" class="q-px-xs">
                     <q-item-section avatar class="m-record-file-icon">
                         <q-icon :name="file.icon" :color="file.isImage ? 'primary' : (file.isPdf ? 'negative' : undefined)"></q-icon>
                     </q-item-section>
@@ -101,8 +101,8 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- the other files of the record's folder in the records drive -->
             <template v-if="extraList.length">
                 <div class="text-caption m-muted q-mt-sm">{{t('Also in the record\'s folder')}}</div>
-                <q-list dense separator>
-                    <q-item v-for="item in extraList" :key="item.drivePath" class="q-px-xs">
+                <q-list :dark="dark" dense separator>
+                    <q-item v-for="item in extraList" :key="item.drivePath" :dark="dark" class="q-px-xs">
                         <q-item-section avatar class="m-record-file-icon"><q-icon :name="item.isDirectory ? 'sym_o_folder' : item.icon"></q-icon></q-item-section>
                         <q-item-section>
                             <q-item-label class="ellipsis">
@@ -120,8 +120,8 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- a file's versions: download, restore, a new version -->
     <m-dialog v-model="versions.open" :title="t('Versions') + ' · ' + (versions.file ? versions.file.fileName : '')" width="560">
         <div v-if="versions.loading" class="q-pa-md text-center"><q-spinner></q-spinner></div>
-        <q-list v-else dense separator>
-            <q-item v-for="version in versions.list" :key="version.versionName" class="q-px-none">
+        <q-list v-else :dark="dark" dense separator>
+            <q-item v-for="version in versions.list" :key="version.versionName" :dark="dark" class="q-px-none">
                 <q-item-section>
                     <q-item-label class="row items-center no-wrap"><span class="text-weight-medium">{{version.shortName}}</span>
                         <q-chip v-if="version.isCurrent" dense square class="m-tonal text-primary q-ml-sm">{{t('Current')}}</q-chip></q-item-label>
@@ -137,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </div>
                 </q-item-section>
             </q-item>
-            <q-item v-if="!versions.list.length" class="q-px-none"><q-item-section class="text-body2 m-muted">{{t('This file keeps no versions.')}}</q-item-section></q-item>
+            <q-item v-if="!versions.list.length" :dark="dark" class="q-px-none"><q-item-section class="text-body2 m-muted">{{t('This file keeps no versions.')}}</q-item-section></q-item>
         </q-list>
         <template v-if="versions.canChange">
             <q-separator class="q-my-sm"></q-separator>
@@ -165,9 +165,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <q-btn flat dense no-caps size="sm" @click="pickerOpen(picker.driveId, crumb.path)">{{crumb.name}}</q-btn>
             </template>
         </div>
-        <q-list dense bordered separator class="q-mt-xs rounded-borders" style="max-height:320px;overflow:auto">
-            <q-item v-if="picker.loading"><q-item-section class="text-center"><q-spinner></q-spinner></q-item-section></q-item>
-            <q-item v-for="row in picker.rows" :key="(row.driveId || picker.driveId) + '/' + row.path" clickable @click="pickerClick(row)">
+        <q-list :dark="dark" dense bordered separator class="q-mt-xs rounded-borders" style="max-height:320px;overflow:auto">
+            <q-item v-if="picker.loading" :dark="dark"><q-item-section class="text-center"><q-spinner></q-spinner></q-item-section></q-item>
+            <q-item v-for="row in picker.rows" :key="(row.driveId || picker.driveId) + '/' + row.path" :dark="dark" clickable @click="pickerClick(row)">
                 <q-item-section side @click.stop><q-checkbox v-if="!row.isDirectory" dense size="sm" :model-value="!!picker.chosen[pickerKey(row)]"
                         @update:model-value="pickerToggle(row)"></q-checkbox></q-item-section>
                 <q-item-section avatar style="min-width:30px"><q-icon :name="row.icon || (row.isDirectory ? 'sym_o_folder' : 'sym_o_draft')" size="20px"></q-icon></q-item-section>
@@ -175,7 +175,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <q-item-label v-if="picker.searching && row.driveName" caption class="ellipsis">{{row.driveName}}{{row.folderPath ? ' / ' + row.folderPath : ''}}</q-item-label></q-item-section>
                 <q-item-section v-if="row.isDirectory" side><q-icon name="sym_o_chevron_right" size="18px"></q-icon></q-item-section>
             </q-item>
-            <q-item v-if="!picker.loading && !picker.rows.length"><q-item-section class="text-caption m-muted">{{t('No files here')}}</q-item-section></q-item>
+            <q-item v-if="!picker.loading && !picker.rows.length" :dark="dark"><q-item-section class="text-caption m-muted">{{t('No files here')}}</q-item-section></q-item>
         </q-list>
         <div class="row items-center q-mt-md q-gutter-sm">
             <q-btn unelevated no-caps color="primary" :label="pickerCount ? t('Add') + ' ' + pickerCount : t('Add')" :disable="!pickerCount" :loading="picker.saving" @click="pickerAdd"></q-btn>
@@ -214,6 +214,7 @@ module.exports = {
         };
     },
     computed: {
+        dark() { return this.$q.dark.isActive; },
         panel() { return unwrap(this.mRecordPanel) || {}; },
         recordEntity() { return this.panel.recordEntity || ''; },
         recordId() { return this.panel.recordId || ''; },

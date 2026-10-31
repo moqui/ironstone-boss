@@ -1,7 +1,8 @@
 # IronStone BOSS — Accounting implementation
 
-P0–P5 are code complete and reviewed. Work is paused at the requested checkpoint before P6. P6–P21 remain planned.
-The delivery log and verification details are below and in [AccountingImplementation](../docs/AccountingImplementation.md).
+P0–P5 are built and reviewed (R for P0–P3, R2 for P4–P5, with its rework). Work is paused before P6. P6–P21
+remain planned. The delivery log is below; the contracts are in
+[AccountingImplementation](../docs/AccountingImplementation.md).
 
 How [design-accounting.md](design-accounting.md) gets built, in phases from the foundation to base-currency
 posting, each ending tested and usable. This file is kept at a high level, as [impl-products.md](impl-products.md)
@@ -35,7 +36,7 @@ screens follow in their later phases.
 - Guides and rules: [design-doc-guide.md](design-doc-guide.md), [style-guide.md](style-guide.md) §8, and
   [impl-drawers-commons.md](impl-drawers-commons.md) §4 (the shared rules).
 - [impl-products.md](impl-products.md): the pattern; its decisions on other apps' contracts and shared contexts;
-  the groups its P1 seeds (`BOSS_ACCOUNTING_GL`); and the BOSS client screenshot spec it adds (its F23).
+  the groups its P1 seeds (`BOSS_ACCOUNTING_GL`); and the BOSS client walks it adds (its F23).
 - [impl-projects.md](impl-projects.md): InvoiceDetail, OrderDetail and the billing services, and its findings
   that recur here (F91, F131).
 - Inventories: [ss-inventory.md](ss-inventory.md) and [usl-inventory.md](usl-inventory.md).
@@ -52,8 +53,8 @@ Sections: [1 scope](#1-scope-and-order) · [2 rules](#2-ground-rules) · [3 phas
 
 ## 1. Scope and order
 
-**Current execution boundary (latest user request, Oct 30, 2026):** complete the remaining P5 work, record its
-checkpoint and commits, then pause before P6. The later phase definitions remain the plan for a future continuation.
+**Current execution boundary (Oct 30, 2026):** P4–P5 reviewed and reworked on Mantle's services (R2), then a pause
+before P6. The later phase definitions remain the plan for a future continuation.
 
 - **Repositories.** Each is its own git repo:
   - `mr-moqui` (`crates/`, `runtime/base-component`)
@@ -120,7 +121,14 @@ checkpoint and commits, then pause before P6. The later phase definitions remain
   - demo data;
   - builds and commits.
 
-  Screenshots come from the BOSS `test/client` spec that Products adds (impl-products §2).
+  The walks are BOSS `test/client` specs, as Products' are (impl-products §2). No spec takes screenshots; a walk
+  asserts what a page shows.
+- **Use Mantle first.** Before adding a service, entity or guard, find the Mantle service that already does it and use
+  it, or extend it with a parameter: payments through `create#`/`update#Payment` and `post#Payment`, so their SECAs
+  run; applications through the `apply#*` services; refunds through `create#RefundPayment`; gateway operations through
+  the `*#SinglePayment` services and their gateway interfaces; invoice print, email, statements and credit memos through
+  `get#InvoicePrintInfo`, an `EmailTemplate`, `get#ReceivableStatementInfo` and `create#InvoiceCreditMemo`. Add beside
+  Mantle only what it lacks (docs/dev/Practices-App-Dev.md §3; F115).
 - **Financial writes through Mantle services.** Every invoice, payment, settlement, stock-value and period
   mutation is a Mantle service that checks its permission, the organization, status, balance, lock date and
   operation key (design §1.1). An Accounting screen or mount calls it after `ironstone.accounting.AccessServices`
@@ -144,9 +152,9 @@ checkpoint and commits, then pause before P6. The later phase definitions remain
   rewrite (design §1.1, §19).
 - **Preview, then post.** A preview answers a version. The post takes that version and an operation key,
   re-reads under lock and refuses a stale preview; a retry with the same key answers the first result (design
-  §18.1; F8). Both are one Mantle service pair, keyed on the CX-POSTING record (§4; F47). One financial
-  transaction, application set, paired transfer or document-and-ledger posting is atomic; a bulk selection names
-  each failure and goes on.
+  §18.1; F8). Both are one Mantle service pair, keyed on the CX-POSTING record (§4; F47); a payment's review is a
+  `PaymentReview` row holding its operation key and result (R2). One financial transaction, application set,
+  transfer or document-and-ledger posting is atomic; a bulk selection names each failure and goes on.
 - **Restricted values stay on the server.** Bank and card numbers are masked and gateway secrets stay Admin's.
   An inaccessible account contributes no names or amounts, and a failed aggregate is unavailable, never zero
   (design §3).
@@ -177,9 +185,10 @@ checkpoint and commits, then pause before P6. The later phase definitions remain
 - **Owner contracts.** A contract built here for another app follows that app's design: its package, its record
   and service names, its Shared screen, and the permissions its Mantle services check. A change found while
   building it is written into the owner's design. The owner's own screens stay with the owner.
-- **Mantle rule changes keep Mantle's default.** Each CX-AUTOMATION change, and each new refusal in an existing
-  Mantle service, sits behind its own flag, off by default (§4), and ships with a test of its condition and of its
-  unchanged default (crosscut §7.1).
+- **A new control is the one behavior.** Each CX-AUTOMATION change, and each new refusal in an existing Mantle
+  service, is how Mantle behaves from then on, with a test of its condition (crosscut §7.1). Only a control that would
+  break Mantle's flow specs (F27) stays behind a flag, off by default, listed in §4 with the reason; today that is
+  `postingGuardEnabled` (R2).
 - **Existing callers stay compatible.**
   - Mantle's specs pass unchanged, including the flow specs' SECA invoices, return responses and posted
     amounts (F27).
@@ -194,12 +203,12 @@ checkpoint and commits, then pause before P6. The later phase definitions remain
     - `./moq test mr-boss` passing, with AppStructure covering the new screens and Accounting in its
       non-placeholder list (F3);
     - `moqui lint --screens` clean for BOSS with the Debug binary;
-    - screenshots light and dark at 390, 1280 and 1440 px;
+    - the `test/client` walks passing;
     - the inventories' **Implemented in** columns;
   - the `AccountingAccess` spec extended to the phase's services and mounts;
   - for P18: `./moq test mr-pass mr-mantle mr-boss` with the apps' specs, the remote pair on PASS's RemoteFixtures
-    pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, lint clean for PASS, and the
-    apps' screenshots light and dark at 390 and 1280 px;
+    pattern, `moqui test-client mr-pass --serve` on ForumHttp's and RemoteHttp's pattern, with the phone-width
+    overflow checks at 390 px, and lint clean for PASS;
   - the phase's walk in §8;
   - its row and **Built** note here.
 
@@ -211,8 +220,8 @@ checkpoint and commits, then pause before P6. The later phase definitions remain
 | P1 Foundation | Mantle, BOSS | root/menu, Home, minimal invoice/bill/payment lists and read-only details, draft quick create | built Oct 29; see build record below |
 | P2 Ledger and posting guard | Mantle, BOSS | ChartOfAccounts, AccountDetail, JournalEntries, JournalEntryDetail, TransactionEntries, JournalBatches, JournalTemplates, Periods, PeriodLocks, TrialBalance, GeneralLedger | built Oct 29; see build record below |
 | P3 Settings | Mantle, BOSS | Settings, AccountingPreferences, PostingDefaults, PaymentTerms, Currencies, PaymentMethods, DocumentSettings | built Oct 29; see build record below |
-| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built and independently reviewed; verification record below |
-| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | P5a settlement, P5b1 lifecycle/outputs and P5b2a gateway accepted; refunds/transfers follow |
+| P4 Receivables | Mantle, BOSS | Invoices, InvoiceDetail, BillingQueue, Statements, Customer360 | built Oct 29, reviewed and reworked Oct 30; see R2 |
+| P5 Payments and settlement | Mantle, BOSS | Payments, PaymentDetail, GatewayTransactions, ReceivablesWorkbench | built Oct 29–30, reviewed and reworked Oct 30; see R2 |
 | P6 Payables | Mantle, BOSS | Bills, BillDetail, ExpensePosting, Supplier360, OrderDetail, ShipmentDetail, Approvals | — |
 | P7 Matching | Mantle, BOSS | InvoiceMatch, MatchPolicies | — |
 | P8 Payment runs | Mantle, BOSS | PayablesWorkbench, PaymentRuns, PaymentRunDetail | — |
@@ -381,8 +390,9 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
     `RECEIVABLE_EDIT` or `PAYABLE_EDIT` by side, and `INVOICE_APPROVE` for approval. Projects'
     `update#InvoiceStatus` calls it, so project invoices are refused too (F46).
   - `send#Invoice`, with or without a store: it renders the invoice as sent and its attachments, stores the PDF as the
-    invoice's content stamped with its time (impl-drawers-commons §4), sends through `send#EmailDraft` and records the
-    outcome per recipient (F21). Projects' `send#Invoice` calls it (F2). The InvoicePay link is added in P18.
+    invoice's content stamped with its time (impl-drawers-commons §4), sends through an `EmailTemplate` and records
+    the outcome as its EmailMessage rows (F21; R2). Projects' `send#Invoice` calls it (F2). The InvoicePay link is
+    added in P18.
   - `InvoiceFinalizedSendEmail` skips a version `send#Invoice` has sent (CX-AUTOMATION).
   - `process#InvoiceBatch`, and the duplicate-source guard. It and `send#Invoice` check `RECEIVABLE_EDIT`.
 - **Screens** (design §4):
@@ -415,7 +425,8 @@ Built in two parts: P2a the guard and the core screens, then P2b batches, templa
   - `PaymentServices.change#PaymentState`, the guarded payment status transition (validate, deliver, void;
     `PAYMENT_EDIT`), with the PaymentValidation topic.
 - **AC-20, transfers:** the `PtInternalTransfer` payment type (F31), its cash-in-transit `PaymentTypeGlAccount`,
-  and `PaymentServices.create#InternalTransfer` (`PAYMENT_EDIT`): two linked legs, atomic, with a fee line.
+  and `PaymentServices.create#InternalTransfer` (`PAYMENT_EDIT`): one payment from the organization to itself, whose
+  `post#Payment` posts both sides through transit, and a fee as its own payment, all or nothing (R2).
 - **Screens** (design §6 and §4):
   - Payments, with its tabs, NewPayment and InternalTransfer;
   - PaymentDetail: applications, gateway actions, refunds linked to the original, evidence, and the payment
@@ -885,7 +896,7 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | The supplier bill link is Purchasing's PO link, which Accounting adds in P18 with BillUpload (F44); with the move below it is the Supplier app's page for the PO, not a `/po/<token>` route | The user's call (impl-purchasing §4, answer 14) |
 | Oct 28, 2026 | Public-facing applications are in mr-pass and internal ones in mr-boss. Accounting's customer and supplier pages are PASS apps: Billing with InvoicePay, and Supplier with BillUpload, which Purchasing P16 extends; not `screen/ServicePortal.xml` and `screen/SupplierPortal.xml` in BOSS. They follow PASS's foundation (§2): public accounts with no UserGroup, Mantle services through the facade for a local or remote authority, PASS invitations, media and request contract | The user's call, Oct 28, in the Customer Service plan review (impl-customer-service §4). It reverses crosscut D5's two BOSS roots; Customer Service's pages are its own PASS app, Support |
 | Oct 28, 2026 | The root: `BOSS_ACCOUNTING` as root user group and artifact group. Its groups take `MANTLE_USER_ORG` and `MANTLE_PRIVATE_CONTACT`, and `BOSS_ACCOUNTING_ADMIN`, with all authz on the root, `MANTLE_ACTIVE_ORG` and `MANTLE_PRIVATE_CONTACT` (impl-drawers-commons §4). `AccessServices` checks every supplied organization and record. The records no filter covers (F5) are read only through services that check their parent's organization, and `GlAccount` stays global (F14) | The user's call (§5 review), for every BOSS root |
-| Oct 28, 2026 | Each Mantle rule change is adopted by its own flag, off by default, so plain Mantle and its flow specs keep their behavior (F27). A flag lives with its owner's settings: Accounting's (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards) are audit-logged fields of `PartyAcctgPreference`, inherited as its other fields are; another app's are fields of its effective-dated policy rows (WarehousePolicy's expiry gate, ProductionPolicy's approver rule, the buying policy's approval gate, Customer Service's ServicePolicy). The names are neutral, since Mantle stands without BOSS (the Q2 row below). BOSS's demo organization turns them on; the organizations Mantle's specs use leave them off | The user's call (§5 review). The alternatives were one adoption flag on PartyAcctgPreference, and one PartySetting type |
+| Oct 28, 2026 | Each Mantle rule change is adopted by its own flag, off by default, so plain Mantle and its flow specs keep their behavior (F27). A flag lives with its owner's settings: Accounting's (D2's receipt billing, D3's pack invoice, D11's return settlement, D18's base-currency refusal, the hold guards) are audit-logged fields of `PartyAcctgPreference`, inherited as its other fields are; another app's are fields of its effective-dated policy rows (WarehousePolicy's expiry gate, ProductionPolicy's approver rule, the buying policy's approval gate, Customer Service's ServicePolicy). The names are neutral, since Mantle stands without BOSS (the Q2 row below). BOSS's demo organization turns them on; the organizations Mantle's specs use leave them off | The user's call (§5 review). The alternatives were one adoption flag on PartyAcctgPreference, and one PartySetting type. Superseded Oct 30: a flag only where a control breaks Mantle's flow specs (below) |
 | Oct 28, 2026 | A posting-guard failure is split by source (F9, F10). A finance user's direct post (a manual entry, an invoice or payment post, a batch line) is refused with the reason. An automatic post from an operational event (a receipt, issue, shipment or production fact) goes to the error journal with the failed guard named; Accounting's MissingMappings and error-journal list and Today show it, and P11's close refuses a period that still holds one. An auto-poster that finds no account records a failure, not `AtrSuccess` | The user's call (§5 review). Design §15: a missing map blocks and is named, never a silent suspense. The alternatives were always refusing and always the error journal |
 | Oct 28, 2026 | CX-POSTING keeps one Mantle operation record, keyed by `operationKey`, with the operation type, organization, user, time, request hash, preview version, status and links to the records it made or posted (F8). Each posting service checks and writes it in the posting's transaction: a retry with the same hash returns the stored result, and a different request under the same key is refused. Products' `ProductCatalogOperation` stays as built, for its resumable batches | The user's call (§5 review); a fact with an identity of its own under the shared rule. The alternative was an `operationKey` field on each target record. Warehouse, Manufacturing, Purchasing and Customer Service use the same record |
 | Oct 28, 2026 | Lock scopes go by the transaction's source document. Sales: transactions whose invoice the organization issued (sales invoices, customer credits and returns, their adjustments). Purchases: those whose invoice it received. Tax: any transaction with an entry on a `GatTax` account, and `AttTaxDue` and `AttTaxInvoice`. All: every transaction, so payments, stock, depreciation and manual entries fall under it only. A hard lock takes no exception, and `TimePeriod.isClosed` still applies | The user's call (§5 review). Odoo's company lock dates, whose sale and purchase dates cover only those journals. The alternatives were an editable map of AcctgTrans types, and payments in the sales and purchase scopes |
@@ -902,6 +913,9 @@ design-accounting.md, or into the owner's design.
 | Oct 28, 2026 | Two apps by owner and audience, Billing for customers and Supplier for suppliers, rather than one customer app with Customer Service's Support | The plan's choice: P18 comes before Customer Service, and PASS shares accounts and navigation across a site's apps (design-forum §13.1) |
 | Oct 28, 2026 | Mantle stands without BOSS, and business logic leans to Mantle. mr-mantle has no dependency on mr-boss: no Mantle service, SECA, EECA, script, data file or spec calls `ironstone.*`, reads a BOSS screen, entity or setting, or names a BOSS group; Mantle checks Moqui permissions, which BOSS grants its groups. Logic not specific to one screen goes in Mantle, in the package of its records, and an `ironstone.accounting` service keeps the capability check, a screen's reads, shapes and saved views, the settings forms and the call to Mantle (§2). So Accounting's services move: to `mantle.ledger` the close and locks, journals, setup, period runs, rates, the production cost close, and the asset books beside Products P9's revaluation; to `mantle.account` invoice states, sending, batches, intake, holds and terms (InvoiceServices), settlement, payment states, transfers, deposits and refunds (PaymentServices), statement import and reconciliation (ReconciliationServices), and the new InvoiceMatchServices, PaymentRunServices, CreditServices, CollectionServices and RecurringInvoiceServices; to `mantle.other` tax and budgets; to `mantle.order.ReturnServices` the return settlement; to `mantle.party.SupplierServices` the supplier profile; and the report runs to Mantle's ledger, inventory and sales report files. BOSS keeps AccessServices, HomeServices, DocumentServices, ReportServices' catalog and shapes, and the list reads (`find#BillExceptions`, `find#Runs`, `find#Work` and the like). P1 grants Accounting's groups the new `RECEIVABLE_EDIT`, `PAYABLE_EDIT`, `PAYABLE_IMPORT`, `INVOICE_HOLD`, `INVOICE_HOLD_RELEASE`, `INVOICE_MATCH`, `PAYMENT_EDIT`, `BANK_RECONCILE`, `PAYMENT_RUN_APPROVE`, `FISCAL_CLOSE`, `CREDIT_HOLD_RELEASE`, `CUSTOMER_CREDIT_VIEW`, `TAX_STATEMENT_EDIT`, `BUDGET_EDIT`, `BUDGET_OVERRIDE`, `RETURN_CREDIT_APPROVE`, `PRODUCTION_COST_POST`, `SUPPLIER_TERMS_EDIT` and `ACCOUNTING_ADMIN`, with Mantle's `INVOICE_APPROVE` and `FISCAL_REOPEN` and Products' `ACCOUNTING_VIEW`, `ACCOUNTING_GL_POST` and `PRODUCT_COST_VIEW`, and `RECEIVABLE_EDIT` to `BOSS_PROJECT_MANAGER` for Projects' Billing; none gets `GL_POST_CLOSED` | The user's call (plan review Q2): a hard rule for every app, in impl-drawers-commons §4. It replaces §2's guarded `ironstone.accounting` adapters. The owner designs' names follow in the design sweep |
 | Oct 28, 2026 | Revaluation changes forward cost (AC-07, built by Products P9; used in P13). `mantle.ledger.AssetBookServices.post#Revaluation`, a new Mantle service behind its own flag (`PartyAcctgPreference.inventoryRevaluationEnabled`), off by default and tested in both states, sets `Asset.acquireCost` on the on-hand assets from the effective date, without reposting history, splitting a partly issued asset. It posts one AcctgTrans for on-hand × delta, with asset links, against the seeded offset type `GatInventoryRevaluation`, which P3's PostingDefaults maps. It refuses negative on-hand, a date before the product's last posted movement and a future date, and never calls `update#ProductAcquireCost`. Later issues then post at the new cost, and P13's valuation and inventory account agree after a revaluation | The user's call (plan review Q7), as ERPNext and Odoo do. It replaces "value only", which stranded the amount in the inventory account; design-accounting's AC-07 follows in the design sweep |
+| Oct 30, 2026 | P4–P5 are rebased on Mantle's services, and what they built beside them is deleted: gateway actions through the `*#SinglePayment` services, refunds through `create#RefundPayment`, applications through the `apply#*` services, state changes through `update#Payment`, a transfer as one payment that `post#Payment` posts, and invoice print, email, statements and credit memos through Mantle's services and templates (R2; F115) | The user's call (R2). The alternative was correcting the copies in place |
+| Oct 30, 2026 | The adoption flags are retired: a new control is the one behavior (§2). Retired: `invoiceHoldGuardEnabled` (P6 builds the hold), `paymentGatewayWorkflowEnabled`, `settlementApplicationGuardEnabled` and `paymentAutoApplicationEnabled`. `postingGuardEnabled` stays, off by default, and BOSS's demo organization turns it on: it gates the posting guard and the invoice and payment `MAPPING_MISSING` refusal, because turning them on breaks Mantle's OrderToCash, ProcureToPay, ReturnToResponse, InvoicePaymentMisc and Payroll flow specs (their demo account assignments, and the error journal those flows post to). An invoice's book day and drafter, the settlement rules, and the invoice period and posted-state refusals hold whatever it says. P2's `requiredLedgerDimensionsEnabled` and `forwardIssuanceRepostEnabled` stay as P2 built them; R2 did not reexamine them. `singleCurrencyDocumentsOnly` (D18) and `invoiceApprovalRequired` are the organization's settings, not a switch between old and new code. D2's, D3's and D11's rule changes, which change what Mantle's flow specs assert (F27), get flags when built | The user's call (R2). It supersedes the Oct 28 flag row |
+| Oct 30, 2026 | No screenshot specs in any component; a walk asserts what a page shows. Service implementations are inline XML Actions, with JavaScript modules only for logic XML Actions do not express well (docs/dev/Practices-App-Dev.md) | The user's call (R2) |
 
 ## 5. Open questions
 
@@ -914,7 +928,9 @@ The design's other §20 items are `later` there and in §7.
 ## 6. Findings
 
 Design assumptions found wrong or unstated in the code, with the resolution. Where a resolution changes the
-design, it is written there too.
+design, it is written there too. R2 deleted much of what P4–P5 built: where a resolution of F78–F112 describes
+that code (the archive, Drive and source guards, the legacy fence, the gateway attempts and reservations, the
+adoption flags), F115–F126 and R2 say what stands.
 
 | # | Finding | Resolution |
 | --- | --- | --- |
@@ -1028,6 +1044,22 @@ design, it is written there too.
 | F105 | P5b2 full-suite verification exposed legacy fixture cleanup/corruption using raw financial EntityValue/deleteAll writes without a transaction; guarded source locks refused and ClientBilling cleanup left later Projects fixtures behind | Financial fixture mutations use the existing transactional generic services, retaining their original assertions and default-off business behavior. Full BOSS rerun passes 1,161/0/5; standalone Mantle passes 1,139 with only the same four reproduced baseline failures and 17 skips |
 | F106 | P5b2 visual review found the phone gateway table scrolling 560 px inside a 359 px container, with the actual provider amount beyond the visible right edge | Mobile identity links wrap, the two columns retain actual amount/currency and separate compact provider/local outcomes, and full reference/code details remain on the exact selected authorized attempt. Per-row geometry checks include amounts and chip content, beyond document-width checks. Gateway reviews also omit the empty generic state-effects grid; real B1 effects still render |
 | F107 | P5b2 browser retries exposed data-dependent clicks on wrapped inline attempt IDs: the locator's union-rectangle center can fall between actual text fragments and hit the surrounding form-group | Attempt links have a rectangular block target at every width; tests verify the actual single rectangle and center hit before the unchanged normal click. Generic locator hit-point selection remains test-tooling work; no forced clicks or native financial identity changes are used |
+| F108–F112 | P5b2b: legacy refunds without a native backing record, banking rows read apart from the locked ones, the legacy fence's admission for first adoption, the refund's retained posting policy, refund draft claims | Resolved in P5's own code, which R2 deleted; they no longer apply |
+| F113 | P5b3: the transit account 258300000 had no default organization assignment; the fee account 550000000 is cost of sales | The assignment is installed with the PtInternalTransfer mappings, and the demo adds only what is missing. A transfer fee needs an expense account (`find#InternalTransferFeeAccounts`) |
+| F114 | P5b3: transfers showed as unapplied trade cash | `find#Payments`' Unapplied queue and the trade settlement scope leave out PtInternalTransfer, before counting and paging |
+
+| F115 | R2: P4–P5 rebuilt beside Mantle what Mantle had, ported from Moqui Java and used in production: the gateway path (`*#SinglePayment` and the gateway interfaces, with an adapter interface only a test double implemented), refunds (`create#RefundPayment`), the `apply#*` services, `post#Payment`, which posts both sides of a payment from the organization to itself, `get#InvoicePrintInfo`, `EmailTemplate`, `get#ReceivableStatementInfo`, `create#InvoiceCreditMemo`, the stored invoice totals and NotificationMessage | §2 "Use Mantle first". P4–P5 rebased on those services and the copies deleted (§4, R2) |
+| F116 | R2: payment state changes wrote `statusId` directly, so the Payment SECAs did not run: `PaymentGlPost`, the cancelled-payment cleanup, `clear#PaymentTrans` and the FinancialAccountTrans SECAs | State changes go through `update#Payment` along `StatusFlowTransition`, and unapplication through `unapply#PaymentApplication`, whose SECA reverses the posting |
+| F117 | R2: authorization from caller names (`getStackNameString()`, 19 sites in 13 modules), held together by EECAs and SECAs on hot paths: every Payment, PaymentApplication, AcctgTrans, AcctgTransEntry, DbResource and ContentBlob write, and a pre-service SECA on every service (`service=".*"`) | `PostingGuard` decides an automatic posting from the transaction's source fields and asks `ACCOUNTING_GL_POST` of a manual or reversal posting unless its caller passes `reviewed`; the rules the EECAs enforced are in `post#AcctgTrans` and the apply and unapply services. The guard EECAs and SECAs are gone; `IssuedInvoiceContentImmutable` remains |
+| F118 | R2: test entities, services and SECAs were loaded in production; one SECA hooked every `post#AcctgTrans` and ran a script from `test/` | Deleted. The test gateway is in `PaymentTestServices.xml` (`alwaysPending#*`, `alwaysDecline#PaymentRelease`, `alwaysDecline#PaymentRefund`); a spec makes its own gateway configuration and faults |
+| F119 | R2: adoption flags defaulting to N gave each rule two code paths, and most specs ran the old one | Retired, but `postingGuardEnabled` (§4) |
+| F120 | R2: nearly every service was a one-line `<script>` into a module of 1,000 to 1,600 lines; helpers were copied (`same` six times, `json` four, line totals five, lock checks four), and one copy of `partyNames` showed parties another user keeps private; parameter interfaces were copied unions | Services are inline XML Actions, with modules for involved logic. `EntityLib.js` in Mantle and `AccountingLib.js` in BOSS hold the shared helpers; `partyNames` leaves out private parties; each service declares its own parameters |
+| F121 | R2: transfer method dates compared as ISO strings; a posting or application without a calendar day took its timestamp's UTC day while its invoice took the user's day, so an evening application in the Americas was refused as before its own invoice | `EntityLib.bookDay`: the calendar day, else the timestamp's day in the user's zone, for posting and application days, the fiscal period lookup, `check#NextFiscalTimePeriods` and the summary recalculation (replaces F81's UTC day). The transfer module that compared ISO strings is gone |
+| F122 | R2: settlement adjustments were `ItemTimeEntry` items; the workbench carried its draft, up to 256 KB, in each URL; Mantle accepted HTML built by the screen as the issued invoice; a payment was read twice per page | Adjustments are discount or write-off credit memos (`create#InvoiceCreditMemo`), applied to their invoice; the draft is kept behind an id (`store#`/`get#SettlementDraft`); Mantle renders the issued invoice from its template (`printHtml` removed) |
+| F123 | R2: unapplying a payment posted straight to its invoice failed when it had several applications; `store#Account` called `set#GlAccountFlags` with the wrong parameter | Both fixed (mr-mantle `90573cb0`, `c820c444`) |
+| F124 | R2: the screenshot specs saved images nothing compared, and their checks repeated the qvt and tui render specs; P4–P5 added about 17,000 lines of Mantle specs in 57 files, with busy-waiting test doubles | Screenshot specs removed in every component; each walk keeps what needs the live client; Mantle's Accounting specs went from 19,100 to 7,681 lines |
+| F125 | R2: PaymentDetail was 2,733 lines (four screens in one, five copies of one dialog); 789 lines of P4–P5 XML and 357 of P0–P3 ran over 130 characters; tabs wrapped a shared template; the choices transition had four copies; labels said "reviewed" | Receivables tabs own their content, one choices transition, P0–P3 and receivables XML wrapped at 130 (mr-boss `f0cca60`). PaymentDetail a header screen with tabs that own their content, reviews as their own screens, one draft form, state dialog and gateway dialog (mr-boss `5225cc7`) |
+| F126 | R2: a payment's version was a fingerprint built with copied exclude blocks, and Payment carried copies of what other records hold (`financeOrganizationPartyId`, `financeDirection`, `accountingDate`, `settlementAccountingDate`, `lifecycleManaged`) | A payment's version is its `lastUpdatedStamp`; the organization comes from its OrgInternal party and the book day is `effectiveDate` (mr-mantle `304ab31e`) |
 
 ## 7. Later
 
@@ -1075,7 +1107,7 @@ Designed, not in this build:
 | Batch/activation | P8 (supplier payment), P9 (statement row), P10 (notice recipient), P12 (asset depreciation), P19 (activation) |
 | Access | `AccountingAccess` in every phase; P18 (customer token); P21 (the full walk) |
 
-- **Screenshots** through the BOSS client spec of §2, light and dark.
+- **Walks** through the BOSS client specs of §2, asserting what each page shows.
 
 ### P0 verification — Oct 29, 2026
 
@@ -1148,691 +1180,157 @@ on disposable databases. BOSS at `25478b4` reproduced 1,065 passed, zero failed 
 `f23f8de6` reproduced 844 passed, 17 skipped and exactly the four failures above. The standalone runtime excludes
 BOSS data and adoption settings. Subsequent phase results are compared to these baselines.
 
-P4 work is split between native Mantle workflows, BOSS screens and independent review. Shared access, routes,
-templates, demo data and test registries are integrated by the coordinator; no later phase starts before P4 passes
-its review and acceptance gates. The implementation decisions and verification are recorded when each phase closes.
-
-### P4 build and acceptance
-
-Implemented native guarded invoice states/draft editing, scoped receivables and customer contexts, currency refusal,
-linked credits with original revenue allocations, approved-time customer/worker billing, reviewed batches and
-currency-separated statement snapshots. Projects retains its labels, BOSS_PROJECT_INVOICE identity, time-detail
-print and client restrictions while financial writes use Mantle. The shared invoice/customer mounts include their
-record tabs and unavailable states. Current customer aging and latest received payments are included; historical
-Aging remains P10. Invoice budget evidence is honestly unavailable until P15 provides its model (F75).
-
-Invoice sends need no store. Authorized sender accounts, frozen PDFs, optional explicitly selected supporting files,
-per-recipient outcomes and queued mail identities are retained. Identical retries return stored results; changed
-requests and stale file versions refuse. The ordinary store notice skips the manually prepared version. Main PDFs
-and supporting copies are outside mutable Records folders; immutable invoice content and path checks prevent
-remove, replacement, restore and URI-alias attacks, including with artifact authorization disabled. Ordinary live
-supporting files remain versionable/removable without altering sent bytes. Supporting-file selection defaults empty,
-including Projects callers.
-
-Each assignment and its returned corrections was independently reviewed before coordinator acceptance. The native
-contract was reviewed before dependent app integration. The coordinator owns shared access/posting/calendar code,
-Projects adapters, mounts, grants, choices, fixtures, test registries and this record. Screen/service sources were
-frozen during browser runs. Compiler and incremental caches were reused; no Node test dependency or Rust rebuild
-was introduced.
-
-Verification on disposable databases with Chromium configured as described in the repository's testing guide:
-
-- Full BOSS: **1,110 passed, zero failed, five skipped** (1,115 features), including unchanged Projects/Products,
-  AppStructure, TuiRender, rendered content and the shared Files regressions.
-- Full standalone Mantle, excluding BOSS adoption data: **903 passed, exactly the four reproduced baseline failures,
-  17 skipped** (924 features). All 59 added P4 features pass. The legacy audit sequence/flow fixtures remain unchanged.
-- Focused shared Files/access/context regressions: **86 passed, zero failed, one existing optional skip**. Native
-  archive/delivery focus: **19/19**.
-- Accounting browser coverage includes all P4 destinations, modes and dialogs at 390/1280/1440, light/dark, plus AR,
-  approver and reader views. The six invoice-edit cases passed their corrected selector rerun; final affected-route
-  and all seven P4 walk checks passed **34/34** after attachment/archive integration. A further **9/9** verified actual
-  issued-file rows at all six width/theme variants plus prints. Screenshots were inspected by
-  coordinator and independent reviewer. Final review follow-up reran full BOSS and standalone Mantle, all seven walks
-  (**7/7**), and Send/issued Files plus prints (**15/15**), including actual dark-row contrast after theme animations.
-  The native async-status/source-fingerprint and changed-financial-content regressions pass. Earlier full route
-  inventories plus the affected reruns cover unchanged
-  ledger/settings walks and all new forms; no browser failure remains unresolved.
-- XML schemas/parsing and formatting checked. Separate screen lint report: **zero parse failures, 121 existing flagged
-  sites**, identical to the frozen baseline under the same compiler; no new lint site.
-
-Implementation commits: `876732f6` (mr-mantle) and `b933118` (mr-boss). Accepted review follow-ups:
-`93e8fed3` (mr-mantle delivery regressions) and `907a816` (mr-boss Send/Files and executable isolation checks).
-P5–P21 remain subsequent deliveries; none is represented as implemented by this P4 acceptance.
-
-### P5 assignment contracts
-
-Reviewed before implementation by the coordinator, native author, app author and independent reviewer. P5a delivers
-settlement first; P5b delivers payment lifecycle/gateway/refund/transfer controls after P5a acceptance. Later-phase
-holds, due schedules and historical Aging remain P6/P8/P10 respectively.
-
-| Owner | P5a owned files and responsibility |
-| --- | --- |
-| Native author | `entity/PaymentWorkflowEntities.xml`, `service/mantle/account/PaymentSettlement.js`, payment-specific `PaymentWorkflow.js`, new declarations and auto-apply dispatch in `PaymentServices.xml`; standalone `AccountingSettlementFixtures.js`, `AccountingSettlement.spec.js`, `AccountingSettlementConcurrency.spec.js` |
-| App author | `Receivables/ReceivablesWorkbench.xml`, `SettlementScreenServices.xml`, `Settlements.js`, `AccountingSettlement.spec.js` and `client/AccountingSettlementWalk.spec.js`; draft decoding and presentation only |
-| Reviewer | Independent contract/diff review, success/refusal/rollback traces, targeted reruns and rendered/screenshot review; central registry edits only when expressly assigned |
-| Coordinator | Existing authorization/operation/posting helpers, `PostingGuard.js`, legacy posting/SECA integrations, shared mounts/templates/menus, choices, grants, fixtures, registries, documentation, final verification and commits |
-
-The native `PaymentServices` contract is:
-
-- `find#OpenItems`: organization, party, logical receivable/payable side, currency, eligible-through date, due/search
-  and page filters; narrow invoice/credit/payment source and target rows, names, dates, original/current remaining
-  amounts, revisions, capabilities and page/incomplete results. `balanceBasis: current` explicitly distinguishes the
-  selection-through date from historical balances. Transfer legs are excluded from trade settlement. Optional
-  `sourceKind` returns one paged kind for choices; `pageByKind`/`pageInfo` page the four normal lists independently.
-  `selectedKeyList` returns scoped selected rows outside search/page/open-balance filters. New choices carry current
-  versions; selected values retain the caller's original reviewed version, so label refresh never silently re-reviews
-  a changed row. Page totals are labelled as page totals; a party with more than 200 open items remains paginated and
-  usable. The 200-record limit applies to selected previews, not the party's full open-item population.
-- `find#SettlementAdjustmentAccounts`: side, organization, effective date and search/selected IDs; only assigned,
-  active, postable account IDs/codes/names. No chart balances or implicit account selection. Reuse dated assignment
-  and organization-chain checks from `AccountingPolicy.account`.
-- `preview#Settlement`: fixed organization/party/side/currency, selection-through and effective dates, `allocations`
-  (`sourceKey`, `targetKey`, decimal amount), `adjustments` (invoice, discount/writeoff, amount, explicit account,
-  reason) and `sourceVersions`. Every selected source and target, including adjustment invoices, needs its reviewed
-  revision. Returns a durable owner-scoped preview ID/fingerprint, normalized rows, canonical book day, before/after
-  balances, ledger preview, capabilities, blockers and expiry. Bound to 200 allocation rows, 50 adjustments and 200
-  distinct selected records; incomplete scopes refuse instead of silently losing balances.
-- `get#SettlementPreview`: owner/organization-scoped retained payload, status and results; expired previews stay
-  readable. `apply#Settlement` takes only preview ID, fingerprint and a maximum-40-character operation key. Returns
-  application/adjustment/posting identities, per-row results and remaining amounts. Identical completed retries return
-  the recorded result before stale checks; changed key reuse refuses.
-- `preview#PaymentAutoApplication` retains the same reviewed payload with oldest-due/date/ID allocation.
-  `autoApply#Payment` requires that preview and its source payment. The individually adopted, audited
-  `paymentAutoApplicationEnabled` defaults N: disabled calls write no operations, applications or audit rows. Existing
-  invoice-targeted auto-application SECAs and the three legacy apply primitives retain their old behavior.
-
-Reads require matching side VIEW, PAYMENT_VIEW, ACCOUNTING_VIEW or finance/system administration; EDIT alone never
-opens the list. Preview/confirm/automatic application and account choices additionally require matching side EDIT.
-PAYMENT_EDIT is no substitute. Active organization and private-counterparty checks run without artifact authorization.
-Bank, gateway and ledger projections are omitted unless separately authorized.
-
-One settlement locks the organization and sorted authoritative document/application sets, validates aggregate source
-and target consumption before writing, and rechecks revisions, dates, currency, policy and account assignments. The
-strict native writer uses existing PaymentApplication/GL/status models; legacy clamp/no-op responses cannot count as
-reviewed success. Adjustment documents post to the explicitly selected account and apply atomically; no write-off
-status or cash movement is substituted. Actual posted outcomes must match the reviewed ledger set, distinguishing a
-valid already-direct AR/AP posting from a missing/error-journal posting. A direct receipt can only restore its entire
-available amount to its original invoice when no additional ledger posting is needed. Capture the reviewed calendar
-day once and persist it on the application before posting; later viewers and forward reversals preserve it. Every
-settlement must be on or after the actual original source and target ledger days: a retained SQL day, otherwise the
-unchanged UTC day of legacy ledger timestamps. Earlier applications refuse with `APPLICATION_BEFORE_SOURCE_POSTING`.
-
-`settlementApplicationGuardEnabled` is a separate adopted rule, default N. New reviewed settlement writers require Y.
-When Y, generic application writers also serialize balances, protect backing postings, and capture missing currency
-and book day on new applications. This uses the posting source-day precedence, otherwise the legacy UTC timestamp
-day; changing the viewing user's zone cannot change it. Existing applications and ledger history are never backfilled.
-With both new flags N, legacy application fields, date/audit behavior and calls remain unchanged. A legacy main cash
-posting created after its application must not post later than that application's retained day.
-
-App acceptance includes a receipt60 plus credit25 against invoice100 in one confirmed set (remaining15), a receipt
-split across invoices, explicit account/reason adjustments, retained draft/filter/review state, stale/currency/date/org
-refusals and reader/AR isolation. Native acceptance also covers AP, edit-only Projects denial, exact retry/changed reuse,
-rollback, default-off legacy audit and real `parallel` competing transactions for same-key replay, one shared source
-and one shared target. The app's allocation draft is bounded presentation state; the native stored preview is authority.
-All added routes enter AppStructure/TuiRender/content checks and the six required width/theme variants before acceptance.
-
-P5a is accepted. Implementation commits: Mantle `a79012de`; BOSS `737c439`. The independently reviewed existing
-variant-policy timing correction is Mantle `8f8c06ad`. Full BOSS: **1,122 passed, 0 failed, 5 skipped / 1,127** across
-108 specs. Standalone Mantle without BOSS adoption data: **999 passed, the same 4 baseline failures, 17 skipped /
-1,020** across 107 specs. The only failing specs remain InboxThreads, MantleSearch, WorkTimeEntries and WorkTimesheets.
-All **95 new native cases** pass, including seven real parallel cases, application/raw posting guards, actual calendar
-movements, rollback, exact retries and valid permission negatives. The additional catalog backdating regression passes.
-
-Final client gate: **37/37 passed**, no skips. All four settlement walks pass; independent visual review accepted the
-30 route/dialog/reader/settings width/theme shots, 12 retained review/applied shots and six unchanged print checks.
-Native source permissions hold with artifact authorization disabled. Corrected draft submission, Back/Clear navigation
-and original selected revisions are covered in the real browser. The disposable server uses the existing local font
-fallback instead of an external font DNS dependency; no network failure is allowlisted. Final lint: 1,115 screens,
-24,291 expression sites, zero parse failures and the unchanged 121 baseline flagged sites. New XML artifacts validate;
-the local validator's two existing schema escape incompatibilities and unchanged P3 preferences box-header mismatch
-are separately recorded, with the latter reproduced at P4 HEAD.
-
-The lifecycle, unapplication, payment outputs, provider/refund and transfer portions of P5 remain the following
-reviewed slices; P6–P21 have not started.
-
-P5b's later assignment retains the same file boundaries: native payment lifecycle, gateway and transfer modules; app
-Payments/detail seven tabs, GatewayTransactions and output screens; coordinator legacy/shared integration. Its contract
-must be independently reviewed again before coding. Gateway attempts reserve durable provider identities before I/O,
-keep uncertain/accepted evidence for reconciliation, and count pending refunds against cumulative caps. Transfers use
-two explicit linked legs and exactly two atomic cash/transit transactions, with an explicit fee account; the generic
-organization-to-itself poster must not produce four transactions. These are acceptance requirements, not delivered P5a
-features.
-
-### P5b1 reviewed assignment contract
-
-Reviewed by the native author, app author, independent reviewer and coordinator before coding. Implementation starts
-after P5a acceptance/commits. This slice delivers payment reads, drafts, reviewed lifecycle/unapplication and outputs;
-provider actions/refunds and transfers follow as separately reviewed P5b2/P5b3 slices. They remain unavailable in this
-slice, with no enabled placeholder actions.
-
-| Owner | P5b1 owned files |
-| --- | --- |
-| Native author | Extend `PaymentWorkflowEntities.xml`, `PaymentWorkflow.js` and new declarations in `PaymentServices.xml`; new `PaymentLifecycle.js`, `PaymentOutput.js`, `PaymentContentGuard.js`, `PaymentContent.eecas.xml`; standalone lifecycle/output fixtures, specs and real concurrency specs |
-| App author | `Payments/Payments.xml`, `Payments/PaymentDetail.xml` and its seven Overview/Applications/Gateway/Refunds/GeneralLedger/Files/History tabs, GatewayTransactions/PaymentPrint, `Payments.js`, `PaymentScreenServices.xml`, payment server specs and client walks |
-| Coordinator | Shared posting/source guards, legacy SECAs, parent Payments menu/mounts, QuickCreate/NewPayment, choices/grants/topics/demo, common Files/download authority, registries/documentation, central verification and commits |
-| Reviewer | Independent native contract/success/refusal/rollback review before dependent forms, code/output review and returned findings; central execution remains with coordinator |
-
-The new `PaymentServices` contracts are:
-
-- `find#Payments`: organization, queue (`incoming`, `outgoing`, `toValidate`, `unapplied`, `refunds`, `transfers`,
-  `all`), party/instrument/status/currency/date/text filters and paging; current authoritative sums, narrow rows,
-  selected IDs outside text/page (at most 200), actual page/count/completeness/error results and capabilities.
-- `get#PaymentFinanceDetail`: organization/payment; whitelisted payment/source revision/totals, masked method
-  identities, scoped application/refund/gateway/ledger/content/history/source projections, capabilities and reasons.
-  Restricted arrays/fields are omitted. Gateway/refund/transfer mutations are unavailable until their slices.
-- `find#PaymentMethods`: organization, cash direction, party/currency/date, search/selected IDs and paging; active
-  owned/matching-party masked method identities and revisions, never account/routing numbers or provider credentials.
-- `create#PaymentDraft` / `store#PaymentDraft`: cash direction (`incoming`/`outgoing`), party, decimal amount,
-  currency, chosen effective date, instrument, organization/optional counterparty method, reference/comments and
-  operation key; update also needs payment/source revision. Return payment/state/revision/day/retry identity. Callers
-  cannot set raw status, from/to parties, financial side, invoice auto-application, SQL day or GL accounts.
-- `preview#PaymentState`: organization/payment/source revision, action (`validate`, `deliver`, `confirm`, `cancel`,
-  `void`), settlement date/reference/reason and optional selected evidence IDs/versions; retained review/fingerprint,
-  exact state/date/evidence/application/posting effects, blockers and expiry. `get#PaymentStatePreview` projects that
-  review under current authority. `change#PaymentState` accepts only preview/fingerprint/operation key, rechecks locked
-  inputs and returns actual payment/application/posting/output results. Exact retries precede stale checks.
-- `preview#PaymentUnapply`, `get#PaymentUnapplyPreview`, `unapply#ReviewedPayment`: the same retained engine with
-  an explicitly selected application set, revisions and reason, followed by confirm-only identity. Side read/edit
-  authority is additional to payment authority; PAYMENT_EDIT cannot substitute for AR/AP editing.
-- `get#PaymentOutput`: organization/payment, output type (`receipt`, `detail`, `check`), source revision/output ID;
-  approved HTML/hash/identity/name/type/day and masked metadata. No caller-supplied HTML/template/location. Check
-  issuance/number reservation occurs once during reviewed delivery; reads do not allocate numbers or post money.
-
-Reads require PAYMENT_VIEW/ACCOUNTING_VIEW/admin or matching side view for narrow trade payment data; edit alone
-does not browse. Writes require PAYMENT_EDIT and broad payment read, active organization and private-record checks,
-also with artifact authorization disabled. Cash direction is distinct from logical financial side; refunds inherit
-their original side, and transfers remain excluded from trade settlement. New drafts require the adopted settlement
-guard and capture SQL book days; legacy display/filter semantics stay unchanged, while financial checks use actual
-posting days.
-
-Validate moves Proposed to Promised. Manual delivery accepts only a non-gateway instrument, explicit human
-reference/reason and all selected evidence versions; files are optional unless an actual instrument policy requires
-them. Confirmation has an explicit settlement day/reference/reason and posts no second cash transaction. Cancellation
-is unposted; posted void/unapplication rechecks every original day and refuses closed history. It zeroes all approved
-applications before reversing their actual separate GL, then reverses cash/status atomically; direct no-extra links
-must not invoke legacy per-application cash repost. No forward-unapplication schema is introduced here. The common
-source guard must distinguish a cash payment's own applications from unrelated payments/credits on its header invoice.
-
-Issued output bytes live outside mutable record folders and retain immutable native content/URI guards. Check
-documents require treasury authority even through common Files/content-key downloads. Default-off legacy contracts
-and audit behavior remain intact. Acceptance includes valid same-payload role pairs, source/method/date/currency/org
-refusals, precise incoming/outgoing postings, confirm/cancel/void/unapply rollback, reviewed retries/staleness, real
-parallel delivery/void/check-number cases, archive immutability, redacted reads/outputs/files and unchanged P5a flows.
-
-Later P5b2 architecture uses a separate linked cash payment for each accepted partial capture, preserving posted
-amounts. Its instruction model, provider identity/recovery and exclusion from legacy polling/double posting need their
-own approved contract before coding; browser redirects cannot confirm financial success.
-
-### P5b1 acceptance
-
-The coordinator and independent reviewer accepted the native and app assignments after correcting all returned
-findings. Native services own financial state, exact retries, original-day corrections, immutable issued output and
-event-bound validation publication. BOSS owns contexts/forms and guarded shared Files. Gateway/refund/transfer
-mutations remain unavailable until their subsequent slices.
-
-Final standalone Mantle gate: 1,074 passed, the same four reproduced baseline failures, 17 skipped; 1,095 features in
-117 specs. All 75 new native cases pass, including real first-archive/blob races and the paired direct-ledger refusal/
-reviewed-native-void control. Removing only the blob synchronization in the disposable runtime reproduces both race
-failures; the exact guard was restored. Final BOSS gate after the browser recovery correction: 1,145 passed, zero
-failures, five skipped; 1,150 features in 110 specs, including unchanged Projects/Products regressions.
-
-All 144 route/dialog/role captures and 84 refreshed form/role captures were visually reviewed at 390/1280/1440 in
-light/dark, together with 24 retained review/completed variants and actual issued outputs. Final payment walks pass 7/7
-without skips: incoming edit/validate/delivery/retry/receipt; outgoing delivery/settlement; failed-preview/own-edit
-recovery; cancellation/reader restrictions; external stale confirmation; selected evidence/refusal retention; and
-application release followed by void. Three unchanged invoice/statement print features also pass. Actual frame/root
-bounds and viewport companions distinguish the recorded full-page capture artifact from real check overflow.
-
-Changed XML validates. Screen lint scans 1,124 files and 24,666 expression sites with zero parse failures and the same
-121 flagged sites. Framework resource exclusion specs pass 4/4. Framework search exclusion and data-load PDF fixes
-are `e9ee50fb` and `d7235859`; the latter passes develop build/lint/lint-min, and both host failures reproduce without
-its two-line initialization change. Implementation commits: Mantle `ea31a0aa`; BOSS `59a4060`.
-F75–F77 remain their previously assigned P15/P21 work; F99 remains generic capture tooling work. P5b2/P5b3 are next;
-the latest user request moves the execution checkpoint to the end of P5, before P6.
-
-### P5b2 reviewed assignment contract
-
-The native author, app author, independent reviewer and coordinator approved the following written interface and
-integration prerequisites. Implementation starts after P5b1 acceptance and commits. Gateway instructions and recovery
-come first; manual/provider refunds form a separate bounded delivery. P5b3 transfers follow their acceptance. P5 is
-the final phase authorized for this execution; work pauses before P6 with a recorded checkpoint.
-
-| Owner | Owned files and integration boundary |
-| --- | --- |
-| Native author | New `PaymentGatewayWorkflowEntities.xml`, its native entity guards, `PaymentGatewayWorkflow.js`, `PaymentRefunds.js`, new `PaymentServices.xml` declarations and bounded `PaymentWorkflow.js` DTO/capability additions; standalone gateway/refund fixtures, provider services, specs and real concurrency/recovery proofs |
-| App author | Existing PaymentDetail Gateway/Refunds contexts, GatewayTransactions, retained review/result/recovery forms, `Payments.js`, `PaymentScreenServices.xml`, payment server specs and client walks; begin dependent forms only after the native interface is approved |
-| Coordinator | Audited adoption flag, common application/source/posting/lifecycle/archive guards, legacy wrapper/poller/SECA exclusions, trusted adapter provisioning, settings/grants/jobs/choices/menus/demo, central registries/docs/builds/tests and commits |
-| Reviewer | Independent contract, diff, success/refusal/rollback and rendered-output review for each assignment; return findings before acceptance |
-
-**Adoption and authority.** `PartyAcctgPreference.paymentGatewayWorkflowEnabled` is audit logged and defaults to N;
-managed gateway work also requires the adopted settlement application guard. Manual refunds require the settlement
-guard. Every preview/mutator requires current broad payment read, PAYMENT_EDIT, current organization and private
-record authority, including with artifact authorization disabled. Reuse the native treasury predicate; do not invent
-a BOSS-specific Mantle permission or treat AR authority as treasury. Ledger results remain separately authorized.
-Bank/card credentials, executable service names and raw provider bodies never enter app DTOs.
-
-**Records.** Retained `PaymentGatewayPreview` stores owner, organization, action, payment/source/method/binding and
-reservation revisions, SQL day, reviewed plans/policy, expiry and fingerprint. `PaymentGatewayInstruction` represents
-authorization and its monetary ceiling. `PaymentGatewayAttempt` owns the unique organization/operation key, immutable
-request hash and provider operation identity, action/parent, amount/currency, provider evidence, dispatch lease and
-financial completion result. `PaymentGatewayReservation` holds authorization capacity or original cash funding for
-an attempt. All new money records capture currency and source identity immediately. Native entity guards protect
-identities, evidence, reservations and linked cash provenance from generic/artifact-off mutation.
-
-The authorization parent never posts cash, enters trade settlement or becomes a delivered cash payment. Each accepted
-partial capture creates exactly one uniquely linked cash Payment for its actual amount. Its original amount and
-posting remain unchanged. Payment extensions identify instruction/attempt and authorization/capture/refund role.
-Native projections show instruction state and actual captured/refunded totals without presenting a parent amount as
-posted cash.
-
-**Provider boundary.** Only an explicitly provisioned safe adapter is eligible. Trusted configuration supplies
-reviewed operation and exact-identity lookup service names, adapter version and operation-specific guarantees for
-idempotency, lookup, partial capture, release and refund. The adapter accepts immutable provider operation ID,
-provider/merchant namespace, action, parent provider reference, amount/currency and approved payment/method identity.
-It returns that same identity, typed accepted/declined/pending/uncertain outcome, exact amount/currency, provider
-reference/timestamps and narrow codes. It cannot mutate Payment, applications or GL. Dispatch and lookup never inherit
-trusted financial-finalizer admission in common guards. The finalizer never calls a provider.
-
-Safe invocation also requires each action's explicit `reviewedMethodSnapshot: true` guarantee. The private
-`prepare#PaymentGatewayDispatch` stage locks and rechecks the reviewed method/subtype revisions, including
-`gatewayCimId`, and returns credential snapshots only to its immediate dispatch caller. It commits and releases
-those locks before external I/O. Adapters consume those provided snapshots and original method versions rather
-than rereading mutable method IDs. No CVV, arbitrary address reads, credential persistence or public credential DTO
-is introduced. Exact-identity lookup uses the original operation identity and versions without requiring currently
-active or unchanged funding credentials; local financial completion still validates the original reviewed methods.
-
-Legacy interfaces have no request identity, may infer a response from a recent method transaction, and can mutate the
-whole payment after a partial capture. Their behavior and existing providers remain unchanged for legacy records.
-TEST_APPROVE/TEST_DECLINE's fixed reference and FinancialAccountLocal's separate financial-account posting do not
-qualify them as reviewed adapters. Add a distinct deterministic provider fixture with independently committed effects,
-stable request identity, authoritative lookup and pending/timeout controls. Refuse unsupported adapters before I/O;
-there is no fallback to an unsafe legacy orchestrator.
-
-**Gateway APIs.** The new native services are:
-
-- `preview#PaymentGatewayAction`: organization, payment/source version, authorize/capture/release/refund action,
-  explicit capture/refund amount, effective day/reason/reference, optional approved gateway, parent attempt, linked
-  refund draft/revision and selected evidence/revisions. Authorize reviews the exact parent amount; release reviews
-  remaining available authorization; refund targets the actual captured cash payment. Return retained identity,
-  payment/gateway summaries, before/after, reservation/application effects, posting summary, authorized ledger plan,
-  capabilities, named blockers and expiry.
-- `get#PaymentGatewayActionPreview`: reproject that retained review under current authority, including recorded
-  operation key/results. `execute#PaymentGatewayAction` accepts only preview ID, fingerprint and operation key of at
-  most 40 characters. Return attempt/provider operation IDs, parent and actual cash/refund payment IDs, outcome,
-  provider/financial state, amount/currency/SQL day, authorized actual application/GL/output IDs, named reason and retry
-  identity. Exact recorded retries precede stale checks; changed reuse fails.
-- `get#PaymentGatewayAttempt` is a pure scoped read and returns `attemptVersion` and the recorded provider-operation key.
-  `refresh#PaymentGatewayAttempt` takes organization, attempt/`attemptVersion`
-  and operation key and performs exact-identity lookup only. A nondefinitive not-found remains uncertain. It cannot
-  start a new charge or refund. Same-ID replay is permitted only where the adapter guarantees idempotency or
-  authoritative nonexecution; an expired lease alone never permits another external operation.
-- `preview#PaymentGatewayRecovery` retains a newly reviewed financial plan for an already accepted attempt.
-  It takes `attemptVersion`; the same `get#PaymentGatewayActionPreview` reads action and recovery reviews, distinguished
-  by `previewKind` (`gatewayAction` or `gatewayRecovery`) and `financialOnly`. Recovery preserves the original action.
-  `complete#PaymentGatewayAttempt` accepts only its preview/fingerprint/key and completes local money once. Recovery
-  cannot change externally accepted amount/currency or dispatch the provider request again.
-- `find#PaymentGatewayTransactions` filters authorized organization/payment/party/provider/action/outcome/day/text
-  before paging, with selected attempt identities (at most 200), actual count/page/completeness/errors and narrow
-  treasury-only rows. Preserve authorized legacy response visibility without exposing provider secrets.
-- `find#PaymentGatewayBindings` takes organization/payment/action/effective day, text, selected IDs and paging. Treasury
-  receives only gateway ID/description, `bindingVersion`, `adapterVersion`, per-action/lookup capabilities, actual page
-  metadata/completeness/errors and selected rows. An ID~bindingVersion choice decodes to gateway ID and
-  `gatewayBindingVersion` on preview. Native defaults are equally frozen in the retained review.
-- `find#PaymentGatewayProviders` supplies the organization-wide transaction filter with scoped provider IDs and
-  descriptions, selected labels and actual page metadata. It does not expose executable binding configuration.
-
-**Durability and capacity.** Reserve and commit immutable identity/capacity before I/O; invoke the provider without
-financial locks; persist its outcome durably; then atomically create/post the exact local cash, applications and
-outputs. Caller rollback cannot erase dispatch/evidence. States distinguish reserved, dispatched, pending/uncertain,
-declined, accepted-unposted and completed. Timeouts/crashes and accepted-but-local-posting failures retain evidence and
-reservations. A changed/closed posting plan becomes accepted-unposted, never declined or permission to charge again.
-Actual provider timestamps are evidence; new financial records use the explicit reviewed SQL accounting day.
-
-Accepted capture amounts and pending/ambiguous reservations consume authorization capacity and exclude conflicting
-release. Concurrent capture/release re-read the same instruction and reservation revisions under stable locks. Pending
-refunds reserve both provider refundable capacity and the original cash leg's currently unapplied funding. Common
-native/raw application writers and source apply/unapply/void/reversal/destruction serialize on those same holds. They
-cannot spend reserved cash. A proven decline/nonexecution releases a hold; accepted local completion consumes it in
-the same transaction as the exact refund application. No temporary fake positive application represents a hold.
-The original cash source is native-managed before its first hold. A reviewed manual-refund reservation may adopt a
-legacy manual source under the same organization-then-Payment lock, retaining its authoritative cash evidence.
-Default-off unmanaged writers take sorted Payment-only locks and re-read provenance, scope and holds; a waited
-source that entered the reviewed workflow refuses with a retry instead of acquiring an organization lock afterward.
-
-**Manual refunds.** `preview#PaymentRefund` takes organization, original cash payment/revision, explicit amount/day,
-reason/reference, optional linked refund draft/revision, reviewed organization/counterparty methods and evidence.
-`get#PaymentRefundPreview` reprojects its retained review. `refund#ReviewedPayment` accepts only preview/fingerprint/key.
-A linked draft must have exact opposing parties/currency and no prior GL/application/instruction. Native code sets
-PtRefund and the original link, retaining the original financial side while reversing cash direction. Cash posting and
-the payment-to-original application are atomic and verified. Refund capacity is the lesser of actual cash less
-completed/held refunds and current unapplied cash less reservations. Fully allocated cash must first be legitimately
-unapplied through the separately authorized P5b1 workflow. There is no hidden invoice unapplication or return-credit
-orchestration. A provider-backed source must use provider refund; manual void cannot pretend that its charge was
-refunded. Closed periods and unavailable mappings refuse without partial local money.
-
-**Legacy exclusions.** Before provider I/O, deny managed authorization parents and cash children through every legacy
-authorize/capture/release/refund/details entry point, including direct leaf services, order/invoice wrappers and poller
-selection. Exclude instruction parents from legacy payment posting/application SECAs. Guarding only the poller or a
-single high-level wrapper is insufficient. Existing unmanaged/default-off paths and tests retain their behavior.
-Legacy refund creation/linking and raw refund links cannot manufacture a local refund against a native-managed
-original. Legacy provider-capable instructions cannot be adopted while an old provider request may be in flight;
-check their original persisted instrument and methods before applying any caller edits. New native drafts remain
-eligible for the reviewed gateway workflow, and clean manual legacy sources retain reviewed adoption.
-
-**Acceptance.** Use valid same-payload treasury positives versus AR-only/read-only/edit-without-read/private/foreign
-negatives; stale source/method/binding/reservation and currency/scale/day/lock refusals; authorization60 with captures20
-and40 creating two actual cash legs and no parent posting; pending/ambiguous capture/release/refund capacity; real
-parallel exact retry and competing-key cases; wrong provider identity/amount/currency quarantine; accepted-then-timeout
-recovery and accepted-unposted financial-only repair; partial/multiple/manual/linked refunds with exact totals and
-immutable source links; refund versus legacy application contention and source-reversal refusal; zero provider calls
-for managed records through legacy services/polling; redirects with zero financial authority; unchanged provider,
-Projects, Products and default-off regressions. Review each bounded assignment and all returned findings before its
-central full-suite/browser gate and separate repository commits.
-
-The coordinator/native integration interface is fixed before releasing the first assignment:
-
-- Native-owned `PaymentGatewayReservations.js` exports a read-only
-  `cashHoldSummary({organizationPartyId,paymentId})` with lossless `heldAmount`, `currencyUomId`, `holdCount` and
-  canonical `version`. It verifies authoritative payment/organization identity and includes every held cash
-  reservation, including pending, uncertain and accepted-unposted attempts. Callers hold the existing organization
-  then payment locks; reservation writers use that same order. There is no supplied exclusion or bypass flag.
-- Native-owned SQL summary views in `PaymentGatewayWorkflowEntities.xml` expose held cash by payment for the
-  coordinator's open-item query integration. `reservedAmount` and `availableAmount` are separate from actual accounting
-  `unappliedTotal`. Search/count/page use availability before projection. Missing/failed hold evidence is unavailable,
-  never a zero balance; turning off adoption does not release existing durable holds.
-- The local financial finalizer is `complete#PaymentGatewayAttempt`. Common Posting/Lifecycle/Archive admissions name
-  that exact service and manual `refund#ReviewedPayment` where needed. They admit no dispatch/lookup parent. The
-  finalizer accepts persisted accepted attempt plus retained review identity, never caller provider evidence, and
-  transitions its own cash hold to consumed inside the same locked transaction before its exact application. Failure
-  rolls both back. Native internal declarations and entity guards are installed before any managed dispatch.
-- Instruction capacity counts each capture attempt once: completed accepted amounts plus still-held attempts,
-  including accepted-unposted, cannot exceed authorization. A held accepted amount is not added a second time.
-  Conflicting release refuses while capture outcome is unresolved; no lease timeout invents available capacity.
-- The first bounded assignment enables authorize/capture/release and exact lookup/financial recovery only. Gateway
-  refund and manual refund remain unavailable until their separately reviewed implementation and shared cash-hold
-  integration are accepted. The app receives native capability/reason fields rather than inferring availability.
-- Existing B1 native draft creation supplies a gateway-instrument Proposed payment with no GL, applications or provider
-  history; no separate raw creation path is added. Native detail/list capabilities include authorize/capture/release/
-  refund, refresh and recover. Treasury-only `gatewayInstruction` carries instruction ID/state/currency, authorized,
-  held, captured, released and capturable amounts. Capture children carry gateway role/authorization payment link and
-  actual amount/applied/unapplied/reserved/available totals. Instruction/provider amounts are labeled separately from
-  posted cash. Recovery's recorded operation key is the financial-confirm key; an attempt's key is its original
-  provider-operation key. Neither is guessed or replaced when reopening a result.
-
-### P5b2a build and acceptance
-
-Implementation commits: Mantle `5c24c2fa`; BOSS `4b92e2c`.
-Coordinator and independent reviewer accepted each native, shared-integration and application assignment after
-returned findings were corrected. New methods/configuration are audited and default off. Safe adapter provisioning,
-owner-bound action/recovery reviews, durable reserve/dispatch/evidence/complete stages, original credential snapshots,
-typed outcomes, exact lookup and atomic actual cash/output ownership are implemented. Authorization parents remain
-noncash. Legacy leaf/wrapper/poller entry and first adoption serialize on permanent admission fences. Common guards
-protect stored/candidate sources and accepted cash with flags off. No provider ancestor receives finalizer admission.
-
-Full standalone Mantle: 1,139 passed, the same four reproduced baseline failures, 17 skipped; 1,160 features/130 specs.
-All 65 new cases pass, including real concurrency, original caller rollback, authority loss, large retained evidence,
-credential-lock contention, interrupted lookup replay, unsafe legacy I/O and source/adoption races. Final safe
-identity/recovery DTO assertions pass after correcting unsupported test registration/ASI syntax; none were dropped.
-The earlier transient notification failure did not recur; final actual-worker cases pass without a manual publisher.
-
-Full BOSS: 1,162 passed, zero failed, five skipped; 1,167 features/112 specs. Unchanged Projects/Products/legacy flows,
-the actual transactional ClientBilling cleanup, 30 state/review/attempt QVT/TUI/HTML renders, selected choices outside
-search and role pairs pass. Final focused presentation gate passes 35/35. Browser acceptance passes 78/78 without
-skips: 72 route/dialog/role width/theme cases plus six real financial walks. Independent visual review accepted all
-route captures, 24 retained review/result variants and issued receipt. Actual phone geometry is 359 px client/scroll,
-with amounts/chip content visible; all 18 selected-attempt links have a valid single-rectangle center hit before the
-unchanged normal click. The empty state-effects grid is absent from gateway reviews, with real B1 effects retained.
-
-Changed XML parses and validates except the previously reproduced preferences box schema mismatch. Lint scans 1,124
-files/24,858 sites, zero parse failures and the same 121 flagged sites. Two isolated fresh Code assertions also
-reproduce at accepted B1 component commits, while both final full BOSS reruns pass all Code cases; no Git reset or
-Accounting baseline exception was added. F75–F77 retain their assigned P15/P21 work; F99/F107 are generic capture/click
-tooling work. The real held-manual-source reparent proof remains mandatory before P5b2b enables its cash-hold writer.
-
-### P5b2b bounded refund assignments
-
-The coordinator, native author, app author and independent reviewer reviewed these refinements before refund code.
-Release follows P5b2a acceptance/commits. Deliver manual refunds/shared funding first (P5b2b1), then provider refunds
-(P5b2b2), reviewing and committing each bounded delivery before P5b3 transfers. The execution checkpoint remains the
-end of P5, before P6.
-
-**Current execution priority.** After gateway acceptance, the user requested code completion without further
-screenshot tests and similar presentation-verification work. The remaining P5 deliveries therefore prioritize complete
-native/app/shared code, independent contract/diff review and focused meaningful financial server checks. Additional
-screenshot/browser-walk and visual-review cycles are omitted from this execution; their broader finish work remains
-P21. This changes verification effort, not the end-of-P5 stop boundary or financial authority/atomicity contracts.
-
-**Ownership and prerequisite contract.** The native author owns new `PaymentRefundEntities.xml`, its EECAs,
-`PaymentRefunds.js`/`PaymentRefundGuard.js`, native service declarations, bounded payment DTO/capability additions,
-refund/draft-choice reads, and standalone fixtures/specs. Provider extensions to GatewayWorkflow/Execution/Guard/
-Reservations and the explicit test adapter belong to the native author in P5b2b2. The app author owns PaymentDetail's
-refund dialogs/review/results, Refunds/Gateway contexts, GatewayTransactions refund presentation, `Payments.js`,
-`PaymentScreenServices.xml` and refund server/client specs. Dependent forms start after the native read/preview
-contract is approved. The coordinator retains common guards, original legacy writers/SECAs, grants/choices, other-tab
-transition includes, demo/central registries/docs and all execution/commits. The independent reviewer traces each
-success/refusal/rollback path and rendered output before coordinator acceptance.
-
-**Manual API and reads.** `preview#PaymentRefund` takes organization, original actual cash `paymentId`/`sourceVersion`,
-amount, explicit effective day, reason/reference, optional `refundPaymentId`/`refundSourceVersion`, payment instrument,
-reviewed organization/counterparty method IDs and versions, and selected evidence IDs/versions. The original ID never
-means the proposed refund child. `get#PaymentRefundPreview` reads owner-bound retained `previewKind='refund'`.
-`refund#ReviewedPayment` accepts only preview/fingerprint/operation key (at most 40 characters). Retain source/draft/
-method/funding/policy/evidence versions; current authority and exact retry precede stale checks.
-
-The preview uses `paymentSummary` for this action's actual amount, `refundSummary`, before/after/application effects,
-posting summary, separately authorized ledger preview, evidence, capabilities, blockers, expiry/status/key/results.
-Results retain original `paymentId`/`originalPaymentId`, actual `refundPaymentId`, exact payment application, actual
-amount/currency/SQL day, event and authorized GL/output identities. Every output owns the refund child. New refund
-records persist original/source/currency identity immediately for P20.
-
-`get#PaymentRefundSummary` and Treasury-only detail `refundSummary` return original actual cash, completed/held refund
-totals, original unapplied/reserved/available cash, provider refunded/refundable amounts where applicable, final
-refundable amount, currency/version/completeness/errors/reasons. Sum authoritative records rather than bounded
-`refundRows`. `canRefund` and `canGatewayRefund` are mutually exclusive. Malformed legacy refund cash/AP evidence is a
-named incomplete/refusal, never an invented zero balance. `find#PaymentRefundDrafts` returns scoped eligible opposing
-clean drafts before count/page plus selected rows, actual source revisions and masked labels. The coordinator's
-`reviewedRefundDrafts` choice preserves selected ID~sourceVersion tokens outside the search page.
-
-**Funding and immutable backing.** Cover incoming AR cash→outgoing customer refund and outgoing AP cash→incoming
-supplier refund. Logical finance side stays inherited; cash direction reverses. Cap actual original cash less completed
-and held refunds against current unapplied cash less every cash hold. Never double-count accepted-unposted provider
-money. Fully allocated cash first requires separately authorized legitimate B1 unapplication. No hidden invoice
-unapplication, legacy clamping refund controller or return-credit orchestration is introduced.
-
-Manual confirmation locks organization, sorted original/draft Payments, authoritative backing/applications/holds and
-current finance policy. A clean legacy manual source may adopt under the existing permanent provider-admission fence;
-provider-capable or previously dispatched legacy sources refuse. Do not backfill old SQL days. Verify complete actual
-cash GL/non-error/non-reversed evidence, source/draft/method revisions, currency/scale/parties, refund day at or after
-original actual GL day, current fiscal/typed locks, accounts/dimensions and evidence. An old closed source may fund a
-genuine open-day refund without rewriting old cash. Post exact opposite cash first, then exact refund→original payment
-application/reclassification with captured currency/SQL day, immutable `PaymentRefundRecord`, event and outputs in one
-transaction. Verify actual postings/accounts/DC/amounts/IDs; rollback leaves none of those local changes.
-
-Protect completed manual/provider refund identities and their exact funding APP at entity/common boundaries even with
-flags N: no raw amount→zero, reparent, deletion, source reversal or ordinary B1 unapply/void may make already-refunded
-funding reusable. B1 can still unapply unrelated invoice allocations on a partially refunded original. No refund
-reversal controller is invented in this delivery. Common financial admissions name only `refund#ReviewedPayment` and
-the existing provider finalizer; dispatch/lookup remain nonfinancial.
-
-**Provider identity and claims.** Refund action uses an actual completed capture cash child, deriving its immutable
-capture operation/reference/merchant/currency natively. Require explicit safe-adapter `originalCaptureOnly`, partial
-refund, idempotency, exact lookup and reviewed identity guarantees. No caller-selected provider reference, destination
-or current replacement credential may reroute it. Rotation/expiry of the original charging credential does not block
-a refund by the original capture reference or its exact lookup. Preserve original method IDs/versions as provenance;
-use operation-specific reference rules instead of B2a's active charging-method validation. Current Treasury/private/
-organization authority, funding and newly reviewed posting policy remain strict.
-
-A durable `PaymentRefundDraftClaim` keyed by an optional existing draft records held/released/consumed state. B1
-edit/state/delivery/cancel and manual refund check held claims, including before a gateway role exists. Provider reserve
-locks original/draft identities, retains immutable attempt `refundDraftPaymentId`, and atomically reserves provider and
-unapplied-cash capacity. Authoritative decline/nonexecution releases both holds and the claim; a new operation can
-claim a still-clean draft only after fresh revision review. Consumed claims never recycle. Pending/uncertain/
-quarantined/accepted-unposted retains all reservations and claims. Actual refund `cashPaymentId` is assigned once
-inside accepted local completion, with child use/creation, verified cash/AP/reclassification, claim/hold consumption,
-event/output and result in the same transaction. Rollback preserves held claims/holds and clean draft. Capture's
-existing preassigned cash identity rules remain unchanged.
-
-**Required proofs.** Same valid Treasury payload versus AR/read-only/edit-only/private/foreign refusals with artifact
-authz disabled; stale original/draft/method/funding/policy/currency/scale/day refusals; both cash directions and partial/
-multiple/linked drafts; exact retries and changed reuse; first-post rollback; real refund/refund and refund/native/raw/
-legacy application races; legacy adoption/fence refusal; fully allocated refusal then independently authorized unapply;
-flags-off immutable completed funding; held original reversal/destruction and old-unheld→new-held source reparent using
-the real hold writer. Provider proofs include per-capture ceilings, both holds/claims, decline draft reuse, timeout/
-mismatched identity quarantine, credential rotation/expiry positive versus reference/merchant/rerouting negatives,
-authority loss, exact lookup, accepted-unposted recovery and caller rollback without repeated external operation.
-App proofs cover actual refund child/output ownership, retained selected revisions/intent/results, safe missing/denied
-states, current roles, and light/dark 390/1280/1440 walks and visual review. No P6 work is included.
-
-**Provider release refinement.** P5b2b1 manual refunds are one atomic transaction and introduce no pending manual cash
-reservation writer. Provider holds are available only for real completed capture cash. B2b2 therefore proves real
-capture cash holds, claimed clean drafts, raw/native application capacity and release/consumption, and both original
-and candidate GL source identities. A captured-source GL mutation may refuse first under permanent capture
-immutability; that is recorded honestly rather than treated as an isolated manual-hold proof. Manual pending
-reservations remain unavailable; any future writer must add its own first-hold/adoption contention proof. No fake
-reservation/claim or noncapture provider eligibility is introduced to exercise the older wording. Native and reviewer
-confirmed the app's exact refund input/DTO extension before dependent forms were released.
-
-### P5b2b1 manual refund acceptance
-
-Implementation commits: Mantle `cb9cc35d`; BOSS `bb8a421`.
-
-The coordinator accepts the independently reviewed native, application and common assignments. All 21 new native
-cases pass. The initial 45-case gate and final 25-case gate together cover 53 distinct native cases, all passing:
-actual partial/customer/supplier/linked-draft refunds, exact retries, malformed/verified legacy history, current
-authority loss and restoration, source/draft/method/evidence/policy staleness, genuine prior-closed/current-open
-posting, caller rollback, flags-N immutable funding and remaining capacity, unrelated invoice unapplication and real
-same-key/capacity/application/first-adoption-versus-raw-link contention. BOSS passes 24/24 across 9 refund cases and 15
-unchanged payment cases, including actual Treasury/admin results and child-owned issued documents. Changed XML
-validates and diff checks pass. Per the user's latest direction, no additional screenshot/browser/full-suite cycles
-are required for this delivery; the earlier accepted P5b2a full-suite baseline remains recorded above.
-
-**F108 — legacy refund history.** Valid completed legacy refunds without permanent native backing are reported using
-their exact actual cash and application/reclassification evidence. New native adoption/refunds refuse with
-`LEGACY_REFUND_HISTORY_REVIEW_REQUIRED`; historical sealing is unavailable until separately designed. Unposted,
-reversed, mismatched or abandoned-but-financial history produces named incomplete evidence and no invented capacity.
-A genuinely clean cancelled draft does not block new work. No old SQL day is backfilled.
-
-**F109 — reviewed banking freshness.** Lifecycle/refund confirmation now verifies and uses the same fresh locked
-method/subtype objects. Already posted native manual cash keeps its provenance when its bank later receives gateway
-route metadata; only complete live actual cash qualifies for that narrow common-boundary exception. These fixes are
-included in focused shared lifecycle/gateway regressions. Provider refunds and transfers follow; P6 has not started.
-
-### P5b2b2 provider refund acceptance
-
-Implementation commits: Mantle `128f6ca0`; BOSS `848ff21`.
-
-The coordinator accepts the independently reviewed native, app and shared assignments. Refunds bind an actual
-completed capture and its immutable provider operation/reference/merchant/currency. Original charging credential
-rotation/expiry does not reroute or prevent reference refunds and exact lookup. Current safe-adapter guarantees are
-checked again immediately before I/O. Durable provider-capacity and unapplied-cash holds, optional clean-draft claims
-and exact lookup/recovery retain uncertain/accepted-unposted evidence. The shared strict money core posts actual
-opposite cash and exact funding/reclassification with immutable records/events/child-owned outputs atomically.
-
-All 13 new native cases pass. The final focused gate covers 44 distinct native cases; its sole fixture failure used a
-caller-chosen PK ignored by the legacy create service, and the corrected actual-returned-ID proof passes separately.
-All other 43 passed together. These include both cash directions, partial/multiple and different-amount legacy draft
-conversion, current/historical claim projections, real raw/native application capacity, flags-N common boundaries,
-credential rotation/expiry with deleted live evidence, timeout/exact lookup, post-accept mapping changes, joined
-financial rollback after actual backing/APP/two postings/two outputs, restored holds/clean draft, exact retry and real
-same-key/capacity races. BOSS passes 34/34 across four specs, including all eight new provider cases and unchanged
-manual/gateway cases. Actual Treasury/admin child/output ownership, AR refusal and retained selected revisions pass
-in server-rendered QVT/TUI/HTML. Changed XML validates and diff checks pass. No new browser/screenshot/full-suite
-cycle was run under the user's code-completion priority.
-
-**F110 — permanent legacy fence preparation.** The native manual refund and provider reserve controllers now receive
-exact preparation-only admission for first clean legacy source/draft adoption. Provider entry recording remains
-forbidden to those native controllers. Both actual first-adoption positives pass without rewriting old source days.
-
-**F111 — retained financial policy.** Accepted refund completion compares freshly rebuilt posting plans/policy with
-the immutable original review. A valid changed refund-control mapping leaves accepted-unposted money requiring a
-new financial-only review; that reviewed recovery and a rollback after actual local posting pass with one provider
-effect. Recovery consumes its own exact held capacity once; planned provider-refunded amounts also remain truthful.
-
-**F112 — draft claim states.** Claims create only as held under exact reserved native attempts, release only on
-definitive decline, consume only inside accepted local completion and never recycle after consumption. Reopened old
-declined attempts show their own historical release after the same draft is reused; they cannot borrow another
-attempt's held/consumed state. Neither provider ancestors nor browser return values gain financial admission.
-
-### P5b3 transfer assignment contract (completed)
-
-The native author owns `PaymentTransferEntities.xml`/EECAs, `PaymentTransfers.js`/`PaymentTransferGuard.js`, native
-declarations, transfer-specific payment projections and standalone specs. The app author owns the Payments list's
-InternalTransfer dialog/review/result and thin screen-service inputs, plus bounded detail presentation and server
-specs. The coordinator owns the new type and default transit mappings, shared choices/grants, common lifecycle/GL
-admissions, demo/registries and documentation. The reviewer approves this interface before implementation and reviews
-the completed diff. No provider work overlaps transfer implementation.
-
-`preview#InternalTransfer` takes organization, distinct source/destination organization-owned bank/cash methods with
-their reviewed versions, positive principal, currency, explicit effective day, nonnegative fee, explicit fee account
-when nonzero, reference and reason. `get#InternalTransferPreview` returns the owner-bound retained review.
-`create#InternalTransfer` accepts only preview/fingerprint/key (maximum 40 characters); exact completed retries precede
-stale checks. Account choices require current Treasury authority and return assigned active postable fee accounts,
-without balances. Every service checks current read/edit/organization/private-method authority with artifact authz off.
-
-One operation locks organization, sorted methods/subtypes and authoritative policy/mappings, then rechecks all
-revisions, dates, currency/scale and account assignments. It creates a durable pair identity and exactly two linked
-native-managed `PtInternalTransfer` Payments and two actual cash/transit transactions in one transaction. Principal P
-and fee F produce outgoing cash P+F (debit transit P, debit explicit fee F, credit source bank P+F), and incoming cash
-P (debit destination bank P, credit the same transit P). The outgoing leg has only `paymentMethodId=source`; the
-incoming leg has only `toPaymentMethodId=destination`, preserving unambiguous statement matching. Both retain original
-principal/currency/day and immutable pair/opposite-method provenance; cash direction derives from the native leg
-identity because both parties are the organization. Distinct methods may share one cash control GL and reconcile
-independently. Transit must be distinct from both cash accounts and the fee account; a nonzero fee needs a distinct
-eligible expense account. The organization-to-itself legacy autoposter cannot
-create another two postings. No PaymentApplication is created and trade settlement/gateway/refund paths remain
-unavailable for either leg. Completed pair money, source links and exact postings remain immutable with flags N;
-ordinary descriptions/reconciliation remain editable. No partial reversal controller is introduced.
-
-Preview/results display both legs, principal/fee/total, masked methods, native before/after and separately authorized
-ledger evidence, actual posting IDs and recorded retry result. Add exact native grants and reviewed method/fee-account
-choices; preparation never silently updates a selected revision. Meaningful focused proofs cover both-or-neither
-posting (including failure after the first actual posting), identical retries/changed reuse, simultaneous confirms,
-current permission/private/foreign refusals, stale methods/policy, closed day, currency/scale, missing mappings and
-fee account, no trade settlement and immutable completed cash. Application checks cover actual pair/output identities
-and retained intent/results. Per the current execution priority, no new screenshot/browser cycles are required.
-
-### P5b3 acceptance and requested checkpoint
-
-Implementation commits: Mantle `9a13f26c`; BOSS `49f3001`.
-
-The coordinator accepts the independently reviewed native, application and shared assignments. Treasury creates an
-owner-bound native transfer review, then confirms only its preview/fingerprint/40-character operation key. Principal
-P and fee F create exactly two native-managed linked Payments and two verified actual ledger transactions: source
-cash P+F through transit P and explicit expense F, destination cash P through the same transit P. Distinct methods
-may share one cash control account. Leg-specific method slots and cash direction preserve independent statement
-matching. There is no trade application, gateway operation, refund or legacy org-self autoposter on either leg.
-
-Permanent pair/source guards survive flags N and protect money, links, original headers/entries, reversal, unpost,
-duplicate posting and candidate source reparenting. Descriptions and reconciliation remain editable. Reviewed bank
-identity/subtype, organization/private authority, mappings, accounts, fiscal/typed locks and currency are rechecked
-under lock; completed exact retries return the recorded pair before stale checks. Each leg owns one immutable detail
-document, with principal, fee-on-outgoing-leg and leg identity; no receipt/check is issued for an internal transfer.
-
-The final standalone Mantle gate passes **45/45** across 13 specs, including all **10 new transfer cases** plus focused
-payment/manual/provider/source/fence regressions. An inert explicitly targeted native-fixture SECA proves a failure
-after the first actual posted outgoing leg rolls back pair, both Payments, postings, outputs and operation; the same
-review/key then succeeds. Real concurrent same-key confirms create one pair; independent reviewed transfers sharing
-banks/transit both succeed. Valid negative cases cover permissions, private owners, stale banking/policy, currency,
-precision, fees, mapping consistency and flags-N boundaries. BOSS passes **40/40** across four specs, including all
-**eight new transfer cases**, actual Treasury/admin pair/output identities and rendered QVT/TUI/HTML links, same-payload
-AR refusal, current ledger omission and canonical retained pair/key binding. Changed XML validates (nine schemas,
-three data parses); the final separate screen lint report retains zero parse failures and the same 121 baseline sites (1,124 files / 25,015 expression sites).
-The two final markup schema repairs are static valid dialog type and removal of an empty mobile column.
-
-**F113 — transit assignment and fee eligibility.** The existing 258300000 transit chart account lacked a default
-organization assignment. Its missing template assignment is now installed with the new PtInternalTransfer mappings;
-demo setup adds only missing organization assignment/mappings. Fee 550000000 is cost of sales and correctly refuses
-the expense-only contract. Focused fixtures explicitly assign/use banking expense 710000000; no account restriction
-was weakened to satisfy a test. New methods/accounts/choices retain native scope and masked labels.
-
-**F114 — transfer queue eligibility.** Transfer projection reports no unapplied trade funding, and the Unapplied SQL
-query now excludes PtInternalTransfer before counting/paging while preserving ordinary null legacy types. Both real
-legs remain in Transfers. The affected two core cases pass after this final read-only correction.
-
-**Checkpoint.** P4 and every P5 slice are code complete, independently reviewed and committed in delivery order.
-The user's later instruction prioritized code completion: no further screenshot/browser/full-suite sweeps were run
-for manual/provider refunds or transfers. Focused financial/server checks and final XML/lint passed; prior P5b2a full
-suite evidence and the four reproduced standalone Mantle baseline failures remain recorded above. No new route was
-introduced by the last three slices. P21 retains the broader finish/access/visual/regression work. P6 and all later
-phases are unstarted, including SupplierProfile/payable intake/holds and the framework notification topic filter.
-Work stops here at the user's requested end-of-P5 checkpoint.
+### P4 build — Oct 29, 2026
+
+Built:
+- `mantle.account.InvoiceServices.change#InvoiceState`, the one invoice state guard over Mantle's status flow: status,
+  period, posting, approval and the single-currency refusal (D18), by side permission. Draft edits through
+  `store#InvoiceDraft`, `store#InvoiceDraftItem` and `delete#InvoiceDraftItem`; `reverse#DraftInvoice`. Projects'
+  `update#InvoiceStatus` calls it.
+- `send#Invoice` for any invoice, with or without a store, which freezes the PDF as the invoice's content and records
+  the outcome per recipient; `InvoiceFinalizedSendEmail` skips a version it sent. `process#InvoiceBatch`.
+- Linked credit memos applied to their original; approved-time billing for customers and workers; statements;
+  Customer360's Accounting context with masked finance details (`CustomerFinanceServices`).
+- Screens: Invoices, InvoiceDetail (the shared screen with the receivables context and its tabs), BillingQueue,
+  InvoiceBatch, Statements and Customer360.
+
+For later phases:
+- An invoice records its book day (`Invoice.accountingDate`) and its postings use it (F73; R2 for the user's zone).
+- Invoice budget evidence is unavailable until P15 adds commitments (F75).
+- The generic `ItemSales` mapping points to a non-postable account; P19's readiness names such mappings (F71).
+
+Verified then: `./moq test mr-boss` 1,110 passed, 5 skipped; standalone `./moq test mr-mantle` 903 passed, with the
+four baseline failures and 17 skipped.
+
+Commits: mr-mantle `876732f6`, `93e8fed3`; mr-boss `b933118`, `907a816`, `5b1b900`. R2 replaced its delivery,
+recipient and statement snapshot entities, its script-built HTML and its own credit memo service.
+
+### P5 build — Oct 29–30, 2026
+
+Built in slices:
+- P5a, settlement: `find#OpenItems`, `preview#Settlement` and `apply#Settlement`, one application set per party and
+  currency under an operation key; automatic application (`preview#PaymentAutoApplication`, `autoApply#Payment`);
+  ReceivablesWorkbench.
+- P5b1, payments: `find#Payments`, `get#PaymentFinanceDetail`, drafts, reviewed state changes (validate, deliver,
+  confirm, cancel, void) and unapplication, issued receipts, details and checks, PaymentValidation notices; Payments,
+  PaymentDetail with seven tabs, and PaymentPrint.
+- P5b2, gateway actions (authorize, capture, release, lookup), manual refunds and gateway refunds; GatewayTransactions.
+- P5b3, internal transfers with a fee.
+
+For later phases:
+- A settlement is dated on or after the postings of its sources and targets. A discount or write-off goes to an
+  explicit account (F23).
+- A retry with the same operation key (at most 40 characters) answers the first result; another request under the key
+  is refused.
+- A transfer posts through the transit account 258300000, and its fee needs an expense account (F113). Transfers are
+  not trade cash (F114).
+- Due schedules and term discounts are P8's, historical Aging P10's.
+
+Verified then: the last full runs were at P5b2a, `./moq test mr-boss` 1,162 passed, 5 skipped, and standalone
+`./moq test mr-mantle` 1,139 passed with the four baseline failures and 17 skipped. At the user's request the refund
+and transfer slices ran only their own specs.
+
+Commits: mr-mantle `a79012de`, `8f8c06ad` (F87), `ea31a0aa`, `5c24c2fa`, `501769d0`, `cb9cc35d`, `128f6ca0`,
+`9a13f26c`; mr-boss `737c439`, `acc99ca`, `59a4060`, `a8f8a38`, `4b92e2c`, `64f4585`, `bb8a421`, `d24147c`, `848ff21`,
+`cadf060`, `49f3001`, `67ded21`. P5 built its gateway path, refunds, transfers, settlement guards and payment outputs
+beside Mantle's services, with their own entities, guards and adoption flags; R2 rebuilt them on Mantle's services.
+
+### R2 — Review of P4–P5 — Oct 30, 2026
+
+A review of P4–P5 against docs/dev/Practices-App-Dev.md found that they rebuilt beside Mantle much of what Mantle
+already had, and held the copies together with caller-name checks and guards on hot paths. With the user, P4–P5 were
+rebased on Mantle's services and the copies deleted. The practices document gained "Use Mantle before adding to it",
+XML Actions first and no screenshot specs.
+
+**Findings** (F115–F126 in §6):
+- Parallel stacks beside Mantle: a second gateway path (attempt, instruction, reservation and preview entities, and an
+  adapter interface only a test double implemented) behind a "legacy fence" with a pre-service SECA on every service;
+  transfers as two raw Payments and hand-built AcctgTrans; refunds beside `create#RefundPayment`; settlement writes
+  beside the `apply#*` services; issued outputs, archive and Drive guards with EECAs on DbResource and ContentBlob;
+  a notification outbox beside NotificationMessage; invoice print, email and statements as HTML built by string
+  concatenation; a linked credit memo beside `create#InvoiceCreditMemo`; totals recomputed beside the stored ones.
+- Payment state changes as raw `statusId` writes, which skipped the Payment SECAs.
+- Authorization from caller names (`getStackNameString()`, 19 sites in 13 modules), and EECAs and SECAs on hot paths.
+- Test entities, services and SECAs loaded in production; one hooked every `post#AcctgTrans`.
+- One-line `<script>` services into modules of 1,000 to 1,600 lines; copied helpers, one of which showed private
+  parties' names; copied-union parameter interfaces; adoption flags giving each rule two code paths.
+- Bugs: settlement adjustments as `ItemTimeEntry` items; transfer method dates compared as ISO strings; references
+  cut silently; screen-built HTML accepted as the issued invoice; `isInGroup` in a service; settlement drafts of up to
+  256 KB in URLs; two payment reads per page.
+- Screens: PaymentDetail at 2,733 lines; 789 lines of P4–P5 XML and 357 of P0–P3 over 130 characters; tabs that
+  wrapped a template; four copies of the choices transition; "reviewed" in labels.
+- Tests: screenshot specs that nothing compared; about 17,000 lines of P4–P5 Mantle specs in 57 files; busy-waiting
+  test doubles.
+
+**Decisions** (§4):
+1. Rebase P4–P5 on Mantle's services and delete the parallel stacks.
+2. Retire the adoption flags. `postingGuardEnabled` stays, because Mantle's flow specs need the guard off.
+3. Remove the screenshot specs in every component. Service implementations are inline XML Actions; JavaScript only
+   for involved logic.
+
+mr-moqui: `ab8e4cf4` (`disable-authz` on the XML Actions entity find and write actions, a Parity-Diffs row),
+`95e13d1f` (Practices-App-Dev), `ad6658ea` (screenshot specs removed, with mr-boss `8b7c7e2`, mr-pass `b069c42` and
+mr-marble `b65b343`; GallerySmoke, ProductsPhone and ProductsPricePrint keep their real checks).
+
+**Rework by area:**
+
+| Area | What changed | mr-mantle | mr-boss |
+| --- | --- | --- | --- |
+| Walks | AccountingShots and AccountingGatewayShots removed; each Accounting walk keeps one live-client pass (67 s of feature time, from 369 s) | — | `8cf8198`, `8b7c7e2` |
+| Pass-throughs | The four AssetBook pass-throughs and the unused `validate#Template` removed; InventoryValuation calls Mantle | — | `b245769` |
+| Ledger P1–P3 | Journal attachments in XML Actions; seven ledger modules formatted (2,160 to 1,762 lines); LedgerConfiguration and CloseControls deleted and the simple operations of the others inline XML Actions (AccountingRecords 233 to 117 lines, AccountingSetup 734 to 474, Journals 849 to 746, Currencies 198 to 94); each service declares its own parameters | `301f37ad`, `c820c444` | — |
+| Payment lifecycle | State changes through `update#Payment` along StatusFlowTransition and unapplication through `unapply#PaymentApplication`, so the Payment SECAs run; `revert#PaymentPost` and `revert#PaymentApplicationPost` take a `reversalDate`; issued documents are PaymentContent from a template; validation notices are NotificationMessages; ten guard and EECA files deleted | `95d61343` | `320bbb2` |
+| Receivables | Print and statement templates over `get#InvoicePrintInfo` and `get#ReceivableStatementInfo`; `send#Invoice` through an EmailTemplate with the PDF as InvoiceContent, and a caller's `printLocation`; `create#InvoiceCreditMemo` links its credit; stored totals; customer finance on existing services; InvoiceDelivery.js, Statements.js and BillingWorkflow.js deleted; tabs own their content and one choices transition; P0–P3 and receivables XML wrapped at 130 | `216fbe99`, `5e32be39` | `de517d6`, `f0cca60` |
+| Settlement and transfers | The `apply#*` services take `appliedDate` and `accountingDate` and check every caller; adjustments are discount or write-off credit memos; PaymentApplicationGuard, SourcePostingGuard and their EECAs folded into PostingGuard; the workbench draft behind an id; a transfer is one PtInternalTransfer payment and a fee disbursement; the transfer modules, entities and test SECA deleted | `90573cb0` | `a43b8c1`, `9dfe2f8` |
+| Gateway and refunds | `operationKey` on the `*#SinglePayment` services; refunds through `create#RefundPayment` and `refund#SinglePayment`; the test gateway in PaymentTestServices; eleven modules, the legacy fence and 27 spec files (6,824 lines) deleted for two specs | `9355c3ae` | `794d7f3` |
+| Consolidation | One PaymentReview entity for every review and the settlement draft; Payment's copied fields removed; EntityLib.js; AccountingPolicy refuses with reason codes; PostingGuard decides from source fields; `get#RecordContentPolicy`; AccountingLib.js and declared screen services in BOSS | `304ab31e` | `52ce9bf` |
+| Book days | `EntityLib.bookDay` in the user's zone for postings, applications and periods; `create#Invoice` always records its book day and drafter | `55b87818` | — |
+| Payment screens | PaymentDetail a header screen (2,262 to 193 lines) whose tabs own their content; reviews as their own screens (PaymentDetail/Review, Payments/TransferReview, Receivables/SettlementReview) with one confirm and no "I reviewed" checkbox; one draft form, state dialog and gateway dialog in `template/AccountingPayments.xml`; Payments one list (722 to 237 lines), the workbench without its review mode (1,308 to 600); the walks on the new screens, the client suite's server running only fixture specs | `c1821532` | `5225cc7`, `2e66ac4` |
+
+R's first item left for later is done: `AccountingPolicy.js` refuses with reason codes.
+
+**Behavior changes and cuts:**
+- Statements show today's open items with aging as of the statement date; there is no opening balance and no stored
+  snapshot.
+- Unapplying no longer clears `Invoice.paidDate`; Mantle's `unapply#PaymentApplication` does not.
+- `apply#InvoicePayment`, `apply#PaymentToPayment` and `apply#InvoiceToInvoice` refuse for every caller: a date before
+  a document's posting, an amount finer than the currency, an internal transfer, a gateway authorization or held
+  gateway cash, and the application that funds a refund.
+- Gateway: no partial capture; a prepared refund cannot be edited and reopened; no evidence files on gateway or refund
+  reviews; no ledger preview on refund reviews.
+- Transfers: the fee is paid to an outside party, by default the from bank's party; the demo's cash method has none, so
+  the form names who is paid. The fee payment points at its transfer (`Payment.feeForPaymentId`).
+- Settlement adjustment accounts are found by date over the organization chain, not by the nearest assignment.
+- Retired flags: `invoiceHoldGuardEnabled`, `paymentGatewayWorkflowEnabled`, `settlementApplicationGuardEnabled` and
+  `paymentAutoApplicationEnabled`. `postingGuardEnabled` now gates only the posting guard and the invoice and payment
+  `MAPPING_MISSING` refusal (§4).
+
+**Lines** in the Accounting files: before P4 (mr-mantle `876732f6^`, mr-boss `b933118^`), at the end of P5 (the merges
+`de6e6f2d` and `0283176`) and now (HEAD):
+
+| Repository | Files | Before P4 | End of P5 | Now |
+| --- | --- | --- | --- | --- |
+| mr-mantle | JavaScript, `service/mantle/{account,ledger}/*.js` | 4,814 | 20,064 | 8,216 |
+| mr-mantle | Service XML, those directories and the Accounting, Payment and Invoice SECA files | 16,212 | 18,911 | 22,389 |
+| mr-mantle | Entity and EECA XML, the Accounting, Payment, Invoice, Settlement and AssetBook files | 4,174 | 5,594 | 4,569 |
+| mr-mantle | Specs and fixtures, `test/Accounting*.js` | 1,882 | 19,100 | 7,681 |
+| mr-boss | JavaScript, `service/ironstone/accounting/*.js` and Projects' BillingWorkflow.js | 622 | 4,429 | 3,708 |
+| mr-boss | Service XML, `service/ironstone/accounting/*.xml` | 249 | 667 | 1,145 |
+| mr-boss | Screen XML, `screen/Accounting*`, Shared Customer360 and InvoiceDetail, `template/Accounting*.xml` | 5,577 | 15,777 | 14,920 |
+| mr-boss | Specs, `test/Accounting*.js` and `test/client/Accounting*.js` | 1,445 | 8,992 | 5,329 |
+
+The change from the end of P5 to now includes the P1–P3 rework (mr-mantle `301f37ad` and `c820c444`: JavaScript
+−1,340, service XML +1,391, specs +316) and the screenshot specs (mr-boss `8cf8198`: specs −2,178). Service XML grew
+because services moved from script modules into XML Actions.
+
+**Verification.** Before the rework, with a Chromium for PDF: `./moq test mr-boss` 1,187 passed, 0 failed, 5 skipped;
+standalone `./moq test mr-mantle` 1,195 passed and 9 failed, all in guard and archive specs since deleted. Without a
+Chromium for PDF (`pdf_chromium_path`; docs/Run-Deploy.md, docs/dev/Client-Testing.md), every PDF spec fails.
+
+Verification after the rework, Oct 30, 2026, with a Chromium for PDF: `./moq test mr-boss` 1,161 passed, 0 failed, 5
+skipped; standalone `./moq test mr-mantle` 991 passed, 1 failed, 1 skipped. The failure is InboxThreads' search
+operators, one of the four failures recorded before this work, which fails only while the UTC date is ahead of the local
+one. `./moq test-client mr-boss --serve` 39 of 40, the failure ProductsFinish's xlsx download, which this host does not
+build; `example` (GallerySmoke) 22 of 22 and mr-marble 41 of 41. `moqui lint --screens`: 125 flagged sites as before,
+none in Accounting. Mail capture (`mail_capture_sends`) is for the client walks only: with it on, InboxThreads and
+BankOutputFiles fail in the server specs.

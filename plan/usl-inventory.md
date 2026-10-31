@@ -144,7 +144,7 @@ Per-service inventory of the mr-mantle component, for tracking service-level fea
 | PaymentServices | cancel#PaymentAndInvoices |  |  |
 | PaymentServices | void#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | unapply#PaymentApplication | Accounting/Receivables/ReceivablesWorkbench; Accounting/Payables/PayablesWorkbench; Accounting/Payments/PaymentDetail; Shared/InvoiceDetail |  |
-| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail | Native adopted controller (not directly mounted) |
+| PaymentServices | autoApply#Payment | Accounting/Payments/PaymentDetail | Mantle, confirming a settlement review (no screen calls it) |
 | PaymentServices | authorize#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | capture#Payment | Accounting/Payments/PaymentDetail |  |
 | PaymentServices | release#Payment | Accounting/Payments/PaymentDetail |  |
@@ -199,7 +199,6 @@ Added in Accounting P4, called by built screens (financial authority remains nat
 | InvoiceServices | store#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items |
 | InvoiceServices | delete#InvoiceDraftItem |  | Accounting/Receivables/InvoiceDetail/Items; Projects/Billing/InvoiceDetail |
 | InvoiceServices | get#InvoiceFinanceDetail |  | Accounting/Receivables/InvoiceDetail; Accounting/Receivables/InvoiceBatch |
-| InvoiceServices | create#LinkedCreditMemo |  | Accounting/Receivables/InvoiceDetail |
 | InvoiceServices | reverse#DraftInvoice |  | Accounting/Receivables/InvoiceDetail |
 | InvoiceServices | apply#InvoiceCredit |  | Accounting/Receivables/InvoiceDetail/Payments |
 | InvoiceServices | find#Receivables |  | Accounting/Receivables/Invoices |
@@ -209,34 +208,31 @@ Added in Accounting P4, called by built screens (financial authority remains nat
 | InvoiceServices | get#InvoiceDeliveryAttachments |  | Accounting/Receivables/InvoiceDetail (explicit supporting-file choices) |
 | InvoiceServices | send#Invoice |  | Accounting/Receivables/InvoiceDetail; Projects/Billing/InvoiceDetail |
 | InvoiceServices | process#InvoiceBatch |  | Accounting/Receivables/InvoiceBatch |
+| InvoiceServices | get#InvoiceBatchResult |  | Accounting/Receivables/InvoiceBatch |
 | InvoiceServices | find#ApprovedTimeBilling |  | Accounting/Receivables/BillingQueue |
 | InvoiceServices | create#InvoiceFromApprovedTime |  | Accounting/Receivables/BillingQueue |
 | CustomerFinanceServices | get#CustomerFinance |  | Accounting/Receivables/Customer360 |
 | CustomerFinanceServices | store#CustomerIdentification |  | Accounting/Receivables/Customer360/FinanceDetails |
 | CustomerFinanceServices | store#CustomerBankAccount |  | Accounting/Receivables/Customer360/FinanceDetails |
 | CustomerFinanceServices | store#CustomerTaxRegistration |  | Accounting/Receivables/Customer360/FinanceDetails |
-| CollectionServices | preview#Statements |  | Accounting/Receivables/Statements |
-| CollectionServices | get#StatementPreview |  | Accounting/Receivables/Statements; Accounting/Receivables/StatementPrint |
+| CollectionServices | get#Statements |  | Accounting/Receivables/Statements; Accounting/Receivables/StatementPrint |
 | CollectionServices | send#Statements |  | Accounting/Receivables/Statements |
 
-Added in Accounting P5b2a, called by built screens. Reviewed native gateway services replace the older legacy
-gateway writer/poller design references; private reserve/dispatch/lookup/evidence stages are not screen calls.
+Added in Accounting P5 for gateway actions, called by built screens. They review and confirm Mantle's
+`authorize#`, `capture#`, `release#` and `refund#SinglePayment` and `get#SinglePaymentGatewayDetails` (R2), which
+replace the older gateway writer and poller design references.
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
-| PaymentServices | find#PaymentGatewayBindings |  | Accounting/Payments/PaymentDetail (selected reviewed binding choices) |
 | PaymentServices | find#PaymentGatewayProviders |  | Accounting/Payments/GatewayTransactions |
 | PaymentServices | find#PaymentGatewayTransactions |  | Accounting/Payments/GatewayTransactions |
-| PaymentServices | get#PaymentGatewayAttempt |  | Accounting/Payments/GatewayTransactions |
 | PaymentServices | preview#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
 | PaymentServices | get#PaymentGatewayActionPreview |  | Accounting/Payments/PaymentDetail |
 | PaymentServices | execute#PaymentGatewayAction |  | Accounting/Payments/PaymentDetail |
-| PaymentServices | refresh#PaymentGatewayAttempt |  | Accounting/Payments/GatewayTransactions |
-| PaymentServices | preview#PaymentGatewayRecovery |  | Accounting/Payments/GatewayTransactions |
-| PaymentServices | complete#PaymentGatewayAttempt |  | Accounting/Payments/PaymentDetail |
+| PaymentServices | lookup#PaymentGatewayDetails |  | Accounting/Payments/PaymentDetail/Gateway |
 
-Added or adopted through the Accounting P5 checkpoint. Financial authority is Mantle; private reservation/provider
-stages and fixture services are excluded. The existing reviewed gateway rows also cover original-capture refunds.
+Added in Accounting P5, called by built screens; reworked on Mantle's services in R2. Gateway refunds are the gateway
+rows above; the test gateway services are left out.
 
 | Service XML | Service | Designed in | Implemented in |
 | --- | --- | --- | --- |
@@ -244,8 +240,10 @@ stages and fixture services are excluded. The existing reviewed gateway rows als
 | PaymentServices | find#SettlementAdjustmentAccounts | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench (explicit account choices) |
 | PaymentServices | preview#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
 | PaymentServices | get#SettlementPreview | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | store#SettlementDraft |  | Accounting/Receivables/ReceivablesWorkbench |
+| PaymentServices | get#SettlementDraft |  | Accounting/Receivables/ReceivablesWorkbench |
 | PaymentServices | apply#Settlement | Accounting/Receivables/ReceivablesWorkbench | Accounting/Receivables/ReceivablesWorkbench |
-| PaymentServices | preview#PaymentAutoApplication | Accounting/Payments/PaymentDetail | Native adopted contract (not directly mounted) |
+| PaymentServices | preview#PaymentAutoApplication | Accounting/Payments/PaymentDetail | Mantle (no screen calls it yet) |
 | PaymentServices | find#Payments | Accounting/Payments/Payments | Accounting/Payments/Payments |
 | PaymentServices | get#PaymentFinanceDetail | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail and its seven tabs |
 | PaymentServices | find#PaymentMethods | Accounting/Payments | Accounting/Payments/Payments; Accounting/Payments/PaymentDetail (reviewed choices) |
@@ -258,8 +256,7 @@ stages and fixture services are excluded. The existing reviewed gateway rows als
 | PaymentServices | get#PaymentUnapplyPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
 | PaymentServices | unapply#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Applications |
 | PaymentServices | get#PaymentOutput | Accounting/Payments/PaymentPrint | Accounting/Payments/PaymentPrint |
-| PaymentServices | get#PaymentRefundSummary | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Refunds |
-| PaymentServices | find#PaymentRefundDrafts | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail (reviewed draft choices) |
+| PaymentServices | get#PaymentRefundSummary | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail/Refunds (through get#PaymentFinanceDetail) |
 | PaymentServices | preview#PaymentRefund | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ReviewManualRefund |
 | PaymentServices | get#PaymentRefundPreview | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail |
 | PaymentServices | refund#ReviewedPayment | Accounting/Payments/PaymentDetail | Accounting/Payments/PaymentDetail#ConfirmManualRefund |

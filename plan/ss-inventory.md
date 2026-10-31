@@ -135,7 +135,7 @@ Accounting P4 mappings name only built receivables forms. Payable, settlement, s
 | FindInvoice | ProjectInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (receivable) |
 | FindInvoice | ProjectWorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (payable) |
 | FindInvoice | WorkerInvoice | Projects/Billing/Unbilled; Accounting/Receivables/BillingQueue | Accounting/Receivables/BillingQueue#CreateApprovedTimeInvoice (payable) |
-| FindInvoice | CustomerStatementForm | Accounting/Receivables/Statements | Accounting/Receivables/Statements#StatementOptions; StatementDelivery; StatementDeliveryResults |
+| FindInvoice | CustomerStatementForm | Accounting/Receivables/Statements | Accounting/Receivables/Statements#StatementOptions; StatementInvoices; StatementDelivery |
 | FindInvoice | MainOptions | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
 | FindInvoice | InvoiceList | Purchasing/Bills; Accounting/Receivables/Invoices; Accounting/Payables/Bills | Accounting/Receivables/Invoices#InvoiceList; Accounting/Payables/Bills#Records |
 | FindInvoice | AgingSummaryList | Accounting/Receivables/Invoices; Accounting/Payables/Bills |  |
@@ -991,9 +991,8 @@ are implemented. Coverage above names the built forms. Posted financial rewrite,
 full invoice/bill/payment workflows, gateway operations and banking remain outside this phase; those parity cells
 remain blank. Numbering/templates, due-only terms and masked method metadata are documented in AccountingImplementation.
 
-Accounting P4–P5 checkpoint: native invoice delivery/batches/statements, shared customer/invoice contexts, reviewed
-settlement/payment state/unapplication, gateway capture/lookup/recovery, manual/provider refunds and atomic paired
-transfers are implemented. Payments' `ReviewInternalTransfer`/`ConfirmInternalTransfer` and actual pair/detail-output
-forms have no legacy SimpleScreens form to claim. Old unrestricted financial writers and raw refund-link forms stay
-unadopted. Payable intake/holds, payment runs, bank sessions and later-phase forms remain planned. Execution is paused
-before P6; broader presentation/access regression is retained for P21 under the user's code-completion priority.
+Accounting P4–P5 (reworked on Mantle's services in impl-accounting R2): invoice sending, batches and statements,
+the shared customer and invoice contexts, settlement, payment state changes and unapplication, gateway actions and
+lookup, manual and gateway refunds, and internal transfers are implemented. The internal transfer forms have no
+SimpleScreens form to claim. The raw refund-link forms are not used: refunds go through `create#RefundPayment`.
+Payable intake and holds, payment runs, bank sessions and the later phases' forms remain planned.
